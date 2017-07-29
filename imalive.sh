@@ -18,7 +18,7 @@ while [ "$connected" != true ]
 do
   if [ "$(check_connectivity)" -eq 0 ]
   then
-	  sh ./flashman_update.sh now
+	  sh /usr/share/flashman_update.sh now
     connected=true
   fi
   sleep 5

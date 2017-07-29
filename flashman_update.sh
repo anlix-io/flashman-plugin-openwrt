@@ -1,6 +1,7 @@
 #!/bin/sh
 
 . /usr/share/libubox/jshn.sh
+. /usr/share/flash_image.sh
 
 SERVER_ADDR="flashman.gss.mooo.com"
 OPENWRT_VER=$(cat /etc/openwrt_version)
@@ -36,10 +37,11 @@ then
 
   json_load "$_res"
   json_get_var _do_update do_update
+  json_get_var _release_number release_number
   if [ "$_do_update" == "1" ]
   then
     # Execute firmware update
-    # Don't forget to disablethe flash on FlashMan!
-    echo $_do_update
+    # TODO Don't forget to disablethe flash on FlashMan!
+    run_reflash $SERVER_ADDR $_release_number
   fi
 fi
