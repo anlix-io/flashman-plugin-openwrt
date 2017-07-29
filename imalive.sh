@@ -23,3 +23,9 @@ do
   fi
   sleep 5
 done
+
+while true
+do
+	sh /usr/share/flashman_update.sh
+  sleep 300
+done

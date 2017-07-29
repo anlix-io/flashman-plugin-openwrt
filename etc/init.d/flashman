@@ -1,0 +1,13 @@
+#!/bin/sh /etc/rc.common
+
+START=300
+STOP=300
+
+start() {
+	/usr/share/boot_setup.sh
+	/usr/share/imalive.sh
+}
+
+stop() {
+	killall /usr/share/imalive.sh
+}
