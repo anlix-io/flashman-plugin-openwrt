@@ -15,7 +15,7 @@ then
   local _res=$(curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
                -k --connect-timeout 5 --retry 0 \
                --data "id=$CLIENT_MAC&version=$OPENWRT_VER&model=$HARDWARE_MODEL" \
-               "http://$SERVER_ADDR/deviceinfo/")
+               "https://$SERVER_ADDR/deviceinfo/syn/")
 
   json_load "$_res"
   json_get_var _do_update do_update
@@ -23,7 +23,6 @@ then
   if [ "$_do_update" == "1" ]
   then
     # Execute firmware update
-    # TODO Don't forget to disable the flash on FlashMan!
     run_reflash $SERVER_ADDR $_release_id
   fi
 fi
