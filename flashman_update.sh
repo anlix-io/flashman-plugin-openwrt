@@ -3,6 +3,7 @@
 . /usr/share/libubox/jshn.sh
 . /usr/share/flash_image.sh
 . /usr/share/functions.sh
+. /usr/share/boot_setup.sh
 
 SERVER_ADDR="flashman.gss.mooo.com"
 OPENWRT_VER=$(cat /etc/openwrt_version)
@@ -14,7 +15,7 @@ if [ "$NUMBER" -eq 3 ] || [ "$1" == "now" ]
 then
   local _res=$(curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
                -k --connect-timeout 5 --retry 0 \
-               --data "id=$CLIENT_MAC&version=$OPENWRT_VER&model=$HARDWARE_MODEL" \
+               --data "id=$CLIENT_MAC&version=$OPENWRT_VER&model=$HARDWARE_MODEL&release_id=$RELEASE_ID" \
                "https://$SERVER_ADDR/deviceinfo/syn/")
 
   json_load "$_res"
