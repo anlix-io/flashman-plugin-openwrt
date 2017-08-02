@@ -51,19 +51,11 @@ firstboot() {
 	uci commit firewall
 
 	uci set dropbear.@dropbear[0]=dropbear
-	uci set dropbear.@dropbear[0].PasswordAuth=off
+	uci set dropbear.@dropbear[0].PasswordAuth=on
 	uci set dropbear.@dropbear[0].RootPasswordAuth=on
 	uci set dropbear.@dropbear[0].Port=36022
 	uci commit dropbear
 	/etc/init.d/dropbear restart
-
-  # Set root password
-	PASSWORD_ENTRY=""
-	(
-		echo "$CLIENT_MAC" | awk -F ":" '{ print $1$2$3$4$5$6 }'
-		sleep 1
-		echo "$CLIENT_MAC" | awk -F ":" '{ print $1$2$3$4$5$6 }'
-	)|passwd root
 
 	# Configure WiFi default SSID and password
 	ssid_value=$(uci get wireless.@wifi-iface[0].ssid)
@@ -97,12 +89,18 @@ firstboot() {
 	uci commit network
 	/sbin/ifup lan
 
+	# Set root password
+	PASSWORD_ENTRY=""
+	(
+		echo "$CLIENT_MAC" | awk -F ":" '{ print $1$2$3$4$5$6 }'
+		sleep 1
+		echo "$CLIENT_MAC" | awk -F ":" '{ print $1$2$3$4$5$6 }'
+	)|passwd root
+
 	# Set GMT-3
 	echo BRT3BRST,M10.3.0/0,M2.3.0/0 > /etc/TZ
 	# Sync date and time with GMT-3
 	ntpd -n -q -p a.st1.ntp.br -p b.st1.ntp.br -p c.st1.ntp.br -p d.st1.ntp.br
-
-	/etc/init.d/flashman enable
 
 	log "First boot completed"
 }
