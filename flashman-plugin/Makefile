@@ -42,7 +42,6 @@ FILE_DIR=
 
 define Package/flashman-plugin/install
 	$(CP) ./$(FILE_DIR)/* $(1)/
-	chmod 0600 $(1)/etc/dropbear/authorized_keys
 endef
 
 $(eval $(call BuildPackage,flashman-plugin))
