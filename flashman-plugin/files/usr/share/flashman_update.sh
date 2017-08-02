@@ -13,6 +13,9 @@ CLIENT_MAC=$(get_mac)
 
 if [ "$NUMBER" -eq 3 ] || [ "$1" == "now" ]
 then
+  # Sync date and time with GMT-3
+	ntpd -n -q -p a.st1.ntp.br -p b.st1.ntp.br -p c.st1.ntp.br -p d.st1.ntp.br
+
   local _res=$(curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
                -k --connect-timeout 5 --retry 0 \
                --data "id=$CLIENT_MAC&version=$OPENWRT_VER&model=$HARDWARE_MODEL&release_id=$RELEASE_ID" \

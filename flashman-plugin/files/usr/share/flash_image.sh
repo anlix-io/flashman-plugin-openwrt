@@ -79,14 +79,14 @@ run_reflash()
       clean_memory
       if get_image $_sv_address $_release_id
       then
-        tar -zcf wireless.tar.gz /etc/config/wireless
+        tar -zcf /tmp/config.tar.gz /etc/config
         if sysupgrade -T "/tmp/"$_vendor"_"$_model"_"$_release_id".bin"
         then
           curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
                -k --connect-timeout 5 --retry 0 \
                --data "id=$CLIENT_MAC" \
                "https://$SERVER_ADDR/deviceinfo/ack/"
-          sysupgrade -f wireless.tar.gz "/tmp/"$_vendor"_"$_model"_"$_release_id".bin"
+          sysupgrade -f /tmp/config.tar.gz "/tmp/"$_vendor"_"$_model"_"$_release_id".bin"
         else
           echo "Image check failed"
           return 1
