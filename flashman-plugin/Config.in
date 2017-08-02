@@ -1,0 +1,8 @@
+choice
+  prompt "Customer image choice"
+  default USE_DEFAULT_FLAG
+  help
+    Select desired files target that will be applied to FlashMan plugin.
+  config USE_DEFAULT_FLAG
+    bool "default"
+endchoice

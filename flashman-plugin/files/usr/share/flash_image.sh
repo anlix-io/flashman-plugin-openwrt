@@ -52,7 +52,7 @@ get_image()
     local _vendor=$(cat /proc/cpuinfo | sed -n 2p | awk '{ print $3 }')
     local _model=$(cat /proc/cpuinfo | sed -n 2p | awk '{ print $4 }' | sed 's/\//-/g')
 
-    ret_value=$(download_file "https://$_sv_address/images/" "$_vendor-$_model-$_release_id.bin" "/tmp")
+    ret_value=$(download_file "https://$_sv_address/images/" $_vendor"_"$_model"_"$_release_id".bin" "/tmp")
     if ! "$ret_value"
     then
       echo "Image download failed"
@@ -81,13 +81,13 @@ run_reflash()
       if get_image $_sv_address $_release_id
       then
         tar -zcf wireless.tar.gz /etc/config/wireless
-        if sysupgrade -T wireless.tar.gz "/tmp/$_vendor-$_model-$_release_id.bin"
+        if sysupgrade -T wireless.tar.gz "/tmp/"$_vendor"_"$_model"_"$_release_id".bin"
         then
           curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
                -k --connect-timeout 5 --retry 0 \
                --data "id=$CLIENT_MAC" \
                "https://$SERVER_ADDR/deviceinfo/ack/"
-          sysupgrade -f wireless.tar.gz "/tmp/$_vendor-$_model-$_release_id.bin"
+          sysupgrade -f wireless.tar.gz "/tmp/"$_vendor"_"$_model"_"$_release_id".bin"
         else
           echo "Image check failed"
           return 1
