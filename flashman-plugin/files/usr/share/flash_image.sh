@@ -52,8 +52,7 @@ get_image()
     local _vendor=$(cat /proc/cpuinfo | sed -n 2p | awk '{ print $3 }')
     local _model=$(cat /proc/cpuinfo | sed -n 2p | awk '{ print $4 }' | sed 's/\//-/g')
 
-    ret_value=$(download_file "https://$_sv_address/images/" $_vendor"_"$_model"_"$_release_id".bin" "/tmp")
-    if ! "$ret_value"
+    if ! download_file "https://$_sv_address/images/" $_vendor"_"$_model"_"$_release_id".bin" "/tmp"
     then
       echo "Image download failed"
       return 1
