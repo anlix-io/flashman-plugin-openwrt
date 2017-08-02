@@ -5,7 +5,7 @@ STOP=300
 
 start() {
 	/usr/share/boot_setup.sh
-	/usr/share/imalive.sh
+	/usr/share/imalive.sh &
 }
 
 stop() {
