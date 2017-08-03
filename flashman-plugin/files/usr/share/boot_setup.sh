@@ -1,12 +1,10 @@
 #!/bin/sh
 
+. /usr/share/flashman_init.conf
 . /lib/functions.sh
 . /usr/share/functions.sh
 
 HARDWARE_MODEL=$(cat /proc/cpuinfo | sed -n 2p | awk '{ print $4 }' | sed 's/\//-/g')
-RELEASE_ID="0000-glk"
-DEFAULT_WIFI_SSID="Gigalink-WiFi"
-DEFAULT_WIFI_PASS="Gig@l1nK!"
 CLIENT_MAC=$(get_mac)
 
 log() {
@@ -14,12 +12,14 @@ log() {
 }
 
 firstboot() {
+	uci set system.@system[-1].hostname="$HARDWARE_MODEL-$FLM_RELID"
 	uci set system.@system[-1].cronloglevel="9"
 	uci commit system
 
 	uci set system.ntp.enabled="0"
 	uci set system.ntp.enable_server="0"
 	uci commit system
+	/etc/init.d/system restart
 
 	# Set firewall rules
 	uci set firewall.@defaults[-1].input="ACCEPT"
@@ -67,18 +67,18 @@ firstboot() {
 		uci set wireless.@wifi-device[0].channel="11"
 		uci commit wireless
 		uci set wireless.@wifi-iface[0].disabled="0"
-		uci set wireless.@wifi-iface[0].ssid="$DEFAULT_WIFI_SSID"
+		uci set wireless.@wifi-iface[0].ssid="$FLM_SSID"
 		uci set wireless.@wifi-iface[0].encryption="psk2"
-		uci set wireless.@wifi-iface[0].key="$DEFAULT_WIFI_PASS"
+		uci set wireless.@wifi-iface[0].key="$FLM_PASSWD"
 		uci commit wireless
 		uci set wireless.@wifi-device[1].disabled="0"
 		uci set wireless.@wifi-device[1].type="mac80211"
 		uci set wireless.@wifi-device[1].channel="36"
 		uci commit wireless
 		uci set wireless.@wifi-iface[1].disabled="0"
-		uci set wireless.@wifi-iface[1].ssid="$DEFAULT_WIFI_SSID"
+		uci set wireless.@wifi-iface[1].ssid="$FLM_SSID"
 		uci set wireless.@wifi-iface[1].encryption="psk2"
-		uci set wireless.@wifi-iface[1].key="$DEFAULT_WIFI_PASS"
+		uci set wireless.@wifi-iface[1].key="$FLM_PASSWD"
 		uci commit wireless
 	fi
 	/sbin/wifi up
