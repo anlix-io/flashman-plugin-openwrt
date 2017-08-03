@@ -6,13 +6,14 @@
 
 HARDWARE_MODEL=$(cat /proc/cpuinfo | sed -n 2p | awk '{ print $4 }' | sed 's/\//-/g')
 CLIENT_MAC=$(get_mac)
+HOSTNAME=$(echo $CLIENT_MAC | sed -e "s/:/-/g")
 
 log() {
 	logger -t "FlashMan Plugin Boot " "$@"
 }
 
 firstboot() {
-	uci set system.@system[-1].hostname="$CLIENT_MAC"
+	uci set system.@system[-1].hostname="$HOSTNAME"
 	uci set system.@system[-1].cronloglevel="9"
 	uci commit system
 
