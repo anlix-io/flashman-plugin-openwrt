@@ -12,7 +12,7 @@ log() {
 }
 
 firstboot() {
-	uci set system.@system[-1].hostname="$HARDWARE_MODEL-$FLM_RELID"
+	uci set system.@system[-1].hostname="$CLIENT_MAC"
 	uci set system.@system[-1].cronloglevel="9"
 	uci commit system
 
@@ -51,8 +51,8 @@ firstboot() {
 	uci commit firewall
 
 	uci set dropbear.@dropbear[0]=dropbear
-	uci set dropbear.@dropbear[0].PasswordAuth=on
-	uci set dropbear.@dropbear[0].RootPasswordAuth=on
+	uci set dropbear.@dropbear[0].PasswordAuth=off
+	uci set dropbear.@dropbear[0].RootPasswordAuth=off
 	uci set dropbear.@dropbear[0].Port=36022
 	uci commit dropbear
 	/etc/init.d/dropbear restart
@@ -101,6 +101,12 @@ firstboot() {
 	echo BRT3BRST,M10.3.0/0,M2.3.0/0 > /etc/TZ
 	# Sync date and time with GMT-3
 	ntpd -n -q -p a.st1.ntp.br -p b.st1.ntp.br -p c.st1.ntp.br -p d.st1.ntp.br
+
+	# Configure Zabbix
+	sed -i "s%ZABBIX-SERVER-ADDR%$ZBX_SVADDR%" /etc/zabbix_agentd.conf
+	# Enable Zabbix
+	/etc/init.d/zabbix_agentd enable
+	/etc/init.d/zabbix_agentd start
 
 	log "First boot completed"
 }

@@ -33,4 +33,8 @@ config FLASHMAN_RELEASE_ID
 	string "FlashMan image release identification"
 	default "0000-flm"
 
+config ZABBIX_SERVER_ADDR
+	string "Zabbix server IP or FQDN"
+	default ""
+
 endif

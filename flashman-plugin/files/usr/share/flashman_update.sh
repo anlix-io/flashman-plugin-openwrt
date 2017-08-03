@@ -6,7 +6,7 @@
 . /usr/share/functions.sh
 . /usr/share/boot_setup.sh
 
-SERVER_ADDR="flashman.gss.mooo.com"
+SERVER_ADDR="$FLM_SVADDR"
 OPENWRT_VER=$(cat /etc/openwrt_version)
 HARDWARE_MODEL=$(cat /proc/cpuinfo | sed -n 2p | awk '{ print $4 }' | sed 's/\//-/g')
 NUMBER=$(head /dev/urandom | tr -dc "012345" | head -c1)
