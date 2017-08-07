@@ -40,6 +40,7 @@ define Package/flashman-plugin
 	CATEGORY:=Utilities
 	TITLE:=Install flashman-plugin
 	DEPENDS:=+curl \
+					 +luci \
 					 +zabbix-agentd \
 					 +zabbix-extra-mac80211 \
 					 +zabbix-extra-network \
