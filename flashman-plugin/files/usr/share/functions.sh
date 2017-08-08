@@ -1,5 +1,7 @@
 #!/bin/sh
 
+. /lib/functions/network.sh
+
 download_file()
 {
     dfile="$2"
@@ -58,4 +60,11 @@ get_mac()
     fi
   fi
   echo "$_mac_address_tag"
+}
+
+get_wan_ip()
+{
+  local _ip=""
+  network_get_ipaddr _ip wan
+  echo "$_ip"
 }
