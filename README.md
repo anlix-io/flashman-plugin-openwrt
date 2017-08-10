@@ -8,12 +8,13 @@
 	1. `cp diffconfig <OpenWRT root directory>/.config`
 	2. On OpenWRT root directory: `make defconfig`
 3. Run make menuconfig on OpenWRT root directory and
-	1. Select target device
-	2. Select flashman-plugin package on Utilities
-	3. *IMPORTANT* Configure key pair path generated on step 1.
-	4. *IMPORTANT* Configure public key file name generated on step 1.
-	5. Configure FlashMan IP address or FQDN
-	6. Change SSID, password and release ID if desired
+	1. Include flash plugin `cp -r flashman-plugin <OpenWRT root directory>/package/utils/`
+	2. Select target device
+	3. Select flashman-plugin package on Utilities
+	4. *IMPORTANT* Configure key pair path generated on step 1.
+	5. *IMPORTANT* Configure public key file name generated on step 1.
+	6. Configure FlashMan IP address or FQDN
+	7. Change SSID, password and release ID if desired
 
 ## COPYRIGHT ##
 

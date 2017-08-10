@@ -41,6 +41,8 @@ define Package/flashman-plugin
 	TITLE:=Install flashman-plugin
 	DEPENDS:=+curl \
 					 +luci \
+					 +iputils-ping \
+					 +iputils-ping6 \
 					 +zabbix-agentd \
 					 +zabbix-extra-mac80211 \
 					 +zabbix-extra-network \
