@@ -85,7 +85,7 @@ firstboot() {
 		uci set wireless.@wifi-device[1].channel="36"
 		uci commit wireless
 		uci set wireless.@wifi-iface[1].disabled="0"
-		uci set wireless.@wifi-iface[1].ssid="$FLM_SSID"
+		uci set wireless.@wifi-iface[1].ssid="$FLM_SSID$MAC_LAST_CHARS"
 		uci set wireless.@wifi-iface[1].encryption="psk2"
 		uci set wireless.@wifi-iface[1].key="$FLM_PASSWD"
 		uci commit wireless
