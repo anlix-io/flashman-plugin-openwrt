@@ -1,0 +1,4 @@
+
+UserParameter=dhcpd.hosts.macs,cat /tmp/dhcp.leases | awk '{ print $2 }'
+UserParameter=dhcpd.hosts.ips,cat /tmp/dhcp.leases | awk '{ print $3 }'
+UserParameter=dhcpd.hosts.names,cat /tmp/dhcp.leases | awk '{ print $4 }'
