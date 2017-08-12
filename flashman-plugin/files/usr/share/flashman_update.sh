@@ -18,7 +18,7 @@ PPPOE_PASSWD=""
 if [ "$NUMBER" -eq 3 ] || [ "$1" == "now" ]
 then
   # Sync date and time with GMT-3
-	ntpd -n -q -p a.st1.ntp.br -p b.st1.ntp.br -p c.st1.ntp.br -p d.st1.ntp.br
+	ntpd -n -q -p $NTP_SVADDR
 
 	# Get PPPoE data if available
 	if [ "$(uci get network.wan.proto)" == "pppoe" ]

@@ -7,12 +7,20 @@
 HARDWARE_MODEL=$(cat /proc/cpuinfo | sed -n 2p | awk '{ print $4 }' | sed 's/\//-/g')
 CLIENT_MAC=$(get_mac)
 HOSTNAME=$(echo $CLIENT_MAC | sed -e "s/:/-/g")
+MAC_LAST_CHARS=$(echo $CLIENT_MAC | awk -F: '{ print $5$6 }')
+
+# Wireless password cannot be empty or have less than 8 chars
+if [ "$FLM_PASSWD" == "" ] || [ $(echo "$FLM_PASSWD" | wc -m) -lt 9 ]
+then
+	FLM_PASSWD=$(echo $CLIENT_MAC | sed -e "s/://g")
+fi
 
 log() {
 	logger -t "FlashMan Plugin Boot " "$@"
 }
 
 firstboot() {
+	uci set system.@system[-1].timezone="BRT3BRST,M10.3.0/0,M2.3.0/0"
 	uci set system.@system[-1].hostname="$HOSTNAME"
 	uci set system.@system[-1].cronloglevel="9"
 	uci commit system
@@ -68,7 +76,7 @@ firstboot() {
 		uci set wireless.@wifi-device[0].channel="11"
 		uci commit wireless
 		uci set wireless.@wifi-iface[0].disabled="0"
-		uci set wireless.@wifi-iface[0].ssid="$FLM_SSID"
+		uci set wireless.@wifi-iface[0].ssid="$FLM_SSID$MAC_LAST_CHARS"
 		uci set wireless.@wifi-iface[0].encryption="psk2"
 		uci set wireless.@wifi-iface[0].key="$FLM_PASSWD"
 		uci commit wireless
@@ -98,10 +106,8 @@ firstboot() {
 		echo "$CLIENT_MAC" | awk -F ":" '{ print $1$2$3$4$5$6 }'
 	)|passwd root
 
-	# Set GMT-3
-	echo BRT3BRST,M10.3.0/0,M2.3.0/0 > /etc/TZ
 	# Sync date and time with GMT-3
-	ntpd -n -q -p a.st1.ntp.br -p b.st1.ntp.br -p c.st1.ntp.br -p d.st1.ntp.br
+	ntpd -n -q -p $NTP_SVADDR
 
 	# Configure Zabbix
 	sed -i "s%ZABBIX-SERVER-ADDR%$ZBX_SVADDR%" /etc/zabbix_agentd.conf
