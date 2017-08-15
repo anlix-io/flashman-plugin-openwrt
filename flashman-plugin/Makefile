@@ -62,6 +62,15 @@ FILE_DIR=
 		FILE_DIR="files"
 	endif
 
+WAN_PROTO=
+	ifeq ($(CONFIG_FLASHMAN_WAN_PROTO_DHCP), y)
+		WAN_PROTO="dhcp"
+	else ifeq ($(CONFIG_FLASHMAN_WAN_PROTO_PPPOE), y)
+		WAN_PROTO="pppoe"
+	else
+		WAN_PROTO="dhcp"
+	endif
+
 define Package/flashman-plugin/install
 	$(CP) ./$(FILE_DIR)/* $(1)/
 
@@ -72,6 +81,14 @@ define Package/flashman-plugin/install
 	echo 'FLM_SVADDR=$(CONFIG_FLASHMAN_SERVER_ADDR)' >>$(1)/usr/share/flashman_init.conf
 	echo 'ZBX_SVADDR=$(CONFIG_ZABBIX_SERVER_ADDR)' >>$(1)/usr/share/flashman_init.conf
 	echo 'NTP_SVADDR=$(CONFIG_NTP_SERVER_ADDR)' >>$(1)/usr/share/flashman_init.conf
+	echo 'FLM_WAN_PROTO=$(WAN_PROTO)' >>$(1)/usr/share/flashman_init.conf
+	echo 'FLM_WAN_MTU=$(CONFIG_FLASHMAN_WAN_MTU)' >>$(1)/usr/share/flashman_init.conf
+
+ifeq ($(WAN_PROTO), "pppoe")
+	echo 'FLM_WAN_PPPOE_USER=$(CONFIG_FLASHMAN_PPPOE_USER)' >>$(1)/usr/share/flashman_init.conf
+	echo 'FLM_WAN_PPPOE_PASSWD=$(CONFIG_FLASHMAN_PPPOE_PASSWD)' >>$(1)/usr/share/flashman_init.conf
+	echo 'FLM_WAN_PPPOE_SERVICE=$(CONFIG_FLASHMAN_PPPOE_SERVICE)' >>$(1)/usr/share/flashman_init.conf
+endif
 
 	mkdir -p $(1)/etc/dropbear
 	cat $(CONFIG_FLASHMAN_KEYS_PATH)/$(CONFIG_FLASHMAN_PUBKEY_FNAME) >>$(1)/etc/dropbear/authorized_keys
