@@ -4,7 +4,7 @@
 
 1. Generate a key pair or use a alredy existing key pair
 	* Example: ssh-keygen -t rsa 4096
-2. Always apply diffconfig with the following steps.
+2. Always apply diffconfig with the following steps. Note: Choose proper diffconfig file if you're using OpenWRT or LEDE.
 	1. `cp diffconfig <OpenWRT root directory>/.config`
 	2. On OpenWRT root directory: `make defconfig`
 3. Run make menuconfig on OpenWRT root directory and
@@ -15,6 +15,12 @@
 	5. *IMPORTANT* Configure public key file name generated on step 1.
 	6. Configure FlashMan IP address or FQDN
 	7. Change SSID, password and release ID if desired
+4. Build OpenWRT image
+	1. Change to OpenWRT root directory
+	2. Always enter `make package/utils/flashman-plugin/clean`
+	3. Run `make`
+
+TODO. Feed instructions for production use
 
 ## COPYRIGHT ##
 
