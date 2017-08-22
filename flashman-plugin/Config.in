@@ -11,7 +11,7 @@ endchoice
 
 config FLASHMAN_KEYS_PATH
 	string "Public key file path. This key will be used for remote SSH access."
-	default "~/.ssh"
+	default "/home/localuser/.ssh"
 
 config FLASHMAN_PUBKEY_FNAME
 	string "Public key file name. This key will be used for remote SSH access."
@@ -40,5 +40,34 @@ config ZABBIX_SERVER_ADDR
 config NTP_SERVER_ADDR
 	string "NTP server IP or FQDN"
 	default "a.st1.ntp.br"
+
+choice
+  prompt "WAN connection protocol"
+  default FLASHMAN_WAN_PROTO_DHCP
+  help
+    Select which protocol will be used on the WAN interface.
+  config FLASHMAN_WAN_PROTO_DHCP
+  	bool "DHCP"
+  config FLASHMAN_WAN_PROTO_PPPOE
+  	bool "PPPoE"
+endchoice
+
+if FLASHMAN_WAN_PROTO_PPPOE
+  config FLASHMAN_PPPOE_USER
+  	string "PPPoE username. Remember to escape hashtags and dollar signs with a slash."
+  	default "flashman-user"
+
+  config FLASHMAN_PPPOE_PASSWD
+  	string "PPPoE password. Remember to escape hashtags and dollar signs with a slash."
+  	default "Flashman!"
+
+  config FLASHMAN_PPPOE_SERVICE
+  	string "PPPoE service. Remember to escape hashtags and dollar signs with a slash."
+  	default "auto"
+endif
+
+config FLASHMAN_WAN_MTU
+	string "WAN MTU"
+	default "1500"
 
 endif
