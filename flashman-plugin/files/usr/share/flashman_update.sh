@@ -14,6 +14,8 @@ CLIENT_MAC=$(get_mac)
 WAN_IP_ADDR=$(get_wan_ip)
 PPPOE_USER=""
 PPPOE_PASSWD=""
+WIFI_SSID=""
+WIFI_PASSWD=""
 
 if [ "$NUMBER" -eq 3 ] || [ "$1" == "now" ]
 then
@@ -27,9 +29,16 @@ then
 		PPPOE_PASSWD=$(uci get network.wan.password)
 	fi
 
+	# Get WiFi data if available
+	if [ "$(uci get wireless.@wifi-iface[0].disabled)" == "0" ]
+	then
+		WIFI_SSID=$(uci get wireless.@wifi-iface[0].ssid)
+		WIFI_PASSWD=$(uci get wireless.@wifi-iface[0].key)
+	fi
+
   local _res=$(curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
                -k --connect-timeout 5 --retry 0 \
-               --data "id=$CLIENT_MAC&version=$OPENWRT_VER&model=$HARDWARE_MODEL&release_id=$FLM_RELID&pppoe_user=$PPPOE_USER&pppoe_password=$PPPOE_PASSWD&wan_ip=$WAN_IP_ADDR" \
+               --data "id=$CLIENT_MAC&version=$OPENWRT_VER&model=$HARDWARE_MODEL&release_id=$FLM_RELID&pppoe_user=$PPPOE_USER&pppoe_password=$PPPOE_PASSWD&wan_ip=$WAN_IP_ADDR&wifi_ssid=$WIFI_SSID&wifi_password=$WIFI_PASSWD" \
                "https://$SERVER_ADDR/deviceinfo/syn/")
 
   json_load "$_res"
