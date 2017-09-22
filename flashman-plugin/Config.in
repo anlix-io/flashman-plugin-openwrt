@@ -1,12 +1,12 @@
 if PACKAGE_flashman-plugin
 
 choice
-  prompt "Customer image choice"
-  default USE_DEFAULT_FLAG
-  help
-    Select desired files target that will be applied to FlashMan plugin.
-  config USE_DEFAULT_FLAG
-  	bool "default"
+	prompt "Customer image choice"
+	default USE_DEFAULT_FLAG
+	help
+		Select desired files target that will be applied to FlashMan plugin.
+	config USE_DEFAULT_FLAG
+		bool "default"
 endchoice
 
 config FLASHMAN_KEYS_PATH
@@ -29,6 +29,10 @@ config FLASHMAN_WIFI_PASSWD
 	string "WiFi router AP password. Leave it blank and router mac address will be used. Remember to escape hashtags and dollar signs with a slash."
 	default ""
 
+config FLASHMAN_WIFI_CHANNEL
+	string "WiFi router AP 2.4GHz channel."
+	default "auto"
+
 config FLASHMAN_RELEASE_ID
 	string "FlashMan image release identification"
 	default "0000-flm"
@@ -42,28 +46,28 @@ config NTP_SERVER_ADDR
 	default "a.st1.ntp.br"
 
 choice
-  prompt "WAN connection protocol"
-  default FLASHMAN_WAN_PROTO_DHCP
-  help
-    Select which protocol will be used on the WAN interface.
-  config FLASHMAN_WAN_PROTO_DHCP
-  	bool "DHCP"
-  config FLASHMAN_WAN_PROTO_PPPOE
-  	bool "PPPoE"
+	prompt "WAN connection protocol"
+	default FLASHMAN_WAN_PROTO_DHCP
+	help
+		Select which protocol will be used on the WAN interface.
+	config FLASHMAN_WAN_PROTO_DHCP
+		bool "DHCP"
+	config FLASHMAN_WAN_PROTO_PPPOE
+		bool "PPPoE"
 endchoice
 
 if FLASHMAN_WAN_PROTO_PPPOE
-  config FLASHMAN_PPPOE_USER
-  	string "PPPoE username. Remember to escape hashtags and dollar signs with a slash."
-  	default "flashman-user"
+	config FLASHMAN_PPPOE_USER
+		string "PPPoE username. Remember to escape hashtags and dollar signs with a slash."
+		default "flashman-user"
 
-  config FLASHMAN_PPPOE_PASSWD
-  	string "PPPoE password. Remember to escape hashtags and dollar signs with a slash."
-  	default "Flashman!"
+	config FLASHMAN_PPPOE_PASSWD
+		string "PPPoE password. Remember to escape hashtags and dollar signs with a slash."
+		default "Flashman!"
 
-  config FLASHMAN_PPPOE_SERVICE
-  	string "PPPoE service. Remember to escape hashtags and dollar signs with a slash."
-  	default "auto"
+	config FLASHMAN_PPPOE_SERVICE
+		string "PPPoE service. Remember to escape hashtags and dollar signs with a slash."
+		default "auto"
 endif
 
 config FLASHMAN_WAN_MTU

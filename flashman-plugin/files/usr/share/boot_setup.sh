@@ -73,7 +73,8 @@ firstboot() {
 	then
 		uci set wireless.@wifi-device[0].disabled="0"
 		uci set wireless.@wifi-device[0].type="mac80211"
-		uci set wireless.@wifi-device[0].channel="11"
+		uci set wireless.@wifi-device[0].channel="$FLM_24_CHANNEL"
+		uci set wireless.@wifi-device[0].hwmode="11n"
 		uci commit wireless
 		uci set wireless.@wifi-iface[0].disabled="0"
 		uci set wireless.@wifi-iface[0].ssid="$FLM_SSID$MAC_LAST_CHARS"
