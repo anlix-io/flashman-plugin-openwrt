@@ -54,6 +54,7 @@ then
 
 	# PPPoE update
 	if [ "$(uci get network.wan.proto)" == "pppoe" ]
+	then
 		if [ "$_pppoe_user" != "" ] && [ "$_pppoe_password" != "" ]
 		then
 			if [ "$_pppoe_user" != "$PPPOE_USER" ] || \
