@@ -69,14 +69,19 @@ firstboot() {
 	# Configure WiFi default SSID and password
 	ssid_value=$(uci get wireless.@wifi-iface[0].ssid)
 	encryption_value=$(uci get wireless.@wifi-iface[0].encryption)
-	if [ "$ssid_value" = "OpenWrt" ] && [ "$encryption_value" = "none" ]
+	if [ "$encryption_value" = "none" ] && { [ "$ssid_value" = "OpenWrt" ] || [ "$ssid_value" = "LEDE" ]; }
 	then
 		uci set wireless.@wifi-device[0].disabled="0"
 		uci set wireless.@wifi-device[0].type="mac80211"
-		uci set wireless.@wifi-device[0].channel="$FLM_24_CHANNEL"
+		# Auto mode doesn't work on current WR840N release. MediaTek 7728 instability.
+		if [ "$HARDWARE_MODEL" = "TL-WR840N" ]
+		then
+			uci set wireless.@wifi-device[0].channel="11"
+		else
+			uci set wireless.@wifi-device[0].channel="$FLM_24_CHANNEL"
+		fi
 		uci set wireless.@wifi-device[0].hwmode="11n"
 		uci commit wireless
-		uci set wireless.@wifi-iface[0].disabled="0"
 		uci set wireless.@wifi-iface[0].ssid="$FLM_SSID$MAC_LAST_CHARS"
 		uci set wireless.@wifi-iface[0].encryption="psk2"
 		uci set wireless.@wifi-iface[0].key="$FLM_PASSWD"
@@ -85,7 +90,6 @@ firstboot() {
 		uci set wireless.@wifi-device[1].type="mac80211"
 		uci set wireless.@wifi-device[1].channel="36"
 		uci commit wireless
-		uci set wireless.@wifi-iface[1].disabled="0"
 		uci set wireless.@wifi-iface[1].ssid="$FLM_SSID$MAC_LAST_CHARS"
 		uci set wireless.@wifi-iface[1].encryption="psk2"
 		uci set wireless.@wifi-iface[1].key="$FLM_PASSWD"
