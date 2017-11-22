@@ -8,6 +8,7 @@ HARDWARE_MODEL=$(cat /proc/cpuinfo | sed -n 2p | awk '{ print $4 }' | sed 's/\//
 CLIENT_MAC=$(get_mac)
 HOSTNAME=$(echo $CLIENT_MAC | sed -e "s/:/-/g")
 MAC_LAST_CHARS=$(echo $CLIENT_MAC | awk -F: '{ print $5$6 }')
+DISTRIBID=$(head -1 /etc/openwrt_release | awk -F = '{ print $2 }')
 
 # Wireless password cannot be empty or have less than 8 chars
 if [ "$FLM_PASSWD" == "" ] || [ $(echo "$FLM_PASSWD" | wc -m) -lt 9 ]
@@ -131,6 +132,11 @@ firstboot() {
 
 	# Configure Zabbix
 	sed -i "s%ZABBIX-SERVER-ADDR%$ZBX_SVADDR%" /etc/zabbix_agentd.conf
+	_count_logtype=$(grep -c "LogType" /etc/zabbix_agentd.conf)
+	if [ "$DISTRIBID" == "'LEDE'" ] && [ "$_count_logtype" -lt 1 ]
+	then
+		echo "LogType=system" >> /etc/zabbix_agentd.conf
+	fi
 	# Enable Zabbix
 	/etc/init.d/zabbix_agentd enable
 	/etc/init.d/zabbix_agentd start
