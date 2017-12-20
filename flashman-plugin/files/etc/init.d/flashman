@@ -1,13 +1,14 @@
 #!/bin/sh /etc/rc.common
 
 START=300
-STOP=300
 
-start() {
+USE_PROCD=1
+PROG=/usr/share/imalive.sh
+
+start_service() {
 	/usr/share/boot_setup.sh
-	/usr/share/imalive.sh &
-}
-
-stop() {
-	killall /usr/share/imalive.sh
+	procd_open_instance
+	procd_set_param command ${PROG}
+	procd_set_param respawn
+	procd_close_instance
 }
