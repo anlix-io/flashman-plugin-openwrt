@@ -5,7 +5,8 @@
 
 SERVER_ADDR="$FLM_SVADDR"
 OPENWRT_VER=$(cat /etc/openwrt_version)
-HARDWARE_MODEL=$(cat /proc/cpuinfo | sed -n 2p | awk '{ print $4 }' | sed 's/\//-/g')
+HARDWARE_MODEL=$(cat /proc/sysinfo/model | awk '{ print $2 }')
+HARDWARE_VER=$(cat /proc/sysinfo/model | awk '{ print $3 }')
 CLIENT_MAC=$(get_mac)
 WAN_IP_ADDR=$(get_wan_ip)
 PPPOE_USER=""
@@ -39,7 +40,7 @@ do
 
 		curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
 		    -k --connect-timeout 5 --retry 0 \
-		    --data "id=$CLIENT_MAC&version=$OPENWRT_VER&model=$HARDWARE_MODEL&release_id=$FLM_RELID&pppoe_user=$PPPOE_USER&pppoe_password=$PPPOE_PASSWD&wan_ip=$WAN_IP_ADDR&wifi_ssid=$WIFI_SSID&wifi_password=$WIFI_PASSWD&wifi_channel=$WIFI_CHANNEL" \
+		    --data "id=$CLIENT_MAC&version=$OPENWRT_VER&model=$HARDWARE_MODEL&model_ver=$HARDWARE_VER&release_id=$FLM_RELID&pppoe_user=$PPPOE_USER&pppoe_password=$PPPOE_PASSWD&wan_ip=$WAN_IP_ADDR&wifi_ssid=$WIFI_SSID&wifi_password=$WIFI_PASSWD&wifi_channel=$WIFI_CHANNEL" \
 		    "https://$SERVER_ADDR/deviceinfo/syn/")
 	fi
 done
