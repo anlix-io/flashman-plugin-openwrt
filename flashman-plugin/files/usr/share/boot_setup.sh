@@ -4,7 +4,7 @@
 . /lib/functions.sh
 . /usr/share/functions.sh
 
-HARDWARE_MODEL=$(cat /proc/sysinfo/model | awk '{ print $2 }')
+HARDWARE_MODEL=$(cat /proc/sysinfo/model | awk '{ print toupper($2) }')
 CLIENT_MAC=$(get_mac)
 HOSTNAME=$(echo $CLIENT_MAC | sed -e "s/:/-/g")
 MAC_LAST_CHARS=$(echo $CLIENT_MAC | awk -F: '{ print $5$6 }')
