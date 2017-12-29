@@ -41,6 +41,6 @@ do
 		curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
 		    -k --connect-timeout 5 --retry 0 \
 		    --data "id=$CLIENT_MAC&version=$OPENWRT_VER&model=$HARDWARE_MODEL&model_ver=$HARDWARE_VER&release_id=$FLM_RELID&pppoe_user=$PPPOE_USER&pppoe_password=$PPPOE_PASSWD&wan_ip=$WAN_IP_ADDR&wifi_ssid=$WIFI_SSID&wifi_password=$WIFI_PASSWD&wifi_channel=$WIFI_CHANNEL" \
-		    "https://$SERVER_ADDR/deviceinfo/syn/")
+		    "https://$SERVER_ADDR/deviceinfo/syn/"
 	fi
 done
