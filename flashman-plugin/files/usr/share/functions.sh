@@ -47,7 +47,8 @@ download_file()
 get_mac()
 {
   local _mac_address_tag=""
-  if [ ! -d "/sys/class/ieee80211/phy1" ] || [ "$HARDWARE_MODEL" = "TL-WDR3500" ]
+  local _hardware_model=$(cat /tmp/sysinfo/model | awk '{ print toupper($2) }')
+  if [ ! -d "/sys/class/ieee80211/phy1" ] || [ "$_hardware_model" = "TL-WDR3500" ]
   then
     if [ ! -z "$(awk '{ print toupper($1) }' /sys/class/ieee80211/phy0/macaddress)" ]
     then

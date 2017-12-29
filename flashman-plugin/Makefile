@@ -41,13 +41,14 @@ define Package/flashman-plugin
 	CATEGORY:=Utilities
 	TITLE:=Install flashman-plugin
 	DEPENDS:=+curl \
-					 +luci \
-					 +iputils-ping \
-					 +iputils-ping6 \
-					 +zabbix-agentd \
-					 +zabbix-extra-mac80211 \
-					 +zabbix-extra-network \
-					 +zabbix-extra-wifi
+			+luci \
+			+iputils-ping \
+			+iputils-ping6 \
+			+zabbix-agentd \
+			+zabbix-extra-mac80211 \
+			+zabbix-extra-network \
+			+zabbix-extra-wifi \
+			+mosquitto-client-nossl
 	MENU:=1
 endef
 
