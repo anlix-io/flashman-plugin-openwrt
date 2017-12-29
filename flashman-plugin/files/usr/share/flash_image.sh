@@ -38,20 +38,21 @@ run_reflash()
     echo "Init image reflash"
     local _sv_address=$1
     local _release_id=$2
-    local _vendor=$(cat /proc/cpuinfo | sed -n 2p | awk '{ print $3 }')
-    local _model=$(cat /proc/cpuinfo | sed -n 2p | awk '{ print $4 }' | sed 's/\//-/g')
+    local _vendor=$(cat /tmp/sysinfo/model | awk '{ print toupper($1) }')
+    local _model=$(cat /tmp/sysinfo/model | awk '{ print toupper($2) }')
+    local _ver=$(cat /tmp/sysinfo/model | awk '{ print toupper($3) }')
 
     clean_memory
     if get_image $_sv_address $_release_id
     then
       tar -zcf /tmp/config.tar.gz /etc/config
-      if sysupgrade -T "/tmp/"$_vendor"_"$_model"_"$_release_id".bin"
+      if sysupgrade -T "/tmp/"$_vendor"_"$_model"_"$_ver"_"$_release_id".bin"
       then
         curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
              -k --connect-timeout 5 --retry 0 \
              --data "id=$CLIENT_MAC" \
              "https://$SERVER_ADDR/deviceinfo/ack/"
-        sysupgrade -f /tmp/config.tar.gz "/tmp/"$_vendor"_"$_model"_"$_release_id".bin"
+        sysupgrade -f /tmp/config.tar.gz "/tmp/"$_vendor"_"$_model"_"$_ver"_"$_release_id".bin"
       else
         echo "Image check failed"
         return 1
