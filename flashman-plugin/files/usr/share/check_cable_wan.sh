@@ -12,11 +12,12 @@ do
     # We have layer 2 connectivity, now check external access
     if ! ping -q -c 2 -W 2 www.google.com  >/dev/null
     then
-      # Change device LEDs. Turn everything ON
+      # Blink all LEDs
       for trigger_path in $(ls -d /sys/class/leds/*)
       do
         echo "none" > "$trigger_path"/trigger
         echo "255" > "$trigger_path"/brightness
+        echo "timer" > "$trigger_path"/trigger
       done
       do_restart=true
       # TODO: Notify using REST API
@@ -24,7 +25,12 @@ do
       # The device has external access. Cancel notifications
       if "$do_restart"
       then
-        /etc/init.d/led restart
+        for trigger_path in $(ls -d /sys/class/leds/*)
+        do
+          echo "none" > "$trigger_path"/trigger
+          echo "0" > "$trigger_path"/brightness
+        done
+        /etc/init.d/led restart >/dev/null
         do_restart=false
         # TODO: Cancel REST notifications
       fi
@@ -35,11 +41,15 @@ do
     # The device has external access. Cancel notifications
     if "$do_restart"
     then
-      /etc/init.d/led restart
+      for trigger_path in $(ls -d /sys/class/leds/*)
+      do
+        echo "none" > "$trigger_path"/trigger
+        echo "0" > "$trigger_path"/brightness
+      done
+      /etc/init.d/led restart >/dev/null
       do_restart=false
     fi
     # TODO: Notify using REST API
-    echo "" >/dev/null
   fi
-  sleep 1
+  sleep 2
 done
