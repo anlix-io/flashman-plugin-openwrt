@@ -1,6 +1,8 @@
 #!/bin/sh
 
+. /usr/share/flashman_init.conf
 . /lib/functions/network.sh
+. /usr/share/libubox/jshn.sh
 
 download_file()
 {
@@ -68,4 +70,19 @@ get_wan_ip()
   local _ip=""
   network_get_ipaddr _ip wan
   echo "$_ip"
+}
+
+is_authorized()
+{
+  _is_authorized=1
+  _res=$(curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
+         -k --connect-timeout 5 --retry 1 \
+         --data "id=$CLIENT_MAC&organization=$CLIENT_ORG" \
+         "https://$AUTH_SERVER_ADDR/api/device/auth")
+
+  json_load "$_res"
+  json_get_var _is_authorized is_authorized
+  json_close_object
+
+  return $_is_authorized
 }
