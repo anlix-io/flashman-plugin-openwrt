@@ -26,7 +26,7 @@ config FLASHMAN_WIFI_SSID
 	default "FlashMan-AP-"
 
 config FLASHMAN_WIFI_PASSWD
-	string "WiFi router AP password. Leave it blank and router mac address will be used. Remember to escape hashtags and dollar signs with a slash."
+	string "WiFi router AP password. If blank router mac address will be used. Remember to escape hashtags and dollar signs with a slash."
 	default ""
 
 config FLASHMAN_WIFI_CHANNEL
@@ -36,6 +36,10 @@ config FLASHMAN_WIFI_CHANNEL
 config FLASHMAN_RELEASE_ID
 	string "FlashMan image release identification"
 	default "0000-flm"
+
+config FLASHMAN_CLIENT_ORG
+	string "FlashMan image client organization identification"
+	default "MyCompany"
 
 config ZABBIX_SERVER_ADDR
 	string "Zabbix server IP or FQDN"

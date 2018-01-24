@@ -75,9 +75,12 @@ get_wan_ip()
 is_authorized()
 {
   _is_authorized=1
+
+  CLIENT_MAC=$(get_mac)
+  
   _res=$(curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
          -k --connect-timeout 5 --retry 1 \
-         --data "id=$CLIENT_MAC&organization=$CLIENT_ORG" \
+         --data "id=$CLIENT_MAC&organization=$FLM_CLIENT_ORG" \
          "https://$AUTH_SERVER_ADDR/api/device/auth")
 
   json_load "$_res"

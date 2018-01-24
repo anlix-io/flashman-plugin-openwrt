@@ -20,7 +20,8 @@ PKG_CONFIG_DEPENDS:= \
 	CONFIG_FLASHMAN_WIFI_SSID \
 	CONFIG_FLASHMAN_WIFI_PASSWD \
 	CONFIG_FLASHMAN_WIFI_CHANNEL \
-	CONFIG_FLASHMAN_RELEASE_ID
+	CONFIG_FLASHMAN_RELEASE_ID \
+	CONFIG_FLASHMAN_CLIENT_ORG
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -86,6 +87,7 @@ define Package/flashman-plugin/install
 	echo 'NTP_SVADDR=$(CONFIG_NTP_SERVER_ADDR)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_WAN_PROTO=$(WAN_PROTO)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_WAN_MTU=$(CONFIG_FLASHMAN_WAN_MTU)' >>$(1)/usr/share/flashman_init.conf
+	echo 'FLM_CLIENT_ORG=$(CONFIG_FLASHMAN_CLIENT_ORG)' >>$(1)/usr/share/flashman_init.conf
 
 ifeq ($(WAN_PROTO), "pppoe")
 	echo 'FLM_WAN_PPPOE_USER=$(CONFIG_FLASHMAN_PPPOE_USER)' >>$(1)/usr/share/flashman_init.conf
