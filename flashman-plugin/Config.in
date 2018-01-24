@@ -78,4 +78,13 @@ config FLASHMAN_WAN_MTU
 	string "WAN MTU"
 	default "1500"
 
+config FLASHMAN_USE_AUTH_SERVER
+	bool "Use authentication server to authorize remote commands."
+
+if FLASHMAN_USE_AUTH_SERVER
+	config FLASHMAN_AUTH_SERVER_ADDR
+		string "Authentication server IP or FQDN"
+		default ""
+endif
+
 endif
