@@ -8,7 +8,8 @@
 	1. `cp diffconfig <OpenWRT root directory>/.config`
 	2. On OpenWRT/LEDE root directory: `make defconfig`
 3. Include flash plugin `cp -r flashman-plugin <OpenWRT/LEDE root directory>/package/utils/`
-4. Include custom files with `mkdir -p <OpenWRT/LEDE root directory>/files/etc && cp banner <OpenWRT/LEDE root directory>/files/etc/` 
+4. Include custom files with `mkdir -p <OpenWRT/LEDE root directory>/files/etc && cp banner <OpenWRT/LEDE root directory>/files/etc/`
+4. Include custom login file with `cp login.sh <OpenWRT/LEDE root directory>/package/base-files/files/bin/` 
 5. Run `make menuconfig` on OpenWRT/LEDE root directory and
 	1. Select target device
 	2. Select flashman-plugin package on Utilities
