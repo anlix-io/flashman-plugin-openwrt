@@ -72,9 +72,9 @@ get_wan_ip()
   echo "$_ip"
 }
 
-is_authorized()
+is_authenticated()
 {
-  _is_authorized=1
+  _is_authenticated=1
 
   if [ "$FLM_USE_AUTH_SVADDR" == "y" ]
   then
@@ -86,11 +86,11 @@ is_authorized()
            "https://$FLM_AUTH_SVADDR/api/device/auth")
 
     json_load "$_res"
-    json_get_var _is_authorized is_authorized
+    json_get_var _is_authenticated is_authenticated
     json_close_object
   else
-    _is_authorized=0
+    _is_authenticated=0
   fi
 
-  return $_is_authorized
+  return $_is_authenticated
 }

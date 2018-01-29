@@ -21,7 +21,7 @@ WIFI_CHANNEL=""
 
 if [ "$NUMBER" -eq 3 ] || [ "$1" == "now" ]
 then
-  if is_authorized
+  if is_authenticated
   then
     # Sync date and time with GMT-3
     ntpd -n -q -p $NTP_SVADDR
