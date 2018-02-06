@@ -17,7 +17,7 @@ node {
       //sh "echo 12345678 > test.txt"
 
       //OpenWRT buildroot setup
-      sh '''
+      sh """
         git clone https://www.github.com/openwrt/openwrt -b v17.01.4
         cd ${env.WORKSPACE}/openwrt
         ${env.WORKSPACE}/scripts/feeds update -a
@@ -26,7 +26,7 @@ node {
         make defconfig
         make download
         make -j 4
-      '''
+      """
     }
     stage('Deploy') {
       echo "Deploying...."
