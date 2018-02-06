@@ -2,7 +2,8 @@
 
 properties([
   parameters([
-    string(name: 'TESTE', defaultValue: 'bar' )
+    string(name: 'TESTE', defaultValue: 'bar' ),
+    string(name: 'FOO', defaultValue: 'bar' ),
    ])
 ])
 
@@ -12,6 +13,7 @@ node {
     stage('Build') {
         echo "Building...."
         echo "Chosen variable value is: ${params.TESTE}"
+        echo "Chosen variable value is: ${params.FOO}"
     }
     stage('Test') {
         echo "Building...."
