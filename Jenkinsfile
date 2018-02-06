@@ -22,10 +22,12 @@ node {
         then
           git clone https://www.github.com/openwrt/openwrt -b v17.01.4
         fi
-        cd ${env.WORKSPACE}/openwrt
-        ${env.WORKSPACE}/scripts/feeds update -a
-        ${env.WORKSPACE}/scripts/feeds install -a
         cp ${env.WORKSPACE}/diffconfig-lede-snapshot ${env.WORKSPACE}/openwrt
+
+        cd ${env.WORKSPACE}/openwrt
+        ./scripts/feeds update -a
+        ./scripts/feeds install -a
+
         make defconfig
         make download
         make -j 4
