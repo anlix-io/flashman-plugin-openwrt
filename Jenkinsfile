@@ -18,7 +18,10 @@ node {
 
       //OpenWRT buildroot setup
       sh """
-        git clone https://www.github.com/openwrt/openwrt -b v17.01.4
+        if [ ! -d ${env.WORKSPACE}/openwrt ]
+        then
+          git clone https://www.github.com/openwrt/openwrt -b v17.01.4
+        fi
         cd ${env.WORKSPACE}/openwrt
         ${env.WORKSPACE}/scripts/feeds update -a
         ${env.WORKSPACE}/scripts/feeds install -a
