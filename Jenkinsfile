@@ -10,13 +10,20 @@ properties([
 node {
     checkout scm
     
+    stage('Setup') {
+      // Check necessary packages
+      sh """
+        apt-get update
+        apt-get install git-core build-essential libssl-dev libncurses5-dev unzip gawk zlib1g-dev
+      """
+    }
     stage('Build') {
       echo "Building...."
       //echo "Chosen variable value is: ${params.TESTE}"
       //echo "Chosen variable value is: ${params.FOO}"
       //sh "echo 12345678 > test.txt"
 
-      //OpenWRT buildroot setup
+      // OpenWRT buildroot setup
       sh """
         if [ ! -d ${env.WORKSPACE}/openwrt ]
         then
