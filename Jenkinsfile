@@ -10,13 +10,6 @@ properties([
 node {
     checkout scm
     
-    stage('Setup') {
-      // Check necessary packages
-      sh """
-        apt-get update
-        apt-get install -y git-core build-essential libssl-dev libncurses5-dev unzip gawk zlib1g-dev file
-      """
-    }
     stage('Build') {
       echo "Building...."
       //echo "Chosen variable value is: ${params.TESTE}"
