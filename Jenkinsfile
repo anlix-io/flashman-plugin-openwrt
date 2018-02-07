@@ -36,7 +36,7 @@ node {
           echo done > ${env.WORKSPACE}/openwrt/download_done
         fi
 
-        make -j 4
+        make -j 5
       """
     }
     stage('Deploy') {
