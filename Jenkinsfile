@@ -30,7 +30,7 @@ node {
 
         make defconfig
         make download
-        make V=s
+        make
       """
     }
     stage('Deploy') {
