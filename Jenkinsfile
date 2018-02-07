@@ -29,7 +29,13 @@ node {
         ./scripts/feeds install -a
 
         make defconfig
-        make download
+
+        if [ ! -f ${env.WORKSPACE}/openwrt/download_done ]
+        then
+          make download
+          echo done > ${env.WORKSPACE}/openwrt/download_done
+        fi
+
         make -j 4
       """
     }
