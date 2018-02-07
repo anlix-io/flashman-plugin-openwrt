@@ -4,6 +4,7 @@ properties([
   parameters([
     string(name: 'TESTE', defaultValue: 'bar' ),
     string(name: 'FOO', defaultValue: 'bar' ),
+    string(name: 'NUMTHREADS', defaultValue: '5' ),
   ])
 ])
 
@@ -36,7 +37,7 @@ node {
           echo done > ${env.WORKSPACE}/openwrt/download_done
         fi
 
-        make -j 5
+        make -j ${params.NUMTHREADS}
       """
     }
     stage('Deploy') {
