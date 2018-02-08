@@ -44,11 +44,11 @@ node {
           git clone https://github.com/anlix-io/\$REPO.git -b \$BRANCH
         fi
 
-        git checkout \$COMMIT
-
         cp ${env.WORKSPACE}/diffconfigs/\$DIFFCONFIG ${env.WORKSPACE}/\$REPO/.config
 
         cd ${env.WORKSPACE}/\$REPO
+
+        git checkout \$COMMIT
 
         ./scripts/feeds update -a
         ./scripts/feeds install -a
