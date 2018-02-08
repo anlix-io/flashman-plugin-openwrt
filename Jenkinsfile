@@ -3,7 +3,6 @@
 properties([
   parameters([
     string(name: 'TARGETMODEL', defaultValue: 'tl-wr940n-v4'),
-    string(name: 'FLASHMANPUBKEYPATH', defaultValue: '/home/localuser/.ssh'),
     string(name: 'FLASHMANPUBKEY', defaultValue: 'public key'),
     string(name: 'FLASHMANSERVERADDR', defaultValue: 'flashman.example.com'),
     string(name: 'FLASHMANSSIDPREFIX', defaultValue: 'Flashman-AP-'),
@@ -48,7 +47,7 @@ node {
         cp ${env.WORKSPACE}/diffconfigs/\$DIFFCONFIG ${env.WORKSPACE}/\$REPO/.config
 
         DEFAULT_FLASHMAN_KEYS_PATH=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_KEYS_PATH)
-        CUSTOM_FLASHMAN_KEYS_PATH=\"CONFIG_FLASHMAN_KEYS_PATH=${params.FLASHMANPUBKEYPATH}\"
+        CUSTOM_FLASHMAN_KEYS_PATH=\"CONFIG_FLASHMAN_KEYS_PATH=\\\"${env.WORKSPACE}/\$REPO\\\"\"
 
         sed -i -e 's,'\$DEFAULT_FLASHMAN_KEYS_PATH','\$CUSTOM_FLASHMAN_KEYS_PATH',g' ${env.WORKSPACE}/\$REPO/.config
 
@@ -65,7 +64,7 @@ node {
         mkdir -p ${env.WORKSPACE}/\$REPO/files/etc
         cp ${env.WORKSPACE}/banner ${env.WORKSPACE}/\$REPO/files/etc/
 
-        echo ${params.FLASHMANPUBKEY} > ${params.FLASHMANPUBKEYPATH}/id_rsa_flashman.pub
+        echo ${params.FLASHMANPUBKEY} > ${env.WORKSPACE}/\$REPO/id_rsa_flashman.pub
 
         if [ ! -f ${env.WORKSPACE}/\$REPO/download_done ]
         then
