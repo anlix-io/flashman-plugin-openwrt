@@ -4,8 +4,8 @@
 
 1. Generate a key pair or use a alredy existing key pair
 	* Example: ssh-keygen -t rsa 4096
-2. Always apply diffconfig with the following steps. Note: Choose proper diffconfig file if you're using OpenWRT or LEDE.
-	1. `cp diffconfig <OpenWRT root directory>/.config`
+2. Always apply diffconfig with the following steps. Note: Choose proper diffconfig file that applys to your router model.
+	1. `cp diffconfigs/<Diffconfig file> <OpenWRT/LEDE root directory>/.config`
 	2. On OpenWRT/LEDE root directory: `make defconfig`
 3. Include flash plugin `cp -r flashman-plugin <OpenWRT/LEDE root directory>/package/utils/`
 4. Include custom files with `mkdir -p <OpenWRT/LEDE root directory>/files/etc && cp banner <OpenWRT/LEDE root directory>/files/etc/`
@@ -24,9 +24,13 @@
 
 TODO. Feed instructions for production use
 
+## GENERATING DIFFCONFIG FILE ##
+
+`<OpenWRT/LEDE root directory>/scripts/diffconfig.sh > <REPO>_<BRANCH>_<COMMIT>_<TARGET>_<PROFILE>_diffconfig`
+
 ## COPYRIGHT ##
 
-Copyright (C) 2017-2017 LAND/COPPE/UFRJ
+Copyright (C) 2017-2018 Anlix
 
 ## LICENSE ##
 

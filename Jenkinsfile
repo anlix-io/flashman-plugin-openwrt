@@ -2,9 +2,25 @@
 
 properties([
   parameters([
-    string(name: 'TESTE', defaultValue: 'bar' ),
-    string(name: 'FOO', defaultValue: 'bar' ),
-    string(name: 'NUMTHREADS', defaultValue: '5' ),
+    string(name: 'TARGETMODEL', defaultValue: 'tl-wr940n-v4'),
+    string(name: 'FLASHMANPUBKEY', defaultValue: 'public key'),
+    string(name: 'FLASHMANSERVERADDR', defaultValue: 'flashman.example.com'),
+    string(name: 'FLASHMANSSIDPREFIX', defaultValue: 'Flashman-AP-'),
+    string(name: 'FLASHMANWIFIPASS', defaultValue: ''),
+    string(name: 'FLASHMANWIFICHANNEL', defaultValue: 'auto'),
+    string(name: 'FLASHMANRELEASEID', defaultValue: '9999-flm'),
+    string(name: 'FLASHMANCLIENTORG', defaultValue: 'anlix'),
+    string(name: 'FLASHMANNTPADDR', defaultValue: 'a.st1.ntp.br'),
+    string(name: 'FLASHMANWANPROTO', defaultValue: 'dhcp'),
+    string(name: 'FLASHMANWANMTU', defaultValue: '1500'),
+    string(name: 'FLASHMANPPPOEUSER', defaultValue: 'flashman-user'),
+    string(name: 'FLASHMANPPPOEPASS', defaultValue: 'Flashman!'),
+    string(name: 'FLASHMANPPPOESERVICE', defaultValue: 'auto'),
+    string(name: 'ZABBIXSENDNETDATA', defaultValue: 'true'),
+    string(name: 'ZABBIXSERVERADDR', defaultValue: 'zabbix.example.com'),
+    string(name: 'AUTHENABLESERVER', defaultValue: 'false'),
+    string(name: 'AUTHSERVERADDR', defaultValue: 'auth.example.com'),
+    string(name: 'AUTHCLIENTSECRET', defaultValue: 'secret'),
   ])
 ])
 
@@ -13,31 +29,46 @@ node {
     
     stage('Build') {
       echo "Building...."
-      //echo "Chosen variable value is: ${params.TESTE}"
-      //echo "Chosen variable value is: ${params.FOO}"
-      //sh "echo 12345678 > test.txt"
-
+      
       // OpenWRT buildroot setup
       sh """
-        if [ ! -d ${env.WORKSPACE}/openwrt ]
-        then
-          git clone https://www.github.com/openwrt/openwrt -b v17.01.4
-        fi
-        cp ${env.WORKSPACE}/diffconfig-lede-snapshot ${env.WORKSPACE}/openwrt
+        DIFFCONFIG=$(ls ${env.WORKSPACE}/diffconfigs | grep ${params.TARGETMODEL} | head -1)
+        REPO=$(echo $DIFFCONFIG | awk -F _ '{print $1}')
+        BRANCH=$(echo $DIFFCONFIG | awk -F _ '{print $2}')
+        COMMIT=$(echo $DIFFCONFIG | awk -F _ '{print $3}')
+        TARGET=$(echo $DIFFCONFIG | awk -F _ '{print $4}')
+        PROFILE=$(echo $DIFFCONFIG | awk -F _ '{print $5}')
 
-        cd ${env.WORKSPACE}/openwrt
+        if [ ! -d ${env.WORKSPACE}/$REPO ]
+        then
+          git clone https://github.com/anlix-io/$REPO.git -b $BRANCH
+        fi
+
+        git checkout $COMMIT
+
+        cp ${env.WORKSPACE}/diffconfigs/$DIFFCONFIG ${env.WORKSPACE}/$REPO/.config
+
+        cd ${env.WORKSPACE}/$REPO
+
         ./scripts/feeds update -a
         ./scripts/feeds install -a
 
         make defconfig
 
-        if [ ! -f ${env.WORKSPACE}/openwrt/download_done ]
+        cp -r ${env.WORKSPACE}/flashman-plugin ${env.WORKSPACE}/$REPO/package/utils/
+        mkdir -p ${env.WORKSPACE}/$REPO/files/etc
+        cp ${env.WORKSPACE}/banner ${env.WORKSPACE}/$REPO/files/etc/
+
+        echo ${params.FLASHMANPUBKEY} > /home/$(whoami)/.ssh/id_rsa_flashman.pub
+
+        if [ ! -f ${env.WORKSPACE}/$REPO/download_done ]
         then
           make download
-          echo done > ${env.WORKSPACE}/openwrt/download_done
+          echo done > ${env.WORKSPACE}/$REPO/download_done
         fi
 
-        make -j ${params.NUMTHREADS}
+        make package/utils/flashman-plugin/clean
+        make -j $(($(nproc) + 1))
       """
     }
     stage('Deploy') {
