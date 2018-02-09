@@ -41,6 +41,10 @@ config FLASHMAN_CLIENT_ORG
 	string "FlashMan image client organization identification"
 	default "MyCompany"
 
+config ZABBIX_SEND_DATA
+	bool "Enable Zabbix agent by default"
+	default y
+
 config ZABBIX_SERVER_ADDR
 	string "Zabbix server IP or FQDN"
 	default ""
@@ -84,6 +88,9 @@ config FLASHMAN_USE_AUTH_SERVER
 if FLASHMAN_USE_AUTH_SERVER
 	config FLASHMAN_AUTH_SERVER_ADDR
 		string "Authentication server IP or FQDN"
+		default ""
+	config FLASHMAN_CLIENT_SECRET
+		string "Shared secret to authorize this image"
 		default ""
 endif
 

@@ -137,9 +137,16 @@ firstboot() {
 	then
 		echo "LogType=system" >> /etc/zabbix_agentd.conf
 	fi
-	# Enable Zabbix
-	/etc/init.d/zabbix_agentd enable
-	/etc/init.d/zabbix_agentd start
+	if [ "$ZBX_SEND_DATA" == "y" ]
+  	then
+		# Enable Zabbix
+		/etc/init.d/zabbix_agentd enable
+		/etc/init.d/zabbix_agentd start
+	else
+		# Disable Zabbix
+		/etc/init.d/zabbix_agentd stop
+		/etc/init.d/zabbix_agentd disable
+	fi
 
 	log "First boot completed"
 }

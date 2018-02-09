@@ -135,6 +135,11 @@ node {
         CUSTOM_FLASHMAN_AUTH_SERVER_ADDR=\"CONFIG_FLASHMAN_AUTH_SERVER_ADDR=\\\"${env.AUTHSERVERADDR}\\\"\"
         sed -i -e '\\,'\$DEFAULT_FLASHMAN_AUTH_SERVER_ADDR',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_FLASHMAN_AUTH_SERVER_ADDR >> ${env.WORKSPACE}/\$REPO/.config
+
+        DEFAULT_FLASHMAN_CLIENT_SECRET=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_CLIENT_SECRET)
+        CUSTOM_FLASHMAN_CLIENT_SECRET=\"CONFIG_FLASHMAN_CLIENT_SECRET=\\\"${env.AUTHCLIENTSECRET}\\\"\"
+        sed -i -e '\\,'\$DEFAULT_FLASHMAN_CLIENT_SECRET',d' ${env.WORKSPACE}/\$REPO/.config
+        echo \$CUSTOM_FLASHMAN_CLIENT_SECRET >> ${env.WORKSPACE}/\$REPO/.config
         
         DEFAULT_FLASHMAN_USE_AUTH_SERVER=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_USE_AUTH_SERVER || echo '^\$')
 
@@ -153,7 +158,20 @@ node {
         CUSTOM_ZABBIX_SERVER_ADDR=\"CONFIG_ZABBIX_SERVER_ADDR=\\\"${env.ZABBIXSERVERADDR}\\\"\"
         sed -i -e '\\,'\$DEFAULT_ZABBIX_SERVER_ADDR',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_ZABBIX_SERVER_ADDR >> ${env.WORKSPACE}/\$REPO/.config
-        
+
+        DEFAULT_ZABBIX_SEND_DATA=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_ZABBIX_SEND_DATA || echo '^\$')
+
+        if [ \"${env.ZABBIXSENDNETDATA}\" = \"true\" ]
+        then
+          CUSTOM_ZABBIX_SEND_DATA=\"CONFIG_ZABBIX_SEND_DATA=y\"
+        else
+          CUSTOM_ZABBIX_SEND_DATA=\"# CONFIG_ZABBIX_SEND_DATA is not set\"
+        fi
+
+        sed -i -e '\\,'\$DEFAULT_ZABBIX_SEND_DATA',d' ${env.WORKSPACE}/\$REPO/.config
+        echo \$CUSTOM_ZABBIX_SEND_DATA >> ${env.WORKSPACE}/\$REPO/.config
+
+   
         ##
         ## End of replace variables section
         ##
