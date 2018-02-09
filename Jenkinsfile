@@ -215,7 +215,7 @@ node {
         REPO=\$(echo \$DIFFCONFIG | awk -F '~' '{print \$1}')
         OUTPUTIMGMODEL=\$(echo ${params.OUTPUTIMGMODEL} | awk '{print tolower(\$0)}')
         OUTPUTIMGMODELVER=\$(echo ${params.OUTPUTIMGMODELVER} | awk '{print tolower(\$0)}')
-        TARGETIMG=\$(find ${env.WORKSPACE}/\$REPO/bin -name '*factory.bin' | grep \$OUTPUTIMGMODEL}-\$OUTPUTIMGMODELVER)
+        TARGETIMG=\$(find ${env.WORKSPACE}/\$REPO/bin -name '*factory.bin' | grep \$OUTPUTIMGMODEL-\$OUTPUTIMGMODELVER)
 
         OUTPUTIMGVENDOR=\$(echo ${params.OUTPUTIMGVENDOR} | awk '{print toupper(\$0)}')
         OUTPUTIMGMODEL=\$(echo ${params.OUTPUTIMGMODEL} | awk '{print toupper(\$0)}')
