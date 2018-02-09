@@ -96,7 +96,7 @@ node {
         DEFAULT_FLASHMAN_PPPOE_SERVICE=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_PPPOE_SERVICE || echo '^\$')
         DEFAULT_FLASHMAN_WAN_PROTO_DHCP=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_WAN_PROTO_DHCP || echo '^\$')
 
-        if [ \"${env.FLASHMANWANPROTO}\" == \"pppoe\" ]
+        if [ \"${env.FLASHMANWANPROTO}\" = \"pppoe\" ]
         then
           CUSTOM_FLASHMAN_WAN_PROTO_PPPOE=\"CONFIG_FLASHMAN_WAN_PROTO_PPPOE=y\"
           CUSTOM_FLASHMAN_PPPOE_USER=\"CONFIG_FLASHMAN_PPPOE_USER=\\\"${env.FLASHMANPPPOEUSER}\\\"\"
@@ -138,7 +138,7 @@ node {
         
         DEFAULT_FLASHMAN_USE_AUTH_SERVER=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_USE_AUTH_SERVER || echo '^\$')
 
-        if [ \"${env.AUTHENABLESERVER}\" == \"true\" ]
+        if [ \"${env.AUTHENABLESERVER}\" = \"true\" ]
         then
           CUSTOM_FLASHMAN_USE_AUTH_SERVER=\"CONFIG_FLASHMAN_USE_AUTH_SERVER=y\"
         else
