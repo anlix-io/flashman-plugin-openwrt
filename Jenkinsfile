@@ -90,7 +90,7 @@ node {
         sed -i -e '\\,'\$DEFAULT_NTP_SERVER_ADDR',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_NTP_SERVER_ADDR >> ${env.WORKSPACE}/\$REPO/.config
 
-        DEFAULT_FLASHMAN_WAN_PROTO_PPPOE=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_WAN_PROTO_PPPOE || echo ' ')
+        DEFAULT_FLASHMAN_WAN_PROTO_PPPOE=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_WAN_PROTO_PPPOE || echo '^\$')
         DEFAULT_FLASHMAN_PPPOE_USER=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_PPPOE_USER || echo ' ')
         DEFAULT_FLASHMAN_PPPOE_PASSWD=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_PPPOE_PASSWD || echo ' ')
         DEFAULT_FLASHMAN_PPPOE_SERVICE=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_PPPOE_SERVICE || echo ' ')
