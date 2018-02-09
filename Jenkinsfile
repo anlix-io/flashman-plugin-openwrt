@@ -211,7 +211,7 @@ node {
         REPO=\$(echo \$DIFFCONFIG | awk -F '~' '{print \$1}')
         TARGET=\$(echo \$DIFFCONFIG | awk -F '~' '{print \$4}')
         TARGETIMG=\$(find ${env.WORKSPACE}/\$REPO/bin -name '*factory.bin' | grep ${params.OUTPUTIMGMODEL})
-        IMGNAME=\$(echo $TARGET | awk -F '/' '{print $NF}')
+        IMGNAME=\$(echo \$TARGETIMG | awk -F '/' '{print \$NF}')
 
         cp \$TARGETIMG ${env.WORKSPACE}
       """
