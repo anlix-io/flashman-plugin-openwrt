@@ -52,7 +52,7 @@ node {
 
         DEFAULT_FLASHMAN_KEYS_PATH=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_KEYS_PATH)
         CUSTOM_FLASHMAN_KEYS_PATH=\"CONFIG_FLASHMAN_KEYS_PATH=\\\"${env.WORKSPACE}/\$REPO\\\"\"
-        sed -i ',\$DEFAULT_FLASHMAN_KEYS_PATH,d' ${env.WORKSPACE}/\$REPO/.config
+        sed -i ','\$DEFAULT_FLASHMAN_KEYS_PATH',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_FLASHMAN_KEYS_PATH >> ${env.WORKSPACE}/\$REPO/.config
 
         DEFAULT_FLASHMAN_SERVER_ADDR=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_SERVER_ADDR)
