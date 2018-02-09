@@ -210,7 +210,7 @@ node {
         DIFFCONFIG=\$(ls ${env.WORKSPACE}/diffconfigs | grep ${params.TARGETMODEL} | head -1)
         REPO=\$(echo \$DIFFCONFIG | awk -F '~' '{print \$1}')
         TARGET=\$(echo \$DIFFCONFIG | awk -F '~' '{print \$4}')
-        TARGETIMG=\$(find ${env.WORKSPACE}/\$REPO/bin -name '*factory.bin' | grep ${params.OUTPUTIMGMODEL})
+        TARGETIMG=\$(find \$REPO/bin -name '*factory.bin' | grep ${params.OUTPUTIMGMODEL})
       """
 
       def server = Artifactory.server "artifactory-anlix-io"
