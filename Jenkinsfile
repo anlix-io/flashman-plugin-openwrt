@@ -52,42 +52,42 @@ node {
 
         DEFAULT_FLASHMAN_KEYS_PATH=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_KEYS_PATH)
         CUSTOM_FLASHMAN_KEYS_PATH=\"CONFIG_FLASHMAN_KEYS_PATH=\\\"${env.WORKSPACE}/\$REPO\\\"\"
-        sed -i -e '/'\$DEFAULT_FLASHMAN_KEYS_PATH'/d' ${env.WORKSPACE}/\$REPO/.config
+        sed -i -e '\\,'\$DEFAULT_FLASHMAN_KEYS_PATH',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_FLASHMAN_KEYS_PATH >> ${env.WORKSPACE}/\$REPO/.config
 
         DEFAULT_FLASHMAN_SERVER_ADDR=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_SERVER_ADDR)
         CUSTOM_FLASHMAN_SERVER_ADDR=\"CONFIG_FLASHMAN_SERVER_ADDR=\\\"${env.FLASHMANSERVERADDR}\\\"\"
-        sed -i -e '/'\$DEFAULT_FLASHMAN_SERVER_ADDR'/d' ${env.WORKSPACE}/\$REPO/.config
+        sed -i -e '\\,'\$DEFAULT_FLASHMAN_SERVER_ADDR',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_FLASHMAN_SERVER_ADDR >> ${env.WORKSPACE}/\$REPO/.config
 
         DEFAULT_FLASHMAN_WIFI_SSID=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_WIFI_SSID)
         CUSTOM_FLASHMAN_WIFI_SSID=\"CONFIG_FLASHMAN_WIFI_SSID=\\\"${env.FLASHMANSSIDPREFIX}\\\"\"
-        sed -i -e '/'\$DEFAULT_FLASHMAN_WIFI_SSID'/d' ${env.WORKSPACE}/\$REPO/.config
+        sed -i -e '\\,'\$DEFAULT_FLASHMAN_WIFI_SSID',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_FLASHMAN_WIFI_SSID >> ${env.WORKSPACE}/\$REPO/.config
 
         DEFAULT_FLASHMAN_WIFI_PASSWD=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_WIFI_PASSWD)
         CUSTOM_FLASHMAN_WIFI_PASSWD=\"CONFIG_FLASHMAN_WIFI_PASSWD=\\\"${env.FLASHMANWIFIPASS}\\\"\"
-        sed -i -e '/'\$DEFAULT_FLASHMAN_WIFI_PASSWD'/d' ${env.WORKSPACE}/\$REPO/.config
+        sed -i -e '\\,'\$DEFAULT_FLASHMAN_WIFI_PASSWD',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_FLASHMAN_WIFI_PASSWD >> ${env.WORKSPACE}/\$REPO/.config
 
         DEFAULT_FLASHMAN_WIFI_CHANNEL=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_WIFI_CHANNEL)
         CUSTOM_FLASHMAN_WIFI_CHANNEL=\"CONFIG_FLASHMAN_WIFI_CHANNEL=\\\"${env.FLASHMANWIFICHANNEL}\\\"\"
-        sed -i -e '/'\$DEFAULT_FLASHMAN_WIFI_CHANNEL'/d' ${env.WORKSPACE}/\$REPO/.config
+        sed -i -e '\\,'\$DEFAULT_FLASHMAN_WIFI_CHANNEL',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_FLASHMAN_WIFI_CHANNEL >> ${env.WORKSPACE}/\$REPO/.config
 
         DEFAULT_FLASHMAN_RELEASE_ID=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_RELEASE_ID)
         CUSTOM_FLASHMAN_RELEASE_ID=\"CONFIG_FLASHMAN_RELEASE_ID=\\\"${env.FLASHMANRELEASEID}\\\"\"
-        sed -i -e '/'\$DEFAULT_FLASHMAN_RELEASE_ID'/d' ${env.WORKSPACE}/\$REPO/.config
+        sed -i -e '\\,'\$DEFAULT_FLASHMAN_RELEASE_ID',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_FLASHMAN_RELEASE_ID >> ${env.WORKSPACE}/\$REPO/.config
 
         DEFAULT_FLASHMAN_CLIENT_ORG=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_CLIENT_ORG)
         CUSTOM_FLASHMAN_CLIENT_ORG=\"CONFIG_FLASHMAN_CLIENT_ORG=\\\"${env.FLASHMANCLIENTORG}\\\"\"
-        sed -i -e '/'\$DEFAULT_FLASHMAN_CLIENT_ORG'/d' ${env.WORKSPACE}/\$REPO/.config
+        sed -i -e '\\,'\$DEFAULT_FLASHMAN_CLIENT_ORG',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_FLASHMAN_CLIENT_ORG >> ${env.WORKSPACE}/\$REPO/.config
 
         DEFAULT_NTP_SERVER_ADDR=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_NTP_SERVER_ADDR)
         CUSTOM_NTP_SERVER_ADDR=\"CONFIG_NTP_SERVER_ADDR=\\\"${env.FLASHMANNTPADDR}\\\"\"
-        sed -i -e '/'\$DEFAULT_NTP_SERVER_ADDR'/d' ${env.WORKSPACE}/\$REPO/.config
+        sed -i -e '\\,'\$DEFAULT_NTP_SERVER_ADDR',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_NTP_SERVER_ADDR >> ${env.WORKSPACE}/\$REPO/.config
 
         DEFAULT_FLASHMAN_WAN_PROTO_PPPOE=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_WAN_PROTO_PPPOE)
@@ -110,30 +110,30 @@ node {
           CUSTOM_FLASHMAN_PPPOE_PASSWD=\"# CONFIG_FLASHMAN_PPPOE_PASSWD is not set\"
           CUSTOM_FLASHMAN_PPPOE_SERVICE=\"# CONFIG_FLASHMAN_PPPOE_SERVICE is not set\"
         fi
-        sed -i -e '/'\$DEFAULT_FLASHMAN_WAN_PROTO_PPPOE'/d' ${env.WORKSPACE}/\$REPO/.config
+        sed -i -e '\\,'\$DEFAULT_FLASHMAN_WAN_PROTO_PPPOE',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_FLASHMAN_WAN_PROTO_PPPOE >> ${env.WORKSPACE}/\$REPO/.config
 
-        sed -i -e '/'\$DEFAULT_FLASHMAN_PPPOE_USER'/d' ${env.WORKSPACE}/\$REPO/.config
+        sed -i -e '\\,'\$DEFAULT_FLASHMAN_PPPOE_USER',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_FLASHMAN_PPPOE_USER >> ${env.WORKSPACE}/\$REPO/.config
 
-        sed -i -e '/'\$DEFAULT_FLASHMAN_PPPOE_PASSWD'/d' ${env.WORKSPACE}/\$REPO/.config
+        sed -i -e '\\,'\$DEFAULT_FLASHMAN_PPPOE_PASSWD',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_FLASHMAN_PPPOE_PASSWD >> ${env.WORKSPACE}/\$REPO/.config
 
-        sed -i -e '/'\$DEFAULT_FLASHMAN_PPPOE_SERVICE'/d' ${env.WORKSPACE}/\$REPO/.config
+        sed -i -e '\\,'\$DEFAULT_FLASHMAN_PPPOE_SERVICE',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_FLASHMAN_PPPOE_SERVICE >> ${env.WORKSPACE}/\$REPO/.config
         
-        sed -i -e '/'\$DEFAULT_FLASHMAN_WAN_PROTO_DHCP'/d' ${env.WORKSPACE}/\$REPO/.config
+        sed -i -e '\\,'\$DEFAULT_FLASHMAN_WAN_PROTO_DHCP',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_FLASHMAN_WAN_PROTO_DHCP >> ${env.WORKSPACE}/\$REPO/.config
 
 
         DEFAULT_FLASHMAN_WAN_MTU=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_WAN_MTU)
         CUSTOM_FLASHMAN_WAN_MTU=\"CONFIG_FLASHMAN_WAN_MTU=\\\"${env.FLASHMANWANMTU}\\\"\"
-        sed -i -e '/'\$DEFAULT_FLASHMAN_WAN_MTU'/d' ${env.WORKSPACE}/\$REPO/.config
+        sed -i -e '\\,'\$DEFAULT_FLASHMAN_WAN_MTU',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_FLASHMAN_WAN_MTU >> ${env.WORKSPACE}/\$REPO/.config
 
         DEFAULT_FLASHMAN_AUTH_SERVER_ADDR=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_AUTH_SERVER_ADDR)
         CUSTOM_FLASHMAN_AUTH_SERVER_ADDR=\"CONFIG_FLASHMAN_AUTH_SERVER_ADDR=\\\"${env.AUTHSERVERADDR}\\\"\"
-        sed -i -e '/'\$DEFAULT_FLASHMAN_AUTH_SERVER_ADDR'/d' ${env.WORKSPACE}/\$REPO/.config
+        sed -i -e '\\,'\$DEFAULT_FLASHMAN_AUTH_SERVER_ADDR',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_FLASHMAN_AUTH_SERVER_ADDR >> ${env.WORKSPACE}/\$REPO/.config
         
         DEFAULT_FLASHMAN_USE_AUTH_SERVER=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_USE_AUTH_SERVER)
@@ -145,13 +145,13 @@ node {
           CUSTOM_FLASHMAN_USE_AUTH_SERVER=\"# CONFIG_FLASHMAN_USE_AUTH_SERVER is not set\"
         fi
 
-        sed -i -e '/'\$DEFAULT_FLASHMAN_USE_AUTH_SERVER'/d' ${env.WORKSPACE}/\$REPO/.config
+        sed -i -e '\\,'\$DEFAULT_FLASHMAN_USE_AUTH_SERVER',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_FLASHMAN_USE_AUTH_SERVER >> ${env.WORKSPACE}/\$REPO/.config
         
 
         DEFAULT_ZABBIX_SERVER_ADDR=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_ZABBIX_SERVER_ADDR)
         CUSTOM_ZABBIX_SERVER_ADDR=\"CONFIG_ZABBIX_SERVER_ADDR=\\\"${env.ZABBIXSERVERADDR}\\\"\"
-        sed -i -e '/'\$DEFAULT_ZABBIX_SERVER_ADDR'/d' ${env.WORKSPACE}/\$REPO/.config
+        sed -i -e '\\,'\$DEFAULT_ZABBIX_SERVER_ADDR',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_ZABBIX_SERVER_ADDR >> ${env.WORKSPACE}/\$REPO/.config
         
         ##
