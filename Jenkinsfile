@@ -178,6 +178,7 @@ node {
 
         cd ${env.WORKSPACE}/\$REPO
 
+        git fetch
         git checkout \$COMMIT
 
         ./scripts/feeds update -a
