@@ -91,10 +91,10 @@ node {
         echo \$CUSTOM_NTP_SERVER_ADDR >> ${env.WORKSPACE}/\$REPO/.config
 
         DEFAULT_FLASHMAN_WAN_PROTO_PPPOE=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_WAN_PROTO_PPPOE || echo '^\$')
-        DEFAULT_FLASHMAN_PPPOE_USER=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_PPPOE_USER || echo ' ')
-        DEFAULT_FLASHMAN_PPPOE_PASSWD=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_PPPOE_PASSWD || echo ' ')
-        DEFAULT_FLASHMAN_PPPOE_SERVICE=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_PPPOE_SERVICE || echo ' ')
-        DEFAULT_FLASHMAN_WAN_PROTO_DHCP=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_WAN_PROTO_DHCP || echo ' ')
+        DEFAULT_FLASHMAN_PPPOE_USER=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_PPPOE_USER || echo '^\$')
+        DEFAULT_FLASHMAN_PPPOE_PASSWD=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_PPPOE_PASSWD || echo '^\$')
+        DEFAULT_FLASHMAN_PPPOE_SERVICE=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_PPPOE_SERVICE || echo '^\$')
+        DEFAULT_FLASHMAN_WAN_PROTO_DHCP=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_WAN_PROTO_DHCP || echo '^\$')
 
         if [ \"${env.FLASHMANWANPROTO}\" == \"pppoe\" ]
         then
@@ -136,7 +136,7 @@ node {
         sed -i -e '\\,'\$DEFAULT_FLASHMAN_AUTH_SERVER_ADDR',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_FLASHMAN_AUTH_SERVER_ADDR >> ${env.WORKSPACE}/\$REPO/.config
         
-        DEFAULT_FLASHMAN_USE_AUTH_SERVER=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_USE_AUTH_SERVER || echo ' ')
+        DEFAULT_FLASHMAN_USE_AUTH_SERVER=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_USE_AUTH_SERVER || echo '^\$')
 
         if [ \"${env.AUTHENABLESERVER}\" == \"true\" ]
         then
