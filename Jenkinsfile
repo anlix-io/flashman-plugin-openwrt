@@ -223,7 +223,7 @@ node {
         IMGNAME='\$OUTPUTIMGVENDOR_\$OUTPUTIMGMODEL_\$OUTPUTIMGMODELVER_${params.FLASHMANRELEASEID}_FACTORY.bin'
 
         curl -u ${params.ARTIFACTORYUSER}:${params.ARTIFACTORYPASS} \\
-        -X PUT 'https://artifactory.anlix.io/artifactory/firmwares/${params.FLASHMANCLIENTORG}/${IMGNAME}' \\
+        -X PUT \"https://artifactory.anlix.io/artifactory/firmwares/${params.FLASHMANCLIENTORG}/\"\$IMGNAME \\
         -T \$TARGETIMG
       """
     }
