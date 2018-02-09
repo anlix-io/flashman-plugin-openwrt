@@ -33,11 +33,11 @@ node {
       // OpenWRT buildroot setup
       sh """
         DIFFCONFIG=\$(ls ${env.WORKSPACE}/diffconfigs | grep ${params.TARGETMODEL} | head -1)
-        REPO=\$(echo \$DIFFCONFIG | awk -F ~ '{print \$1}')
-        BRANCH=\$(echo \$DIFFCONFIG | awk -F ~ '{print \$2}')
-        COMMIT=\$(echo \$DIFFCONFIG | awk -F ~ '{print \$3}')
-        TARGET=\$(echo \$DIFFCONFIG | awk -F ~ '{print \$4}')
-        PROFILE=\$(echo \$DIFFCONFIG | awk -F ~ '{print \$5}')
+        REPO=\$(echo \$DIFFCONFIG | awk -F '~' '{print \$1}')
+        BRANCH=\$(echo \$DIFFCONFIG | awk -F '~' '{print \$2}')
+        COMMIT=\$(echo \$DIFFCONFIG | awk -F '~' '{print \$3}')
+        TARGET=\$(echo \$DIFFCONFIG | awk -F '~' '{print \$4}')
+        PROFILE=\$(echo \$DIFFCONFIG | awk -F '~' '{print \$5}')
 
         if [ ! -d ${env.WORKSPACE}/\$REPO ]
         then
