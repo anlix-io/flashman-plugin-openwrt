@@ -221,7 +221,7 @@ node {
         "files": [
           {
             "pattern": "openwrt-ar71xx-generic-tl-mr3020-v1-squashfs-factory.bin",
-            "target": "firmwares/${params.FLASHMANCLIENTORG}/"
+            "target": "firmwares/anlix/"
           }
        ]
       }'''
