@@ -3,6 +3,7 @@
 properties([
   parameters([
     string(name: 'TARGETMODEL', defaultValue: 'tl-wr940n-v4'),
+    string(name: 'OUTPUTIMGMODEL', defaultValue: 'tl-wr940n-v4'),
     string(name: 'FLASHMANPUBKEY', defaultValue: 'public key'),
     string(name: 'FLASHMANSERVERADDR', defaultValue: 'flashman.example.com'),
     string(name: 'FLASHMANSSIDPREFIX', defaultValue: 'Flashman-AP-'),
@@ -56,37 +57,37 @@ node {
         echo \$CUSTOM_FLASHMAN_KEYS_PATH >> ${env.WORKSPACE}/\$REPO/.config
 
         DEFAULT_FLASHMAN_SERVER_ADDR=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_SERVER_ADDR)
-        CUSTOM_FLASHMAN_SERVER_ADDR=\"CONFIG_FLASHMAN_SERVER_ADDR=\\\"${env.FLASHMANSERVERADDR}\\\"\"
+        CUSTOM_FLASHMAN_SERVER_ADDR=\"CONFIG_FLASHMAN_SERVER_ADDR=\\\"${params.FLASHMANSERVERADDR}\\\"\"
         sed -i -e '\\,'\$DEFAULT_FLASHMAN_SERVER_ADDR',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_FLASHMAN_SERVER_ADDR >> ${env.WORKSPACE}/\$REPO/.config
 
         DEFAULT_FLASHMAN_WIFI_SSID=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_WIFI_SSID)
-        CUSTOM_FLASHMAN_WIFI_SSID=\"CONFIG_FLASHMAN_WIFI_SSID=\\\"${env.FLASHMANSSIDPREFIX}\\\"\"
+        CUSTOM_FLASHMAN_WIFI_SSID=\"CONFIG_FLASHMAN_WIFI_SSID=\\\"${params.FLASHMANSSIDPREFIX}\\\"\"
         sed -i -e '\\,'\$DEFAULT_FLASHMAN_WIFI_SSID',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_FLASHMAN_WIFI_SSID >> ${env.WORKSPACE}/\$REPO/.config
 
         DEFAULT_FLASHMAN_WIFI_PASSWD=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_WIFI_PASSWD)
-        CUSTOM_FLASHMAN_WIFI_PASSWD=\"CONFIG_FLASHMAN_WIFI_PASSWD=\\\"${env.FLASHMANWIFIPASS}\\\"\"
+        CUSTOM_FLASHMAN_WIFI_PASSWD=\"CONFIG_FLASHMAN_WIFI_PASSWD=\\\"${params.FLASHMANWIFIPASS}\\\"\"
         sed -i -e '\\,'\$DEFAULT_FLASHMAN_WIFI_PASSWD',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_FLASHMAN_WIFI_PASSWD >> ${env.WORKSPACE}/\$REPO/.config
 
         DEFAULT_FLASHMAN_WIFI_CHANNEL=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_WIFI_CHANNEL)
-        CUSTOM_FLASHMAN_WIFI_CHANNEL=\"CONFIG_FLASHMAN_WIFI_CHANNEL=\\\"${env.FLASHMANWIFICHANNEL}\\\"\"
+        CUSTOM_FLASHMAN_WIFI_CHANNEL=\"CONFIG_FLASHMAN_WIFI_CHANNEL=\\\"${params.FLASHMANWIFICHANNEL}\\\"\"
         sed -i -e '\\,'\$DEFAULT_FLASHMAN_WIFI_CHANNEL',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_FLASHMAN_WIFI_CHANNEL >> ${env.WORKSPACE}/\$REPO/.config
 
         DEFAULT_FLASHMAN_RELEASE_ID=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_RELEASE_ID)
-        CUSTOM_FLASHMAN_RELEASE_ID=\"CONFIG_FLASHMAN_RELEASE_ID=\\\"${env.FLASHMANRELEASEID}\\\"\"
+        CUSTOM_FLASHMAN_RELEASE_ID=\"CONFIG_FLASHMAN_RELEASE_ID=\\\"${params.FLASHMANRELEASEID}\\\"\"
         sed -i -e '\\,'\$DEFAULT_FLASHMAN_RELEASE_ID',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_FLASHMAN_RELEASE_ID >> ${env.WORKSPACE}/\$REPO/.config
 
         DEFAULT_FLASHMAN_CLIENT_ORG=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_CLIENT_ORG)
-        CUSTOM_FLASHMAN_CLIENT_ORG=\"CONFIG_FLASHMAN_CLIENT_ORG=\\\"${env.FLASHMANCLIENTORG}\\\"\"
+        CUSTOM_FLASHMAN_CLIENT_ORG=\"CONFIG_FLASHMAN_CLIENT_ORG=\\\"${params.FLASHMANCLIENTORG}\\\"\"
         sed -i -e '\\,'\$DEFAULT_FLASHMAN_CLIENT_ORG',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_FLASHMAN_CLIENT_ORG >> ${env.WORKSPACE}/\$REPO/.config
 
         DEFAULT_NTP_SERVER_ADDR=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_NTP_SERVER_ADDR)
-        CUSTOM_NTP_SERVER_ADDR=\"CONFIG_NTP_SERVER_ADDR=\\\"${env.FLASHMANNTPADDR}\\\"\"
+        CUSTOM_NTP_SERVER_ADDR=\"CONFIG_NTP_SERVER_ADDR=\\\"${params.FLASHMANNTPADDR}\\\"\"
         sed -i -e '\\,'\$DEFAULT_NTP_SERVER_ADDR',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_NTP_SERVER_ADDR >> ${env.WORKSPACE}/\$REPO/.config
 
@@ -96,12 +97,12 @@ node {
         DEFAULT_FLASHMAN_PPPOE_SERVICE=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_PPPOE_SERVICE || echo '^\$')
         DEFAULT_FLASHMAN_WAN_PROTO_DHCP=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_WAN_PROTO_DHCP || echo '^\$')
 
-        if [ \"${env.FLASHMANWANPROTO}\" = \"pppoe\" ]
+        if [ \"${params.FLASHMANWANPROTO}\" = \"pppoe\" ]
         then
           CUSTOM_FLASHMAN_WAN_PROTO_PPPOE=\"CONFIG_FLASHMAN_WAN_PROTO_PPPOE=y\"
-          CUSTOM_FLASHMAN_PPPOE_USER=\"CONFIG_FLASHMAN_PPPOE_USER=\\\"${env.FLASHMANPPPOEUSER}\\\"\"
-          CUSTOM_FLASHMAN_PPPOE_PASSWD=\"CONFIG_FLASHMAN_PPPOE_PASSWD=\\\"${env.FLASHMANPPPOEPASS}\\\"\"
-          CUSTOM_FLASHMAN_PPPOE_SERVICE=\"CONFIG_FLASHMAN_PPPOE_SERVICE=\\\"${env.FLASHMANPPPOESERVICE}\\\"\"
+          CUSTOM_FLASHMAN_PPPOE_USER=\"CONFIG_FLASHMAN_PPPOE_USER=\\\"${params.FLASHMANPPPOEUSER}\\\"\"
+          CUSTOM_FLASHMAN_PPPOE_PASSWD=\"CONFIG_FLASHMAN_PPPOE_PASSWD=\\\"${params.FLASHMANPPPOEPASS}\\\"\"
+          CUSTOM_FLASHMAN_PPPOE_SERVICE=\"CONFIG_FLASHMAN_PPPOE_SERVICE=\\\"${params.FLASHMANPPPOESERVICE}\\\"\"
           CUSTOM_FLASHMAN_WAN_PROTO_DHCP=\"# CONFIG_FLASHMAN_WAN_PROTO_DHCP is not set\"
         else
           CUSTOM_FLASHMAN_WAN_PROTO_DHCP=\"CONFIG_FLASHMAN_WAN_PROTO_DHCP=y\"
@@ -127,23 +128,23 @@ node {
 
 
         DEFAULT_FLASHMAN_WAN_MTU=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_WAN_MTU)
-        CUSTOM_FLASHMAN_WAN_MTU=\"CONFIG_FLASHMAN_WAN_MTU=\\\"${env.FLASHMANWANMTU}\\\"\"
+        CUSTOM_FLASHMAN_WAN_MTU=\"CONFIG_FLASHMAN_WAN_MTU=\\\"${params.FLASHMANWANMTU}\\\"\"
         sed -i -e '\\,'\$DEFAULT_FLASHMAN_WAN_MTU',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_FLASHMAN_WAN_MTU >> ${env.WORKSPACE}/\$REPO/.config
 
         DEFAULT_FLASHMAN_AUTH_SERVER_ADDR=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_AUTH_SERVER_ADDR)
-        CUSTOM_FLASHMAN_AUTH_SERVER_ADDR=\"CONFIG_FLASHMAN_AUTH_SERVER_ADDR=\\\"${env.AUTHSERVERADDR}\\\"\"
+        CUSTOM_FLASHMAN_AUTH_SERVER_ADDR=\"CONFIG_FLASHMAN_AUTH_SERVER_ADDR=\\\"${params.AUTHSERVERADDR}\\\"\"
         sed -i -e '\\,'\$DEFAULT_FLASHMAN_AUTH_SERVER_ADDR',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_FLASHMAN_AUTH_SERVER_ADDR >> ${env.WORKSPACE}/\$REPO/.config
 
         DEFAULT_FLASHMAN_CLIENT_SECRET=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_CLIENT_SECRET || echo '^\$')
-        CUSTOM_FLASHMAN_CLIENT_SECRET=\"CONFIG_FLASHMAN_CLIENT_SECRET=\\\"${env.AUTHCLIENTSECRET}\\\"\"
+        CUSTOM_FLASHMAN_CLIENT_SECRET=\"CONFIG_FLASHMAN_CLIENT_SECRET=\\\"${params.AUTHCLIENTSECRET}\\\"\"
         sed -i -e '\\,'\$DEFAULT_FLASHMAN_CLIENT_SECRET',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_FLASHMAN_CLIENT_SECRET >> ${env.WORKSPACE}/\$REPO/.config
         
         DEFAULT_FLASHMAN_USE_AUTH_SERVER=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_USE_AUTH_SERVER || echo '^\$')
 
-        if [ \"${env.AUTHENABLESERVER}\" = \"true\" ]
+        if [ \"${params.AUTHENABLESERVER}\" = \"true\" ]
         then
           CUSTOM_FLASHMAN_USE_AUTH_SERVER=\"CONFIG_FLASHMAN_USE_AUTH_SERVER=y\"
         else
@@ -155,13 +156,13 @@ node {
         
 
         DEFAULT_ZABBIX_SERVER_ADDR=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_ZABBIX_SERVER_ADDR)
-        CUSTOM_ZABBIX_SERVER_ADDR=\"CONFIG_ZABBIX_SERVER_ADDR=\\\"${env.ZABBIXSERVERADDR}\\\"\"
+        CUSTOM_ZABBIX_SERVER_ADDR=\"CONFIG_ZABBIX_SERVER_ADDR=\\\"${params.ZABBIXSERVERADDR}\\\"\"
         sed -i -e '\\,'\$DEFAULT_ZABBIX_SERVER_ADDR',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_ZABBIX_SERVER_ADDR >> ${env.WORKSPACE}/\$REPO/.config
 
         DEFAULT_ZABBIX_SEND_DATA=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_ZABBIX_SEND_DATA || echo '^\$')
 
-        if [ \"${env.ZABBIXSENDNETDATA}\" = \"true\" ]
+        if [ \"${params.ZABBIXSENDNETDATA}\" = \"true\" ]
         then
           CUSTOM_ZABBIX_SEND_DATA=\"CONFIG_ZABBIX_SEND_DATA=y\"
         else
@@ -204,15 +205,23 @@ node {
     }
     stage('Deploy') {
       echo "Deploying...."
-      //def server = Artifactory.server "artifactory-anlix-io"
-      //def uploadSpec = '''{
-      //  "files": [
-      //    {
-      //      "pattern": "test.txt",
-      //      "target": "firmwares/anlix/"
-      //    }
-      // ]
-      //}'''
-      //server.upload(uploadSpec)
+
+      sh """
+        DIFFCONFIG=\$(ls ${env.WORKSPACE}/diffconfigs | grep ${params.TARGETMODEL} | head -1)
+        REPO=\$(echo \$DIFFCONFIG | awk -F '~' '{print \$1}')
+        TARGET=\$(echo \$DIFFCONFIG | awk -F '~' '{print \$4}')
+        TARGETIMG=\$(find ./bin -name '*factory.bin' | grep ${params.OUTPUTIMGMODEL})
+      """
+
+      def server = Artifactory.server "artifactory-anlix-io"
+      def uploadSpec = '''{
+        "files": [
+          {
+            "pattern": "${env.WORKSPACE}/\$REPO/\$TARGETIMG",
+            "target": "firmwares/${params.FLASHMANCLIENTORG}/"
+          }
+       ]
+      }'''
+      server.upload(uploadSpec)
     }
 }
