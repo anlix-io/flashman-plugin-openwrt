@@ -3,7 +3,9 @@
 properties([
   parameters([
     string(name: 'TARGETMODEL', defaultValue: 'tl-wr940n-v4'),
-    string(name: 'OUTPUTIMGMODEL', defaultValue: 'tl-wr940n-v4'),
+    string(name: 'OUTPUTIMGMODEL', defaultValue: 'tl-wr940n'),
+    string(name: 'OUTPUTIMGMODELVER', defaultValue: 'v4'),
+    string(name: 'OUTPUTIMGVENDOR', defaultValue: 'tp-link'),
     string(name: 'FLASHMANPUBKEY', defaultValue: 'public key'),
     string(name: 'FLASHMANSERVERADDR', defaultValue: 'flashman.example.com'),
     string(name: 'FLASHMANSSIDPREFIX', defaultValue: 'Flashman-AP-'),
@@ -213,10 +215,14 @@ node {
         REPO=\$(echo \$DIFFCONFIG | awk -F '~' '{print \$1}')
         TARGET=\$(echo \$DIFFCONFIG | awk -F '~' '{print \$4}')
         TARGETIMG=\$(find ${env.WORKSPACE}/\$REPO/bin -name '*factory.bin' | grep ${params.OUTPUTIMGMODEL})
-        IMGNAME=\$(echo \$TARGETIMG | awk -F '/' '{print \$NF}')
+
+        OUTPUTIMGVENDOR=\$(echo ${params.OUTPUTIMGVENDOR} | awk '{print toupper(\$0)}')
+        OUTPUTIMGMODEL=\$(echo ${params.OUTPUTIMGMODEL} | awk '{print toupper(\$0)}')
+        OUTPUTIMGMODELVER=\$(echo ${params.OUTPUTIMGMODELVER} | awk '{print toupper(\$0)}')
+        IMGNAME='\$OUTPUTIMGVENDOR_\$OUTPUTIMGMODEL_\$OUTPUTIMGMODELVER_${params.FLASHMANRELEASEID}.bin'
 
         curl -u ${params.ARTIFACTORYUSER}:${params.ARTIFACTORYPASS} \\
-        -X PUT 'https://artifactory.anlix.io/artifactory/firmwares/${params.FLASHMANCLIENTORG}/\$IMGNAME' \\
+        -X PUT 'https://artifactory.anlix.io/artifactory/firmwares/${params.FLASHMANCLIENTORG}/${IMGNAME}' \\
         -T \$TARGETIMG
       """
     }
