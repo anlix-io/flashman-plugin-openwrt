@@ -22,6 +22,8 @@ properties([
     string(name: 'AUTHENABLESERVER', defaultValue: 'false'),
     string(name: 'AUTHSERVERADDR', defaultValue: 'auth.example.com'),
     string(name: 'AUTHCLIENTSECRET', defaultValue: 'secret'),
+    string(name: 'ARTIFACTORYUSER', defaultValue: ''),
+    string(name: 'ARTIFACTORYPASS', defaultValue: ''),
   ])
 ])
 
@@ -213,18 +215,9 @@ node {
         TARGETIMG=\$(find ${env.WORKSPACE}/\$REPO/bin -name '*factory.bin' | grep ${params.OUTPUTIMGMODEL})
         IMGNAME=\$(echo \$TARGETIMG | awk -F '/' '{print \$NF}')
 
-        cp \$TARGETIMG ${env.WORKSPACE}
+        curl -u ${params.ARTIFACTORYUSER}:${params.ARTIFACTORYPASS} \\
+        -X PUT 'https://artifactory.anlix.io/artifactory/firmwares/${params.FLASHMANCLIENTORG}/\$IMGNAME' \\
+        -T \$TARGETIMG
       """
-
-      def server = Artifactory.server "artifactory-anlix-io"
-      def uploadSpec = '''{
-        "files": [
-          {
-            "pattern": "openwrt-ar71xx-generic-tl-mr3020-v1-squashfs-factory.bin",
-            "target": "firmwares/anlix/"
-          }
-       ]
-      }'''
-      server.upload(uploadSpec)
     }
 }
