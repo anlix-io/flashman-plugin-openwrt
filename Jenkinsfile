@@ -210,14 +210,17 @@ node {
         DIFFCONFIG=\$(ls ${env.WORKSPACE}/diffconfigs | grep ${params.TARGETMODEL} | head -1)
         REPO=\$(echo \$DIFFCONFIG | awk -F '~' '{print \$1}')
         TARGET=\$(echo \$DIFFCONFIG | awk -F '~' '{print \$4}')
-        TARGETIMG=\$(find \$REPO/bin -name '*factory.bin' | grep ${params.OUTPUTIMGMODEL})
+        TARGETIMG=\$(find ${env.WORKSPACE}/\$REPO/bin -name '*factory.bin' | grep ${params.OUTPUTIMGMODEL})
+        IMGNAME=\$(echo $TARGET | awk -F '/' '{print $NF}')
+
+        cp \$TARGETIMG ${env.WORKSPACE}
       """
 
       def server = Artifactory.server "artifactory-anlix-io"
       def uploadSpec = '''{
         "files": [
           {
-            "pattern": "\$TARGETIMG",
+            "pattern": "\$IMGNAME",
             "target": "firmwares/${params.FLASHMANCLIENTORG}/"
           }
        ]
