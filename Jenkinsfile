@@ -224,6 +224,9 @@ node {
         IMGNAME=\$IMGPRENAME'.bin'
         IMGZIP=\$IMGPRENAME'.zip'
 
+        if [ -f \$IMGZIP ]
+        then
+            rm \$IMGZIP 
         cp \$TARGETIMG \$IMGNAME
         zip \$IMGZIP \$IMGNAME
 
