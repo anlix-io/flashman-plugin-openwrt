@@ -226,7 +226,9 @@ node {
 
         if [ -f \$IMGZIP ]
         then
-            rm \$IMGZIP 
+            rm \$IMGZIP
+        fi
+ 
         cp \$TARGETIMG \$IMGNAME
         zip \$IMGZIP \$IMGNAME
 
