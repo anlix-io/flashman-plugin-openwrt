@@ -220,13 +220,16 @@ node {
         OUTPUTIMGVENDOR=\$(echo ${params.OUTPUTIMGVENDOR} | awk '{print toupper(\$0)}')
         OUTPUTIMGMODEL=\$(echo ${params.OUTPUTIMGMODEL} | awk '{print toupper(\$0)}')
         OUTPUTIMGMODELVER=\$(echo ${params.OUTPUTIMGMODELVER} | awk '{print toupper(\$0)}')
-        IMGNAME=\$OUTPUTIMGVENDOR'_'\$OUTPUTIMGMODEL'_'\$OUTPUTIMGMODELVER'_'${params.FLASHMANRELEASEID}'_FACTORY.zip'
+        IMGPRENAME=\$OUTPUTIMGVENDOR'_'\$OUTPUTIMGMODEL'_'\$OUTPUTIMGMODELVER'_'${params.FLASHMANRELEASEID}'_FACTORY'
+        IMGNAME=\$IMGPRENAME'.bin'
+        IMGZIP=\$IMGPRENAME'.zip'
 
-        zip -j \$IMGNAME \$TARGETIMG
+        cp \$TARGETIMG \$IMGNAME
+        zip \$IMGZIP \$IMGNAME
 
         curl -u ${params.ARTIFACTORYUSER}:${params.ARTIFACTORYPASS} \\
-        -X PUT \"https://artifactory.anlix.io/artifactory/firmwares/${params.FLASHMANCLIENTORG}/\"\$IMGNAME \\
-        -T \$IMGNAME
+        -X PUT \"https://artifactory.anlix.io/artifactory/firmwares/${params.FLASHMANCLIENTORG}/\"\$IMGZIP \\
+        -T \$IMGZIP
       """
     }
 }
