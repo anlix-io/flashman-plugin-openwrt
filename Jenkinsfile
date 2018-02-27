@@ -204,7 +204,7 @@ node {
         ##
 
         DEFAULT_FAILSAFE_PASSWD=\$(cat ${env.WORKSPACE}/\$REPO/package/base-files/files/etc/shadow | grep root)
-        CUSTOM_FAILSAFE_PASSWD=\$(openssl passwd -1 -salt $(openssl rand -base64 6) ${params.AUTHCLIENTSECRET})
+        CUSTOM_FAILSAFE_PASSWD=\$(openssl passwd -1 -salt \$(openssl rand -base64 6) ${params.AUTHCLIENTSECRET})
         sed -i -e '\\,'\$DEFAULT_FAILSAFE_PASSWD',d' ${env.WORKSPACE}/\$REPO/package/base-files/files/etc/shadow
         echo \"root:\"\$CUSTOM_FAILSAFE_PASSWD\":0:0:99999:7:::\" >> ${env.WORKSPACE}/\$REPO/package/base-files/files/etc/shadow
 
