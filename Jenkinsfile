@@ -228,6 +228,11 @@ node {
       sh """
         DIFFCONFIG=\$(ls ${env.WORKSPACE}/diffconfigs | grep ${params.TARGETMODEL} | head -1)
         REPO=\$(echo \$DIFFCONFIG | awk -F '~' '{print \$1}')
+
+        ##
+        ## Factory image
+        ##
+
         OUTPUTIMGMODEL=\$(echo ${params.OUTPUTIMGMODEL} | awk '{print tolower(\$0)}')
         OUTPUTIMGMODELVER=\$(echo ${params.OUTPUTIMGMODELVER} | awk '{print tolower(\$0)}')
         TARGETIMG=\$(find ${env.WORKSPACE}/\$REPO/bin -name '*factory.bin' | grep \$OUTPUTIMGMODEL-\$OUTPUTIMGMODELVER)
@@ -249,6 +254,33 @@ node {
 
         curl -u ${params.ARTIFACTORYUSER}:${params.ARTIFACTORYPASS} \\
         -X PUT \"https://artifactory.anlix.io/artifactory/firmwares/${params.FLASHMANCLIENTORG}/\"\$IMGZIP \\
+        -T \$IMGZIP
+
+        ##
+        ## Sysupgrade image
+        ##
+
+        OUTPUTIMGMODEL=\$(echo ${params.OUTPUTIMGMODEL} | awk '{print tolower(\$0)}')
+        OUTPUTIMGMODELVER=\$(echo ${params.OUTPUTIMGMODELVER} | awk '{print tolower(\$0)}')
+        TARGETIMG=\$(find ${env.WORKSPACE}/\$REPO/bin -name '*sysupgrade.bin' | grep \$OUTPUTIMGMODEL-\$OUTPUTIMGMODELVER)
+
+        OUTPUTIMGVENDOR=\$(echo ${params.OUTPUTIMGVENDOR} | awk '{print toupper(\$0)}')
+        OUTPUTIMGMODEL=\$(echo ${params.OUTPUTIMGMODEL} | awk '{print toupper(\$0)}')
+        OUTPUTIMGMODELVER=\$(echo ${params.OUTPUTIMGMODELVER} | awk '{print toupper(\$0)}')
+        IMGPRENAME=\$OUTPUTIMGVENDOR'_'\$OUTPUTIMGMODEL'_'\$OUTPUTIMGMODELVER'_'${params.FLASHMANRELEASEID}
+        IMGNAME=\$IMGPRENAME'.bin'
+        IMGZIP=\$IMGPRENAME'.zip'
+
+        if [ -f \$IMGZIP ]
+        then
+            rm \$IMGZIP
+        fi
+ 
+        cp \$TARGETIMG \$IMGNAME
+        zip \$IMGZIP \$IMGNAME
+
+        curl -u ${params.ARTIFACTORYUSER}:${params.ARTIFACTORYPASS} \\
+        -X PUT \"https://artifactory.anlix.io/artifactory/upgrades/${params.FLASHMANCLIENTORG}/\"\$IMGZIP \\
         -T \$IMGZIP
       """
     }
