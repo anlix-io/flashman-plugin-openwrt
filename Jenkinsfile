@@ -189,13 +189,28 @@ node {
         ./scripts/feeds update -a
         ./scripts/feeds install -a
 
-        make defconfig
-
         cp -r ${env.WORKSPACE}/flashman-plugin ${env.WORKSPACE}/\$REPO/package/utils/
         mkdir -p ${env.WORKSPACE}/\$REPO/files/etc
         cp ${env.WORKSPACE}/banner ${env.WORKSPACE}/\$REPO/files/etc/
+        cp ${env.WORKSPACE}/login.sh ${env.WORKSPACE}/\$REPO/package/base-files/files/bin/
+        chmod +x ${env.WORKSPACE}/\$REPO/package/base-files/files/bin/login.sh
+        
+        make defconfig
 
         echo ${params.FLASHMANPUBKEY} > ${env.WORKSPACE}/\$REPO/id_rsa_flashman.pub
+
+        ##
+        ## Add failsafe password using shared secret
+        ##
+
+        DEFAULT_FAILSAFE_PASSWD=\$(cat ${env.WORKSPACE}/\$REPO/package/base-files/files/etc/shadow | grep root)
+        CUSTOM_FAILSAFE_PASSWD=\$(openssl passwd -1 -salt $(openssl rand -base64 6) ${params.AUTHCLIENTSECRET})
+        sed -i -e '\\,'\$DEFAULT_FAILSAFE_PASSWD',d' ${env.WORKSPACE}/\$REPO/package/base-files/files/etc/shadow
+        echo \"root:\"\$CUSTOM_FAILSAFE_PASSWD\":0:0:99999:7:::\" >> ${env.WORKSPACE}/\$REPO/package/base-files/files/etc/shadow
+
+        ##
+        ## End failsafe password using shared secret
+        ##
 
         if [ ! -f ${env.WORKSPACE}/\$REPO/download_done ]
         then
