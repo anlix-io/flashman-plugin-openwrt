@@ -8,7 +8,8 @@
 
 SERVER_ADDR="$FLM_SVADDR"
 OPENWRT_VER=$(cat /etc/openwrt_version)
-HARDWARE_MODEL=$(cat /tmp/sysinfo/model | awk '{ print toupper($2) }')
+HARDWARE_MODEL=$(get_hardware_model)
+SYSTEM_MODEL=$(get_system_model)
 HARDWARE_VER=$(cat /tmp/sysinfo/model | awk '{ print toupper($3) }')
 NUMBER=$(head /dev/urandom | tr -dc "012345" | head -c1)
 CLIENT_MAC=$(get_mac)
@@ -34,7 +35,8 @@ then
     fi
 
     # Get WiFi data if available
-    if [ "$(uci get wireless.@wifi-device[0].disabled)" == "0" ]
+    # MT7628 wifi is always disabled in uci 
+    if [ "$(uci get wireless.@wifi-device[0].disabled)" == "0" ] || [ "$SYSTEM_MODEL" == "MT7628AN" ]
     then
       WIFI_SSID=$(uci get wireless.@wifi-iface[0].ssid)
       WIFI_PASSWD=$(uci get wireless.@wifi-iface[0].key)
@@ -74,7 +76,7 @@ then
     fi
 
     # WiFi update
-    if [ "$(uci get wireless.@wifi-device[0].disabled)" == "0" ]
+    if [ "$(uci get wireless.@wifi-device[0].disabled)" == "0" ] || [ "$SYSTEM_MODEL" == "MT7628AN" ]
     then
       if [ "$_wifi_ssid" != "" ] && [ "$_wifi_password" != "" ] && \
          [ "$_wifi_channel" != "" ]
@@ -88,7 +90,13 @@ then
           uci set wireless.radio0.channel="$_wifi_channel"
           uci commit wireless
 
-          /etc/init.d/network restart
+	  if [ "$SYSTEM_MODEL" == "MT7628AN" ]
+	  then
+            /usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat	
+	    /sbin/mtkwifi reload
+	  else
+	    /etc/init.d/network restart
+          fi
         fi
       fi
     fi
