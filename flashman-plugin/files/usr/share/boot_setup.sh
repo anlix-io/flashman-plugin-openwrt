@@ -134,6 +134,7 @@ firstboot() {
 	uci set network.lan.ipaddr="10.0.10.1"
 	uci set network.lan.netmask="255.255.255.0"
 	uci commit network
+	echo "10.0.10.1 anlixrouter" >> /etc/hosts
 	/sbin/ifup lan
 
 	# Configure WAN
