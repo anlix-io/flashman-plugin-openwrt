@@ -1,4 +1,4 @@
-#!/bin/sh
+#/bin/sh
 
 . /usr/share/flashman_init.conf
 . /lib/functions.sh
@@ -178,6 +178,11 @@ firstboot() {
 		/etc/init.d/zabbix_agentd stop
 		/etc/init.d/zabbix_agentd disable
 	fi
+
+	#Configure uhttpd to use anlix scripts
+        uci set uhttpd.main.lua_prefix='/anlix'
+        uci set uhttpd.main.lua_handler='/usr/share/anlix/index.lua'
+        uci commit uhttpd
 
 	log "First boot completed"
 }
