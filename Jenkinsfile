@@ -238,7 +238,11 @@ node {
 
         OUTPUTIMGMODEL=\$(echo ${params.OUTPUTIMGMODEL} | awk '{print tolower(\$0)}')
         OUTPUTIMGMODELVER=\$(echo ${params.OUTPUTIMGMODELVER} | awk '{print tolower(\$0)}')
-        TARGETIMG=\$(find ${env.WORKSPACE}/\$REPO/bin -name '*factory.bin' | grep \$OUTPUTIMGMODEL-\$OUTPUTIMGMODELVER)
+        TARGETIMG=\$(find ${env.WORKSPACE}/\$REPO/bin -name '*tftp-recovery.bin' | grep \$OUTPUTIMGMODEL-\$OUTPUTIMGMODELVER || echo '')
+        if [ \"\$TARGETIMG\" = \"\" ]
+        then
+            TARGETIMG=\$(find ${env.WORKSPACE}/\$REPO/bin -name '*factory.bin' | grep \$OUTPUTIMGMODEL-\$OUTPUTIMGMODELVER)
+        fi        
 
         OUTPUTIMGVENDOR=\$(echo ${params.OUTPUTIMGVENDOR} | awk '{print toupper(\$0)}')
         OUTPUTIMGMODEL=\$(echo ${params.OUTPUTIMGMODEL} | awk '{print toupper(\$0)}')
