@@ -1,4 +1,4 @@
-#/bin/sh
+#!/bin/sh
 
 . /usr/share/flashman_init.conf
 . /lib/functions.sh
