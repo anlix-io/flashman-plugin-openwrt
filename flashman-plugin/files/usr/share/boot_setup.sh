@@ -89,44 +89,44 @@ firstboot() {
 		
 		if [ "$SYSTEM_MODEL" == "MT7628AN" ]
 		then
-		  uci set wireless.@wifi-device[0].type="ralink"
-		  uci set wireless.@wifi-device[0].variant="mt7628"
-		  uci set wireless.@wifi-iface[0].ifname="ra0"
-		  #disable the interface! mt7628 use a dat file, we only get the parameters from here
-		  uci set wireless.@wifi-device[0].disabled="1"
-		  #power goes from 0 to 100 in mt7628 (maybe we need to change uci2dat?)
-		  uci set wireless.@wifi-device[0].txpower="100"
-		  uci commit wireless
+			uci set wireless.@wifi-device[0].type="ralink"
+			uci set wireless.@wifi-device[0].variant="mt7628"
+			uci set wireless.@wifi-iface[0].ifname="ra0"
+			#disable the interface! mt7628 use a dat file, we only get the parameters from here
+			uci set wireless.@wifi-device[0].disabled="1"
+			#power goes from 0 to 100 in mt7628 (maybe we need to change uci2dat?)
+			uci set wireless.@wifi-device[0].txpower="100"
+			uci commit wireless
 		else 
-		  uci set wireless.@wifi-device[1].disabled="0"
-		  uci set wireless.@wifi-device[1].type="mac80211"
-		  uci set wireless.@wifi-device[1].channel="36"
-		  uci commit wireless
-		  uci set wireless.@wifi-iface[1].ssid="$FLM_SSID$MAC_LAST_CHARS"
-		  uci set wireless.@wifi-iface[1].encryption="psk2"
-		  uci set wireless.@wifi-iface[1].key="$FLM_PASSWD"
-		  uci commit wireless
+			uci set wireless.@wifi-device[1].disabled="0"
+			uci set wireless.@wifi-device[1].type="mac80211"
+			uci set wireless.@wifi-device[1].channel="36"
+			uci commit wireless
+			uci set wireless.@wifi-iface[1].ssid="$FLM_SSID$MAC_LAST_CHARS"
+			uci set wireless.@wifi-iface[1].encryption="psk2"
+			uci set wireless.@wifi-iface[1].key="$FLM_PASSWD"
+			uci commit wireless
 		fi
 	fi
 
 	if [ "$SYSTEM_MODEL" == "MT7628AN" ]
-        then
-	  if [ -d "/sys/class/ieee80211/phy0" ]
-	  then
-	    rmmod mt76x2e
-	    rmmod mt7603e
-	    rmmod mt76
-	    rm /etc/modules.d/50-mt76-core
-	    rm /etc/modules.d/51-mt7603
-	    rm /etc/modules.d/51-mt76x2
-	  fi
-	  uci set system.led_wifi_led.dev="ra0"
-	  uci commit system 
-	  /usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat
-	  modprobe mt7628
-	  echo "mt7628" >> /etc/modules.d/50-mt7628
-	  mv /sbin/wifi /sbin/wifi.old
-	  cp /sbin/mtkwifi /sbin/wifi
+	then
+		if [ -d "/sys/class/ieee80211/phy0" ]
+		then
+			rmmod mt76x2e
+			rmmod mt7603e
+			rmmod mt76
+			rm /etc/modules.d/50-mt76-core
+			rm /etc/modules.d/51-mt7603
+			rm /etc/modules.d/51-mt76x2
+		fi
+		uci set system.led_wifi_led.dev="ra0"
+		uci commit system 
+		/usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat
+		modprobe mt7628
+		echo "mt7628" >> /etc/modules.d/50-mt7628
+		mv /sbin/wifi /sbin/wifi.old
+		cp /sbin/mtkwifi /sbin/wifi
 	fi
 	/sbin/wifi up
 
@@ -169,7 +169,7 @@ firstboot() {
 		echo "LogType=system" >> /etc/zabbix_agentd.conf
 	fi
 	if [ "$ZBX_SEND_DATA" == "y" ]
-  	then
+	then
 		# Enable Zabbix
 		/etc/init.d/zabbix_agentd enable
 		/etc/init.d/zabbix_agentd start
@@ -180,9 +180,9 @@ firstboot() {
 	fi
 
 	#Configure uhttpd to use anlix scripts
-        uci set uhttpd.main.lua_prefix='/anlix'
-        uci set uhttpd.main.lua_handler='/usr/share/anlix/index.lua'
-        uci commit uhttpd
+	uci set uhttpd.main.lua_prefix='/anlix'
+	uci set uhttpd.main.lua_handler='/usr/share/anlix/index.lua'
+	uci commit uhttpd
 
 	log "First boot completed"
 }
