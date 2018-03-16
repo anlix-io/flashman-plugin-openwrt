@@ -14,6 +14,30 @@ local function get_router_id()
   return result:sub(1,-2)
 end
 
+local function is_authenticated()
+  local result = run_process("sh -c \". /usr/share/functions.sh; if is_authenticated; then echo 1; else echo 0; fi\"")
+  -- remove \n
+  result = result:sub(1,-2)
+
+  if result == "1" then
+    return true
+  else
+    return false
+  end
+end
+
+local function get_router_secret()                                              
+  local result = run_process(". /usr/share/flashman_init.conf; echo $FLM_CLIENT_SECRET")
+  -- remove \n                                                               
+  return result:sub(1,-2)                                                    
+end  
+
+local function get_flashman_server()                                                       
+  local result = run_process(". /usr/share/flashman_init.conf; echo $FLM_SVADDR")
+  -- remove \n                                                                           
+  return result:sub(1,-2)                                                                
+end 
+
 local function read_file(path)
   local file = io.open(path, "rb")
   if not file then return nil end
@@ -22,17 +46,53 @@ local function read_file(path)
   return content
 end
 
-local function authorized_controle(id)
-  -- TODO: communicate with controle to verify app id
+local function touch_file(path)
+  local file = io.open(path, "wb")                                                                                
+  if not file then return false end                                                                      
+  local content = file:write "tmp"                                                                     
+  file:close() 
   return true
 end
 
+local function check_file(path)
+  local file = io.open(path, "rb")                                                                                
+  if not file then 
+    return false
+  else
+    file:close()
+    return true
+  end                                                                      
+end
+
+local function flashman_update(app_id, app_secret)
+  -- Add App to the flashman base
+  auth = {}
+  auth["id"]=get_router_id()
+  auth["secret"]=get_router_secret()
+  auth["app_id"]=app_id
+  auth["app_secret"]=app_secret
+  post_data = json.encode(auth)
+
+  post_data = post_data:gsub("\"","\\\"")
+  cmd_curl = "curl -s -k -X POST -H \"Content-Type:application/json\" -d \"".. post_data  .."\" https://flashman.anlix.io/deviceinfo/app/add?api=1"
+
+  local result = run_process(cmd_curl)  
+
+  local jres = json.decode(result)
+
+  if jres["is_registered"] == 1 then
+    return true
+  else
+    return false 
+  end
+end
+
 local function get_key(id)
-  return read_file("/root/" .. id)
+  return read_file("/tmp/" .. id)
 end
 
 local function gen_app_key(id)
-  local file = io.open("/root/" .. id, "wb")                                           
+  local file = io.open("/tmp/" .. id, "wb")                                           
   if not file then return nil end  
   local secret = run_process("head -c 128 /dev/urandom | tr -dc 'a-zA-Z0-9'")                                         
   file:write(secret)                                           
@@ -72,45 +132,60 @@ function handle_request(env)
         local rlen, post_data = uhttpd.recv(8192) -- Max 8K in the post data!
         local data = json.decode(post_data)
         local app_protocol_ver = data.version
-	local app_id = data.app_id
+        local app_id = data.app_id
 
-	if app_protocol_ver == nil then return end
-	if app_id == nil then return end
+        if app_protocol_ver == nil then return end
+        if app_id == nil then return end
 
         if tonumber(app_protocol_ver) > 1 then                                          
-	  error_handle(1, "Invalid Protocol Version", nil)
+          error_handle(1, "Invalid Protocol Version", nil)
           return                                                                        
         end
 
         if command == "ping" then                                                       
-	    -- no need to authenticate ping command
+            -- no need to authenticate ping command
             uhttpd.send("Status: 200 OK\r\n")                                           
             uhttpd.send("Content-Type: text/json\r\n\r\n")                              
                                                                                         
             system_model = read_file("/tmp/sysinfo/model")                              
             if(system_model == nil) then system_model = "INVALID MODEL" end             
             info = {}                                                                   
-            info["anlix_model"] = system_model                                          
+            info["anlix_model"] = system_model
+            info["protocol_version"] = 1.0                                          
             uhttpd.send(json.encode(info)) 
-	    return
-	end
+            return
+        end
 
-	local secret = get_key(app_id)
-	local app_secret = data.app_secret
+        if not check_file("/tmp/anlix_authorized") then
+            if is_authenticated then
+                touch_file("/tmp/anlix_authorized")
+            else
+                error_handle(10, "Authorization Fail", nil)
+                return
+            end
+         end
 
-	if app_secret == nil or secret == nil then
-	  -- the app do not provide a secret, verify with controle
-	  if not authorized_controle(app_id) then return end
-	  -- controle authorized, generate secret and store
+        local secret = get_key(app_id)
+        local app_secret = data.app_secret
+
+        if app_secret == nil or secret == nil then
+	  -- the app do not provide a secret, generate and send to flashman
 	  secret = gen_app_key(app_id)
 	  if secret == nil then
 	    -- error generating key, report to app
 	    error_handle(2, "Error generating secret for app", nil)
             return
 	  end
+	  if not flashman_update(app_id, secret) then 
+	    error_handle(7, "Error updating flashman", nil)
+	    return 
+	  end 
 	else
 	  -- we have key, compare secrets
-	  if app_secret ~= secret then return end
+	  if app_secret ~= secret then 
+	    error_handle(8, "Secret not match", nil)
+	    return 
+  	  end
 	end
 
 	-- authenticated successfully
@@ -120,30 +195,41 @@ function handle_request(env)
         auth["version"] = "1.0"                                                         
         auth["id_router"] = get_router_id()                                             
         auth["app_secret"] = secret                                                     
-        resp["auth"] = auth 
+	auth["flashman_addr"] = get_flashman_server()
+	auth["router_has_passwd"] = 1
 
-	-- verify if we need passwd
+	-- verify passwd
 	local passwd = get_router_passwd()
         local router_passwd = data.router_passwd
-	if passwd == nil then
-	  if router_passwd == nil then
-	    error_handle(3, "Password not defined yet", auth)            
-	    return
-          else
-	    if not save_router_passwd(router_passwd) then
-	      error_handle(4, "Error saving password", auth)
-	      return
-	    end
-	  end
-	else
+	if passwd ~= nil then
 	  if router_passwd ~= passwd then
 	    error_handle(5, "Password not match", auth)
 	    return
 	  end
+	else
+	  auth["router_has_passwd"] = 0
 	end
 	
-        -- exec command        
-        if command == "info" then
+	resp["auth"] = auth
+	
+        -- exec command
+        if command == "change_passwd" then
+	    local new_passwd = data.new_passwd
+	    if new_passwd == nil then
+	      error_handle(3, "Invalid Parameters", auth)
+	      return
+	    end
+
+	    if not save_router_passwd(new_passwd) then                                                                                   
+              error_handle(4, "Error saving password", auth)                                                                                
+              return
+	    else
+	      uhttpd.send("Status: 200 OK\r\n")                                                                                              
+              uhttpd.send("Content-Type: text/json\r\n\r\n")
+	      resp["password_changed"] = 1
+	      uhttpd.send(json.encode(resp))                                                                                                                        
+            end         
+        elseif command == "info" then
             uhttpd.send("Status: 200 OK\r\n")
             uhttpd.send("Content-Type: text/json\r\n\r\n")
 
