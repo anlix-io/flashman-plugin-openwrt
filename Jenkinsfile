@@ -241,6 +241,10 @@ node {
         TARGETIMG=\$(find ${env.WORKSPACE}/\$REPO/bin -name '*tftp-recovery.bin' | grep \$OUTPUTIMGMODEL-\$OUTPUTIMGMODELVER || echo '')
         if [ \"\$TARGETIMG\" = \"\" ]
         then
+            TARGETIMG=\$(find ${env.WORKSPACE}/\$REPO/bin -name '*factory-br.bin' | grep \$OUTPUTIMGMODEL-\$OUTPUTIMGMODELVER)
+        fi
+        if [ \"\$TARGETIMG\" = \"\" ]
+        then
             TARGETIMG=\$(find ${env.WORKSPACE}/\$REPO/bin -name '*factory.bin' | grep \$OUTPUTIMGMODEL-\$OUTPUTIMGMODELVER)
         fi        
 
