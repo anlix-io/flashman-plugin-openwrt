@@ -65,6 +65,7 @@ local function check_file(path)
 end
 
 local function flashman_update(app_id, app_secret)
+  local flashman_addr = get_flashman_server()
   -- Add App to the flashman base
   auth = {}
   auth["id"]=get_router_id()
@@ -74,7 +75,7 @@ local function flashman_update(app_id, app_secret)
   post_data = json.encode(auth)
 
   post_data = post_data:gsub("\"","\\\"")
-  cmd_curl = "curl -s -k -X POST -H \"Content-Type:application/json\" -d \"".. post_data  .."\" https://flashman.anlix.io/deviceinfo/app/add?api=1"
+  cmd_curl = "curl -s -k -X POST -H \"Content-Type:application/json\" -d \"".. post_data  .."\" https://".. flashman_addr .."/deviceinfo/app/add?api=1"
 
   local result = run_process(cmd_curl)
 
@@ -143,6 +144,7 @@ function handle_request(env)
     end
 
     if command == "ping" then
+      local passwd = get_router_passwd()
       -- no need to authenticate ping command
       uhttpd.send("Status: 200 OK\r\n")
       uhttpd.send("Content-Type: text/json\r\n\r\n")
@@ -152,6 +154,11 @@ function handle_request(env)
       info = {}
       info["anlix_model"] = system_model
       info["protocol_version"] = 1.0
+      if passwd ~= nil then
+        info["router_has_passwd"] = 1
+      else
+        info["router_has_passwd"] = 0
+      end
       uhttpd.send(json.encode(info))
       return
     end
@@ -196,7 +203,6 @@ function handle_request(env)
     auth["id_router"] = get_router_id()
     auth["app_secret"] = secret
     auth["flashman_addr"] = get_flashman_server()
-    auth["router_has_passwd"] = 1
 
     -- verify passwd
     local passwd = get_router_passwd()
@@ -206,8 +212,6 @@ function handle_request(env)
         error_handle(5, "Password not match", auth)
         return
       end
-    else
-      auth["router_has_passwd"] = 0
     end
 
     resp["auth"] = auth
