@@ -20,7 +20,8 @@ PKG_CONFIG_DEPENDS:= \
 	CONFIG_FLASHMAN_WIFI_SSID \
 	CONFIG_FLASHMAN_WIFI_PASSWD \
 	CONFIG_FLASHMAN_WIFI_CHANNEL \
-	CONFIG_FLASHMAN_RELEASE_ID
+	CONFIG_FLASHMAN_RELEASE_ID \
+	CONFIG_FLASHMAN_CLIENT_ORG
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -82,16 +83,26 @@ define Package/flashman-plugin/install
 	echo 'FLM_24_CHANNEL=$(CONFIG_FLASHMAN_WIFI_CHANNEL)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_RELID=$(CONFIG_FLASHMAN_RELEASE_ID)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_SVADDR=$(CONFIG_FLASHMAN_SERVER_ADDR)' >>$(1)/usr/share/flashman_init.conf
-	echo 'ZBX_SVADDR=$(CONFIG_ZABBIX_SERVER_ADDR)' >>$(1)/usr/share/flashman_init.conf
 	echo 'NTP_SVADDR=$(CONFIG_NTP_SERVER_ADDR)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_WAN_PROTO=$(WAN_PROTO)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_WAN_MTU=$(CONFIG_FLASHMAN_WAN_MTU)' >>$(1)/usr/share/flashman_init.conf
+	echo 'FLM_CLIENT_ORG=$(CONFIG_FLASHMAN_CLIENT_ORG)' >>$(1)/usr/share/flashman_init.conf
 
 ifeq ($(WAN_PROTO), "pppoe")
 	echo 'FLM_WAN_PPPOE_USER=$(CONFIG_FLASHMAN_PPPOE_USER)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_WAN_PPPOE_PASSWD=$(CONFIG_FLASHMAN_PPPOE_PASSWD)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_WAN_PPPOE_SERVICE=$(CONFIG_FLASHMAN_PPPOE_SERVICE)' >>$(1)/usr/share/flashman_init.conf
 endif
+
+	echo 'FLM_USE_AUTH_SVADDR=$(CONFIG_FLASHMAN_USE_AUTH_SERVER)' >>$(1)/usr/share/flashman_init.conf
+
+ifeq ($(CONFIG_FLASHMAN_USE_AUTH_SERVER), y)
+	echo 'FLM_AUTH_SVADDR=$(CONFIG_FLASHMAN_AUTH_SERVER_ADDR)' >>$(1)/usr/share/flashman_init.conf
+	echo 'FLM_CLIENT_SECRET=$(CONFIG_FLASHMAN_CLIENT_SECRET)' >>$(1)/usr/share/flashman_init.conf
+endif
+
+	echo 'ZBX_SEND_DATA=$(CONFIG_ZABBIX_SEND_DATA)' >>$(1)/usr/share/flashman_init.conf
+	echo 'ZBX_SVADDR=$(CONFIG_ZABBIX_SERVER_ADDR)' >>$(1)/usr/share/flashman_init.conf
 
 	mkdir -p $(1)/etc/dropbear
 	cat $(CONFIG_FLASHMAN_KEYS_PATH)/$(CONFIG_FLASHMAN_PUBKEY_FNAME) >>$(1)/etc/dropbear/authorized_keys

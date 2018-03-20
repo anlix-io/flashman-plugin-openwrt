@@ -5,7 +5,7 @@
 
 SERVER_ADDR="$FLM_SVADDR"
 OPENWRT_VER=$(cat /etc/openwrt_version)
-HARDWARE_MODEL=$(cat /tmp/sysinfo/model | awk '{ print toupper($2) }')
+HARDWARE_MODEL=$(get_hardware_model)
 HARDWARE_VER=$(cat /tmp/sysinfo/model | awk '{ print toupper($3) }')
 CLIENT_MAC=$(get_mac)
 WAN_IP_ADDR=$(get_wan_ip)

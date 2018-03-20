@@ -16,7 +16,7 @@ get_image()
     local _sv_address=$1
     local _release_id=$2
     local _vendor=$(cat /tmp/sysinfo/model | awk '{ print toupper($1) }')
-    local _model=$(cat /tmp/sysinfo/model | awk '{ print toupper($2) }')
+    local _model=$(get_hardware_model)
     local _ver=$(cat /tmp/sysinfo/model | awk '{ print toupper($3) }')
 
     if ! download_file "https://$_sv_address/firmwares" $_vendor"_"$_model"_"$_ver"_"$_release_id".bin" "/tmp"
@@ -39,7 +39,7 @@ run_reflash()
     local _sv_address=$1
     local _release_id=$2
     local _vendor=$(cat /tmp/sysinfo/model | awk '{ print toupper($1) }')
-    local _model=$(cat /tmp/sysinfo/model | awk '{ print toupper($2) }')
+    local _model=$(get_hardware_model)
     local _ver=$(cat /tmp/sysinfo/model | awk '{ print toupper($3) }')
 
     clean_memory
