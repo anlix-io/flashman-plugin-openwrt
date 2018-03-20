@@ -31,6 +31,11 @@ do
           echo "0" > "$trigger_path"/brightness
         done
         /etc/init.d/led restart >/dev/null
+        # Sytem LED always on
+        for system_led in /sys/class/leds/*system*/brightness
+        do
+          echo "255" > "$system_led"
+        done
         do_restart=false
         # TODO: Cancel REST notifications
       fi
