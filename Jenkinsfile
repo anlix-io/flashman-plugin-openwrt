@@ -237,11 +237,17 @@ node {
         ##
 
         OUTPUTIMGMODEL=\$(echo ${params.OUTPUTIMGMODEL} | awk '{print tolower(\$0)}')
-        OUTPUTIMGMODELVER=\$(echo ${params.OUTPUTIMGMODELVER} | awk '{print tolower(\$0)}')
+        if [ \"\$REPO\" = \"openwrt\" ]
+        then
+            OUTPUTIMGMODELVER=\$(echo ${params.TARGETMODEL} | awk -F '-' '{print \$NF}' | awk '{print tolower(\$0)}')
+        else
+            OUTPUTIMGMODELVER=\$(echo ${params.OUTPUTIMGMODELVER} | awk '{print tolower(\$0)}')
+        fi
+
         TARGETIMG=\$(find ${env.WORKSPACE}/\$REPO/bin -name '*tftp-recovery.bin' | grep \$OUTPUTIMGMODEL-\$OUTPUTIMGMODELVER || echo '')
         if [ \"\$TARGETIMG\" = \"\" ]
         then
-            TARGETIMG=\$(find ${env.WORKSPACE}/\$REPO/bin -name '*factory-br.bin' | grep \$OUTPUTIMGMODEL-\$OUTPUTIMGMODELVER)
+            TARGETIMG=\$(find ${env.WORKSPACE}/\$REPO/bin -name '*factory-br.bin' | grep \$OUTPUTIMGMODEL-\$OUTPUTIMGMODELVER || echo '')
         fi
         if [ \"\$TARGETIMG\" = \"\" ]
         then
@@ -272,7 +278,12 @@ node {
         ##
 
         OUTPUTIMGMODEL=\$(echo ${params.OUTPUTIMGMODEL} | awk '{print tolower(\$0)}')
-        OUTPUTIMGMODELVER=\$(echo ${params.OUTPUTIMGMODELVER} | awk '{print tolower(\$0)}')
+        if [ \"\$REPO\" = \"openwrt\" ]
+        then
+            OUTPUTIMGMODELVER=\$(echo ${params.TARGETMODEL} | awk -F '-' '{print \$NF}' | awk '{print tolower(\$0)}')
+        else
+            OUTPUTIMGMODELVER=\$(echo ${params.OUTPUTIMGMODELVER} | awk '{print tolower(\$0)}')
+        fi
         TARGETIMG=\$(find ${env.WORKSPACE}/\$REPO/bin -name '*sysupgrade.bin' | grep \$OUTPUTIMGMODEL-\$OUTPUTIMGMODELVER)
 
         OUTPUTIMGVENDOR=\$(echo ${params.OUTPUTIMGVENDOR} | awk '{print toupper(\$0)}')
