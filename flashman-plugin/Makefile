@@ -29,7 +29,7 @@ define Package/flashman-plugin'/Default
 	SECTION:=utils
 	CATEGORY:=Utilities
 	PKGARCH:=all
-	MAINTAINER:=Guilherme da Silva Senges <guisenges@land.ufrj.br>
+	MAINTAINER:=Guilherme da Silva Senges <guilherme@anlix.io>
 endef
 
 define Package/flashman-plugin/description

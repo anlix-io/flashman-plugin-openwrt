@@ -121,6 +121,7 @@ firstboot() {
 			rm /etc/modules.d/51-mt76x2
 		fi
 		uci set system.led_wifi_led.dev="ra0"
+		uci set system.led_wlan2g.dev="ra0"
 		uci commit system 
 		/usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat
 		modprobe mt7628
