@@ -42,7 +42,6 @@ define Package/flashman-plugin
 	CATEGORY:=Utilities
 	TITLE:=Install flashman-plugin
 	DEPENDS:=+curl \
-			+luci \
 			+iputils-ping \
 			+iputils-ping6 \
 			+zabbix-agentd \
