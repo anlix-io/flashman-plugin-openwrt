@@ -73,60 +73,54 @@ firstboot() {
 	# Configure WiFi default SSID and password
 	ssid_value=$(uci get wireless.@wifi-iface[0].ssid)
 	encryption_value=$(uci get wireless.@wifi-iface[0].encryption)
-	if [ "$encryption_value" = "none" ] && { [ "$ssid_value" = "OpenWrt" ] || [ "$ssid_value" = "LEDE" ]; }
+	if [ "$encryption_value" = "" ] || { [ "$encryption_value" = "none" ] && { [ "$ssid_value" = "OpenWrt" ] || [ "$ssid_value" = "LEDE" ]; }; }
 	then
-		uci set wireless.@wifi-device[0].disabled="0"
-		uci set wireless.@wifi-device[0].type="mac80211"
+		if [ "$SYSTEM_MODEL" == "MT7628AN" ]
+		then
+			touch /etc/config/wireless
+			uci set wireless.radio0=wifi-device
+
+			uci set wireless.@wifi-device[0].type="ralink"
+			# Power goes from 0 to 100 in mt7628 (maybe we need to change uci2dat?)
+			uci set wireless.@wifi-device[0].txpower="100"
+			uci set wireless.@wifi-device[0].variant="mt7628"
+			# Disable the interface! mt7628 use a dat file, we only get the parameters from here
+			uci set wireless.@wifi-device[0].disabled="1"
+			uci set wireless.default_radio0=wifi-iface
+			uci set wireless.@wifi-iface[0].ifname="ra0"
+			uci set wireless.@wifi-iface[0].mode="ap"
+			uci set wireless.@wifi-iface[0].network="lan"
+			uci set wireless.@wifi-iface[0].device="radio0"
+		else
+			uci set wireless.@wifi-device[0].type="mac80211"
+			uci set wireless.@wifi-device[0].txpower="17"
+			uci set wireless.@wifi-device[0].disabled="0"
+			# 5GHz
+			uci set wireless.@wifi-device[1].disabled="0"
+			uci set wireless.@wifi-device[1].type="mac80211"
+			uci set wireless.@wifi-device[1].channel="36"
+			uci set wireless.@wifi-iface[1].ssid="$FLM_SSID$MAC_LAST_CHARS"
+			uci set wireless.@wifi-iface[1].encryption="psk2"
+			uci set wireless.@wifi-iface[1].key="$FLM_PASSWD"
+		fi
 		uci set wireless.@wifi-device[0].channel="$FLM_24_CHANNEL"
 		uci set wireless.@wifi-device[0].hwmode="11n"
 		uci set wireless.@wifi-device[0].country="BR"
-		uci set wireless.@wifi-device[0].txpower="17"
-		uci commit wireless
+		uci set wireless.@wifi-device[0].htmode="HT40"
 		uci set wireless.@wifi-iface[0].ssid="$FLM_SSID$MAC_LAST_CHARS"
 		uci set wireless.@wifi-iface[0].encryption="psk2"
 		uci set wireless.@wifi-iface[0].key="$FLM_PASSWD"
 		uci commit wireless
-		
-		if [ "$SYSTEM_MODEL" == "MT7628AN" ]
-		then
-			uci set wireless.@wifi-device[0].type="ralink"
-			uci set wireless.@wifi-device[0].variant="mt7628"
-			uci set wireless.@wifi-iface[0].ifname="ra0"
-			#disable the interface! mt7628 use a dat file, we only get the parameters from here
-			uci set wireless.@wifi-device[0].disabled="1"
-			#power goes from 0 to 100 in mt7628 (maybe we need to change uci2dat?)
-			uci set wireless.@wifi-device[0].txpower="100"
-			uci commit wireless
-		else 
-			uci set wireless.@wifi-device[1].disabled="0"
-			uci set wireless.@wifi-device[1].type="mac80211"
-			uci set wireless.@wifi-device[1].channel="36"
-			uci commit wireless
-			uci set wireless.@wifi-iface[1].ssid="$FLM_SSID$MAC_LAST_CHARS"
-			uci set wireless.@wifi-iface[1].encryption="psk2"
-			uci set wireless.@wifi-iface[1].key="$FLM_PASSWD"
-			uci commit wireless
-		fi
 	fi
 
 	if [ "$SYSTEM_MODEL" == "MT7628AN" ]
 	then
-		if [ -d "/sys/class/ieee80211/phy0" ]
-		then
-			rmmod mt76x2e
-			rmmod mt7603e
-			rmmod mt76
-			rm /etc/modules.d/50-mt76-core
-			rm /etc/modules.d/51-mt7603
-			rm /etc/modules.d/51-mt76x2
-		fi
 		uci set system.led_wifi_led.dev="ra0"
 		uci set system.led_wlan2g.dev="ra0"
-		uci commit system 
+		uci commit system
 		/usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat
 		modprobe mt7628
 		echo "mt7628" >> /etc/modules.d/50-mt7628
-		mv /sbin/wifi /sbin/wifi.old
 		cp /sbin/mtkwifi /sbin/wifi
 	fi
 	/sbin/wifi up
