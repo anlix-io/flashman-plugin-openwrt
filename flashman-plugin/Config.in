@@ -82,6 +82,10 @@ config FLASHMAN_WAN_MTU
 	string "WAN MTU"
 	default "1500"
 
+config MQTT_PORT
+	string "MQTT port"
+	default "1883"
+
 config FLASHMAN_USE_AUTH_SERVER
 	bool "Use authentication server to authorize remote commands."
 
