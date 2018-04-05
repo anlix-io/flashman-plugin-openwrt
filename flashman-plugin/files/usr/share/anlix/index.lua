@@ -277,12 +277,12 @@ function handle_request(env)
       resp["wireless"] = wifi
       uhttpd.send(json.encode(resp))
     elseif command == "devices" then
-        local leases = read_lines("/tmp/dhcp.leases")
-        local result = leases_to_json(leases)
-        uhttpd.send("Status: 200 OK\r\n")
-        uhttpd.send("Content-Type: text/json\r\n\r\n")
-        resp["leases"] = result
-        uhttpd.send(json.encode(resp))
+      local leases = read_lines("/tmp/dhcp.leases")
+      local result = leases_to_json(leases)
+      uhttpd.send("Status: 200 OK\r\n")
+      uhttpd.send("Content-Type: text/json\r\n\r\n")
+      resp["leases"] = result
+      uhttpd.send(json.encode(resp))
     else
       error_handle(6, "Command not implemented", auth)
     end
