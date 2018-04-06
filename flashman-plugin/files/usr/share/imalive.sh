@@ -33,7 +33,7 @@ sh /usr/share/keepalive.sh &
 
 while true
 do
-  if [ "$(mosquitto_sub -C 1 -h $FLM_SVADDR -t flashman/update/$CLIENT_MAC)" == "1" ]
+  if [ "$(mosquitto_sub -C 1 -h $FLM_SVADDR -p $MQTT_PORT -t flashman/update/$CLIENT_MAC)" == "1" ]
   then
     sh /usr/share/flashman_update.sh now
   fi

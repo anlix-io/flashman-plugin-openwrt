@@ -46,6 +46,16 @@ local function read_file(path)
   return content
 end
 
+local function read_lines(path)
+  local file = io.lines(path)
+  if not file then return nil end
+  local content = {}
+  for line in file do
+    table.insert(content, line)
+  end
+  return content
+end
+
 local function touch_file(path)
   local file = io.open(path, "wb")
   if not file then return false end
@@ -111,6 +121,21 @@ local function save_router_passwd(pass)
   file:write(pass)
   file:close()
   return true
+end
+
+local function leases_to_json(leases)
+  local result = {}
+  for index, value in ipairs(leases) do
+    local info = {}
+    local values = {}
+    for word in value:gmatch("%S+") do table.insert(values, word) end
+    info["expire"] = values[1]
+    info["mac"] = values[2]
+    info["ip"] = values[3]
+    info["id"] = values[4]
+    table.insert(result, info)
+  end
+  return json.encode(result)
 end
 
 local function error_handle(errid, errinfo, auth)
@@ -251,9 +276,15 @@ function handle_request(env)
       uhttpd.send("Content-Type: text/json\r\n\r\n")
       resp["wireless"] = wifi
       uhttpd.send(json.encode(resp))
+    elseif command == "devices" then
+      local leases = read_lines("/tmp/dhcp.leases")
+      local result = leases_to_json(leases)
+      uhttpd.send("Status: 200 OK\r\n")
+      uhttpd.send("Content-Type: text/json\r\n\r\n")
+      resp["leases"] = result
+      uhttpd.send(json.encode(resp))
     else
       error_handle(6, "Command not implemented", auth)
     end
   end
 end
-

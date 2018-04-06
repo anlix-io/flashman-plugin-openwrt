@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=flasman-plugin
-PKG_VERSION:=0.000
+PKG_VERSION:=0.3.0
 PKG_RELEASE:=1
 
 PKG_LICENSE:=GPL
@@ -29,7 +29,7 @@ define Package/flashman-plugin'/Default
 	SECTION:=utils
 	CATEGORY:=Utilities
 	PKGARCH:=all
-	MAINTAINER:=Guilherme da Silva Senges <guisenges@land.ufrj.br>
+	MAINTAINER:=Guilherme da Silva Senges <guilherme@anlix.io>
 endef
 
 define Package/flashman-plugin/description
@@ -42,7 +42,6 @@ define Package/flashman-plugin
 	CATEGORY:=Utilities
 	TITLE:=Install flashman-plugin
 	DEPENDS:=+curl \
-			+luci \
 			+iputils-ping \
 			+iputils-ping6 \
 			+zabbix-agentd \
@@ -86,6 +85,7 @@ define Package/flashman-plugin/install
 	echo 'NTP_SVADDR=$(CONFIG_NTP_SERVER_ADDR)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_WAN_PROTO=$(WAN_PROTO)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_WAN_MTU=$(CONFIG_FLASHMAN_WAN_MTU)' >>$(1)/usr/share/flashman_init.conf
+	echo 'MQTT_PORT=$(CONFIG_MQTT_PORT)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_CLIENT_ORG=$(CONFIG_FLASHMAN_CLIENT_ORG)' >>$(1)/usr/share/flashman_init.conf
 
 ifeq ($(WAN_PROTO), "pppoe")
