@@ -90,12 +90,12 @@ then
           uci set wireless.radio0.channel="$_wifi_channel"
           uci commit wireless
 
-	  if [ "$SYSTEM_MODEL" == "MT7628AN" ]
-	  then
-            /usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat	
-	    /sbin/mtkwifi reload
-	  else
-	    /etc/init.d/network restart
+          if [ "$SYSTEM_MODEL" == "MT7628AN" ]
+          then
+            /usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat 
+            /sbin/mtkwifi reload
+          else
+            /etc/init.d/network restart
           fi
         fi
       fi

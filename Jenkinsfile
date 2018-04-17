@@ -26,6 +26,7 @@ properties([
     string(name: 'AUTHCLIENTSECRET', defaultValue: 'secret'),
     string(name: 'ARTIFACTORYUSER', defaultValue: ''),
     string(name: 'ARTIFACTORYPASS', defaultValue: ''),
+    string(name: 'MQTTPORT', defaultValue: '1883')
   ])
 ])
 
@@ -145,6 +146,11 @@ node {
         CUSTOM_FLASHMAN_CLIENT_SECRET=\"CONFIG_FLASHMAN_CLIENT_SECRET=\\\"${params.AUTHCLIENTSECRET}\\\"\"
         sed -i -e '\\,'\$DEFAULT_FLASHMAN_CLIENT_SECRET',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_FLASHMAN_CLIENT_SECRET >> ${env.WORKSPACE}/\$REPO/.config
+
+        DEFAULT_MQTT_PORT=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_MQTT_PORT || echo '^\$')
+        CUSTOM_MQTT_PORT=\"CONFIG_MQTT_PORT=\\\"${params.MQTTPORT}\\\"\"
+        sed -i -e '\\,'\$DEFAULT_MQTT_PORT',d' ${env.WORKSPACE}/\$REPO/.config
+        echo \$CUSTOM_MQTT_PORT >> ${env.WORKSPACE}/\$REPO/.config
         
         DEFAULT_FLASHMAN_USE_AUTH_SERVER=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_USE_AUTH_SERVER || echo '^\$')
 
