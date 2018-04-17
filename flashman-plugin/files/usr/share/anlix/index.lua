@@ -56,6 +56,14 @@ local function read_lines(path)
   return content
 end
 
+local function append_to_file(path, content)
+  local file = io.open(path, "ab")
+  if not file then return false end
+  file:write(content)
+  file:close()
+  return true
+end
+
 local function touch_file(path)
   local file = io.open(path, "wb")
   if not file then return false end
@@ -136,6 +144,15 @@ local function leases_to_json(leases)
     table.insert(result, info)
   end
   return json.encode(result)
+end
+
+local function write_firewall_file()
+  local macs = read_lines("/root/blacklist_mac")
+  local firewall_file = io.open("/etc/firewall.user", "wb")
+  for index, mac in ipairs(macs) do
+    local rule = "iptables -I FORWARD -m mac --mac-source " .. mac .. " -j DROP"
+    firewall_file:write(rule .. "\n")
+  end
 end
 
 local function error_handle(errid, errinfo, auth)
@@ -279,9 +296,22 @@ function handle_request(env)
     elseif command == "devices" then
       local leases = read_lines("/tmp/dhcp.leases")
       local result = leases_to_json(leases)
+      resp["leases"] = result
       uhttpd.send("Status: 200 OK\r\n")
       uhttpd.send("Content-Type: text/json\r\n\r\n")
-      resp["leases"] = result
+      uhttpd.send(json.encode(resp))
+    elseif command == "blacklist" then
+      local mac = data.blacklist_mac
+      if mac == nil or not mac:match("%x%x:%x%x:%x%x:%x%x:%x%x:%x%x") then
+        error_handle(11, "Error reading mac address")
+        return
+      end
+      append_to_file("/root/blacklist_mac", mac .. "\n")
+      write_firewall_file()
+      run_process("/etc/init.d/firewall restart")
+      resp["blacklisted"] = 1
+      uhttpd.send("Status: 200 OK\r\n")
+      uhttpd.send("Content-Type: text/json\r\n\r\n")
       uhttpd.send(json.encode(resp))
     else
       error_handle(6, "Command not implemented", auth)
