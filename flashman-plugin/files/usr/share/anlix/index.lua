@@ -64,12 +64,12 @@ local function append_to_file(path, content)
   return true
 end
 
-local function remove_from_file(path, content)
+local function remove_from_file(path, data)
   local file = io.lines(path)
   if not file then return false end
   local content = {}
   for line in file do
-    if not line:match(content) then
+    if not line:match(data) then
       table.insert(content, line)
     end
   end
@@ -350,3 +350,5 @@ function handle_request(env)
     end
   end
 end
+
+remove_from_file("/root/blacklist_mac", "c0:bd:d1:eb:80:1d")
