@@ -164,12 +164,24 @@ local function leases_to_json(leases)
 end
 
 local function write_firewall_file()
-  local macs = read_lines("/root/blacklist_mac")
+  local lines = read_lines("/root/blacklist_mac")
   local firewall_file = io.open("/etc/firewall.user", "wb")
-  for index, mac in ipairs(macs) do
+  for index, line in ipairs(lines) do
+    local mac = line:match("%x%x:%x%x:%x%x:%x%x:%x%x:%x%x")
     local rule = "iptables -I FORWARD -m mac --mac-source " .. mac .. " -j DROP"
     firewall_file:write(rule .. "\n")
   end
+end
+
+local function separate_fields(blacklist)
+  local result = {}
+  for index, info in ipairs(blacklist) do
+    local device = {}
+    device.mac = info:match("%x%x:%x%x:%x%x:%x%x:%x%x:%x%x")
+    device.id = info:match("|.+"):sub(1)
+    table.insert(result, device)
+  end
+  return result
 end
 
 local function error_handle(errid, errinfo, auth)
@@ -314,18 +326,20 @@ function handle_request(env)
       local leases = read_lines("/tmp/dhcp.leases")
       local result = leases_to_json(leases)
       local blacklist = read_lines("/root/blacklist_mac")
+      local blacklist_info = separate_fields(blacklist)
       resp["leases"] = result
-      resp["blacklist"] = json.encode(blacklist)
+      resp["blacklist"] = json.encode(blacklist_info)
       uhttpd.send("Status: 200 OK\r\n")
       uhttpd.send("Content-Type: text/json\r\n\r\n")
       uhttpd.send(json.encode(resp))
     elseif command == "blacklist" then
       local mac = data.blacklist_mac
+      local id = data.blacklist_id
       if mac == nil or not mac:match("%x%x:%x%x:%x%x:%x%x:%x%x:%x%x") then
         error_handle(11, "Error reading mac address")
         return
       end
-      append_to_file("/root/blacklist_mac", mac .. "\n")
+      append_to_file("/root/blacklist_mac", mac .. "|" .. id .. "\n")
       write_firewall_file()
       run_process("/etc/init.d/firewall restart")
       resp["blacklisted"] = 1
