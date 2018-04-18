@@ -178,7 +178,7 @@ local function separate_fields(blacklist)
   for index, info in ipairs(blacklist) do
     local device = {}
     device.mac = info:match("%x%x:%x%x:%x%x:%x%x:%x%x:%x%x")
-    device.id = info:match("|.+"):sub(1)
+    device.id = info:match("|.+"):sub(2)
     table.insert(result, device)
   end
   return result
