@@ -64,6 +64,23 @@ local function append_to_file(path, content)
   return true
 end
 
+local function remove_from_file(path, content)
+  local file = io.lines(path)
+  if not file then return false end
+  local content = {}
+  for line in file do
+    if not line:match(content) then
+      table.insert(content, line)
+    end
+  end
+  file = io.open(path, "wb")
+  for index, line in ipairs(content) do
+    file:write(line)
+  end
+  file:close()
+  return true
+end
+
 local function touch_file(path)
   local file = io.open(path, "wb")
   if not file then return false end
@@ -312,6 +329,19 @@ function handle_request(env)
       write_firewall_file()
       run_process("/etc/init.d/firewall restart")
       resp["blacklisted"] = 1
+      uhttpd.send("Status: 200 OK\r\n")
+      uhttpd.send("Content-Type: text/json\r\n\r\n")
+      uhttpd.send(json.encode(resp))
+    elseif command == "whitelist" then
+      local mac = data.whitelist_mac
+      if mac == nil or not mac:match("") then
+        error_handle(11, "Error reading mac address")
+        return
+      end
+      remove_from_file("/root/blacklist_mac", mac)
+      write_firewall_file()
+      run_process("/etc/init.d/firewall restart")
+      resp["whitelisted"] = 1
       uhttpd.send("Status: 200 OK\r\n")
       uhttpd.send("Content-Type: text/json\r\n\r\n")
       uhttpd.send(json.encode(resp))
