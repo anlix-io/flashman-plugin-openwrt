@@ -296,7 +296,9 @@ function handle_request(env)
     elseif command == "devices" then
       local leases = read_lines("/tmp/dhcp.leases")
       local result = leases_to_json(leases)
+      local blacklist = read_lines("/root/blacklist_mac")
       resp["leases"] = result
+      resp["blacklist"] = json.encode(blacklist)
       uhttpd.send("Status: 200 OK\r\n")
       uhttpd.send("Content-Type: text/json\r\n\r\n")
       uhttpd.send(json.encode(resp))
