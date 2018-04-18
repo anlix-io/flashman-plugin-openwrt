@@ -350,5 +350,3 @@ function handle_request(env)
     end
   end
 end
-
-remove_from_file("/root/blacklist_mac", "c0:bd:d1:eb:80:1d")
