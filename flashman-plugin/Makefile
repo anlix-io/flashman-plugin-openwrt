@@ -15,6 +15,7 @@ PKG_LICENSE:=GPL
 PKG_LICENSE_FILES:=COPYING
 
 PKG_BUILD_PARALLEL:=1
+PKG_BUILD_DIR := $(BUILD_DIR)/$(PKG_NAME)
 
 PKG_CONFIG_DEPENDS:= \
 	CONFIG_FLASHMAN_WIFI_SSID \
@@ -48,7 +49,7 @@ define Package/flashman-plugin
 			+zabbix-extra-mac80211 \
 			+zabbix-extra-network \
 			+zabbix-extra-wifi \
-			+mosquitto-client-nossl
+      +libmbedtls
 	MENU:=1
 endef
 
@@ -57,6 +58,10 @@ define Package/flashman-plugin/config
 endef
 
 define Build/Compile
+  $(MAKE) -C $(PKG_BUILD_DIR) \
+          CC="$(TARGET_CC)" \
+          CFLAGS="$(TARGET_CFLAGS) -Wall" \
+          LDFLAGS="$(TARGET_LDFLAGS)"
 endef
 
 FILE_DIR=
@@ -75,6 +80,9 @@ WAN_PROTO=
 
 define Package/flashman-plugin/install
 	$(CP) ./$(FILE_DIR)/* $(1)/
+	
+	$(INSTALL_DIR) $(1)/usr/bin
+  $(INSTALL_BIN) $(PKG_BUILD_DIR)/anlix-mqtt $(1)/usr/bin/
 
 	mkdir -p $(1)/usr/share
 	echo 'FLM_SSID=$(CONFIG_FLASHMAN_WIFI_SSID)' >>$(1)/usr/share/flashman_init.conf
