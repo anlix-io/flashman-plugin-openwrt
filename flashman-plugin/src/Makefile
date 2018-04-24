@@ -7,7 +7,7 @@ all: anlix-mqtt
 	$(CC) $(CFLAGS) -Ipaho -c -o $@ $<
 
 anlix-mqtt: $(OBJS) MQTTClient.o anlix-mqtt-transport.o anlix-mqtt.o
-	$(CC) $(LDFLAGS) -lmbedtls -lmbedx509 -lmbedcrypto -o $@ $(OBJS) MQTTClient.o anlix-mqtt-transport.o anlix-mqtt.o
+	$(CC) $(LDFLAGS) -o $@ $(OBJS) MQTTClient.o anlix-mqtt-transport.o anlix-mqtt.o -lmbedtls -lmbedx509 -lmbedcrypto
 
 clean:
 	rm *.o paho/*.o anlix-mqtt

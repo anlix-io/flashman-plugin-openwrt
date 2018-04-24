@@ -49,7 +49,7 @@ define Package/flashman-plugin
 			+zabbix-extra-mac80211 \
 			+zabbix-extra-network \
 			+zabbix-extra-wifi \
-      +libmbedtls
+			+libmbedtls
 	MENU:=1
 endef
 
@@ -82,7 +82,7 @@ define Package/flashman-plugin/install
 	$(CP) ./$(FILE_DIR)/* $(1)/
 	
 	$(INSTALL_DIR) $(1)/usr/bin
-  $(INSTALL_BIN) $(PKG_BUILD_DIR)/anlix-mqtt $(1)/usr/bin/
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/anlix-mqtt $(1)/usr/bin/
 
 	mkdir -p $(1)/usr/share
 	echo 'FLM_SSID=$(CONFIG_FLASHMAN_WIFI_SSID)' >>$(1)/usr/share/flashman_init.conf
