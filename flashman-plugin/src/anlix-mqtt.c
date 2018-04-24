@@ -1,5 +1,6 @@
 /*******************************************************************************
  * Copyright (c) 2012, 2016 IBM Corp.
+ * Copyright (c) 2018 Anlix
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -15,6 +16,7 @@
  *    Ian Craggs - change delimiter option from char to string
  *    Al Stockdill-Mander - Version using the embedded C client
  *    Ian Craggs - update MQTTClient function names
+ *    Gaspare Bruno - Run script if a message is received, add syslog
  *******************************************************************************/
 
 /*
@@ -40,6 +42,9 @@
 */
 #include <stdio.h>
 #include <memory.h>
+#include <syslog.h>
+#include <unistd.h>
+
 #include "MQTTClient.h"
 #include "anlix-mqtt-transport.h"
 
@@ -64,6 +69,7 @@ void usage()
 	printf("  --username none\n");
 	printf("  --password none\n");
 	printf("  --cafile none\n");
+	printf("  --shell none\n");
 	printf("  --showtopics <on or off> (default is on if the topic has a wildcard, else off)\n");
 	exit(-1);
 }
@@ -86,11 +92,12 @@ struct opts_struct
 	char* password;
 	char* host;
 	char* cafile;
+	char* shell;
 	int port;
 	int showtopics;
 } opts =
 {
-	(char*)"stdout-subscriber", 0, (char*)"\n", QOS2, NULL, NULL, (char*)"localhost", NULL, 1883, 0
+	(char*)"stdout-subscriber", 0, (char*)"\n", QOS2, NULL, NULL, (char*)"localhost", NULL, NULL, 1883, 0
 };
 
 
@@ -158,6 +165,13 @@ void getopts(int argc, char** argv)
 			else
 				usage();
 		}
+		else if (strcmp(argv[count], "--shell") == 0)
+		{
+			if (++count < argc)
+				opts.shell = argv[count];
+			else
+				usage();
+		}
 		else if (strcmp(argv[count], "--delimiter") == 0)
 		{
 			if (++count < argc)
@@ -187,14 +201,30 @@ void getopts(int argc, char** argv)
 void messageArrived(MessageData* md)
 {
 	MQTTMessage* message = md->message;
+	int pid;
 
-	if (opts.showtopics)
-		printf("%.*s\t", md->topicName->lenstring.len, md->topicName->lenstring.data);
-	if (opts.nodelimiter)
-		printf("%.*s", (int)message->payloadlen, (char*)message->payload);
-	else
-		printf("%.*s%s", (int)message->payloadlen, (char*)message->payload, opts.delimiter);
-	//fflush(stdout);
+	if(opts.shell != NULL){
+		pid = fork();
+		if(pid == 0) {
+			char buffer[256];
+			memset(buffer,0,256);
+			snprintf(buffer, (int)message->payloadlen > 256?256:(int)message->payloadlen, "%s", (char*)message->payload);
+			char *args[] = {opts.shell, buffer, NULL};
+			syslog (LOG_INFO, "Message Received (%s)", (char*)message->payload);
+			// Execvp only exits on error
+			int rc = execvp(opts.shell, args);
+			syslog (LOG_INFO, "Message Execution Error (%d) (%d) (%s)", rc, errno, strerror(errno));
+			exit(1);
+		}
+	} else {
+		if (opts.showtopics)
+			printf("%.*s\t", md->topicName->lenstring.len, md->topicName->lenstring.data);
+		if (opts.nodelimiter)
+			printf("%.*s", (int)message->payloadlen, (char*)message->payload);
+		else
+			printf("%.*s%s", (int)message->payloadlen, (char*)message->payload, opts.delimiter);
+		//fflush(stdout);
+	}
 }
 
 
@@ -209,10 +239,12 @@ int main(int argc, char** argv)
 	
 	char* topic = argv[1];
 
+	openlog ("MQTT", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
+
 	if (strchr(topic, '#') || strchr(topic, '+'))
 		opts.showtopics = 1;
 	if (opts.showtopics)
-		printf("topic is %s\n", topic);
+		syslog (LOG_INFO, "topic is %s", topic);
 
 	getopts(argc, argv);	
 
@@ -235,24 +267,26 @@ int main(int argc, char** argv)
 
 	data.keepAliveInterval = 10;
 	data.cleansession = 1;
-	printf("Connecting to %s %d\n", opts.host, opts.port);
+	syslog (LOG_INFO, "Connecting to %s %d", opts.host, opts.port);
 	
 	rc = MQTTConnect(&c, &data);
-	printf("Connected %d\n", rc);
+	syslog (LOG_INFO, "Connected with code %d", rc);
     
-    printf("Subscribing to %s\n", topic);
+    syslog (LOG_INFO, "Subscribing to %s", topic);
 	rc = MQTTSubscribe(&c, topic, opts.qos, messageArrived);
-	printf("Subscribed %d\n", rc);
+	syslog (LOG_INFO, "Subscribed with code %d\n", rc);
 
 	while (!toStop)
 	{
 		MQTTYield(&c, 1000);	
 	}
 	
-	printf("Stopping\n");
+	syslog (LOG_INFO, "Stopping");
 
 	MQTTDisconnect(&c);
 	NetworkDisconnect(&n);
+
+	closelog ();
 
 	return 0;
 }
