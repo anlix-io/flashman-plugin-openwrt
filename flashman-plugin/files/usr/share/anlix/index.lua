@@ -332,6 +332,7 @@ function handle_request(env)
       local blacklist_info = separate_fields(blacklist)
       resp["leases"] = result
       resp["blacklist"] = json.encode(blacklist_info)
+      resp["origin"] = env.REMOTE_ADDR
       uhttpd.send("Status: 200 OK\r\n")
       uhttpd.send("Content-Type: text/json\r\n\r\n")
       uhttpd.send(json.encode(resp))
