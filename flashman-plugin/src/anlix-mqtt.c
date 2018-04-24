@@ -69,7 +69,7 @@ void usage()
 	printf("  --username none\n");
 	printf("  --password none\n");
 	printf("  --cafile none\n");
-	printf("  --shell none\n");
+	printf("  --shell none (max 256 chars)\n");
 	printf("  --showtopics <on or off> (default is on if the topic has a wildcard, else off)\n");
 	exit(-1);
 }
@@ -167,8 +167,11 @@ void getopts(int argc, char** argv)
 		}
 		else if (strcmp(argv[count], "--shell") == 0)
 		{
-			if (++count < argc)
+			if (++count < argc) {
 				opts.shell = argv[count];
+				if(strlen(opts.shell) > 256)
+					usage();
+			}
 			else
 				usage();
 		}
@@ -204,18 +207,15 @@ void messageArrived(MessageData* md)
 	int pid;
 
 	if(opts.shell != NULL){
-		pid = fork();
-		if(pid == 0) {
-			char buffer[256];
-			memset(buffer,0,256);
-			snprintf(buffer, (int)message->payloadlen > 256?256:(int)message->payloadlen, "%s", (char*)message->payload);
-			char *args[] = {opts.shell, buffer, NULL};
-			syslog (LOG_INFO, "Message Received (%s)", (char*)message->payload);
-			// Execvp only exits on error
-			int rc = execvp(opts.shell, args);
-			syslog (LOG_INFO, "Message Execution Error (%d) (%d) (%s)", rc, errno, strerror(errno));
-			exit(1);
-		}
+		char buffer[256];
+		char runsys[512];
+		memset(buffer,0,256);
+		snprintf(buffer, (int)message->payloadlen > 254?254:(int)message->payloadlen, "%s", (char*)message->payload);
+		syslog (LOG_INFO, "Message Received (%s)", buffer);
+		strcat(buffer, " &");
+		sprintf(runsys, "%s ", opts.shell);
+		strcat(runsys, buffer);
+		int rc = system(runsys);
 	} else {
 		if (opts.showtopics)
 			printf("%.*s\t", md->topicName->lenstring.len, md->topicName->lenstring.data);
