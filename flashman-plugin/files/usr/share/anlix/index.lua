@@ -325,7 +325,10 @@ function handle_request(env)
     elseif command == "devices" then
       local leases = read_lines("/tmp/dhcp.leases")
       local result = leases_to_json(leases)
-      local blacklist = read_lines("/root/blacklist_mac")
+      local blacklist = {}
+      if check_file("/root/blacklist_mac") then
+        blacklist = read_lines("/root/blacklist_mac")
+      end
       local blacklist_info = separate_fields(blacklist)
       resp["leases"] = result
       resp["blacklist"] = json.encode(blacklist_info)
