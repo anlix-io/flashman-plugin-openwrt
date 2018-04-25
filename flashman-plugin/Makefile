@@ -46,7 +46,7 @@ define Package/flashman-plugin
 			+iputils-ping \
 			+iputils-ping6 \
 			+zabbix-agentd \
-			+zabbix-extra-mac80211 \
+			+(!TARGET_x86&&!TARGET_x86_64):zabbix-extra-mac80211 \
 			+zabbix-extra-network \
 			+zabbix-extra-wifi \
 			+libmbedtls
