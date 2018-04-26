@@ -21,8 +21,12 @@ config FLASHMAN_SERVER_ADDR
 	string "Flashman server IP or FQDN"
 	default ""
 
+config FLASHMAN_FIXEDSSID
+        bool "Use a fixed ssid in all routers using this image. If not set, the SSID will be appended by the last 4 chars from mac address."
+	default n
+
 config FLASHMAN_WIFI_SSID
-	string "WiFi AP SSID prefix. This will be appended by the last mac address 4 characters"
+	string "WiFi AP SSID prefix. This will be appended by the last mac address 4 characters if FLASHMAN_FIXEDSSID is not set."
 	default "FlashMan-AP-"
 
 config FLASHMAN_WIFI_PASSWD

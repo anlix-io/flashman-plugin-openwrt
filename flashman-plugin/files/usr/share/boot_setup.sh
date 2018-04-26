@@ -75,6 +75,13 @@ firstboot() {
 	encryption_value=$(uci get wireless.@wifi-iface[0].encryption)
 	if [ "$encryption_value" = "" ] || { [ "$encryption_value" = "none" ] && { [ "$ssid_value" = "OpenWrt" ] || [ "$ssid_value" = "LEDE" ]; }; }
 	then
+		if [ "$FLM_FIXEDSSID" == "y" ]
+		then
+			setssid = "$FLM_SSID"
+		else
+			setssid = "$FLM_SSID$MAC_LAST_CHARS"
+		fi
+
 		if [ "$SYSTEM_MODEL" == "MT7628AN" ]
 		then
 			touch /etc/config/wireless
@@ -99,7 +106,7 @@ firstboot() {
 			uci set wireless.@wifi-device[1].disabled="0"
 			uci set wireless.@wifi-device[1].type="mac80211"
 			uci set wireless.@wifi-device[1].channel="36"
-			uci set wireless.@wifi-iface[1].ssid="$FLM_SSID$MAC_LAST_CHARS"
+			uci set wireless.@wifi-iface[1].ssid="$setssid"
 			uci set wireless.@wifi-iface[1].encryption="psk2"
 			uci set wireless.@wifi-iface[1].key="$FLM_PASSWD"
 		fi
@@ -107,7 +114,7 @@ firstboot() {
 		uci set wireless.@wifi-device[0].hwmode="11n"
 		uci set wireless.@wifi-device[0].country="BR"
 		uci set wireless.@wifi-device[0].htmode="HT40"
-		uci set wireless.@wifi-iface[0].ssid="$FLM_SSID$MAC_LAST_CHARS"
+		uci set wireless.@wifi-iface[0].ssid="$setssid"
 		uci set wireless.@wifi-iface[0].encryption="psk2"
 		uci set wireless.@wifi-iface[0].key="$FLM_PASSWD"
 		uci commit wireless
