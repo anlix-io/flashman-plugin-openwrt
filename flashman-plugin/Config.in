@@ -21,8 +21,19 @@ config FLASHMAN_SERVER_ADDR
 	string "Flashman server IP or FQDN"
 	default ""
 
+choice
+	prompt "WiFi AP SSID Suffix"
+	default FLASHMAN_SSID_SUFFIX_LASTMAC
+	help
+		Select a suffix value to append in the WiFi SSID.
+	config FLASHMAN_SSID_SUFFIX_NONE
+		bool "None"
+	config FLASHMAN_SSID_SUFFIX_LASTMAC
+		bool "Last four chars from MAC address"
+endchoice
+
 config FLASHMAN_WIFI_SSID
-	string "WiFi AP SSID prefix. This will be appended by the last mac address 4 characters"
+	string "WiFi AP SSID Prefix."
 	default "FlashMan-AP-"
 
 config FLASHMAN_WIFI_PASSWD
