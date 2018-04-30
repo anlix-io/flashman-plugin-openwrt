@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=flasman-plugin
-PKG_VERSION:=0.4.0
+PKG_VERSION:=0.5.0
 PKG_RELEASE:=1
 
 PKG_LICENSE:=GPL
@@ -73,10 +73,20 @@ WAN_PROTO=
 		WAN_PROTO="dhcp"
 	endif
 
+SSID_SUFFIX=
+	ifeq ($(CONFIG_FLASHMAN_SSID_SUFFIX_LASTMAC), y)
+		SSID_SUFFIX="lastmac"
+	else ifeq ($(CONFIG_FLASHMAN_SSID_SUFFIX_NONE), y)
+		SSID_SUFFIX="none"
+	else
+		SSID_SUFFIX="lastmac"
+	endif
+
 define Package/flashman-plugin/install
 	$(CP) ./$(FILE_DIR)/* $(1)/
 
 	mkdir -p $(1)/usr/share
+	echo 'FLM_SSID_SUFFIX=$(SSID_SUFFIX)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_SSID=$(CONFIG_FLASHMAN_WIFI_SSID)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_PASSWD=$(CONFIG_FLASHMAN_WIFI_PASSWD)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_24_CHANNEL=$(CONFIG_FLASHMAN_WIFI_CHANNEL)' >>$(1)/usr/share/flashman_init.conf
