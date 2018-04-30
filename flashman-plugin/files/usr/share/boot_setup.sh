@@ -78,10 +78,10 @@ firstboot() {
 		if [ "$FLM_SSID_SUFFIX" == "none" ]
 		then
 			#none
-			setssid = "$FLM_SSID"
+			setssid="$FLM_SSID"
 		else
 			#lastmac
-			setssid = "$FLM_SSID$MAC_LAST_CHARS"
+			setssid="$FLM_SSID$MAC_LAST_CHARS"
 		fi
 
 		if [ "$SYSTEM_MODEL" == "MT7628AN" ]
