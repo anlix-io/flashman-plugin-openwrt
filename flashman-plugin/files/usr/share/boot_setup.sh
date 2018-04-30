@@ -75,10 +75,12 @@ firstboot() {
 	encryption_value=$(uci get wireless.@wifi-iface[0].encryption)
 	if [ "$encryption_value" = "" ] || { [ "$encryption_value" = "none" ] && { [ "$ssid_value" = "OpenWrt" ] || [ "$ssid_value" = "LEDE" ]; }; }
 	then
-		if [ "$FLM_FIXEDSSID" == "y" ]
+		if [ "$FLM_SSID_SUFFIX" == "none" ]
 		then
+			#none
 			setssid = "$FLM_SSID"
 		else
+			#lastmac
 			setssid = "$FLM_SSID$MAC_LAST_CHARS"
 		fi
 

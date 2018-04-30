@@ -8,6 +8,7 @@ properties([
     string(name: 'OUTPUTIMGVENDOR', defaultValue: 'tp-link'),
     string(name: 'FLASHMANPUBKEY', defaultValue: 'public key'),
     string(name: 'FLASHMANSERVERADDR', defaultValue: 'flashman.example.com'),
+    string(name: 'FLASHMANSSIDSUFFIX', defaultValue: 'lastmac'),
     string(name: 'FLASHMANSSIDPREFIX', defaultValue: 'Flashman-AP-'),
     string(name: 'FLASHMANWIFIPASS', defaultValue: ''),
     string(name: 'FLASHMANWIFICHANNEL', defaultValue: 'auto'),
@@ -65,6 +66,23 @@ node {
         CUSTOM_FLASHMAN_SERVER_ADDR=\"CONFIG_FLASHMAN_SERVER_ADDR=\\\"${params.FLASHMANSERVERADDR}\\\"\"
         sed -i -e '\\,'\$DEFAULT_FLASHMAN_SERVER_ADDR',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_FLASHMAN_SERVER_ADDR >> ${env.WORKSPACE}/\$REPO/.config
+
+        DEFAULT_FLASHMAN_SSID_SUFFIX_NONE=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_SSID_SUFFIX_NONE || echo '^\$')
+        DEFAULT_FLASHMAN_SSID_SUFFIX_LASTMAC=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_SSID_SUFFIX_LASTMAC || echo '^\$')
+
+        if [ \"${params.FLASHMANSSIDSUFFIX}\" = \"none\" ]
+        then
+          CUSTOM_FLASHMAN_SSID_SUFFIX_NONE=\"CONFIG_FLASHMAN_SSID_SUFFIX_NONE=y\"
+          CUSTOM_FLASHMAN_SSID_SUFFIX_LASTMAC=\"# CONFIG_FLASHMAN_SSID_SUFFIX_LASTMAC is not set\"
+        else
+          CUSTOM_FLASHMAN_SSID_SUFFIX_NONE=\"CONFIG_FLASHMAN_SSID_SUFFIX_NONE is not set\"
+          CUSTOM_FLASHMAN_SSID_SUFFIX_LASTMAC=\"# CONFIG_FLASHMAN_SSID_SUFFIX_LASTMAC=y\"
+        fi
+
+        sed -i -e '\\,'\$DEFAULT_FLASHMAN_SSID_SUFFIX_NONE',d' ${env.WORKSPACE}/\$REPO/.config
+        echo \$CUSTOM_FLASHMAN_SSID_SUFFIX_NONE >> ${env.WORKSPACE}/\$REPO/.config
+        sed -i -e '\\,'\$DEFAULT_FLASHMAN_SSID_SUFFIX_LASTMAC',d' ${env.WORKSPACE}/\$REPO/.config
+        echo \$CUSTOM_FLASHMAN_SSID_SUFFIX_LASTMAC >> ${env.WORKSPACE}/\$REPO/.config
 
         DEFAULT_FLASHMAN_WIFI_SSID=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_WIFI_SSID)
         CUSTOM_FLASHMAN_WIFI_SSID=\"CONFIG_FLASHMAN_WIFI_SSID=\\\"${params.FLASHMANSSIDPREFIX}\\\"\"
