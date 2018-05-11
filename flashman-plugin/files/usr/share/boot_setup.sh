@@ -129,7 +129,7 @@ firstboot() {
 		uci commit system
 		/usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat
 		LOWERMAC=$(echo $CLIENT_MAC | awk '{ print tolower($1) }')
-		modprobe mt7628 mac=$LOWERMAC
+		insmod /lib/modules/`uname -r`/mt7628.ko mac=$LOWERMAC
 		echo "mt7628 mac=$LOWERMAC" >> /etc/modules.d/50-mt7628
 		cp /sbin/mtkwifi /sbin/wifi
 	fi
