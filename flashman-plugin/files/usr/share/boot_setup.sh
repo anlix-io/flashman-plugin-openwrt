@@ -128,8 +128,9 @@ firstboot() {
 		uci set system.led_wlan2g.dev="ra0"
 		uci commit system
 		/usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat
-		modprobe mt7628 mac=$CLIENT_MAC
-		echo "mt7628 mac=$CLIENT_MAC" >> /etc/modules.d/50-mt7628
+		LOWERMAC=$(echo $CLIENT_MAC | awk '{ print toupper($1) }')
+		modprobe mt7628 mac=$LOWERMAC
+		echo "mt7628 mac=$LOWERMAC" >> /etc/modules.d/50-mt7628
 		cp /sbin/mtkwifi /sbin/wifi
 	fi
 	/sbin/wifi up
