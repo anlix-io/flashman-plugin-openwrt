@@ -21,7 +21,7 @@ download_file()
       zflag=
     fi
 
-    curl_code=`curl -s -k -w "%{http_code}" -u routersync:landufrj123 \
+    curl_code=`curl -s -w "%{http_code}" -u routersync:landufrj123 \
               --tlsv1.2 --connect-timeout 5 --retry 3 \
               -o "/tmp/$dfile" $zflag "$uri"`
 
@@ -103,7 +103,7 @@ is_authenticated()
     CLIENT_MAC=$(get_mac)
 
     _res=$(curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
-           -k --tlsv1.2 --connect-timeout 5 --retry 1 \
+           --tlsv1.2 --connect-timeout 5 --retry 1 \
            --data "id=$CLIENT_MAC&organization=$FLM_CLIENT_ORG&secret=$FLM_CLIENT_SECRET" \
            "https://$FLM_AUTH_SVADDR/api/device/auth")
 
