@@ -18,6 +18,13 @@
 #ifndef MQTTPACKET_H_
 #define MQTTPACKET_H_
 
+#if defined(__linux__)
+#include <endian.h>
+#if __BYTE_ORDER == __BIG_ENDIAN
+    #define REVERSED 1
+#endif
+#endif
+
 #if defined(__cplusplus) /* If this is a C++ compiler, use C linkage */
 extern "C" {
 #endif

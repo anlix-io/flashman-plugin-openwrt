@@ -20,6 +20,13 @@
 #ifndef MQTTCONNECT_H_
 #define MQTTCONNECT_H_
 
+#if defined(__linux__)
+#include <endian.h>
+#if __BYTE_ORDER == __BIG_ENDIAN
+    #define REVERSED 1
+#endif
+#endif
+
 enum connack_return_codes
 {
     MQTT_CONNECTION_ACCEPTED = 0,
