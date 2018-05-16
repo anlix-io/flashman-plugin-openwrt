@@ -44,11 +44,13 @@
 #include <memory.h>
 #include <syslog.h>
 #include <unistd.h>
+#include <errno.h>
+#include <string.h>
+#include <stdarg.h>
 
 #include "MQTTClient.h"
 #include "anlix-mqtt-transport.h"
 
-#include <stdio.h>
 #include <signal.h>
 
 #include <sys/time.h>
@@ -71,6 +73,7 @@ void usage()
 	printf("  --cafile none\n");
 	printf("  --shell none (max 256 chars)\n");
 	printf("  --showtopics <on or off> (default is on if the topic has a wildcard, else off)\n");
+	printf("  --debug Send debug messages to console (default to syslog)\n");
 	exit(-1);
 }
 
@@ -95,9 +98,10 @@ struct opts_struct
 	char* shell;
 	int port;
 	int showtopics;
+	int debug;
 } opts =
 {
-	(char*)"stdout-subscriber", 0, (char*)"\n", QOS2, NULL, NULL, (char*)"localhost", NULL, NULL, 1883, 0
+	(char*)"stdout-subscriber", 0, (char*)"\n", QOS2, NULL, NULL, (char*)"localhost", NULL, NULL, 1883, 0, 0
 };
 
 
@@ -196,9 +200,27 @@ void getopts(int argc, char** argv)
 			else
 				usage();
 		}
+		else if (strcmp(argv[count], "--debug") == 0)
+		{
+			opts.debug = 1;
+		}
 		count++;
 	}
-	
+}
+
+void printlog(const char *fmt, ...)
+{
+   	char buffer[4096];
+    va_list args;
+    va_start(args, fmt);
+    int rc = vsnprintf(buffer, sizeof(buffer), fmt, args);
+    va_end(args);
+
+	if(opts.debug) {
+		printf("%s\n", buffer);
+	} else {
+		syslog(LOG_INFO, "%s", buffer);
+	}
 }
 
 void messageArrived(MessageData* md)
@@ -206,15 +228,17 @@ void messageArrived(MessageData* md)
 	MQTTMessage* message = md->message;
 	int pid;
 
+	char buffer[256];
+	memset(buffer,0,256);
+	snprintf(buffer, (int)(message->payloadlen)+1 > 254?254:(int)(message->payloadlen)+1, "%s", (char*)message->payload);
+	printlog ("Message Received (size %d bytes) (%s)", (int)message->payloadlen, buffer);
+
 	if(opts.shell != NULL){
-		char buffer[256];
 		char runsys[512];
-		memset(buffer,0,256);
-		snprintf(buffer, (int)message->payloadlen > 254?254:(int)message->payloadlen, "%s", (char*)message->payload);
-		syslog (LOG_INFO, "Message Received (%s)", buffer);
 		strcat(buffer, " &");
 		sprintf(runsys, "%s ", opts.shell);
 		strcat(runsys, buffer);
+		printlog ("Running (%s)", runsys);
 		int rc = system(runsys);
 	} else {
 		if (opts.showtopics)
@@ -223,7 +247,6 @@ void messageArrived(MessageData* md)
 			printf("%.*s", (int)message->payloadlen, (char*)message->payload);
 		else
 			printf("%.*s%s", (int)message->payloadlen, (char*)message->payload, opts.delimiter);
-		//fflush(stdout);
 	}
 }
 
@@ -239,14 +262,15 @@ int main(int argc, char** argv)
 	
 	char* topic = argv[1];
 
-	openlog ("MQTT", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
+	getopts(argc, argv);	
+
+	if(!opts.debug)
+		openlog ("MQTT", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
 
 	if (strchr(topic, '#') || strchr(topic, '+'))
 		opts.showtopics = 1;
 	if (opts.showtopics)
-		syslog (LOG_INFO, "topic is %s", topic);
-
-	getopts(argc, argv);	
+		printlog("topic is %s", topic);
 
 	Network n;
 	MQTTClient c;
@@ -267,26 +291,39 @@ int main(int argc, char** argv)
 
 	data.keepAliveInterval = 10;
 	data.cleansession = 1;
-	syslog (LOG_INFO, "Connecting to %s %d", opts.host, opts.port);
+	printlog ("Connecting to %s %d", opts.host, opts.port);
 	
 	rc = MQTTConnect(&c, &data);
-	syslog (LOG_INFO, "Connected with code %d", rc);
+	printlog ("Connected with code %d", rc);
+	if(rc < 0)
+	{
+		// Error on connect, print error
+		printlog("ERROR: %s", strerror(errno));
+		exit(-1);
+	}
     
-    syslog (LOG_INFO, "Subscribing to %s", topic);
+    printlog("Subscribing to %s", topic);
 	rc = MQTTSubscribe(&c, topic, opts.qos, messageArrived);
-	syslog (LOG_INFO, "Subscribed with code %d\n", rc);
+	printlog ("Subscribed with code %d", rc);
+	if(rc < 0)
+	{
+		// Error on connect, print error
+		printlog("ERROR: %s", strerror(errno));
+		exit(-1);
+	}
 
 	while (!toStop)
 	{
 		MQTTYield(&c, 1000);	
 	}
 	
-	syslog (LOG_INFO, "Stopping");
+	printlog ("Stopping");
 
 	MQTTDisconnect(&c);
 	NetworkDisconnect(&n);
 
-	closelog ();
+	if(!opts.debug)
+		closelog ();
 
 	return 0;
 }
