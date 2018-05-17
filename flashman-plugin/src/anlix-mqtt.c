@@ -233,7 +233,7 @@ void messageArrived(MessageData* md)
 	snprintf(buffer, (int)(message->payloadlen)+1 > 254?254:(int)(message->payloadlen)+1, "%s", (char*)message->payload);
 	printlog ("Message Received (size %d bytes) (%s)", (int)message->payloadlen, buffer);
 
-	if(opts.shell != NULL){
+	if((opts.shell != NULL) && (strcmp(buffer, "1")==0)){
 		char runsys[512];
 		strcat(buffer, " &");
 		sprintf(runsys, "%s ", opts.shell);
