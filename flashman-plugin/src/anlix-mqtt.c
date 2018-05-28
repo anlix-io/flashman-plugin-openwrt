@@ -312,9 +312,14 @@ int main(int argc, char** argv)
 		exit(-1);
 	}
 
+	int rc;
 	while (!toStop)
 	{
-		MQTTYield(&c, 1000);	
+		rc = MQTTYield(&c, 1000);
+		if(rc != SUCCESS) {
+			toStop = 1;
+			printlog ("MQTT Yield FAILURE, disconnecting...");
+		}	
 	}
 	
 	printlog ("Stopping");
