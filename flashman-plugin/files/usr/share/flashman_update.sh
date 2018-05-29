@@ -88,6 +88,12 @@ then
           uci set wireless.@wifi-iface[0].ssid="$_wifi_ssid"
           uci set wireless.@wifi-iface[0].key="$_wifi_password"
           uci set wireless.radio0.channel="$_wifi_channel"
+	  #5Ghz
+	  if [ "$(uci get wireless.@wifi-device[1].disabled)" == "0" ]
+          then
+            uci set wireless.@wifi-iface[1].ssid="$_wifi_ssid"
+            uci set wireless.@wifi-iface[1].key="$_wifi_password"
+          fi
           uci commit wireless
 
           if [ "$SYSTEM_MODEL" == "MT7628AN" ]
