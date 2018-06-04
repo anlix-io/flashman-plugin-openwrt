@@ -30,10 +30,11 @@ do
 done
 
 sh /usr/share/keepalive.sh &
+MQTTSEC=$(set_mqtt_secret)
 
 while true
 do
-  anlix-mqtt flashman/update/$CLIENT_MAC --clientid $CLIENT_MAC --host $FLM_SVADDR --port $MQTT_PORT --cafile /etc/ssl/certs/ca-certificates.crt --shell "sh /usr/share/flashman_update.sh now"
+  anlix-mqtt flashman/update/$CLIENT_MAC --clientid $CLIENT_MAC --host $FLM_SVADDR --port $MQTT_PORT --cafile /etc/ssl/certs/ca-certificates.crt --shell "sh /usr/share/flashman_update.sh now" --username $CLIENT_MAC --password $MQTTSEC
 
   sleep 2
 done

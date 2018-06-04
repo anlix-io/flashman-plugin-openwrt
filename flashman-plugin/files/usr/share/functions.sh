@@ -94,6 +94,26 @@ get_wan_ip()
   echo "$_ip"
 }
 
+set_mqtt_secret()
+{
+  CLIENT_MAC=$(get_mac)
+  MQTTSEC=$(cat /dev/urandom | tr -dc _A-Z-a-z-0-9 | head -c${1:-32})
+
+  _res=$(curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
+         --tlsv1.2 --connect-timeout 5 --retry 1 \
+         --data "id=$CLIENT_MAC&organization=$FLM_CLIENT_ORG&secret=$FLM_CLIENT_SECRET&mqttsecret=$MQTTSEC" \
+         "https://$FLM_SVADDR/deviceinfo/mqtt/add")
+
+  json_load "$_res"
+  json_get_var _is_registered is_registered
+  json_close_object
+
+  if [ "$_is_registered" = "1" ]                                                                       
+  then                                                                                                 
+    echo $MQTTSEC                                                                                      
+  fi  
+}
+
 is_authenticated()
 {
   _is_authenticated=1
