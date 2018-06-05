@@ -135,6 +135,10 @@ firstboot() {
 	fi
 	/sbin/wifi up
 
+	# Configure DHCP
+	uci set dhcp.lan.leasetime="1h"
+	uci commit dhcp
+
 	# Configure LAN
 	uci set network.lan.ipaddr="10.0.10.1"
 	uci set network.lan.netmask="255.255.255.0"
