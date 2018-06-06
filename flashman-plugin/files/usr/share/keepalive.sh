@@ -7,6 +7,7 @@ SERVER_ADDR="$FLM_SVADDR"
 OPENWRT_VER=$(cat /etc/openwrt_version)
 HARDWARE_MODEL=$(get_hardware_model)
 HARDWARE_VER=$(cat /tmp/sysinfo/model | awk '{ print toupper($3) }')
+SYSTEM_MODEL=$(get_system_model)
 CLIENT_MAC=$(get_mac)
 WAN_IP_ADDR=$(get_wan_ip)
 PPPOE_USER=""
@@ -31,7 +32,7 @@ do
 		fi
 
 		# Get WiFi data if available
-		if [ "$(uci get wireless.@wifi-device[0].disabled)" == "0" ]
+		if [ "$(uci get wireless.@wifi-device[0].disabled)" == "0" ] || [ "$SYSTEM_MODEL" == "MT7628AN" ]
 		then
 			WIFI_SSID=$(uci get wireless.@wifi-iface[0].ssid)
 			WIFI_PASSWD=$(uci get wireless.@wifi-iface[0].key)
