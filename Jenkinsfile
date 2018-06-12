@@ -32,7 +32,7 @@ properties([
 ])
 
 node {
-    label '${git rev-parse --abbrev-ref HEAD}'
+    label 'teste'
     checkout scm
     
     stage('Build') {
