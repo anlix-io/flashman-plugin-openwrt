@@ -1,5 +1,7 @@
 #!/usr/bin/env groovy
 
+def tag = sh(returnStdout: true, script: "git rev-parse --abbrev-ref HEAD").trim()
+
 properties([
   parameters([
     string(name: 'TARGETMODEL', defaultValue: 'tl-wr940n-v4'),
@@ -31,8 +33,7 @@ properties([
   ])
 ])
 
-node {
-    label 'teste'
+node(tag) {
     checkout scm
     
     stage('Build') {
