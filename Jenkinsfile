@@ -210,9 +210,6 @@ node() {
         git fetch
         git checkout \$COMMIT
 
-        ## Preventing errors of unknown commands
-        make package/index
-
         ./scripts/feeds update -a
         ./scripts/feeds install -a
 
