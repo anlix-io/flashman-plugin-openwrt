@@ -1,7 +1,5 @@
 #!/usr/bin/env groovy
 
-def tag = sh(returnStdout: true, script: "git rev-parse --abbrev-ref HEAD").trim()
-
 properties([
   parameters([
     string(name: 'TARGETMODEL', defaultValue: 'tl-wr940n-v4'),
@@ -33,7 +31,7 @@ properties([
   ])
 ])
 
-node(tag) {
+node() {
     checkout scm
     
     stage('Build') {
@@ -211,6 +209,9 @@ node(tag) {
 
         git fetch
         git checkout \$COMMIT
+
+        ## Preventing errors of unknown commands
+        make package/index
 
         ./scripts/feeds update -a
         ./scripts/feeds install -a
