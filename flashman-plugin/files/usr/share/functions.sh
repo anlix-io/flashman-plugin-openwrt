@@ -4,6 +4,35 @@
 . /lib/functions/network.sh
 . /usr/share/libubox/jshn.sh
 
+log() {
+  logger -t "$1 " "$2"
+}
+
+# Verify if connection is up.
+check_connectivity_flashman()
+{
+  if ping -q -c 2 -W 2 "$FLM_SVADDR"  >/dev/null
+  then
+    # true
+    echo 0
+  else
+    # false
+    echo 1
+  fi
+}
+
+check_connectivity_internet()
+{
+  if ping -q -c 2 -W 2 www.google.com  >/dev/null
+  then
+    # true
+    echo 0
+  else
+    # false
+    echo 1
+  fi
+}
+
 download_file()
 {
   dfile="$2"
@@ -97,20 +126,25 @@ get_wan_ip()
 set_mqtt_secret()
 {
   CLIENT_MAC=$(get_mac)
-  MQTTSEC=$(cat /dev/urandom | tr -dc _A-Z-a-z-0-9 | head -c${1:-32})
+  if [ -e "/root/mqtt_secret" ]
+  then
+    cat /root/mqtt_secret
+  else
+    MQTTSEC=$(cat /dev/urandom | tr -dc _A-Z-a-z-0-9 | head -c${1:-32})
+    _res=$(curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
+           --tlsv1.2 --connect-timeout 5 --retry 1 \
+           --data "id=$CLIENT_MAC&organization=$FLM_CLIENT_ORG&secret=$FLM_CLIENT_SECRET&mqttsecret=$MQTTSEC" \
+           "https://$FLM_SVADDR/deviceinfo/mqtt/add")
 
-  _res=$(curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
-         --tlsv1.2 --connect-timeout 5 --retry 1 \
-         --data "id=$CLIENT_MAC&organization=$FLM_CLIENT_ORG&secret=$FLM_CLIENT_SECRET&mqttsecret=$MQTTSEC" \
-         "https://$FLM_SVADDR/deviceinfo/mqtt/add")
+    json_load "$_res"
+    json_get_var _is_registered is_registered
+    json_close_object
 
-  json_load "$_res"
-  json_get_var _is_registered is_registered
-  json_close_object
-
-  if [ "$_is_registered" = "1" ]                                                                       
-  then                                                                                                 
-    echo $MQTTSEC                                                                                      
+    if [ "$_is_registered" = "1" ]                                                                       
+    then                                                                                                 
+      echo $MQTTSEC > /root/mqtt_secret
+      cat /root/mqtt_secret                                                                                     
+    fi
   fi  
 }
 

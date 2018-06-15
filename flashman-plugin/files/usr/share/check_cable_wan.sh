@@ -1,5 +1,7 @@
 #!/bin/sh
 
+. /usr/share/functions.sh
+
 do_restart=false
 
 reset_leds () {
@@ -47,7 +49,7 @@ do
   if [ $is_cable_conn -eq 1 ]
   then
     # We have layer 2 connectivity, now check external access
-    if ! ping -q -c 2 -W 2 www.google.com  >/dev/null
+    if [ ! "$(check_connectivity_internet)" -eq 0 ]
     then
       # Blink all LEDs
       for trigger_path in $(ls -d /sys/class/leds/*)

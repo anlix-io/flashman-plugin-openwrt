@@ -17,12 +17,8 @@ then
 	FLM_PASSWD=$(echo $CLIENT_MAC | sed -e "s/://g")
 fi
 
-log() {
-	logger -t "FlashMan Plugin Boot " "$@"
-}
-
 firstboot() {
-	log "First boot start -> MAC $CLIENT_MAC"
+	log "FIRSTBOOT" "First boot start -> MAC $CLIENT_MAC"
 
 	uci set system.@system[-1].timezone="BRT3BRST,M10.3.0/0,M2.3.0/0"
 	uci set system.@system[-1].hostname="$HOSTNAME"
@@ -62,6 +58,7 @@ firstboot() {
 	uci set firewall.@rule[-1].name="custom-ssh"
 	uci set firewall.@rule[-1].src="*"
 	uci commit firewall
+  log "FIRSTBOOT" "Firewall Configured"
 
 	uci set dropbear.@dropbear[0]=dropbear
 	uci set dropbear.@dropbear[0].PasswordAuth=off
@@ -69,6 +66,7 @@ firstboot() {
 	uci set dropbear.@dropbear[0].Port=36022
 	uci commit dropbear
 	/etc/init.d/dropbear restart
+  log "FIRSTBOOT" "Dropbear Configured"
 
 	# Configure WiFi default SSID and password
 	ssid_value=$(uci get wireless.@wifi-iface[0].ssid)
@@ -86,6 +84,7 @@ firstboot() {
 
 		if [ "$SYSTEM_MODEL" == "MT7628AN" ]
 		then
+      log "FIRSTBOOT" "Wireless MT7628AN"
 			touch /etc/config/wireless
 			uci set wireless.radio0=wifi-device
 
@@ -134,6 +133,7 @@ firstboot() {
 		cp /sbin/mtkwifi /sbin/wifi
 	fi
 	/sbin/wifi up
+  log "FIRSTBOOT" "Wireless set successfully"
 
 	# Configure DHCP
 	uci set dhcp.lan.leasetime="1h"
@@ -145,6 +145,7 @@ firstboot() {
 	uci commit network
 	echo "10.0.10.1 anlixrouter" >> /etc/hosts
 	/sbin/ifup lan
+  log "FIRSTBOOT" "LAN Configured successfully"
 
 	# Configure WAN
 	wan_proto_value=$(uci get network.wan.proto)
@@ -158,6 +159,7 @@ firstboot() {
 	fi
 	uci commit network
 	/etc/init.d/network restart
+  log "FIRSTBOOT" "WAN Configured successfully"
 
 	# Set root password
 	PASSWORD_ENTRY=""
@@ -182,6 +184,7 @@ firstboot() {
 		# Enable Zabbix
 		/etc/init.d/zabbix_agentd enable
 		/etc/init.d/zabbix_agentd start
+    log "FIRSTBOOT" "Zabbix Enabled"
 	else
 		# Disable Zabbix
 		/etc/init.d/zabbix_agentd stop
@@ -193,15 +196,11 @@ firstboot() {
 	uci set uhttpd.main.lua_handler='/usr/share/anlix/index.lua'
 	uci commit uhttpd
 
-	log "First boot completed"
+	log "FIRSTBOOT" "First boot completed"
 }
-
-log "Starting..."
 
 [ -f "/etc/firstboot" ] || {
 	firstboot
 }
-
-log "Done!"
 
 echo "0" > /etc/firstboot
