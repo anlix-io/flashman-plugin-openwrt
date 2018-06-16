@@ -51,6 +51,23 @@ node() {
           git clone https://github.com/anlix-io/\$REPO.git -b \$BRANCH
         fi
 
+        cd ${env.WORKSPACE}/\$REPO
+
+        git fetch
+        git checkout \$COMMIT
+
+        ./scripts/feeds update -a
+        ./scripts/feeds install -a
+
+        cp -r ${env.WORKSPACE}/flashman-plugin ${env.WORKSPACE}/\$REPO/package/utils/
+        mkdir -p ${env.WORKSPACE}/\$REPO/files/etc
+        cp ${env.WORKSPACE}/banner ${env.WORKSPACE}/\$REPO/files/etc/
+        cp ${env.WORKSPACE}/login.sh ${env.WORKSPACE}/\$REPO/package/base-files/files/bin/
+        chmod +x ${env.WORKSPACE}/\$REPO/package/base-files/files/bin/login.sh
+
+        ## Refresh targets
+        touch target/linux/*/Makefile
+
         cp ${env.WORKSPACE}/diffconfigs/\$DIFFCONFIG ${env.WORKSPACE}/\$REPO/.config
 
         ##
@@ -200,27 +217,10 @@ node() {
         sed -i -e '\\,'\$DEFAULT_ZABBIX_SEND_DATA',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_ZABBIX_SEND_DATA >> ${env.WORKSPACE}/\$REPO/.config
 
-   
+        
         ##
         ## End of replace variables section
         ##
-
-        cd ${env.WORKSPACE}/\$REPO
-
-        git fetch
-        git checkout \$COMMIT
-
-        ./scripts/feeds update -a
-        ./scripts/feeds install -a
-
-        cp -r ${env.WORKSPACE}/flashman-plugin ${env.WORKSPACE}/\$REPO/package/utils/
-        mkdir -p ${env.WORKSPACE}/\$REPO/files/etc
-        cp ${env.WORKSPACE}/banner ${env.WORKSPACE}/\$REPO/files/etc/
-        cp ${env.WORKSPACE}/login.sh ${env.WORKSPACE}/\$REPO/package/base-files/files/bin/
-        chmod +x ${env.WORKSPACE}/\$REPO/package/base-files/files/bin/login.sh
-
-        ## Refresh targets
-        touch target/linux/*/Makefile
 
         make defconfig
 
