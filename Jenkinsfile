@@ -295,6 +295,7 @@ node() {
         ##
         ## Verify image integrity against data
         ##
+
         binwalk -e \$IMGNAME
         SQUASHCONFIG='_'\$IMGNAME'.extracted/squashfs-root/usr/share/flashman_init.conf'
 
@@ -314,8 +315,77 @@ node() {
           fi
         fi
 
+        IMG_FLM_SSID=\$(cat \$SQUASHCONFIG | grep FLM_SSID | awk -F= '{print \$2}' | sed 's,\",,g')
+        if [ \"\$IMG_FLM_SSID\" != \"${params.FLASHMANSSIDPREFIX}\" ]
+        then
+          echo 'Generated image parameter does not match'
+          exit 1
+        fi
+        IMG_FLM_PASSWD=\$(cat \$SQUASHCONFIG | grep FLM_PASSWD | awk -F= '{print \$2}' | sed 's,\",,g')
+        if [ \"\$IMG_FLM_PASSWD\" != \"${params.FLASHMANWIFIPASS}\" ]
+        then
+          echo 'Generated image parameter does not match'
+          exit 1
+        fi
+        IMG_FLM_24_CHANNEL=\$(cat \$SQUASHCONFIG | grep FLM_24_CHANNEL | awk -F= '{print \$2}' | sed 's,\",,g')
+        if [ \"\$IMG_FLM_24_CHANNEL\" != \"${params.FLASHMANWIFICHANNEL}\" ]
+        then
+          echo 'Generated image parameter does not match'
+          exit 1
+        fi
+        IMG_FLM_RELID=\$(cat \$SQUASHCONFIG | grep FLM_RELID | awk -F= '{print \$2}' | sed 's,\",,g')
+        if [ \"\$IMG_FLM_RELID\" != \"${params.FLASHMANRELEASEID}\" ]
+        then
+          echo 'Generated image parameter does not match'
+          exit 1
+        fi
+        IMG_FLM_SVADDR=\$(cat \$SQUASHCONFIG | grep FLM_SVADDR | awk -F= '{print \$2}' | sed 's,\",,g')
+        if [ \"\$IMG_FLM_SVADDR\" != \"${params.FLASHMANSERVERADDR}\" ]
+        then
+          echo 'Generated image parameter does not match'
+          exit 1
+        fi
+        IMG_NTP_SVADDR=\$(cat \$SQUASHCONFIG | grep NTP_SVADDR | awk -F= '{print \$2}' | sed 's,\",,g')
+        if [ \"\$IMG_NTP_SVADDR\" != \"${params.FLASHMANNTPADDR}\" ]
+        then
+          echo 'Generated image parameter does not match'
+          exit 1
+        fi
+        IMG_FLM_WAN_PROTO=\$(cat \$SQUASHCONFIG | grep FLM_WAN_PROTO | awk -F= '{print \$2}' | sed 's,\",,g')
+        if [ \"\$IMG_FLM_WAN_PROTO\" != \"${params.FLASHMANWANPROTO}\" ]
+        then
+          echo 'Generated image parameter does not match'
+          exit 1
+        fi
+        IMG_FLM_WAN_MTU=\$(cat \$SQUASHCONFIG | grep FLM_WAN_MTU | awk -F= '{print \$2}' | sed 's,\",,g')
+        if [ \"\$IMG_FLM_WAN_MTU\" != \"${params.FLASHMANWANMTU}\" ]
+        then
+          echo 'Generated image parameter does not match'
+          exit 1
+        fi
+        IMG_MQTT_PORT=\$(cat \$SQUASHCONFIG | grep MQTT_PORT | awk -F= '{print \$2}' | sed 's,\",,g')
+        if [ \"\$IMG_MQTT_PORT\" != \"${params.MQTTPORT}\" ]
+        then
+          echo 'Generated image parameter does not match'
+          exit 1
+        fi
+        IMG_FLM_CLIENT_ORG=\$(cat \$SQUASHCONFIG | grep FLM_CLIENT_ORG | awk -F= '{print \$2}' | sed 's,\",,g')
+        if [ \"\$IMG_FLM_CLIENT_ORG\" != \"${params.FLASHMANCLIENTORG}\" ]
+        then
+          echo 'Generated image parameter does not match'
+          exit 1
+        fi
+        IMG_FLM_USE_AUTH_SVADDR=\$(cat \$SQUASHCONFIG | grep FLM_USE_AUTH_SVADDR | awk -F= '{print \$2}' | sed 's,\",,g')
+        if [ \"\$IMG_FLM_USE_AUTH_SVADDR\" != \"${params.AUTHENABLESERVER}\" ]
+        then
+          echo 'Generated image parameter does not match'
+          exit 1
+        fi
+
+        rm -rf '_'\$IMGNAME'.extracted
+
         ##
-        ## End of image integrity verification
+        ## End of image integrity verification section
         ##
 
         zip \$IMGZIP \$IMGNAME
