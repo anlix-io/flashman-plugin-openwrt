@@ -291,6 +291,33 @@ node() {
         fi
  
         cp \$TARGETIMG \$IMGNAME
+
+        ##
+        ## Verify image integrity against data
+        ##
+        binwalk -e \$IMGNAME
+        SQUASHCONFIG='_'\$IMGNAME'.extracted/squashfs-root/usr/share/flashman_init.conf'
+
+        IMG_FLM_SSID_SUFFIX=\$(cat \$SQUASHCONFIG | grep FLM_SSID_SUFFIX | awk -F= '{print $2}')
+        if [ \"${params.FLASHMANSSIDSUFFIX}\" = \"none\" ]
+        then
+          if [ \$FLM_SSID_SUFFIX != \"none\" ]
+          then
+            echo 'Generated image parameter does not match'
+            exit 1
+          fi
+        else
+          if [ \$FLM_SSID_SUFFIX != \"lastmac\" ]
+          then
+            echo 'Generated image parameter does not match'
+            exit 1
+          fi
+        fi
+
+        ##
+        ## End of image integrity verification
+        ##
+
         zip \$IMGZIP \$IMGNAME
 
         curl -u ${params.ARTIFACTORYUSER}:${params.ARTIFACTORYPASS} \\
