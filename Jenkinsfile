@@ -318,14 +318,14 @@ node() {
         fi
 
         IMG_FLM_SSID=\$(cat \$SQUASHCONFIG | grep 'FLM_SSID=' | awk -F= '{print \$2}' | sed 's,\",,g')
-        if [ \"${params.FLASHMANSSIDPREFIX}\" != \"\$IMG_FLM_SSID\" ]
+        if [ \"\$IMG_FLM_SSID\" != \"${params.FLASHMANSSIDPREFIX}\" ]
         then
           echo 'Generated image parameter does not match'
           rm -rf '_'\$IMGNAME'.extracted'
           exit 1
         fi
         IMG_FLM_PASSWD=\$(cat \$SQUASHCONFIG | grep 'FLM_PASSWD=' | awk -F= '{print \$2}' | sed 's,\",,g')
-        if [ \"${params.FLASHMANWIFIPASS}\" != \"\$IMG_FLM_PASSWD\" ]
+        if [ \"\$IMG_FLM_PASSWD\" != \"${params.FLASHMANWIFIPASS}\" ]
         then
           echo 'Generated image parameter does not match'
           rm -rf '_'\$IMGNAME'.extracted'
@@ -388,11 +388,59 @@ node() {
           exit 1
         fi
         IMG_FLM_USE_AUTH_SVADDR=\$(cat \$SQUASHCONFIG | grep 'FLM_USE_AUTH_SVADDR=' | awk -F= '{print \$2}' | sed 's,\",,g')
-        if [ \"\$IMG_FLM_USE_AUTH_SVADDR\" != \"${params.AUTHENABLESERVER}\" ]
+        if [ \"${params.AUTHENABLESERVER}\" = \"true\" ]
         then
-          echo 'Generated image parameter does not match'
-          rm -rf '_'\$IMGNAME'.extracted'
-          exit 1
+          if [ \"\$IMG_FLM_USE_AUTH_SVADDR\" != \"y\" ]
+          then
+            echo 'Generated image parameter does not match'
+            rm -rf '_'\$IMGNAME'.extracted'
+            exit 1
+          fi
+          IMG_FLM_AUTH_SVADDR=\$(cat \$SQUASHCONFIG | grep 'FLM_AUTH_SVADDR=' | awk -F= '{print \$2}' | sed 's,\",,g')
+          if [ \"\$IMG_FLM_AUTH_SVADDR\" != \"${params.AUTHCLIENTSECRET}\" ]
+          then
+            echo 'Generated image parameter does not match'
+            rm -rf '_'\$IMGNAME'.extracted'
+            exit 1
+          fi
+          IMG_FLM_CLIENT_SECRET=\$(cat \$SQUASHCONFIG | grep 'FLM_CLIENT_SECRET=' | awk -F= '{print \$2}' | sed 's,\",,g')
+          if [ \"\$IMG_FLM_CLIENT_SECRET\" != \"${params.AUTHSERVERADDR}\" ]
+          then
+            echo 'Generated image parameter does not match'
+            rm -rf '_'\$IMGNAME'.extracted'
+            exit 1
+          fi
+        else
+          if [ \"\$IMG_FLM_USE_AUTH_SVADDR\" != \"\" ]
+          then
+            echo 'Generated image parameter does not match'
+            rm -rf '_'\$IMGNAME'.extracted'
+            exit 1
+          fi
+        fi
+        IMG_ZBX_SEND_DATA=\$(cat \$SQUASHCONFIG | grep 'ZBX_SEND_DATA=' | awk -F= '{print \$2}' | sed 's,\",,g')
+        if [ \"${params.ZABBIXSENDNETDATA}\" = \"true\" ]
+        then
+          if [ \"\$IMG_ZBX_SEND_DATA\" != \"y\" ]
+          then
+            echo 'Generated image parameter does not match'
+            rm -rf '_'\$IMGNAME'.extracted'
+            exit 1
+          fi
+          IMG_ZBX_SVADDR=\$(cat \$SQUASHCONFIG | grep 'ZBX_SVADDR=' | awk -F= '{print \$2}' | sed 's,\",,g')
+          if [ \"\$IMG_ZBX_SVADDR\" != \"${params.ZABBIXSERVERADDR}\" ]
+          then
+            echo 'Generated image parameter does not match'
+            rm -rf '_'\$IMGNAME'.extracted'
+            exit 1
+          fi
+        else
+          if [ \"\$IMG_ZBX_SEND_DATA\" != \"\" ]
+          then
+            echo 'Generated image parameter does not match'
+            rm -rf '_'\$IMGNAME'.extracted'
+            exit 1
+          fi
         fi
 
         rm -rf '_'\$IMGNAME'.extracted'
