@@ -301,13 +301,13 @@ node() {
         IMG_FLM_SSID_SUFFIX=\$(cat \$SQUASHCONFIG | grep FLM_SSID_SUFFIX | awk -F= '{print \$2}')
         if [ \"${params.FLASHMANSSIDSUFFIX}\" = \"none\" ]
         then
-          if [ \$FLM_SSID_SUFFIX != \"none\" ]
+          if [ \$IMG_FLM_SSID_SUFFIX != \"none\" ]
           then
             echo 'Generated image parameter does not match'
             exit 1
           fi
         else
-          if [ \$FLM_SSID_SUFFIX != \"lastmac\" ]
+          if [ \$IMG_FLM_SSID_SUFFIX != \"lastmac\" ]
           then
             echo 'Generated image parameter does not match'
             exit 1
