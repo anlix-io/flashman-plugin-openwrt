@@ -325,7 +325,7 @@ node() {
           exit 1
         fi
         IMG_FLM_PASSWD=\$(cat \$SQUASHCONFIG | grep 'FLM_PASSWD=' | awk -F= '{print \$2}' | sed 's,\",,g')
-        if [ \"\$IMG_FLM_PASSWD\" != \"${params.FLASHMANWIFIPASS}\" ]
+        if [ \"\$IMG_FLM_PASSWD\" != \'${params.FLASHMANWIFIPASS}\' ]
         then
           echo 'Generated image parameter does not match'
           rm -rf '_'\$IMGNAME'.extracted'
