@@ -305,26 +305,26 @@ node() {
           if [ \"\$IMG_FLM_SSID_SUFFIX\" != \"none\" ]
           then
             echo 'Generated image parameter does not match'
-            rm -rf '_'\$IMGNAME'.extracted
+            rm -rf '_'\$IMGNAME'.extracted'
             exit 1
           fi
         else
           if [ \"\$IMG_FLM_SSID_SUFFIX\" != \"lastmac\" ]
           then
             echo 'Generated image parameter does not match'
-            rm -rf '_'\$IMGNAME'.extracted
+            rm -rf '_'\$IMGNAME'.extracted'
             exit 1
           fi
         fi
 
         IMG_FLM_SSID=\$(cat \$SQUASHCONFIG | grep 'FLM_SSID=' | awk -F= '{print \$2}' | sed 's,\",,g')
-        if [ \$IMG_FLM_SSID != ${params.FLASHMANSSIDPREFIX} ]
+        if [ \"${params.FLASHMANSSIDPREFIX}\" != \"\$IMG_FLM_SSID\" ]
         then
           echo 'Generated image parameter does not match'
           exit 1
         fi
 
-        rm -rf '_'\$IMGNAME'.extracted
+        rm -rf '_'\$IMGNAME'.extracted'
 
         ##
         ## End of image integrity verification section
