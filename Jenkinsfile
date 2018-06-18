@@ -299,7 +299,7 @@ node() {
         binwalk -e \$IMGNAME
         SQUASHCONFIG='_'\$IMGNAME'.extracted/squashfs-root/usr/share/flashman_init.conf'
 
-        IMG_FLM_SSID_SUFFIX=\$(cat \$SQUASHCONFIG | grep 'FLM_SSID_SUFFIX=' | awk -F= '{print \$2}' | sed 's,\",,g')
+        IMG_FLM_SSID_SUFFIX=\$(cat \$SQUASHCONFIG | grep \"FLM_SSID_SUFFIX=\" | awk -F= '{print \$2}' | sed 's,\",,g')
         if [ \"${params.FLASHMANSSIDSUFFIX}\" = \"none\" ]
         then
           if [ \"\$IMG_FLM_SSID_SUFFIX\" != \"none\" ]
@@ -317,7 +317,7 @@ node() {
           fi
         fi
 
-        IMG_FLM_SSID=\$(cat \$SQUASHCONFIG | grep 'FLM_SSID=' | awk -F= '{print \$2}' | sed 's,\",,g')
+        IMG_FLM_SSID=\$(cat \$SQUASHCONFIG | grep \"FLM_SSID=\" | awk -F= '{print \$2}' | sed 's,\",,g')
         if [ \"\$IMG_FLM_SSID\" != \"${params.FLASHMANSSIDPREFIX}\" ]
         then
           echo 'Generated image parameter does not match'
