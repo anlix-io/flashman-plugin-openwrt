@@ -318,7 +318,7 @@ node() {
         fi
 
         IMG_FLM_SSID=\$(cat \$SQUASHCONFIG | grep 'FLM_SSID=' | awk -F= '{print \$2}' | sed 's,\",,g')
-        if [ \$IMG_FLM_SSID != 'teste' ]
+        if [ \$IMG_FLM_SSID != ${params.FLASHMANSSIDPREFIX} ]
         then
           echo 'Generated image parameter does not match'
           exit 1
