@@ -397,14 +397,14 @@ node() {
             exit 1
           fi
           IMG_FLM_AUTH_SVADDR=\$(cat \$SQUASHCONFIG | grep 'FLM_AUTH_SVADDR=' | awk -F= '{print \$2}' | sed 's,\",,g')
-          if [ \"\$IMG_FLM_AUTH_SVADDR\" != \"${params.AUTHCLIENTSECRET}\" ]
+          if [ \"\$IMG_FLM_AUTH_SVADDR\" != \"${params.AUTHSERVERADDR}\" ]
           then
             echo 'Generated image parameter does not match'
             rm -rf '_'\$IMGNAME'.extracted'
             exit 1
           fi
           IMG_FLM_CLIENT_SECRET=\$(cat \$SQUASHCONFIG | grep 'FLM_CLIENT_SECRET=' | awk -F= '{print \$2}' | sed 's,\",,g')
-          if [ \"\$IMG_FLM_CLIENT_SECRET\" != \"${params.AUTHSERVERADDR}\" ]
+          if [ \"\$IMG_FLM_CLIENT_SECRET\" != \"${params.AUTHCLIENTSECRET}\" ]
           then
             echo 'Generated image parameter does not match'
             rm -rf '_'\$IMGNAME'.extracted'
@@ -436,6 +436,30 @@ node() {
           fi
         else
           if [ \"\$IMG_ZBX_SEND_DATA\" != \"\" ]
+          then
+            echo 'Generated image parameter does not match'
+            rm -rf '_'\$IMGNAME'.extracted'
+            exit 1
+          fi
+        fi
+        if [ \"${params.FLASHMANWANPROTO}\" = \"pppoe\" ]
+        then
+          IMG_FLM_WAN_PPPOE_USER=\$(cat \$SQUASHCONFIG | grep 'FLM_WAN_PPPOE_USER=' | awk -F= '{print \$2}' | sed 's,\",,g')
+          if [ \"\$IMG_FLM_WAN_PPPOE_USER\" != \"${params.FLASHMANPPPOEUSER}\" ]
+          then
+            echo 'Generated image parameter does not match'
+            rm -rf '_'\$IMGNAME'.extracted'
+            exit 1
+          fi
+          IMG_FLM_WAN_PPPOE_PASSWD=\$(cat \$SQUASHCONFIG | grep 'FLM_WAN_PPPOE_PASSWD=' | awk -F= '{print \$2}' | sed 's,\",,g')
+          if [ \"\$IMG_FLM_WAN_PPPOE_PASSWD\" != \"${params.FLASHMANPPPOEPASS}\" ]
+          then
+            echo 'Generated image parameter does not match'
+            rm -rf '_'\$IMGNAME'.extracted'
+            exit 1
+          fi
+          IMG_FLM_WAN_PPPOE_SERVICE=\$(cat \$SQUASHCONFIG | grep 'FLM_WAN_PPPOE_SERVICE=' | awk -F= '{print \$2}' | sed 's,\",,g')
+          if [ \"\$IMG_FLM_WAN_PPPOE_SERVICE\" != \"${params.FLASHMANPPPOESERVICE}\" ]
           then
             echo 'Generated image parameter does not match'
             rm -rf '_'\$IMGNAME'.extracted'
