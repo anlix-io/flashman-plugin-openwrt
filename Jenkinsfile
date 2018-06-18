@@ -298,7 +298,7 @@ node() {
         binwalk -e \$IMGNAME
         SQUASHCONFIG='_'\$IMGNAME'.extracted/squashfs-root/usr/share/flashman_init.conf'
 
-        IMG_FLM_SSID_SUFFIX=\$(cat \$SQUASHCONFIG | grep FLM_SSID_SUFFIX | awk -F= '{print $2}')
+        IMG_FLM_SSID_SUFFIX=\$(cat \$SQUASHCONFIG | grep FLM_SSID_SUFFIX | awk -F= '{print \$2}')
         if [ \"${params.FLASHMANSSIDSUFFIX}\" = \"none\" ]
         then
           if [ \$FLM_SSID_SUFFIX != \"none\" ]
