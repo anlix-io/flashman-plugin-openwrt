@@ -13,6 +13,7 @@ SYSTEM_MODEL=$(get_system_model)
 HARDWARE_VER=$(cat /tmp/sysinfo/model | awk '{ print toupper($3) }')
 CLIENT_MAC=$(get_mac)
 WAN_IP_ADDR=$(get_wan_ip)
+WAN_CONNECTION_TYPE=$(uci get network.wan.proto | awk '{ print tolower($1) }')
 PPPOE_USER=""
 PPPOE_PASSWD=""
 WIFI_SSID=""
@@ -28,7 +29,7 @@ then
   ntpd -n -q -p $NTP_SVADDR
 
   # Get PPPoE data if available
-  if [ "$(uci get network.wan.proto)" == "pppoe" ]
+  if [ "$WAN_CONNECTION_TYPE" == "pppoe" ]
   then
     PPPOE_USER=$(uci get network.wan.username)
     PPPOE_PASSWD=$(uci get network.wan.password)
@@ -51,6 +52,7 @@ then
   json_load "$_res"
   json_get_var _do_update do_update
   json_get_var _release_id release_id
+  json_get_var _connection_type connection_type
   json_get_var _pppoe_user pppoe_user
   json_get_var _pppoe_password pppoe_password
   json_get_var _wifi_ssid wifi_ssid
@@ -58,8 +60,44 @@ then
   json_get_var _wifi_channel wifi_channel
   json_close_object
 
+  # Connection type update
+  if [ "$_connection_type" != "$WAN_CONNECTION_TYPE" ]
+  then
+    if [ "$_connection_type" == "dhcp" ]
+    then
+      log "FLASHMAN UPDATER" "Updating connection type ..."
+      uci set network.wan.proto="dhcp"
+      uci set network.wan.username=""
+      uci set network.wan.password=""
+      uci set network.wan.service=""
+      uci commit network
+
+      /etc/init.d/network restart
+
+      # This will persist connection type between firmware upgrades
+      echo "dhcp" > /root/custom_connection_type
+    else if [ "$_connection_type" == "pppoe" ]
+    then
+      if [ "$_pppoe_user" != "" ] && [ "$_pppoe_password" != "" ]
+      then
+        log "FLASHMAN UPDATER" "Updating connection type ..."
+        uci set network.wan.proto="pppoe"
+        uci set network.wan.username="$_pppoe_user"
+        uci set network.wan.password="$_pppoe_password"
+        uci set network.wan.service="$FLM_WAN_PPPOE_SERVICE"
+        uci commit network
+
+        /etc/init.d/network restart
+
+        # This will persist connection type between firmware upgrades
+        echo "pppoe" > /root/custom_connection_type
+      fi
+    fi
+    # Don't put anything outside here. _content_type may be corrupted
+  fi
+
   # PPPoE update
-  if [ "$(uci get network.wan.proto)" == "pppoe" ]
+  if [ "$WAN_CONNECTION_TYPE" == "pppoe" ]
   then
     if [ "$_pppoe_user" != "" ] && [ "$_pppoe_password" != "" ]
     then
