@@ -31,7 +31,7 @@ properties([
   ])
 ])
 
-node {
+node() {
     checkout scm
     
     stage('Build') {
@@ -50,6 +50,23 @@ node {
         then
           git clone https://github.com/anlix-io/\$REPO.git -b \$BRANCH
         fi
+
+        cd ${env.WORKSPACE}/\$REPO
+
+        git fetch
+        git checkout \$COMMIT
+
+        ./scripts/feeds update -a
+        ./scripts/feeds install -a
+
+        cp -r ${env.WORKSPACE}/flashman-plugin ${env.WORKSPACE}/\$REPO/package/utils/
+        mkdir -p ${env.WORKSPACE}/\$REPO/files/etc
+        cp ${env.WORKSPACE}/banner ${env.WORKSPACE}/\$REPO/files/etc/
+        cp ${env.WORKSPACE}/login.sh ${env.WORKSPACE}/\$REPO/package/base-files/files/bin/
+        chmod +x ${env.WORKSPACE}/\$REPO/package/base-files/files/bin/login.sh
+
+        ## Refresh targets
+        touch target/linux/*/Makefile
 
         cp ${env.WORKSPACE}/diffconfigs/\$DIFFCONFIG ${env.WORKSPACE}/\$REPO/.config
 
@@ -90,7 +107,8 @@ node {
         echo \$CUSTOM_FLASHMAN_WIFI_SSID >> ${env.WORKSPACE}/\$REPO/.config
 
         DEFAULT_FLASHMAN_WIFI_PASSWD=\$(cat ${env.WORKSPACE}/\$REPO/.config | grep CONFIG_FLASHMAN_WIFI_PASSWD)
-        CUSTOM_FLASHMAN_WIFI_PASSWD=\"CONFIG_FLASHMAN_WIFI_PASSWD=\\\"${params.FLASHMANWIFIPASS}\\\"\"
+        CUSTOM_FLASHMAN_WIFI_PASSWD_STR=\'${params.FLASHMANWIFIPASS}\'
+        CUSTOM_FLASHMAN_WIFI_PASSWD=\"CONFIG_FLASHMAN_WIFI_PASSWD=\\\"\$CUSTOM_FLASHMAN_WIFI_PASSWD_STR\\\"\"
         sed -i -e '\\,'\$DEFAULT_FLASHMAN_WIFI_PASSWD',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_FLASHMAN_WIFI_PASSWD >> ${env.WORKSPACE}/\$REPO/.config
 
@@ -200,27 +218,10 @@ node {
         sed -i -e '\\,'\$DEFAULT_ZABBIX_SEND_DATA',d' ${env.WORKSPACE}/\$REPO/.config
         echo \$CUSTOM_ZABBIX_SEND_DATA >> ${env.WORKSPACE}/\$REPO/.config
 
-   
+        
         ##
         ## End of replace variables section
         ##
-
-        cd ${env.WORKSPACE}/\$REPO
-
-        git fetch
-        git checkout \$COMMIT
-
-        ./scripts/feeds update -a
-        ./scripts/feeds install -a
-
-        cp -r ${env.WORKSPACE}/flashman-plugin ${env.WORKSPACE}/\$REPO/package/utils/
-        mkdir -p ${env.WORKSPACE}/\$REPO/files/etc
-        cp ${env.WORKSPACE}/banner ${env.WORKSPACE}/\$REPO/files/etc/
-        cp ${env.WORKSPACE}/login.sh ${env.WORKSPACE}/\$REPO/package/base-files/files/bin/
-        chmod +x ${env.WORKSPACE}/\$REPO/package/base-files/files/bin/login.sh
-
-        ## Refresh targets
-        touch target/linux/*/Makefile
 
         make defconfig
 
@@ -291,6 +292,188 @@ node {
         fi
  
         cp \$TARGETIMG \$IMGNAME
+
+        ##
+        ## Verify image integrity against data
+        ##
+
+        binwalk -e \$IMGNAME
+        SQUASHCONFIG='_'\$IMGNAME'.extracted/squashfs-root/usr/share/flashman_init.conf'
+
+        IMG_FLM_SSID_SUFFIX=\$(cat \$SQUASHCONFIG | grep 'FLM_SSID_SUFFIX=' | awk -F= '{print \$2}' | sed 's,\",,g')
+        if [ \"${params.FLASHMANSSIDSUFFIX}\" = \"none\" ]
+        then
+          if [ \"\$IMG_FLM_SSID_SUFFIX\" != \"none\" ]
+          then
+            echo 'Generated image parameter does not match'
+            rm -rf '_'\$IMGNAME'.extracted'
+            exit 1
+          fi
+        else
+          if [ \"\$IMG_FLM_SSID_SUFFIX\" != \"lastmac\" ]
+          then
+            echo 'Generated image parameter does not match'
+            rm -rf '_'\$IMGNAME'.extracted'
+            exit 1
+          fi
+        fi
+
+        IMG_FLM_SSID=\$(cat \$SQUASHCONFIG | grep 'FLM_SSID=' | awk -F= '{print \$2}' | sed 's,\",,g')
+        if [ \"\$IMG_FLM_SSID\" != \"${params.FLASHMANSSIDPREFIX}\" ]
+        then
+          echo 'Generated image parameter does not match'
+          rm -rf '_'\$IMGNAME'.extracted'
+          exit 1
+        fi
+        IMG_FLM_PASSWD=\$(cat \$SQUASHCONFIG | grep 'FLM_PASSWD=' | awk -F= '{print \$2}' | sed 's,\",,g')
+        if [ \"\$IMG_FLM_PASSWD\" != \'${params.FLASHMANWIFIPASS}\' ]
+        then
+          echo 'Generated image parameter does not match'
+          rm -rf '_'\$IMGNAME'.extracted'
+          exit 1
+        fi
+        IMG_FLM_24_CHANNEL=\$(cat \$SQUASHCONFIG | grep 'FLM_24_CHANNEL=' | awk -F= '{print \$2}' | sed 's,\",,g')
+        if [ \"\$IMG_FLM_24_CHANNEL\" != \"${params.FLASHMANWIFICHANNEL}\" ]
+        then
+          echo 'Generated image parameter does not match'
+          rm -rf '_'\$IMGNAME'.extracted'
+          exit 1
+        fi
+        IMG_FLM_RELID=\$(cat \$SQUASHCONFIG | grep 'FLM_RELID=' | awk -F= '{print \$2}' | sed 's,\",,g')
+        if [ \"\$IMG_FLM_RELID\" != \"${params.FLASHMANRELEASEID}\" ]
+        then
+          echo 'Generated image parameter does not match'
+          rm -rf '_'\$IMGNAME'.extracted'
+          exit 1
+        fi
+        IMG_FLM_SVADDR=\$(cat \$SQUASHCONFIG | grep 'FLM_SVADDR=' | awk -F= '{print \$2}' | sed 's,\",,g')
+        if [ \"\$IMG_FLM_SVADDR\" != \"${params.FLASHMANSERVERADDR}\" ]
+        then
+          echo 'Generated image parameter does not match'
+          rm -rf '_'\$IMGNAME'.extracted'
+          exit 1
+        fi
+        IMG_NTP_SVADDR=\$(cat \$SQUASHCONFIG | grep 'NTP_SVADDR=' | awk -F= '{print \$2}' | sed 's,\",,g')
+        if [ \"\$IMG_NTP_SVADDR\" != \"${params.FLASHMANNTPADDR}\" ]
+        then
+          echo 'Generated image parameter does not match'
+          rm -rf '_'\$IMGNAME'.extracted'
+          exit 1
+        fi
+        IMG_FLM_WAN_PROTO=\$(cat \$SQUASHCONFIG | grep 'FLM_WAN_PROTO=' | awk -F= '{print \$2}' | sed 's,\",,g')
+        if [ \"\$IMG_FLM_WAN_PROTO\" != \"${params.FLASHMANWANPROTO}\" ]
+        then
+          echo 'Generated image parameter does not match'
+          rm -rf '_'\$IMGNAME'.extracted'
+          exit 1
+        fi
+        IMG_FLM_WAN_MTU=\$(cat \$SQUASHCONFIG | grep 'FLM_WAN_MTU=' | awk -F= '{print \$2}' | sed 's,\",,g')
+        if [ \"\$IMG_FLM_WAN_MTU\" != \"${params.FLASHMANWANMTU}\" ]
+        then
+          echo 'Generated image parameter does not match'
+          rm -rf '_'\$IMGNAME'.extracted'
+          exit 1
+        fi
+        IMG_MQTT_PORT=\$(cat \$SQUASHCONFIG | grep 'MQTT_PORT=' | awk -F= '{print \$2}' | sed 's,\",,g')
+        if [ \"\$IMG_MQTT_PORT\" != \"${params.MQTTPORT}\" ]
+        then
+          echo 'Generated image parameter does not match'
+          rm -rf '_'\$IMGNAME'.extracted'
+          exit 1
+        fi
+        IMG_FLM_CLIENT_ORG=\$(cat \$SQUASHCONFIG | grep 'FLM_CLIENT_ORG=' | awk -F= '{print \$2}' | sed 's,\",,g')
+        if [ \"\$IMG_FLM_CLIENT_ORG\" != \"${params.FLASHMANCLIENTORG}\" ]
+        then
+          echo 'Generated image parameter does not match'
+          rm -rf '_'\$IMGNAME'.extracted'
+          exit 1
+        fi
+        IMG_FLM_USE_AUTH_SVADDR=\$(cat \$SQUASHCONFIG | grep 'FLM_USE_AUTH_SVADDR=' | awk -F= '{print \$2}' | sed 's,\",,g')
+        if [ \"${params.AUTHENABLESERVER}\" = \"true\" ]
+        then
+          if [ \"\$IMG_FLM_USE_AUTH_SVADDR\" != \"y\" ]
+          then
+            echo 'Generated image parameter does not match'
+            rm -rf '_'\$IMGNAME'.extracted'
+            exit 1
+          fi
+          IMG_FLM_AUTH_SVADDR=\$(cat \$SQUASHCONFIG | grep 'FLM_AUTH_SVADDR=' | awk -F= '{print \$2}' | sed 's,\",,g')
+          if [ \"\$IMG_FLM_AUTH_SVADDR\" != \"${params.AUTHSERVERADDR}\" ]
+          then
+            echo 'Generated image parameter does not match'
+            rm -rf '_'\$IMGNAME'.extracted'
+            exit 1
+          fi
+          IMG_FLM_CLIENT_SECRET=\$(cat \$SQUASHCONFIG | grep 'FLM_CLIENT_SECRET=' | awk -F= '{print \$2}' | sed 's,\",,g')
+          if [ \"\$IMG_FLM_CLIENT_SECRET\" != \"${params.AUTHCLIENTSECRET}\" ]
+          then
+            echo 'Generated image parameter does not match'
+            rm -rf '_'\$IMGNAME'.extracted'
+            exit 1
+          fi
+        else
+          if [ \"\$IMG_FLM_USE_AUTH_SVADDR\" != \"\" ]
+          then
+            echo 'Generated image parameter does not match'
+            rm -rf '_'\$IMGNAME'.extracted'
+            exit 1
+          fi
+        fi
+        IMG_ZBX_SEND_DATA=\$(cat \$SQUASHCONFIG | grep 'ZBX_SEND_DATA=' | awk -F= '{print \$2}' | sed 's,\",,g')
+        if [ \"${params.ZABBIXSENDNETDATA}\" = \"true\" ]
+        then
+          if [ \"\$IMG_ZBX_SEND_DATA\" != \"y\" ]
+          then
+            echo 'Generated image parameter does not match'
+            rm -rf '_'\$IMGNAME'.extracted'
+            exit 1
+          fi
+          IMG_ZBX_SVADDR=\$(cat \$SQUASHCONFIG | grep 'ZBX_SVADDR=' | awk -F= '{print \$2}' | sed 's,\",,g')
+          if [ \"\$IMG_ZBX_SVADDR\" != \"${params.ZABBIXSERVERADDR}\" ]
+          then
+            echo 'Generated image parameter does not match'
+            rm -rf '_'\$IMGNAME'.extracted'
+            exit 1
+          fi
+        else
+          if [ \"\$IMG_ZBX_SEND_DATA\" != \"\" ]
+          then
+            echo 'Generated image parameter does not match'
+            rm -rf '_'\$IMGNAME'.extracted'
+            exit 1
+          fi
+        fi
+        if [ \"${params.FLASHMANWANPROTO}\" = \"pppoe\" ]
+        then
+          IMG_FLM_WAN_PPPOE_USER=\$(cat \$SQUASHCONFIG | grep 'FLM_WAN_PPPOE_USER=' | awk -F= '{print \$2}' | sed 's,\",,g')
+          if [ \"\$IMG_FLM_WAN_PPPOE_USER\" != \"${params.FLASHMANPPPOEUSER}\" ]
+          then
+            echo 'Generated image parameter does not match'
+            rm -rf '_'\$IMGNAME'.extracted'
+            exit 1
+          fi
+          IMG_FLM_WAN_PPPOE_PASSWD=\$(cat \$SQUASHCONFIG | grep 'FLM_WAN_PPPOE_PASSWD=' | awk -F= '{print \$2}' | sed 's,\",,g')
+          if [ \"\$IMG_FLM_WAN_PPPOE_PASSWD\" != \"${params.FLASHMANPPPOEPASS}\" ]
+          then
+            echo 'Generated image parameter does not match'
+            rm -rf '_'\$IMGNAME'.extracted'
+            exit 1
+          fi
+          IMG_FLM_WAN_PPPOE_SERVICE=\$(cat \$SQUASHCONFIG | grep 'FLM_WAN_PPPOE_SERVICE=' | awk -F= '{print \$2}' | sed 's,\",,g')
+          if [ \"\$IMG_FLM_WAN_PPPOE_SERVICE\" != \"${params.FLASHMANPPPOESERVICE}\" ]
+          then
+            echo 'Generated image parameter does not match'
+            rm -rf '_'\$IMGNAME'.extracted'
+            exit 1
+          fi
+        fi
+
+        rm -rf '_'\$IMGNAME'.extracted'
+
+        ##
+        ## End of image integrity verification section
+        ##
+
         zip \$IMGZIP \$IMGNAME
 
         curl -u ${params.ARTIFACTORYUSER}:${params.ARTIFACTORYPASS} \\
