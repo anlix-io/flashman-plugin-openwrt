@@ -11,6 +11,7 @@ HARDWARE_VER=$(cat /tmp/sysinfo/model | awk '{ print toupper($3) }')
 SYSTEM_MODEL=$(get_system_model)
 CLIENT_MAC=$(get_mac)
 WAN_IP_ADDR=$(get_wan_ip)
+WAN_CONNECTION_TYPE=$(uci get network.wan.proto | awk '{ print tolower($1) }')
 PPPOE_USER=""
 PPPOE_PASSWD=""
 WIFI_SSID=""
@@ -27,7 +28,7 @@ do
   if [ "$_number" -eq 3 ] || [ "$1" == "now" ]
   then
     # Get PPPoE data if available
-    if [ "$(uci get network.wan.proto)" == "pppoe" ]
+    if [ "$WAN_CONNECTION_TYPE" == "pppoe" ]
     then
       PPPOE_USER=$(uci get network.wan.username)
       PPPOE_PASSWD=$(uci get network.wan.password)
@@ -44,7 +45,7 @@ do
      log "KEEPALIVE" "Ping Flashman ..."
     _res=$(curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
            --tlsv1.2 --connect-timeout 5 --retry 0 \
-           --data "id=$CLIENT_MAC&version=$OPENWRT_VER&model=$HARDWARE_MODEL&model_ver=$HARDWARE_VER&release_id=$FLM_RELID&pppoe_user=$PPPOE_USER&pppoe_password=$PPPOE_PASSWD&wan_ip=$WAN_IP_ADDR&wifi_ssid=$WIFI_SSID&wifi_password=$WIFI_PASSWD&wifi_channel=$WIFI_CHANNEL" \
+           --data "id=$CLIENT_MAC&version=$OPENWRT_VER&model=$HARDWARE_MODEL&model_ver=$HARDWARE_VER&release_id=$FLM_RELID&pppoe_user=$PPPOE_USER&pppoe_password=$PPPOE_PASSWD&wan_ip=$WAN_IP_ADDR&wifi_ssid=$WIFI_SSID&wifi_password=$WIFI_PASSWD&wifi_channel=$WIFI_CHANNEL&connection_type=$WAN_CONNECTION_TYPE" \
            "https://$SERVER_ADDR/deviceinfo/syn/")
 
     json_load "$_res"
