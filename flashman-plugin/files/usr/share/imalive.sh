@@ -11,8 +11,6 @@ while [ "$connected" != true ]
 do
   if [ "$(check_connectivity_flashman)" -eq 0 ]
   then
-    log "IMALIVE" "Sending BOOT log"
-    send_boot_log "boot"
     log "IMALIVE" "Running update ..."
     sh /usr/share/flashman_update.sh 
     connected=true

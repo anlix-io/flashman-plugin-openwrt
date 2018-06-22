@@ -68,6 +68,14 @@ then
     reset_mqtt_secret
   fi
 
+  # send boot log information if boot is completed and probe is registred!
+  if [ ! -e /tmp/boot_completed ]
+  then
+    log "FLASHMAN UPDATE" "Sending BOOT log"
+    send_boot_log "boot"
+    echo "0" > /tmp/boot_completed
+  fi
+
   # Connection type update
   if [ "$_connection_type" != "$WAN_CONNECTION_TYPE" ]
   then
