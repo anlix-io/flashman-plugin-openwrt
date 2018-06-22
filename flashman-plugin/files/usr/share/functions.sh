@@ -75,6 +75,30 @@ download_file()
   fi
 }
 
+send_boot_log()
+{
+  if [ "$1" == "boot" ]
+  then
+    header="X-ANLIX-BOOT: BOOT"
+  fi
+
+  if [ "$1" == "live" ]
+  then
+    header="X-ANLIX-BOOT: LIVE"
+  fi
+
+  CLIENT_MAC=$(get_mac)
+
+  _res=$(logread | gzip | curl -s --tlsv1.2 --connect-timeout 5 --retry 1 -H "Content-Type: application/octet-stream" \
+  -H "X-ANLIX-ID: $CLIENT_MAC" -H "$header"  --data-binary @- "https://$FLM_AUTH_SVADDR/deviceinfo/logs")
+
+  json_load "$_res"
+  json_get_var _processed processed
+  json_close_object
+
+  return $_processed
+}
+
 get_hardware_model()
 {
   local _hardware_model=$(cat /tmp/sysinfo/model | awk '{ print toupper($2) }')
@@ -146,6 +170,15 @@ set_mqtt_secret()
       cat /root/mqtt_secret                                                                                     
     fi
   fi  
+}
+
+reset_mqtt_secret()
+{
+  if [ -e "/root/mqtt_secret" ]
+  then
+    rm /root/mqtt_secret
+  fi
+  set_mqtt_secret()
 }
 
 is_authenticated()

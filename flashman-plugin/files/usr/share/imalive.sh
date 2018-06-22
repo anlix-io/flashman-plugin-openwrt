@@ -4,12 +4,15 @@
 . /usr/share/functions.sh
 
 CLIENT_MAC=$(get_mac)
+log "IMALIVE" "ROUTER STARTED!"
 
 connected=false
 while [ "$connected" != true ]
 do
   if [ "$(check_connectivity_flashman)" -eq 0 ]
   then
+    log "IMALIVE" "Sending BOOT log"
+    send_boot_log "boot"
     log "IMALIVE" "Running update ..."
     sh /usr/share/flashman_update.sh 
     connected=true
@@ -26,14 +29,13 @@ log "IMALIVE" "Start main loop"
 numbacks=0
 while true
 do
+  MQTTSEC=$(set_mqtt_secret)
   if [ -z $MQTTSEC ]
   then
-    log "IMALIVE" "Reset MQTT Secret"
-    #catch a new security secret 
-    MQTTSEC=$(set_mqtt_secret)
+    log "IMALIVE" "Empty MQTT Secret... Waiting..."
   else
     log "IMALIVE" "Running MQTT client"
-    anlix-mqtt flashman/update/$CLIENT_MAC --clientid $CLIENT_MAC --host $FLM_SVADDR --port $MQTT_PORT --cafile /etc/ssl/certs/ca-certificates.crt --shell "sh /usr/share/flashman_update.sh " --username $CLIENT_MAC --password $MQTTSEC
+    anlix-mqtt flashman/update/$CLIENT_MAC --clientid $CLIENT_MAC --host $FLM_SVADDR --port $MQTT_PORT --cafile /etc/ssl/certs/ca-certificates.crt --shell "sh /usr/share/mqtt.sh " --username $CLIENT_MAC --password $MQTTSEC
     if [ $? -eq 0 ]
     then
       log "IMALIVE" "MQTT Exit OK"

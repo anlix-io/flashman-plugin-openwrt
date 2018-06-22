@@ -50,7 +50,16 @@ do
 
     json_load "$_res"
     json_get_var _do_update do_update
+    json_get_var _do_newprobe do_newprobe
     json_close_object
+
+    if [ "$_do_newprobe" == "1" ]
+    then
+      log "KEEPALIVE" "Router Registred in Flashman Successfully!"
+      #on a new probe, force a new registry in mqtt secret
+      reset_mqtt_secret
+      sh /usr/share/flashman_update.sh
+    fi
 
     if [ "$_do_update" == "1" ]
     then

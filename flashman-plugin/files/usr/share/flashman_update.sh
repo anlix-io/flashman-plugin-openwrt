@@ -51,6 +51,7 @@ then
 
   json_load "$_res"
   json_get_var _do_update do_update
+  json_get_var _do_newprobe do_newprobe
   json_get_var _release_id release_id
   json_get_var _connection_type connection_type
   json_get_var _pppoe_user pppoe_user
@@ -59,6 +60,13 @@ then
   json_get_var _wifi_password wifi_password
   json_get_var _wifi_channel wifi_channel
   json_close_object
+
+  if [ "$_do_newprobe" == "1" ]
+  then
+    log "FLASHMAN UPDATER" "Router Registred in Flashman Successfully!"
+    #on a new probe, force a new registry in mqtt secret
+    reset_mqtt_secret
+  fi
 
   # Connection type update
   if [ "$_connection_type" != "$WAN_CONNECTION_TYPE" ]
