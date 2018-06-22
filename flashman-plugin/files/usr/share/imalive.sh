@@ -65,10 +65,10 @@ do
 
   #backoff
   ran=`head /dev/urandom | tr -dc "0123456789" | head -c2`
-  backoff=`expr $numbacks + ( $ran % $numbacks )`
+  backoff=`expr $numbacks + \( $ran % $numbacks \)`
   
   sleep $backoff
-  $numbacks=`expr $numbacks + 1`
+  numbacks=`expr $numbacks + 1`
   if [ "$numbacks" -eq 60 ] 
   then
     numbacks=60

@@ -183,7 +183,7 @@ reset_mqtt_secret()
   then
     rm /root/mqtt_secret
   fi
-  set_mqtt_secret()
+  set_mqtt_secret
 }
 
 is_authenticated()
