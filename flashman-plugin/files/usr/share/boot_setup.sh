@@ -198,6 +198,7 @@ firstboot() {
   uci commit uhttpd
 
   log "FIRSTBOOT" "First boot completed"
+  echo "0" > /tmp/clean_boot
 }
 
 [ -f "/etc/firstboot" ] || {

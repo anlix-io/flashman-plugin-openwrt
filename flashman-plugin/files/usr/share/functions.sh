@@ -79,12 +79,17 @@ send_boot_log()
 {
   if [ "$1" == "boot" ]
   then
-    header="X-ANLIX-BOOT: BOOT"
+    if [ -e /tmp/clean_boot ]
+    then
+      header="X-ANLIX-LOGS: FIRST"
+    else
+      header="X-ANLIX-LOGS: BOOT"
+    fi
   fi
 
   if [ "$1" == "live" ]
   then
-    header="X-ANLIX-BOOT: LIVE"
+    header="X-ANLIX-LOGS: LIVE"
   fi
 
   CLIENT_MAC=$(get_mac)
