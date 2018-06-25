@@ -44,132 +44,137 @@ then
     WIFI_CHANNEL=$(uci get wireless.radio0.channel)
   fi
 
-  _res=$(curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
-         --tlsv1.2 --connect-timeout 5 --retry 0 \
-         --data "id=$CLIENT_MAC&version=$OPENWRT_VER&model=$HARDWARE_MODEL&model_ver=$HARDWARE_VER&release_id=$FLM_RELID&pppoe_user=$PPPOE_USER&pppoe_password=$PPPOE_PASSWD&wan_ip=$WAN_IP_ADDR&wifi_ssid=$WIFI_SSID&wifi_password=$WIFI_PASSWD&wifi_channel=$WIFI_CHANNEL&connection_type=$WAN_CONNECTION_TYPE" \
-         "https://$SERVER_ADDR/deviceinfo/syn/")
+  _data="id=$CLIENT_MAC&version=$OPENWRT_VER&model=$HARDWARE_MODEL&model_ver=$HARDWARE_VER&release_id=$FLM_RELID&pppoe_user=$PPPOE_USER&pppoe_password=$PPPOE_PASSWD&wan_ip=$WAN_IP_ADDR&wifi_ssid=$WIFI_SSID&wifi_password=$WIFI_PASSWD&wifi_channel=$WIFI_CHANNEL&connection_type=$WAN_CONNECTION_TYPE"
+  _url="https://$SERVER_ADDR/deviceinfo/syn/"
+  _res=$(rest_flashman "$_url" "$_data") 
 
-  json_load "$_res"
-  json_get_var _do_update do_update
-  json_get_var _do_newprobe do_newprobe
-  json_get_var _release_id release_id
-  json_get_var _connection_type connection_type
-  json_get_var _pppoe_user pppoe_user
-  json_get_var _pppoe_password pppoe_password
-  json_get_var _wifi_ssid wifi_ssid
-  json_get_var _wifi_password wifi_password
-  json_get_var _wifi_channel wifi_channel
-  json_close_object
-
-  if [ "$_do_newprobe" == "1" ]
+  if [ "$?" -eq 1 ]
   then
-    log "FLASHMAN UPDATER" "Router Registred in Flashman Successfully!"
-    #on a new probe, force a new registry in mqtt secret
-    reset_mqtt_secret
-  fi
+    log "FLASHMAN UPDATER" "Fail in Rest Flashman! Aborting..."
+  else
+    json_load "$_res"
+    json_get_var _do_update do_update
+    json_get_var _do_newprobe do_newprobe
+    json_get_var _release_id release_id
+    json_get_var _connection_type connection_type
+    json_get_var _pppoe_user pppoe_user
+    json_get_var _pppoe_password pppoe_password
+    json_get_var _wifi_ssid wifi_ssid
+    json_get_var _wifi_password wifi_password
+    json_get_var _wifi_channel wifi_channel
+    json_close_object
 
-  # send boot log information if boot is completed and probe is registred!
-  if [ ! -e /tmp/boot_completed ]
-  then
-    log "FLASHMAN UPDATE" "Sending BOOT log"
-    send_boot_log "boot"
-    echo "0" > /tmp/boot_completed
-  fi
-
-  # Connection type update
-  if [ "$_connection_type" != "$WAN_CONNECTION_TYPE" ]
-  then
-    if [ "$_connection_type" == "dhcp" ]
+    if [ "$_do_newprobe" == "1" ]
     then
-      log "FLASHMAN UPDATER" "Updating connection type ..."
-      uci set network.wan.proto="dhcp"
-      uci set network.wan.username=""
-      uci set network.wan.password=""
-      uci set network.wan.service=""
-      uci commit network
+      log "FLASHMAN UPDATER" "Router Registred in Flashman Successfully!"
+      #on a new probe, force a new registry in mqtt secret
+      reset_mqtt_secret
+    fi
 
-      /etc/init.d/network restart
-
-      # This will persist connection type between firmware upgrades
-      echo "dhcp" > /root/custom_connection_type
-    else if [ "$_connection_type" == "pppoe" ]
+    # send boot log information if boot is completed and probe is registred!
+    if [ ! -e /tmp/boot_completed ]
     then
-      if [ "$_pppoe_user" != "" ] && [ "$_pppoe_password" != "" ]
+      log "FLASHMAN UPDATE" "Sending BOOT log"
+      send_boot_log "boot"
+      echo "0" > /tmp/boot_completed
+    fi
+
+    # Connection type update
+    if [ "$_connection_type" != "$WAN_CONNECTION_TYPE" ]
+    then
+      if [ "$_connection_type" == "dhcp" ]
       then
         log "FLASHMAN UPDATER" "Updating connection type ..."
-        uci set network.wan.proto="pppoe"
-        uci set network.wan.username="$_pppoe_user"
-        uci set network.wan.password="$_pppoe_password"
-        uci set network.wan.service="$FLM_WAN_PPPOE_SERVICE"
+        uci set network.wan.proto="dhcp"
+        uci set network.wan.username=""
+        uci set network.wan.password=""
+        uci set network.wan.service=""
         uci commit network
 
         /etc/init.d/network restart
 
         # This will persist connection type between firmware upgrades
-        echo "pppoe" > /root/custom_connection_type
-      fi
-    fi
-    # Don't put anything outside here. _content_type may be corrupted
-  fi
-
-  # PPPoE update
-  if [ "$WAN_CONNECTION_TYPE" == "pppoe" ]
-  then
-    if [ "$_pppoe_user" != "" ] && [ "$_pppoe_password" != "" ]
-    then
-      if [ "$_pppoe_user" != "$PPPOE_USER" ] || \
-         [ "$_pppoe_password" != "$PPPOE_PASSWD" ]
+        echo "dhcp" > /root/custom_connection_type
+      else if [ "$_connection_type" == "pppoe" ]
       then
-        log "FLASHMAN UPDATER" "Updating PPPoE ..."
-        uci set network.wan.username="$_pppoe_user"
-        uci set network.wan.password="$_pppoe_password"
-        uci commit network
-
-        /etc/init.d/network restart
-      fi
-    fi
-  fi
-
-  # WiFi update
-  if [ "$(uci get wireless.@wifi-device[0].disabled)" == "0" ] || [ "$SYSTEM_MODEL" == "MT7628AN" ]
-  then
-    if [ "$_wifi_ssid" != "" ] && [ "$_wifi_password" != "" ] && \
-       [ "$_wifi_channel" != "" ]
-    then
-      if [ "$_wifi_ssid" != "$WIFI_SSID" ] || \
-         [ "$_wifi_password" != "$WIFI_PASSWD" ] || \
-         [ "$_wifi_channel" != "$WIFI_CHANNEL" ]
-      then
-        log "FLASHMAN UPDATER" "Updating Wireless ..."
-        uci set wireless.@wifi-iface[0].ssid="$_wifi_ssid"
-        uci set wireless.@wifi-iface[0].key="$_wifi_password"
-        uci set wireless.radio0.channel="$_wifi_channel"
-    	  #5Ghz
-    	  if [ "$(uci get wireless.@wifi-device[1].disabled)" == "0" ]
+        if [ "$_pppoe_user" != "" ] && [ "$_pppoe_password" != "" ]
         then
-          uci set wireless.@wifi-iface[1].ssid="$_wifi_ssid"
-          uci set wireless.@wifi-iface[1].key="$_wifi_password"
+          log "FLASHMAN UPDATER" "Updating connection type ..."
+          uci set network.wan.proto="pppoe"
+          uci set network.wan.username="$_pppoe_user"
+          uci set network.wan.password="$_pppoe_password"
+          uci set network.wan.service="$FLM_WAN_PPPOE_SERVICE"
+          uci commit network
+
+          /etc/init.d/network restart
+
+          # This will persist connection type between firmware upgrades
+          echo "pppoe" > /root/custom_connection_type
         fi
-        uci commit wireless
+      fi
+      # Don't put anything outside here. _content_type may be corrupted
+    fi
 
-        if [ "$SYSTEM_MODEL" == "MT7628AN" ]
+    # PPPoE update
+    if [ "$WAN_CONNECTION_TYPE" == "pppoe" ]
+    then
+      if [ "$_pppoe_user" != "" ] && [ "$_pppoe_password" != "" ]
+      then
+        if [ "$_pppoe_user" != "$PPPOE_USER" ] || \
+           [ "$_pppoe_password" != "$PPPOE_PASSWD" ]
         then
-          /usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat 
-          /sbin/mtkwifi reload
-        else
+          log "FLASHMAN UPDATER" "Updating PPPoE ..."
+          uci set network.wan.username="$_pppoe_user"
+          uci set network.wan.password="$_pppoe_password"
+          uci commit network
+
           /etc/init.d/network restart
         fi
       fi
     fi
-  fi
 
-  if [ "$_do_update" == "1" ]
-  then
-    log "FLASHMAN UPDATER" "Reflashing ..."
-    # Execute firmware update
-    run_reflash $SERVER_ADDR $_release_id
+    # WiFi update
+    if [ "$(uci get wireless.@wifi-device[0].disabled)" == "0" ] || [ "$SYSTEM_MODEL" == "MT7628AN" ]
+    then
+      if [ "$_wifi_ssid" != "" ] && [ "$_wifi_password" != "" ] && \
+         [ "$_wifi_channel" != "" ]
+      then
+        if [ "$_wifi_ssid" != "$WIFI_SSID" ] || \
+           [ "$_wifi_password" != "$WIFI_PASSWD" ] || \
+           [ "$_wifi_channel" != "$WIFI_CHANNEL" ]
+        then
+          log "FLASHMAN UPDATER" "Updating Wireless ..."
+          uci set wireless.@wifi-iface[0].ssid="$_wifi_ssid"
+          uci set wireless.@wifi-iface[0].key="$_wifi_password"
+          uci set wireless.radio0.channel="$_wifi_channel"
+      	  #5Ghz
+      	  if [ "$(uci get wireless.@wifi-device[1].disabled)" == "0" ]
+          then
+            uci set wireless.@wifi-iface[1].ssid="$_wifi_ssid"
+            uci set wireless.@wifi-iface[1].key="$_wifi_password"
+          fi
+          uci commit wireless
+
+          if [ "$SYSTEM_MODEL" == "MT7628AN" ]
+          then
+            /usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat 
+            /sbin/mtkwifi reload
+          else
+            /etc/init.d/network restart
+          fi
+        fi
+      fi
+    fi
+
+    if [ "$_do_update" == "1" ]
+    then
+      log "FLASHMAN UPDATER" "Reflashing ..."
+      # Execute firmware update
+      run_reflash $SERVER_ADDR $_release_id
+    fi
   fi
+else
+  log "FLASHMAN UPDATER" "Fail Authenticating device!"
 fi
-
 log "FLASHMAN UPDATER" "Done" 
 

@@ -8,6 +8,24 @@ log() {
   logger -t "$1 " "$2"
 }
 
+#send data to flashman using rest api
+rest_flashman()                      
+{                                    
+  _url=$1                            
+  _data=$2                           
+                                     
+  _res=$(curl -k -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
+     --tlsv1.2 --connect-timeout 5 --retry 1 --data $_data $_url)            
+                                                                             
+  if [ "$?" -eq 0 ]                                                          
+  then                                                                       
+    echo $_res                                                               
+    return 0                                                                 
+  else                                                           
+    return 1       
+  fi               
+} 
+
 # Verify if connection is up.
 check_connectivity_flashman()
 {
@@ -160,10 +178,9 @@ set_mqtt_secret()
     cat /root/mqtt_secret
   else
     MQTTSEC=$(cat /dev/urandom | tr -dc _A-Z-a-z-0-9 | head -c${1:-32})
-    _res=$(curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
-           --tlsv1.2 --connect-timeout 5 --retry 1 \
-           --data "id=$CLIENT_MAC&organization=$FLM_CLIENT_ORG&secret=$FLM_CLIENT_SECRET&mqttsecret=$MQTTSEC" \
-           "https://$FLM_SVADDR/deviceinfo/mqtt/add")
+    _data="id=$CLIENT_MAC&organization=$FLM_CLIENT_ORG&secret=$FLM_CLIENT_SECRET&mqttsecret=$MQTTSEC"                  
+    _url="https://$FLM_SVADDR/deviceinfo/mqtt/add"                                                                     
+    _res=$(rest_flashman "$_url" "$_data") 
 
     json_load "$_res"
     json_get_var _is_registered is_registered
