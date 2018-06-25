@@ -65,12 +65,12 @@ do
 
       if [ "$_do_update" == "1" ]
       then
-        _need_update=`expr $need_update + 1`
+        _need_update=$(( _need_update + 1 ))
       else
         _need_update=0
       fi
 
-      if [ "$_need_update" == "7" ]
+      if [ $_need_update -eq 7 ]
       then
         #More than 7 checks (>20 min), force a firmware update
         log "KEEPALIVE" "Running update ..."                                                                                                                                          

@@ -3,7 +3,7 @@
 . /usr/share/flashman_init.conf
 . /usr/share/functions.sh
 
-case $"1" in
+case "$1" in
 1)
   log "MQTTMSG" "Running Update"
   sh /usr/share/flashman_update.sh

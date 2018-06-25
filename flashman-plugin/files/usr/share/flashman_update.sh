@@ -84,7 +84,7 @@ then
     then
       if [ "$_connection_type" == "dhcp" ]
       then
-        log "FLASHMAN UPDATER" "Updating connection type ..."
+        log "FLASHMAN UPDATER" "Updating connection type to DHCP ..."
         uci set network.wan.proto="dhcp"
         uci set network.wan.username=""
         uci set network.wan.password=""
@@ -95,11 +95,11 @@ then
 
         # This will persist connection type between firmware upgrades
         echo "dhcp" > /root/custom_connection_type
-      else if [ "$_connection_type" == "pppoe" ]
+      elif [ "$_connection_type" == "pppoe" ]
       then
         if [ "$_pppoe_user" != "" ] && [ "$_pppoe_password" != "" ]
         then
-          log "FLASHMAN UPDATER" "Updating connection type ..."
+          log "FLASHMAN UPDATER" "Updating connection type to PPPOE ..."
           uci set network.wan.proto="pppoe"
           uci set network.wan.username="$_pppoe_user"
           uci set network.wan.password="$_pppoe_password"
@@ -147,8 +147,8 @@ then
           uci set wireless.@wifi-iface[0].ssid="$_wifi_ssid"
           uci set wireless.@wifi-iface[0].key="$_wifi_password"
           uci set wireless.radio0.channel="$_wifi_channel"
-      	  #5Ghz
-      	  if [ "$(uci get wireless.@wifi-device[1].disabled)" == "0" ]
+          #5Ghz
+          if [ "$(uci get wireless.@wifi-device[1].disabled)" == "0" ]
           then
             uci set wireless.@wifi-iface[1].ssid="$_wifi_ssid"
             uci set wireless.@wifi-iface[1].key="$_wifi_password"

@@ -15,7 +15,7 @@ rest_flashman()
   _data=$2                           
                                      
   _res=$(curl -k -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
-     --tlsv1.2 --connect-timeout 5 --retry 1 --data $_data $_url)            
+     --tlsv1.2 --connect-timeout 5 --retry 1 --data "$_data" "$_url")            
                                                                              
   if [ "$?" -eq 0 ]                                                          
   then                                                                       
@@ -113,7 +113,7 @@ send_boot_log()
   CLIENT_MAC=$(get_mac)
 
   _res=$(logread | gzip | curl -s --tlsv1.2 --connect-timeout 5 --retry 1 -H "Content-Type: application/octet-stream" \
-  -H "X-ANLIX-ID: $CLIENT_MAC" -H "$header"  --data-binary @- "https://$FLM_AUTH_SVADDR/deviceinfo/logs")
+  -H "X-ANLIX-ID: $CLIENT_MAC" -H "$header"  --data-binary @- "https://$FLM_SVADDR/deviceinfo/logs")
 
   json_load "$_res"
   json_get_var _processed processed
