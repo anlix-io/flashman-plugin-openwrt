@@ -48,8 +48,9 @@ do
     _res=$(rest_flashman "$_url" "$_data") 
 
     if [ "$?" -eq 1 ]
-      log "KEEPALIVE" "Fail in Rest Flashman! Aborting..."
     then
+      log "KEEPALIVE" "Fail in Rest Flashman! Aborting..."
+    else
       json_load "$_res"
       json_get_var _do_update do_update
       json_get_var _do_newprobe do_newprobe
