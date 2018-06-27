@@ -4,6 +4,53 @@
 . /lib/functions/network.sh
 . /usr/share/libubox/jshn.sh
 
+log() {
+  logger -t "$1 " "$2"
+}
+
+#send data to flashman using rest api
+rest_flashman()                      
+{                                    
+  _url=$1                            
+  _data=$2                           
+                                     
+  _res=$(curl -k -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
+     --tlsv1.2 --connect-timeout 5 --retry 1 --data "$_data" "$_url")            
+                                                                             
+  if [ "$?" -eq 0 ]                                                          
+  then                                                                       
+    echo $_res                                                               
+    return 0                                                                 
+  else                                                           
+    return 1       
+  fi               
+} 
+
+# Verify if connection is up.
+check_connectivity_flashman()
+{
+  if ping -q -c 2 -W 2 "$FLM_SVADDR"  >/dev/null
+  then
+    # true
+    echo 0
+  else
+    # false
+    echo 1
+  fi
+}
+
+check_connectivity_internet()
+{
+  if ping -q -c 2 -W 2 www.google.com  >/dev/null
+  then
+    # true
+    echo 0
+  else
+    # false
+    echo 1
+  fi
+}
+
 download_file()
 {
   dfile="$2"
@@ -21,7 +68,7 @@ download_file()
       zflag=
     fi
 
-    curl_code=`curl -s -k -w "%{http_code}" -u routersync:landufrj123 \
+    curl_code=`curl -s -w "%{http_code}" -u routersync:landufrj123 \
               --tlsv1.2 --connect-timeout 5 --retry 3 \
               -o "/tmp/$dfile" $zflag "$uri"`
 
@@ -44,6 +91,35 @@ download_file()
     echo "Wrong number of arguments"
     return 1
   fi
+}
+
+send_boot_log()
+{
+  if [ "$1" == "boot" ]
+  then
+    if [ -e /tmp/clean_boot ]
+    then
+      header="X-ANLIX-LOGS: FIRST"
+    else
+      header="X-ANLIX-LOGS: BOOT"
+    fi
+  fi
+
+  if [ "$1" == "live" ]
+  then
+    header="X-ANLIX-LOGS: LIVE"
+  fi
+
+  CLIENT_MAC=$(get_mac)
+
+  _res=$(logread | gzip | curl -s --tlsv1.2 --connect-timeout 5 --retry 1 -H "Content-Type: application/octet-stream" \
+  -H "X-ANLIX-ID: $CLIENT_MAC" -H "$header"  --data-binary @- "https://$FLM_SVADDR/deviceinfo/logs")
+
+  json_load "$_res"
+  json_get_var _processed processed
+  json_close_object
+
+  return $_processed
 }
 
 get_hardware_model()
@@ -94,6 +170,39 @@ get_wan_ip()
   echo "$_ip"
 }
 
+set_mqtt_secret()
+{
+  CLIENT_MAC=$(get_mac)
+  if [ -e "/root/mqtt_secret" ]
+  then
+    cat /root/mqtt_secret
+  else
+    MQTTSEC=$(cat /dev/urandom | tr -dc _A-Z-a-z-0-9 | head -c${1:-32})
+    _data="id=$CLIENT_MAC&organization=$FLM_CLIENT_ORG&secret=$FLM_CLIENT_SECRET&mqttsecret=$MQTTSEC"                  
+    _url="https://$FLM_SVADDR/deviceinfo/mqtt/add"                                                                     
+    _res=$(rest_flashman "$_url" "$_data") 
+
+    json_load "$_res"
+    json_get_var _is_registered is_registered
+    json_close_object
+
+    if [ "$_is_registered" = "1" ]                                                                       
+    then                                                                                                 
+      echo $MQTTSEC > /root/mqtt_secret
+      cat /root/mqtt_secret                                                                                     
+    fi
+  fi  
+}
+
+reset_mqtt_secret()
+{
+  if [ -e "/root/mqtt_secret" ]
+  then
+    rm /root/mqtt_secret
+  fi
+  set_mqtt_secret
+}
+
 is_authenticated()
 {
   _is_authenticated=1
@@ -103,7 +212,7 @@ is_authenticated()
     CLIENT_MAC=$(get_mac)
 
     _res=$(curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
-           -k --tlsv1.2 --connect-timeout 5 --retry 1 \
+           --tlsv1.2 --connect-timeout 5 --retry 1 \
            --data "id=$CLIENT_MAC&organization=$FLM_CLIENT_ORG&secret=$FLM_CLIENT_SECRET" \
            "https://$FLM_AUTH_SVADDR/api/device/auth")
 

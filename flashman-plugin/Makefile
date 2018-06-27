@@ -8,13 +8,14 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=flasman-plugin
-PKG_VERSION:=0.6.4
+PKG_VERSION:=0.7.0
 PKG_RELEASE:=1
 
 PKG_LICENSE:=GPL
 PKG_LICENSE_FILES:=COPYING
 
 PKG_BUILD_PARALLEL:=1
+PKG_BUILD_DIR := $(BUILD_DIR)/$(PKG_NAME)
 
 PKG_CONFIG_DEPENDS:= \
 	CONFIG_FLASHMAN_WIFI_SSID \
@@ -45,10 +46,10 @@ define Package/flashman-plugin
 			+iputils-ping \
 			+iputils-ping6 \
 			+zabbix-agentd \
-			+zabbix-extra-mac80211 \
+			+(!TARGET_x86&&!TARGET_x86_64):zabbix-extra-mac80211 \
 			+zabbix-extra-network \
 			+zabbix-extra-wifi \
-			+mosquitto-client-nossl
+			+libmbedtls
 	MENU:=1
 endef
 
@@ -57,6 +58,10 @@ define Package/flashman-plugin/config
 endef
 
 define Build/Compile
+  $(MAKE) -C $(PKG_BUILD_DIR) \
+          CC="$(TARGET_CC)" \
+          CFLAGS="$(TARGET_CFLAGS) -Wall" \
+          LDFLAGS="$(TARGET_LDFLAGS)"
 endef
 
 FILE_DIR=
@@ -84,6 +89,9 @@ SSID_SUFFIX=
 
 define Package/flashman-plugin/install
 	$(CP) ./$(FILE_DIR)/* $(1)/
+	
+	$(INSTALL_DIR) $(1)/usr/bin
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/anlix-mqtt $(1)/usr/bin/
 
 	mkdir -p $(1)/usr/share
 	echo 'FLM_SSID_SUFFIX=$(SSID_SUFFIX)' >>$(1)/usr/share/flashman_init.conf

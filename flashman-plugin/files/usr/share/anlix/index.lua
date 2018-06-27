@@ -110,7 +110,7 @@ local function flashman_update(app_id, app_secret)
   post_data = json.encode(auth)
 
   post_data = post_data:gsub("\"","\\\"")
-  cmd_curl = "curl -s -k --tlsv1.2 -X POST -H \"Content-Type:application/json\" -d \"".. post_data  .."\" https://".. flashman_addr .."/deviceinfo/app/add?api=1"
+  cmd_curl = "curl -s --tlsv1.2 -X POST -H \"Content-Type:application/json\" -d \"".. post_data  .."\" https://".. flashman_addr .."/deviceinfo/app/add?api=1"
 
   local result = run_process(cmd_curl)
 

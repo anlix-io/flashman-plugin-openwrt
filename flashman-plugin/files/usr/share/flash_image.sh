@@ -45,11 +45,11 @@ run_reflash()
     clean_memory
     if get_image $_sv_address $_release_id
     then
-      tar -zcf /tmp/config.tar.gz /etc/config /root/router_passwd
+      tar -zcf /tmp/config.tar.gz /etc/config /root/router_passwd /root/mqtt_secret /root/custom_connection_type
       if sysupgrade -T "/tmp/"$_vendor"_"$_model"_"$_ver"_"$_release_id".bin"
       then
         curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
-             -k --tlsv1.2 --connect-timeout 5 --retry 0 \
+             --tlsv1.2 --connect-timeout 5 --retry 0 \
              --data "id=$CLIENT_MAC" \
              "https://$SERVER_ADDR/deviceinfo/ack/"
         sysupgrade -f /tmp/config.tar.gz "/tmp/"$_vendor"_"$_model"_"$_ver"_"$_release_id".bin"
