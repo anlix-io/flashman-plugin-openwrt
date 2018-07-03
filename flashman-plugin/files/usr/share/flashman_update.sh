@@ -44,7 +44,17 @@ then
     WIFI_CHANNEL=$(uci get wireless.radio0.channel)
   fi
 
-  _data="id=$CLIENT_MAC&version=$OPENWRT_VER&model=$HARDWARE_MODEL&model_ver=$HARDWARE_VER&release_id=$FLM_RELID&pppoe_user=$PPPOE_USER&pppoe_password=$PPPOE_PASSWD&wan_ip=$WAN_IP_ADDR&wifi_ssid=$WIFI_SSID&wifi_password=$WIFI_PASSWD&wifi_channel=$WIFI_CHANNEL&connection_type=$WAN_CONNECTION_TYPE"
+  # Report if a hard reset has occured
+  if [ -e /root/hard_reset ]
+  then
+    log "FLASHMAN UPDATE" "Sending HARD RESET Information to server"
+    HARDRESET="1"
+    rm /root/hard_reset
+  else
+    HARDRESET="0"
+  fi
+
+  _data="id=$CLIENT_MAC&version=$OPENWRT_VER&model=$HARDWARE_MODEL&model_ver=$HARDWARE_VER&release_id=$FLM_RELID&pppoe_user=$PPPOE_USER&pppoe_password=$PPPOE_PASSWD&wan_ip=$WAN_IP_ADDR&wifi_ssid=$WIFI_SSID&wifi_password=$WIFI_PASSWD&wifi_channel=$WIFI_CHANNEL&connection_type=$WAN_CONNECTION_TYPE&hardreset=$HARDRESET"
   _url="https://$SERVER_ADDR/deviceinfo/syn/"
   _res=$(rest_flashman "$_url" "$_data") 
 
