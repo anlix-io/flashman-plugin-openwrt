@@ -122,6 +122,8 @@ endif
 	echo 'ZBX_SEND_DATA=$(CONFIG_ZABBIX_SEND_DATA)' >>$(1)/usr/share/flashman_init.conf
 	echo 'ZBX_SVADDR=$(CONFIG_ZABBIX_SERVER_ADDR)' >>$(1)/usr/share/flashman_init.conf
 
+	echo 'ANLIX_PKG_VERSION=$(PKG_VERSION)' >>$(1)/usr/share/flashman_init.conf
+
 	mkdir -p $(1)/etc/dropbear
 	cat $(CONFIG_FLASHMAN_KEYS_PATH)/$(CONFIG_FLASHMAN_PUBKEY_FNAME) >>$(1)/etc/dropbear/authorized_keys
 	chmod 0600 $(1)/etc/dropbear/authorized_keys
