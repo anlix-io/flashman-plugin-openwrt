@@ -50,6 +50,10 @@ then
     log "FLASHMAN UPDATE" "Sending HARD RESET Information to server"
     HARDRESET="1"
     rm /root/hard_reset
+    if [ -e /sysupgrade.tgz ]
+    then
+      rm /sysupgrade.tgz
+    fi
   else
     HARDRESET="0"
   fi
