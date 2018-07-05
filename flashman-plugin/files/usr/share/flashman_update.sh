@@ -58,7 +58,17 @@ then
     HARDRESET="0"
   fi
 
-  _data="id=$CLIENT_MAC&version=$ANLIX_PKG_VERSION&model=$HARDWARE_MODEL&model_ver=$HARDWARE_VER&release_id=$FLM_RELID&pppoe_user=$PPPOE_USER&pppoe_password=$PPPOE_PASSWD&wan_ip=$WAN_IP_ADDR&wifi_ssid=$WIFI_SSID&wifi_password=$WIFI_PASSWD&wifi_channel=$WIFI_CHANNEL&connection_type=$WAN_CONNECTION_TYPE&hardreset=$HARDRESET"
+  # Report a firmware upgrade
+  if [ -e /root/upgrade_info ]
+  then
+    log "FLASHMAN UPDATE" "Sending UPGRADE FIRMWARE Information to server"
+    UPGRADEFIRMWARE="1"
+    rm /root/upgrade_info
+  else
+    UPGRADEFIRMWARE="0"
+  fi
+
+  _data="id=$CLIENT_MAC&version=$ANLIX_PKG_VERSION&model=$HARDWARE_MODEL&model_ver=$HARDWARE_VER&release_id=$FLM_RELID&pppoe_user=$PPPOE_USER&pppoe_password=$PPPOE_PASSWD&wan_ip=$WAN_IP_ADDR&wifi_ssid=$WIFI_SSID&wifi_password=$WIFI_PASSWD&wifi_channel=$WIFI_CHANNEL&connection_type=$WAN_CONNECTION_TYPE&hardreset=$HARDRESET&upgfirm=$UPGRADEFIRMWARE"
   _url="https://$SERVER_ADDR/deviceinfo/syn/"
   _res=$(rest_flashman "$_url" "$_data") 
 
