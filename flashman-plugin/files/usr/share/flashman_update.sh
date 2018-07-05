@@ -49,7 +49,6 @@ then
   then
     log "FLASHMAN UPDATE" "Sending HARD RESET Information to server"
     HARDRESET="1"
-    rm /root/hard_reset
     if [ -e /sysupgrade.tgz ]
     then
       rm /sysupgrade.tgz
@@ -63,7 +62,6 @@ then
   then
     log "FLASHMAN UPDATE" "Sending UPGRADE FIRMWARE Information to server"
     UPGRADEFIRMWARE="1"
-    rm /root/upgrade_info
   else
     UPGRADEFIRMWARE="0"
   fi
@@ -87,6 +85,16 @@ then
     json_get_var _wifi_password wifi_password
     json_get_var _wifi_channel wifi_channel
     json_close_object
+
+    if [ "$HARDRESET" == "1" ]
+    then
+      rm /root/hard_reset
+    fi
+
+    if [ "$UPGRADEFIRMWARE" == "1" ]
+    then
+      rm /root/upgrade_info
+    fi
 
     if [ "$_do_newprobe" == "1" ]
     then
