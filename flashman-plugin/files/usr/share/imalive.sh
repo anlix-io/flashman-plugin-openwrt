@@ -24,7 +24,7 @@ MQTTSEC=$(set_mqtt_secret)
 
 log "IMALIVE" "Start main loop"
 
-numbacks=0
+numbacks=1
 while true
 do
   MQTTSEC=$(set_mqtt_secret)
@@ -37,7 +37,7 @@ do
     if [ $? -eq 0 ]
     then
       log "IMALIVE" "MQTT Exit OK"
-      numbacks=0
+      numbacks=1
     else
       log "IMALIVE" "MQTT Exit with code $?"
     fi
