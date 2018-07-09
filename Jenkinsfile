@@ -54,6 +54,11 @@ node() {
         cd ${env.WORKSPACE}/\$REPO
 
         git fetch
+
+        ## Reset files that can be modified by last build
+        git checkout -f package/base-files/files/etc/rc.button/reset
+        git checkout -f package/base-files/files/etc/inittab
+
         git checkout \$COMMIT
 
         ./scripts/feeds update -a
