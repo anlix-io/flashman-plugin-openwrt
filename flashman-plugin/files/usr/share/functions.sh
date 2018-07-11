@@ -8,6 +8,50 @@ log() {
   logger -t "$1 " "$2"
 }
 
+#Verify ntp
+ntp_anlix()
+{
+  if [ -f /tmp/anlixntp ]
+  then
+    cat /tmp/anlixntp
+  else
+    echo "unsync"
+  fi
+} 
+
+resync_ntp()
+{
+  CLIENT_MAC=$(get_mac)
+  _ntpinfo=$(ntp_anlix)
+  _curdate=$(date +%s)
+  _data="id=$CLIENT_MAC&ntp=$_ntpinfo&date=$_curdate"                  
+  _url="https://$FLM_SVADDR/deviceinfo/ntp" 
+
+  #date sync with flashman is done insecure
+  _res=$(curl -k -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
+   --tlsv1.2 --connect-timeout 5 --retry 1 --data "$_data" "$_url")
+
+  if [ "$?" -eq 0 ]                                                          
+  then
+    json_load "$_res"
+    json_get_var _need_update need_update
+    json_get_var _new_date new_date
+    json_close_object
+
+    if [ $_need_update = "1" ]
+    then
+      log "NTP_FLASHMAN" "Change date to $_new_date"                                                                       
+      date +%s -s "$_new_date"
+      echo "flash_sync" > /tmp/anlixntp                                                               
+    else
+      log "NTP_FLASHMAN" "No need to change date (Server clock $_new_date)"
+      echo "flash_sync" > /tmp/anlixntp
+    fi                                                                 
+  else                                                           
+    log "NTP_FLASHMAN" "Error in CURL: $?"     
+  fi  
+}
+
 #send data to flashman using rest api
 rest_flashman()                      
 {                                    
@@ -20,8 +64,13 @@ rest_flashman()
   if [ "$?" -eq 0 ]                                                          
   then                                                                       
     echo $_res                                                               
-    return 0                                                                 
-  else                                                           
+    return 0
+  elif [ "$?" -eq 51 ]
+  then
+    # curl code 51 is bad certificate
+    return 2                                                                                                                           
+  else
+    # other curl errors                                                           
     return 1       
   fi               
 } 

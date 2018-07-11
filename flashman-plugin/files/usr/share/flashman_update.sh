@@ -25,8 +25,6 @@ log "FLASHMAN UPDATER" "Start ..."
 if is_authenticated
 then
   log "FLASHMAN UPDATER" "Authenticated ..."
-  # Sync date and time with GMT-3
-  ntpd -n -q -p $NTP_SVADDR
 
   # Get PPPoE data if available
   if [ "$WAN_CONNECTION_TYPE" == "pppoe" ]
@@ -47,7 +45,7 @@ then
   # Report if a hard reset has occured
   if [ -e /root/hard_reset ]
   then
-    log "FLASHMAN UPDATE" "Sending HARD RESET Information to server"
+    log "FLASHMAN UPDATER" "Sending HARD RESET Information to server"
     HARDRESET="1"
     if [ -e /sysupgrade.tgz ]
     then
@@ -60,13 +58,16 @@ then
   # Report a firmware upgrade
   if [ -e /root/upgrade_info ]
   then
-    log "FLASHMAN UPDATE" "Sending UPGRADE FIRMWARE Information to server"
+    log "FLASHMAN UPDATER" "Sending UPGRADE FIRMWARE Information to server"
     UPGRADEFIRMWARE="1"
   else
     UPGRADEFIRMWARE="0"
   fi
 
-  _data="id=$CLIENT_MAC&version=$ANLIX_PKG_VERSION&model=$HARDWARE_MODEL&model_ver=$HARDWARE_VER&release_id=$FLM_RELID&pppoe_user=$PPPOE_USER&pppoe_password=$PPPOE_PASSWD&wan_ip=$WAN_IP_ADDR&wifi_ssid=$WIFI_SSID&wifi_password=$WIFI_PASSWD&wifi_channel=$WIFI_CHANNEL&connection_type=$WAN_CONNECTION_TYPE&hardreset=$HARDRESET&upgfirm=$UPGRADEFIRMWARE"
+  #Get NTP status
+  NTP_INFO=$(ntp_anlix)
+
+  _data="id=$CLIENT_MAC&flm_updater=1&version=$ANLIX_PKG_VERSION&model=$HARDWARE_MODEL&model_ver=$HARDWARE_VER&release_id=$FLM_RELID&pppoe_user=$PPPOE_USER&pppoe_password=$PPPOE_PASSWD&wan_ip=$WAN_IP_ADDR&wifi_ssid=$WIFI_SSID&wifi_password=$WIFI_PASSWD&wifi_channel=$WIFI_CHANNEL&connection_type=$WAN_CONNECTION_TYPE&ntp=$NTP_INFO&hardreset=$HARDRESET&upgfirm=$UPGRADEFIRMWARE"
   _url="https://$SERVER_ADDR/deviceinfo/syn/"
   _res=$(rest_flashman "$_url" "$_data") 
 
@@ -106,7 +107,7 @@ then
     # send boot log information if boot is completed and probe is registred!
     if [ ! -e /tmp/boot_completed ]
     then
-      log "FLASHMAN UPDATE" "Sending BOOT log"
+      log "FLASHMAN UPDATER" "Sending BOOT log"
       send_boot_log "boot"
       echo "0" > /tmp/boot_completed
     fi

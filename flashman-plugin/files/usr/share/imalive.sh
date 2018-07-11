@@ -7,14 +7,31 @@ CLIENT_MAC=$(get_mac)
 log "IMALIVE" "ROUTER STARTED!"
 
 connected=false
+_num_ntptests=0
 while [ "$connected" != true ]
 do
   if [ "$(check_connectivity_flashman)" -eq 0 ]
   then
-    log "IMALIVE" "Running update ..."
-    sh /usr/share/flashman_update.sh 
-    connected=true
+    ntpinfo=$(ntp_anlix)
+    if [ $ntpinfo = "unsync" ]
+    then
+      log "IMALIVE" "Waiting for NTP to sync! ..."
+      _num_ntptests=$(( _num_ntptests + 1 ))
+      if [ $_num_ntptests -gt 30 ]
+      then
+        #More than 30 checks (>15 min), force a date update
+        log "IMALIVE" "Try resync date with Flashman!"                                                                                                                                          
+        resync_ntp
+      else
+        sleep 5
+      fi
+    else
+      log "IMALIVE" "Running update ..."
+      sh /usr/share/flashman_update.sh 
+      connected=true
+    fi
   else
+    log "IMALIVE" "No access to internet! Waiting to retry ..."
     sleep 5
   fi
 done
@@ -56,7 +73,7 @@ do
         log "IMALIVE" "Connected! Running update ..."                                                                                                                                          
         sh /usr/share/flashman_update.sh                                                                                                        
         connected=true          
-        numbacks=0                                                                                                                  
+        numbacks=1                                                                                                                  
       else                                                                                                                                            
         sleep 5
       fi                                                                                                                                       
