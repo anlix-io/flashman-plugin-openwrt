@@ -44,7 +44,29 @@ then
     WIFI_CHANNEL=$(uci get wireless.radio0.channel)
   fi
 
-  _data="id=$CLIENT_MAC&version=$OPENWRT_VER&model=$HARDWARE_MODEL&model_ver=$HARDWARE_VER&release_id=$FLM_RELID&pppoe_user=$PPPOE_USER&pppoe_password=$PPPOE_PASSWD&wan_ip=$WAN_IP_ADDR&wifi_ssid=$WIFI_SSID&wifi_password=$WIFI_PASSWD&wifi_channel=$WIFI_CHANNEL&connection_type=$WAN_CONNECTION_TYPE"
+  # Report if a hard reset has occured
+  if [ -e /root/hard_reset ]
+  then
+    log "FLASHMAN UPDATE" "Sending HARD RESET Information to server"
+    HARDRESET="1"
+    if [ -e /sysupgrade.tgz ]
+    then
+      rm /sysupgrade.tgz
+    fi
+  else
+    HARDRESET="0"
+  fi
+
+  # Report a firmware upgrade
+  if [ -e /root/upgrade_info ]
+  then
+    log "FLASHMAN UPDATE" "Sending UPGRADE FIRMWARE Information to server"
+    UPGRADEFIRMWARE="1"
+  else
+    UPGRADEFIRMWARE="0"
+  fi
+
+  _data="id=$CLIENT_MAC&version=$ANLIX_PKG_VERSION&model=$HARDWARE_MODEL&model_ver=$HARDWARE_VER&release_id=$FLM_RELID&pppoe_user=$PPPOE_USER&pppoe_password=$PPPOE_PASSWD&wan_ip=$WAN_IP_ADDR&wifi_ssid=$WIFI_SSID&wifi_password=$WIFI_PASSWD&wifi_channel=$WIFI_CHANNEL&connection_type=$WAN_CONNECTION_TYPE&hardreset=$HARDRESET&upgfirm=$UPGRADEFIRMWARE"
   _url="https://$SERVER_ADDR/deviceinfo/syn/"
   _res=$(rest_flashman "$_url" "$_data") 
 
@@ -63,6 +85,16 @@ then
     json_get_var _wifi_password wifi_password
     json_get_var _wifi_channel wifi_channel
     json_close_object
+
+    if [ "$HARDRESET" == "1" ]
+    then
+      rm /root/hard_reset
+    fi
+
+    if [ "$UPGRADEFIRMWARE" == "1" ]
+    then
+      rm /root/upgrade_info
+    fi
 
     if [ "$_do_newprobe" == "1" ]
     then

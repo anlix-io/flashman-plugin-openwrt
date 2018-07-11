@@ -14,8 +14,8 @@ rest_flashman()
   _url=$1                            
   _data=$2                           
                                      
-  _res=$(curl -k -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
-     --tlsv1.2 --connect-timeout 5 --retry 1 --data "$_data" "$_url")            
+  _res=$(curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
+     --tlsv1.2 --connect-timeout 5 --retry 1 --data "$_data&secret=$FLM_CLIENT_SECRET" "$_url")            
                                                                              
   if [ "$?" -eq 0 ]                                                          
   then                                                                       
@@ -113,7 +113,7 @@ send_boot_log()
   CLIENT_MAC=$(get_mac)
 
   _res=$(logread | gzip | curl -s --tlsv1.2 --connect-timeout 5 --retry 1 -H "Content-Type: application/octet-stream" \
-  -H "X-ANLIX-ID: $CLIENT_MAC" -H "$header"  --data-binary @- "https://$FLM_SVADDR/deviceinfo/logs")
+  -H "X-ANLIX-ID: $CLIENT_MAC" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" -H "$header"  --data-binary @- "https://$FLM_SVADDR/deviceinfo/logs")
 
   json_load "$_res"
   json_get_var _processed processed
@@ -178,7 +178,7 @@ set_mqtt_secret()
     cat /root/mqtt_secret
   else
     MQTTSEC=$(cat /dev/urandom | tr -dc _A-Z-a-z-0-9 | head -c${1:-32})
-    _data="id=$CLIENT_MAC&organization=$FLM_CLIENT_ORG&secret=$FLM_CLIENT_SECRET&mqttsecret=$MQTTSEC"                  
+    _data="id=$CLIENT_MAC&mqttsecret=$MQTTSEC"                  
     _url="https://$FLM_SVADDR/deviceinfo/mqtt/add"                                                                     
     _res=$(rest_flashman "$_url" "$_data") 
 

@@ -24,7 +24,7 @@ MQTTSEC=$(set_mqtt_secret)
 
 log "IMALIVE" "Start main loop"
 
-numbacks=0
+numbacks=1
 while true
 do
   MQTTSEC=$(set_mqtt_secret)
@@ -37,7 +37,7 @@ do
     if [ $? -eq 0 ]
     then
       log "IMALIVE" "MQTT Exit OK"
-      numbacks=0
+      numbacks=1
     else
       log "IMALIVE" "MQTT Exit with code $?"
     fi
@@ -65,11 +65,11 @@ do
 
   #backoff
   ran=`head /dev/urandom | tr -dc "0123456789" | head -c2`
-  backoff=`expr $numbacks + \( $ran % $numbacks \)`
+  backoff=$(( numbacks + ( ran % numbacks ) )) 
   
   sleep $backoff
-  numbacks=`expr $numbacks + 1`
-  if [ "$numbacks" -eq 60 ] 
+  numbacks=$(( numbacks + 1 )) 
+  if [ $numbacks -gt 60 ] 
   then
     numbacks=60
   fi

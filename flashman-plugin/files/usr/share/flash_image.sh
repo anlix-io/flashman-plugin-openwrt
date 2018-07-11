@@ -13,11 +13,11 @@ get_image()
 {
   if [ "$#" -eq 2 ]
   then
-    local _sv_address=$1
-    local _release_id=$2
-    local _vendor=$(cat /tmp/sysinfo/model | awk '{ print toupper($1) }')
-    local _model=$(get_hardware_model | awk -F "/" '{ if($2 != "") { print $1"D"; } else { print $1 } }')
-    local _ver=$(cat /tmp/sysinfo/model | awk '{ print toupper($3) }')
+    _sv_address=$1
+    _release_id=$2
+    _vendor=$(cat /tmp/sysinfo/model | awk '{ print toupper($1) }')
+    _model=$(get_hardware_model | awk -F "/" '{ if($2 != "") { print $1"D"; } else { print $1 } }')
+    _ver=$(cat /tmp/sysinfo/model | awk '{ print toupper($3) }')
 
     if ! download_file "https://$_sv_address/firmwares" $_vendor"_"$_model"_"$_ver"_"$_release_id".bin" "/tmp"
     then
@@ -36,27 +36,38 @@ run_reflash()
   if [ "$#" -eq 2 ]
   then
     echo "Init image reflash"
-    local _sv_address=$1
-    local _release_id=$2
-    local _vendor=$(cat /tmp/sysinfo/model | awk '{ print toupper($1) }')
-    local _model=$(get_hardware_model | awk -F "/" '{ if($2 != "") { print $1"D"; } else { print $1 } }')
-    local _ver=$(cat /tmp/sysinfo/model | awk '{ print toupper($3) }')
+    _sv_address=$1
+    _release_id=$2
+    _vendor=$(cat /tmp/sysinfo/model | awk '{ print toupper($1) }')
+    _model=$(get_hardware_model | awk -F "/" '{ if($2 != "") { print $1"D"; } else { print $1 } }')
+    _ver=$(cat /tmp/sysinfo/model | awk '{ print toupper($3) }')
 
     clean_memory
-    if get_image $_sv_address $_release_id
+    if get_image "$_sv_address" "$_release_id"
     then
-      tar -zcf /tmp/config.tar.gz /etc/config /root/router_passwd /root/mqtt_secret /root/custom_connection_type
+      echo "$_release_id" > /root/upgrade_info
+      tar -zcf /tmp/config.tar.gz /etc/config /root/router_passwd /root/mqtt_secret /root/custom_connection_type /root/upgrade_info
+      rm -f /root/upgrade_info
       if sysupgrade -T "/tmp/"$_vendor"_"$_model"_"$_ver"_"$_release_id".bin"
       then
         curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
              --tlsv1.2 --connect-timeout 5 --retry 0 \
-             --data "id=$CLIENT_MAC" \
+             --data "id=$CLIENT_MAC&status=1" \
              "https://$SERVER_ADDR/deviceinfo/ack/"
         sysupgrade -f /tmp/config.tar.gz "/tmp/"$_vendor"_"$_model"_"$_ver"_"$_release_id".bin"
       else
+        curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
+           --tlsv1.2 --connect-timeout 5 --retry 0 \
+           --data "id=$CLIENT_MAC&status=0" \
+           "https://$SERVER_ADDR/deviceinfo/ack/"
         echo "Image check failed"
         return 1
       fi
+    else
+      curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
+        --tlsv1.2 --connect-timeout 5 --retry 0 \
+        --data "id=$CLIENT_MAC&status=2" \
+        "https://$SERVER_ADDR/deviceinfo/ack/"
     fi
   else
     echo "Error in number of args"
