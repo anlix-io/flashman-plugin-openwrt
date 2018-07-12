@@ -36,7 +36,6 @@ do
   fi
 done
 
-sh /usr/share/keepalive.sh &
 MQTTSEC=$(set_mqtt_secret)
 
 log "IMALIVE" "Start main loop"
