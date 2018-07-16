@@ -80,7 +80,7 @@ do
   fi
 
   #backoff
-  ran=`head /dev/urandom | tr -dc "123456789" | head -c2`
+  ran=$(awk 'BEGIN{srand();print int(rand()*100) }')
   backoff=$(( numbacks + ( ran % numbacks ) )) 
   
   sleep $backoff
