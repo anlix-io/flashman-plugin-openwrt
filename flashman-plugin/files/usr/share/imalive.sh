@@ -80,7 +80,7 @@ do
   fi
 
   #backoff
-  ran=`head /dev/urandom | tr -dc "0123456789" | head -c2`
+  ran=`head /dev/urandom | tr -dc "123456789" | head -c2`
   backoff=$(( numbacks + ( ran % numbacks ) )) 
   
   sleep $backoff
