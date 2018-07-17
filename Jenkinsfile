@@ -54,6 +54,11 @@ node() {
         cd ${env.WORKSPACE}/\$REPO
 
         git fetch
+
+        ## Reset files that can be modified by last build
+        git checkout -f package/base-files/files/etc/rc.button/reset
+        git checkout -f package/base-files/files/etc/inittab
+
         git checkout \$COMMIT
 
         ./scripts/feeds update -a
@@ -62,6 +67,9 @@ node() {
         cp -r ${env.WORKSPACE}/flashman-plugin ${env.WORKSPACE}/\$REPO/package/utils/
         mkdir -p ${env.WORKSPACE}/\$REPO/files/etc
         cp ${env.WORKSPACE}/banner ${env.WORKSPACE}/\$REPO/files/etc/
+        cp ${env.WORKSPACE}/reset ${env.WORKSPACE}/\$REPO/package/base-files/files/etc/rc.button
+        chmod +x ${env.WORKSPACE}/\$REPO/package/base-files/files/etc/rc.button/reset
+        cp ${env.WORKSPACE}/inittab ${env.WORKSPACE}/\$REPO/package/base-files/files/etc/inittab
         cp ${env.WORKSPACE}/login.sh ${env.WORKSPACE}/\$REPO/package/base-files/files/bin/
         chmod +x ${env.WORKSPACE}/\$REPO/package/base-files/files/bin/login.sh
 

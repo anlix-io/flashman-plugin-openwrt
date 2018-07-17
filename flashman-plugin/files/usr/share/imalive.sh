@@ -7,24 +7,40 @@ CLIENT_MAC=$(get_mac)
 log "IMALIVE" "ROUTER STARTED!"
 
 connected=false
+_num_ntptests=0
 while [ "$connected" != true ]
 do
   if [ "$(check_connectivity_flashman)" -eq 0 ]
   then
-    log "IMALIVE" "Running update ..."
-    sh /usr/share/flashman_update.sh 
-    connected=true
+    ntpinfo=$(ntp_anlix)
+    if [ $ntpinfo = "unsync" ]
+    then
+      log "IMALIVE" "Waiting for NTP to sync! ..."
+      _num_ntptests=$(( _num_ntptests + 1 ))
+      if [ $_num_ntptests -gt 30 ]
+      then
+        #More than 30 checks (>15 min), force a date update
+        log "IMALIVE" "Try resync date with Flashman!"                                                                                                                                          
+        resync_ntp
+      else
+        sleep 5
+      fi
+    else
+      log "IMALIVE" "Running update ..."
+      sh /usr/share/flashman_update.sh 
+      connected=true
+    fi
   else
+    log "IMALIVE" "No access to internet! Waiting to retry ..."
     sleep 5
   fi
 done
 
-sh /usr/share/keepalive.sh &
 MQTTSEC=$(set_mqtt_secret)
 
 log "IMALIVE" "Start main loop"
 
-numbacks=0
+numbacks=1
 while true
 do
   MQTTSEC=$(set_mqtt_secret)
@@ -37,7 +53,7 @@ do
     if [ $? -eq 0 ]
     then
       log "IMALIVE" "MQTT Exit OK"
-      numbacks=0
+      numbacks=1
     else
       log "IMALIVE" "MQTT Exit with code $?"
     fi
@@ -56,7 +72,7 @@ do
         log "IMALIVE" "Connected! Running update ..."                                                                                                                                          
         sh /usr/share/flashman_update.sh                                                                                                        
         connected=true          
-        numbacks=0                                                                                                                  
+        numbacks=1                                                                                                                  
       else                                                                                                                                            
         sleep 5
       fi                                                                                                                                       
@@ -64,12 +80,12 @@ do
   fi
 
   #backoff
-  ran=`head /dev/urandom | tr -dc "0123456789" | head -c2`
-  backoff=`expr $numbacks + \( $ran % $numbacks \)`
+  ran=$(awk 'BEGIN{srand();print int(rand()*100) }')
+  backoff=$(( numbacks + ( ran % numbacks ) )) 
   
   sleep $backoff
-  numbacks=`expr $numbacks + 1`
-  if [ "$numbacks" -eq 60 ] 
+  numbacks=$(( numbacks + 1 )) 
+  if [ $numbacks -gt 60 ] 
   then
     numbacks=60
   fi
