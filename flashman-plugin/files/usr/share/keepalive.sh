@@ -22,7 +22,8 @@ while true
 do
   sleep 300
 
-  _number=$(awk 'BEGIN{srand();print int(rand()*6) }')
+  _rand=$(head /dev/urandom | tr -dc "012345")
+  _number=${_rand:0:1}
 
   if [ "$_number" -eq 3 ] || [ "$1" == "now" ]
   then
