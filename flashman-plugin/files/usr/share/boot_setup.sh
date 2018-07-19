@@ -25,10 +25,15 @@ firstboot() {
   uci set system.@system[-1].cronloglevel="9"
   uci commit system
 
-  uci set system.ntp.enabled="0"
+  uci set system.ntp.enabled="1"
   uci set system.ntp.enable_server="0"
+  uci delete system.ntp.server
+  uci add_list system.ntp.server="$NTP_SVADDR"
   uci commit system
   /etc/init.d/system restart
+  /etc/init.d/sysntpd enable
+  /etc/init.d/sysntpd restart
+  log "FIRSTBOOT" "System and NTP Configured"
 
   # Set firewall rules
   uci set firewall.@defaults[-1].input="ACCEPT"
@@ -169,9 +174,6 @@ firstboot() {
     sleep 1
     echo "$CLIENT_MAC" | awk -F ":" '{ print $1$2$3$4$5$6 }'
   )|passwd root
-
-  # Sync date and time with GMT-3
-  ntpd -n -q -p $NTP_SVADDR
 
   # Configure Zabbix
   sed -i "s%ZABBIX-SERVER-ADDR%$ZBX_SVADDR%" /etc/zabbix_agentd.conf
