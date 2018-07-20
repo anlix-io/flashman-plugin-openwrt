@@ -85,7 +85,7 @@ CONFIG_STRIP_KERNEL_EXPORTS=y
 # CONFIG_PACKAGE_MAC80211_MESH is not set
 # CONFIG_PACKAGE_MAC80211_TRACING is not set
 CONFIG_PACKAGE_iw=y
-CONFIG_PACKAGE_kmod-cfg80211=y
+# CONFIG_PACKAGE_kmod-cfg80211 is not set
 # CONFIG_PACKAGE_kmod-mac80211 is not set
 # CONFIG_PACKAGE_wpa-supplicant-mesh is not set
 # CONFIG_PACKAGE_wpa-supplicant-p2p is not set
