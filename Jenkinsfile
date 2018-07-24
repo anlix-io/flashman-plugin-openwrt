@@ -47,9 +47,17 @@ node() {
         PROFILE=\$(echo \$DIFFCONFIG | awk -F '~' '{print \$5}')
 
         WORKENV=${env.WORKSPACE}/\$PROFILE
+        DLDIR=${env.WORKSPACE}/dlfiles
+
+        if [ ! -d \$DLDIR ]
+        then
+          mkdir \$DLDIR
+        fi
+
         if [ ! -d \$WORKENV ]
         then
           git clone https://github.com/anlix-io/\$REPO.git -b \$BRANCH \$WORKENV
+          ln -s \$DLDIR \$WORKENV/dl
         fi
 
         cd \$WORKENV
@@ -265,6 +273,9 @@ node() {
       sh """
         DIFFCONFIG=\$(ls ${env.WORKSPACE}/diffconfigs | grep ${params.TARGETMODEL} | head -1)
         REPO=\$(echo \$DIFFCONFIG | awk -F '~' '{print \$1}')
+        PROFILE=\$(echo \$DIFFCONFIG | awk -F '~' '{print \$5}')
+
+        WORKENV=${env.WORKSPACE}/\$PROFILE
 
         ##
         ## Factory image
@@ -520,6 +531,11 @@ node() {
         curl -u ${params.ARTIFACTORYUSER}:${params.ARTIFACTORYPASS} \\
         -X PUT \"https://artifactory.anlix.io/artifactory/upgrades/${params.FLASHMANCLIENTORG}/\"\$IMGZIP \\
         -T \$IMGZIP
+
+        if [ \$? -eq 0 ]
+        then
+          rm \$IMGZIP \$IMGNAME
+        fi
       """
     }
 }
