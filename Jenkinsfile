@@ -500,6 +500,11 @@ node() {
         -X PUT \"https://artifactory.anlix.io/artifactory/firmwares/${params.FLASHMANCLIENTORG}/\"\$IMGZIP \\
         -T \$IMGZIP
 
+        if [ \$? -eq 0 ]
+        then
+          rm \$IMGZIP \$IMGNAME
+        fi
+
         ##
         ## Sysupgrade image
         ##
