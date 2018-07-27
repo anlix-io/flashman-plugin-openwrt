@@ -75,7 +75,7 @@ local function remove_from_file(path, data)
   end
   file = io.open(path, "wb")
   for index, line in ipairs(content) do
-    file:write(line)
+    file:write(line .. "\n")
   end
   file:close()
   return true
