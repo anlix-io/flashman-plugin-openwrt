@@ -47,6 +47,15 @@ define Package/flashman-plugin
 			+iputils-ping6 \
 			+zabbix-agentd \
 			+zabbix-extra-network \
+			+wireless-tools \
+			+uhttpd \
+			+uhttpd-mod-lua \
+			+libustream-mbedtls \
+			+libuuid \
+			+libcares \
+			+rpcd \
+			+libuci-lua \
+			+libubus-lua \
 			+libmbedtls
 	MENU:=1
 endef
