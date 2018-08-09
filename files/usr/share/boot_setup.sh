@@ -55,14 +55,18 @@ firstboot() {
   uci commit firewall
 
   # SSH access
-  uci add firewall rule
-  uci set firewall.@rule[-1].enabled="1"
-  uci set firewall.@rule[-1].target="ACCEPT"
-  uci set firewall.@rule[-1].proto="tcp"
-  uci set firewall.@rule[-1].dest_port="36022"
-  uci set firewall.@rule[-1].name="custom-ssh"
-  uci set firewall.@rule[-1].src="*"
-  uci commit firewall
+  A=$(cat /etc/config/firewall | grep ""anlix-ssh\|custom-ssh"") 
+  if [ -z "$A" ]
+  then 
+    uci add firewall rule
+    uci set firewall.@rule[-1].enabled="1"
+    uci set firewall.@rule[-1].target="ACCEPT"
+    uci set firewall.@rule[-1].proto="tcp"
+    uci set firewall.@rule[-1].dest_port="36022"
+    uci set firewall.@rule[-1].name="anlix-ssh"
+    uci set firewall.@rule[-1].src="*"
+    uci commit firewall
+  fi
   log "FIRSTBOOT" "Firewall Configured"
 
   uci set dropbear.@dropbear[0]=dropbear
@@ -177,11 +181,6 @@ firstboot() {
 
   # Configure Zabbix
   sed -i "s%ZABBIX-SERVER-ADDR%$ZBX_SVADDR%" /etc/zabbix_agentd.conf
-  _count_logtype=$(grep -c "LogType" /etc/zabbix_agentd.conf)
-  if [ "$DISTRIBID" == "'LEDE'" ] && [ "$_count_logtype" -lt 1 ]
-  then
-    echo "LogType=system" >> /etc/zabbix_agentd.conf
-  fi
   if [ "$ZBX_SEND_DATA" == "y" ]
   then
     # Enable Zabbix
