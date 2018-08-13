@@ -209,6 +209,27 @@ then
       fi
     fi
 
+    # App password update
+    if [ "$_app_password" != "$APP_PASSWORD" ]
+    then
+      log "FLASHMAN UPDATER" "Updating app access password ..."
+      echo "$_app_password" > /root/router_passwd
+    fi
+
+    # Blocked devices firewall update - always do this to avoid file diff logic
+    log "FLASHMAN UPDATER" "Rewriting user firewall rules ..."
+    rm /root/blacklist_mac
+    rm /etc/firewall.user
+    touch /root/blacklist_mac
+    touch /etc/firewall.user
+    for i in $(seq 1 $_blocked_devices_length)
+    do
+      echo "${_blocked_devices[$i]}" >> /root/blacklist_mac
+      MACADDR=$(echo "${_blocked_devices[$i]}" | head -c 17)
+      echo "iptables -I FORWARD -m mac --mac-source $MACADDR -j DROP" >> /etc/firewall.user
+    done
+    /etc/init.d/firewall restart
+
     if [ "$_do_update" == "1" ]
     then
       log "FLASHMAN UPDATER" "Reflashing ..."
