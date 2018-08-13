@@ -19,6 +19,7 @@ PPPOE_PASSWD=""
 WIFI_SSID=""
 WIFI_PASSWD=""
 WIFI_CHANNEL=""
+APP_PASSWORD=$(cat /root/router_passwd)
 
 log "FLASHMAN UPDATER" "Start ..." 
 
@@ -85,6 +86,15 @@ then
     json_get_var _wifi_ssid wifi_ssid
     json_get_var _wifi_password wifi_password
     json_get_var _wifi_channel wifi_channel
+    json_get_var _app_password app_password
+    json_get_var _blocked_devices_length blocked_devices_length
+    declare -a _blocked_devices
+    json_select blocked_devices
+    INDEX="1"  # json library starts indexing at 1
+    while json_get_type TYPE $INDEX && [ "$TYPE" = string ]; do
+      json_get_var _blocked_device $INDEX
+      _blocked_devices["$((INDEX++))"]=_blocked_device
+    done
     json_close_object
 
     if [ "$HARDRESET" == "1" ]
