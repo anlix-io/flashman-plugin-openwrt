@@ -4,6 +4,16 @@
 
 do_restart=0
 
+led_on () {
+  if [ -f "$1"/brightness ]; then
+    if [ -f "$1"/max_brightness ]; then
+      cat "$1"/max_brightness > "$1"/brightness
+    else
+      echo "255" > "$1"/brightness
+    fi
+  fi
+}
+
 reset_leds () {
   for trigger_path in $(ls -d /sys/class/leds/*)       
   do                                                   
@@ -12,63 +22,40 @@ reset_leds () {
   done
 
   /etc/init.d/led restart >/dev/nul
-  #reset lan ports if any
-  for lan_led in /sys/class/leds/*lan*
-  do
-    if [ -f "$lan_led"/enable_hw_mode ]; then
-      echo 1 > "$lan_led"/enable_hw_mode
-    fi
-  done
 
-  #reset system led
-  #TODO: blink on flashing firmware?
-  case $(cat /tmp/sysinfo/board_name) in
-    tl-wr840n-v5 | tl-wr840n-v6 | tl-wr849n-v5 | tl-wr849n-v6)
-      echo "none" > /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:orange\:power/trigger
-      echo 0 > /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:orange\:power/brightness
-      systemled=/sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:power
-
-      echo "netdev" > $systemled/trigger
-      echo "rx" > $systemled/mode
-      echo "eth0.2" > $systemled/device_name
-      ;;
-    *)
-      for system_led in /sys/class/leds/*system* /sys/class/leds/*power*
-      do
-        if [ -f "$system_led"/brightness ]; then
-          if [ -f "$system_led"/max_brightness ]; then
-            cat "$system_led"/max_brightness > "$system_led"/brightness
-          else
-            echo "255" > "$system_led"/brightness
-          fi
-        fi
-      done
-      ;;
-  esac
-
-  #wifi 2g
   case $(cat /tmp/sysinfo/board_name) in
     tl-wr840n-v4 | tl-wr849n-v4)
-      echo "netdev" > $systemled/trigger
-      echo "rx" > $systemled/mode
-      echo "ra0" > $systemled/device_name
+      led_on $(cat /tmp/sysinfo/board_name)\:green\:power
       ;;
     *)
+      for system_led in /sys/class/leds/*system*
+      do
+        led_on "$system_led"
+      done
+      
+      #reset hardware lan ports if any
+      for lan_led in /sys/class/leds/*lan*
+      do
+        if [ -f "$lan_led"/enable_hw_mode ]; then
+          echo 1 > "$lan_led"/enable_hw_mode
+        fi
+      done
+
+      #reset hardware wan port if any
+      for wan_led in /sys/class/leds/*wan*
+      do                                      
+        if [ -f "$wan_led"/enable_hw_mode ]; then
+          echo 1 > "$wan_led"/enable_hw_mode
+        fi
+      done
+
+      #reset atheros 5G led
+      if [ -f /sys/class/leds/ath9k-phy1/trigger ]; then
+        echo "phy1tpt" > /sys/class/leds/ath9k-phy1/trigger
+      fi
       ;;
   esac
 
-  #reset 5G if any
-  if [ -f /sys/class/leds/ath9k-phy1/trigger ]; then
-    echo "phy1tpt" > /sys/class/leds/ath9k-phy1/trigger
-  fi
-
-  #reset wan if any
-  for wan_led in /sys/class/leds/*wan*
-  do                                      
-    if [ -f "$wan_led"/enable_hw_mode ]; then
-      echo 1 > "$wan_led"/enable_hw_mode
-    fi
-  done
   do_restart=0
 }
 
@@ -80,7 +67,12 @@ blink_leds () {
         echo "none" > /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:power/trigger
         echo 0 > /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:power/brightness  
         ledsoff=/sys/class/leds/$(cat /tmp/sysinfo/board_name)\:orange\:power             
-        ;;                                                                                
+        ;;
+      tl-wr940n-v6)
+        echo "none" > /sys/class/leds/tp-link\:blue\:wan
+        echo 0 > /sys/class/leds/tp-link\:blue\:wan
+        ledsoff=/sys/class/leds/tp-link\:orange\:diag
+        ;;	      
       *)                                                                                  
         ledsoff=$(ls -d /sys/class/leds/*)                                                
         ;;                                                                                
