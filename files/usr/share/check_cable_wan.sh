@@ -22,16 +22,30 @@ reset_leds () {
 
   #reset system led
   #TODO: blink on flashing firmware?
-  for system_led in /sys/class/leds/*system* /sys/class/leds/*power*
-  do 
-    if [ -f "$system_led"/brightness ]; then
-      if [ -f "$system_led"/max_brightness ]; then                                     
-        cat "$system_led"/max_brightness > "$system_led"/brightness
-      else
-        echo "255" > "$system_led"/brightness
-      fi
-    fi
-  done   
+  case $(cat /tmp/sysinfo/board_name) in
+    tl-wr840n-v5 | tl-wr840n-v6 | tl-wr849n-v5 | tl-wr849n-v6)
+      echo "none" > /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:orange\:power/trigger
+      echo 0 > /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:orange\:power/brightness
+      systemled=/sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:power
+
+      echo "netdev" > $systemled/trigger
+      echo "tx" > $systemled/mode
+      echo "eth0.2" > $systemled/device_name
+      ;;
+    *)
+      for system_led in /sys/class/leds/*system* /sys/class/leds/*power*
+      do
+        if [ -f "$system_led"/brightness ]; then
+          if [ -f "$system_led"/max_brightness ]; then
+            cat "$system_led"/max_brightness > "$system_led"/brightness
+          else
+            echo "255" > "$system_led"/brightness
+          fi
+        fi
+      done
+      ;;
+  esac
+  
 
   #reset 5G if any
   if [ -f /sys/class/leds/ath9k-phy1/trigger ]; then
@@ -49,14 +63,23 @@ reset_leds () {
 }
 
 blink_leds () {
-  if [ $do_restart -eq 0 ]
-  then
-    for trigger_path in $(ls -d /sys/class/leds/*)
-    do
-      echo "none" > "$trigger_path"/trigger
-      echo "255" > "$trigger_path"/brightness
-      echo "timer" > "$trigger_path"/trigger
-    done
+  if [ $do_restart -eq 0 ]                                                               
+  then                                                                                   
+    case $(cat /tmp/sysinfo/board_name) in                                               
+      tl-wr840n-v5 | tl-wr840n-v6 | tl-wr849n-v5 | tl-wr849n-v6)                         
+        echo "none" > /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:power/trigger
+        echo 0 > /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:power/brightness  
+        ledsoff=/sys/class/leds/$(cat /tmp/sysinfo/board_name)\:orange\:power             
+        ;;                                                                                
+      *)                                                                                  
+        ledsoff=$(ls -d /sys/class/leds/*)                                                
+        ;;                                                                                
+    esac                                                                                  
+                                                                                          
+    for trigger_path in $ledsoff                                                          
+    do                                                                                    
+      echo "timer" > "$trigger_path"/trigger                                              
+    done                                                                                  
   fi
 }
 
