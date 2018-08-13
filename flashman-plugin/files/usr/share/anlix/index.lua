@@ -189,7 +189,7 @@ function handle_request(env)
       if(system_model == nil) then system_model = "INVALID MODEL" end
       info = {}
       info["anlix_model"] = system_model
-      info["protocol_version"] = 1.0
+      info["protocol_version"] = 2.0
       if passwd ~= nil then
         info["router_has_passwd"] = 1
       else
