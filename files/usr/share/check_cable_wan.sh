@@ -29,7 +29,7 @@ reset_leds () {
       systemled=/sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:power
 
       echo "netdev" > $systemled/trigger
-      echo "tx" > $systemled/mode
+      echo "rx" > $systemled/mode
       echo "eth0.2" > $systemled/device_name
       ;;
     *)
@@ -45,7 +45,17 @@ reset_leds () {
       done
       ;;
   esac
-  
+
+  #wifi 2g
+  case $(cat /tmp/sysinfo/board_name) in
+    tl-wr840n-v4 | tl-wr849n-v4)
+      echo "netdev" > $systemled/trigger
+      echo "rx" > $systemled/mode
+      echo "ra0" > $systemled/device_name
+      ;;
+    *)
+      ;;
+  esac
 
   #reset 5G if any
   if [ -f /sys/class/leds/ath9k-phy1/trigger ]; then
@@ -83,6 +93,7 @@ blink_leds () {
   fi
 }
 
+reset_leds
 while true
 do
   wan_itf_name=$(uci get network.wan.ifname)
