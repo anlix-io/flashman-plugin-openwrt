@@ -135,7 +135,7 @@ firstboot() {
     uci set system.led_wifi_led.dev="ra0"
     uci set system.led_wlan2g.dev="ra0"
     uci commit system
-    /usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat
+    /usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat > /dev/null
     LOWERMAC=$(echo $CLIENT_MAC | awk '{ print tolower($1) }')
     insmod /lib/modules/`uname -r`/mt7628.ko mac=$LOWERMAC
     echo "mt7628 mac=$LOWERMAC" >> /etc/modules.d/50-mt7628
