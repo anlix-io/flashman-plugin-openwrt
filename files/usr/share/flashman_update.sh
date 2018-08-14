@@ -190,7 +190,7 @@ then
 
           if [ "$SYSTEM_MODEL" == "MT7628AN" ]
           then
-            /usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat 
+            /usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat > /dev/null
             /sbin/mtkwifi reload
           else
             /etc/init.d/network restart
