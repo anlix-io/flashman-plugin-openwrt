@@ -24,8 +24,8 @@ reset_leds () {
   /etc/init.d/led restart >/dev/nul
 
   case $(cat /tmp/sysinfo/board_name) in
-    tl-wr840n-v4 | tl-wr849n-v4)
-      led_on $(cat /tmp/sysinfo/board_name)\:green\:power
+    tl-wr840n-v4 | tl-wr849n-v4 | tl-wr845n-v3)
+      led_on /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:power
       ;;
     *)
       for system_led in /sys/class/leds/*system*
@@ -72,7 +72,11 @@ blink_leds () {
         echo "none" > /sys/class/leds/tp-link\:blue\:wan
         echo 0 > /sys/class/leds/tp-link\:blue\:wan
         ledsoff=/sys/class/leds/tp-link\:orange\:diag
-        ;;	      
+	;;
+      tl-wr845n-v3)
+	#we cant turn on orange and blue at same time in this model
+	ledsoff=$(ls -d /sys/class/leds/*green*)
+	;;
       *)                                                                                  
         ledsoff=$(ls -d /sys/class/leds/*)                                                
         ;;                                                                                
