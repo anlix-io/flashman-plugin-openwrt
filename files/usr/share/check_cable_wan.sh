@@ -24,8 +24,14 @@ reset_leds () {
   /etc/init.d/led restart >/dev/nul
 
   case $(cat /tmp/sysinfo/board_name) in
-    tl-wr840n-v4 | tl-wr849n-v4 | tl-wr845n-v3)
+    tl-wr840n-v4 | tl-wr849n-v4 | tl-wr845n-v3 | archer-c20-v4)
       led_on /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:power
+      if [ $(cat /tmp/sysinfo/board_name) = "archer-c20-v4" ]
+      then
+        # bug on archer's lan led
+        echo "0" >  /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:lan/port_mask
+        echo "0x1e" > /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:lan/port_mask
+      fi
       ;;
     *)
       for system_led in /sys/class/leds/*system*
@@ -73,7 +79,7 @@ blink_leds () {
         echo 0 > /sys/class/leds/tp-link\:blue\:wan
         ledsoff=/sys/class/leds/tp-link\:orange\:diag
 	;;
-      tl-wr845n-v3)
+      tl-wr845n-v3 | archer-c20-v4)
 	#we cant turn on orange and blue at same time in this model
 	ledsoff=$(ls -d /sys/class/leds/*green*)
 	;;
