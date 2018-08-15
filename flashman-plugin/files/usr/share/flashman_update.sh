@@ -19,7 +19,12 @@ PPPOE_PASSWD=""
 WIFI_SSID=""
 WIFI_PASSWD=""
 WIFI_CHANNEL=""
-APP_PASSWORD=$(cat /root/router_passwd)
+if [ -f /root/router_passwd ]
+then
+  APP_PASSWORD=$(cat /root/router_passwd)
+else
+  APP_PASSWORD=""
+fi
 
 log "FLASHMAN UPDATER" "Start ..." 
 
