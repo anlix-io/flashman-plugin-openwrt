@@ -92,14 +92,19 @@ then
     json_get_var _wifi_password wifi_password
     json_get_var _wifi_channel wifi_channel
     json_get_var _app_password app_password
-    json_get_var _blocked_devices_length blocked_devices_length
-    declare -a _blocked_devices
+    _blocked_macs=""
+    _blocked_devices=""
     json_select blocked_devices
     INDEX="1"  # json library starts indexing at 1
     while json_get_type TYPE $INDEX && [ "$TYPE" = string ]; do
-      json_get_var _blocked_device $INDEX
-      _blocked_devices["$((INDEX++))"]=_blocked_device
+      json_get_var _device $INDEX
+      _blocked_devices="$_blocked_devices""$_device"$'\n'
+      _mac_addr=$(echo "$_device" | head -c 17)
+      _blocked_macs="$_mac_addr $_blocked_macs"
     done
+    # Remove trailing newline / space
+    _blocked_macs=${_blocked_macs::-1}
+    _blocked_devices=${_blocked_devices::-1}
     json_close_object
 
     if [ "$HARDRESET" == "1" ]
@@ -223,15 +228,12 @@ then
 
     # Blocked devices firewall update - always do this to avoid file diff logic
     log "FLASHMAN UPDATER" "Rewriting user firewall rules ..."
-    rm /root/blacklist_mac
     rm /etc/firewall.user
-    touch /root/blacklist_mac
     touch /etc/firewall.user
-    for i in $(seq 1 $_blocked_devices_length)
+    echo "$_blocked_devices" > /root/blacklist_mac
+    for mac in $_blocked_macs
     do
-      echo "${_blocked_devices[$i]}" >> /root/blacklist_mac
-      MACADDR=$(echo "${_blocked_devices[$i]}" | head -c 17)
-      echo "iptables -I FORWARD -m mac --mac-source $MACADDR -j DROP" >> /etc/firewall.user
+      echo "iptables -I FORWARD -m mac --mac-source $mac -j DROP" >> /etc/firewall.user
     done
     /etc/init.d/firewall restart
 
