@@ -33,6 +33,9 @@ reset_leds () {
         echo "0x1e" > /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:lan/port_mask
       fi
       ;;
+    dl-dwr116-a3)
+      led_on /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:status
+      ;;
     *)
       for system_led in /sys/class/leds/*system*
       do

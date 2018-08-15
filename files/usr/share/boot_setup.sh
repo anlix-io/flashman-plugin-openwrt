@@ -55,7 +55,7 @@ firstboot() {
   uci commit firewall
 
   # SSH access
-  A=$(cat /etc/config/firewall | grep ""anlix-ssh\|custom-ssh"") 
+  A=$(cat /etc/config/firewall | grep "anlix-ssh\|custom-ssh") 
   if [ -z "$A" ]
   then 
     uci add firewall rule
@@ -65,6 +65,30 @@ firstboot() {
     uci set firewall.@rule[-1].dest_port="36022"
     uci set firewall.@rule[-1].name="anlix-ssh"
     uci set firewall.@rule[-1].src="*"
+    uci commit firewall
+  fi
+  A=$(cat /etc/config/firewall | grep "anlix-negate-dns")
+  if [ -z "$A" ]
+  then
+    uci add firewall rule
+    uci set firewall.@rule[-1].enabled="1"
+    uci set firewall.@rule[-1].target="REJECT"
+    uci set firewall.@rule[-1].proto="all"
+    uci set firewall.@rule[-1].dest_port="53"
+    uci set firewall.@rule[-1].name="anlix-negate-dns"
+    uci set firewall.@rule[-1].src="wan"
+    uci commit firewall
+  fi
+  A=$(cat /etc/config/firewall | grep "anlix-negate-http")
+  if [ -z "$A" ]
+  then
+    uci add firewall rule
+    uci set firewall.@rule[-1].enabled="1"
+    uci set firewall.@rule[-1].target="REJECT"
+    uci set firewall.@rule[-1].proto="all"
+    uci set firewall.@rule[-1].dest_port="80"
+    uci set firewall.@rule[-1].name="anlix-negate-http"
+    uci set firewall.@rule[-1].src="wan"
     uci commit firewall
   fi
   log "FIRSTBOOT" "Firewall Configured"
