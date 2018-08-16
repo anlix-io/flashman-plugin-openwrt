@@ -97,7 +97,7 @@ then
     json_select blocked_devices
     INDEX="1"  # json library starts indexing at 1
     while json_get_type TYPE $INDEX && [ "$TYPE" = string ]; do
-      json_get_var _device $INDEX
+      json_get_var _device "$((INDEX++))"
       _blocked_devices="$_blocked_devices""$_device"$'\n'
       _mac_addr=$(echo "$_device" | head -c 17)
       _blocked_macs="$_mac_addr $_blocked_macs"
