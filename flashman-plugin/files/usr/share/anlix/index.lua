@@ -56,12 +56,47 @@ local function read_lines(path)
   return content
 end
 
+local function append_to_file(path, content)
+  local file = io.open(path, "ab")
+  if not file then return false end
+  file:write(content)
+  file:close()
+  return true
+end
+
+local function remove_from_file(path, data)
+  local file = io.lines(path)
+  if not file then return false end
+  local content = {}
+  for line in file do
+    if not line:match(data) then
+      table.insert(content, line)
+    end
+  end
+  file = io.open(path, "wb")
+  for index, line in ipairs(content) do
+    file:write(line .. "\n")
+  end
+  file:close()
+  return true
+end
+
 local function touch_file(path)
   local file = io.open(path, "wb")
   if not file then return false end
   local content = file:write "tmp"
   file:close()
   return true
+end
+
+local function write_firewall_file()
+  local lines = read_lines("/root/blacklist_mac")
+  local firewall_file = io.open("/etc/firewall.user", "wb")
+  for index, line in ipairs(lines) do
+    local mac = line:match("%x%x:%x%x:%x%x:%x%x:%x%x:%x%x")
+    local rule = "iptables -I FORWARD -m mac --mac-source " .. mac .. " -j DROP"
+    firewall_file:write(rule .. "\n")
+  end
 end
 
 local function check_file(path)
@@ -298,6 +333,33 @@ function handle_request(env)
       resp["leases"] = result
       resp["blacklist"] = json.encode(blacklist_info)
       resp["origin"] = env.REMOTE_ADDR
+      uhttpd.send("Status: 200 OK\r\n")
+      uhttpd.send("Content-Type: text/json\r\n\r\n")
+      uhttpd.send(json.encode(resp))
+    elseif command == "blacklist" then
+      local mac = data.blacklist_mac
+      local id = data.blacklist_id
+      if mac == nil or not mac:match("%x%x:%x%x:%x%x:%x%x:%x%x:%x%x") then
+        error_handle(11, "Error reading mac address")
+        return
+      end
+      append_to_file("/root/blacklist_mac", mac .. "|" .. id .. "\n")
+      write_firewall_file()
+      run_process("/etc/init.d/firewall restart")
+      resp["blacklisted"] = 1
+      uhttpd.send("Status: 200 OK\r\n")
+      uhttpd.send("Content-Type: text/json\r\n\r\n")
+      uhttpd.send(json.encode(resp))
+    elseif command == "whitelist" then
+      local mac = data.whitelist_mac
+      if mac == nil or not mac:match("") then
+        error_handle(11, "Error reading mac address")
+        return
+      end
+      remove_from_file("/root/blacklist_mac", mac)
+      write_firewall_file()
+      run_process("/etc/init.d/firewall restart")
+      resp["whitelisted"] = 1
       uhttpd.send("Status: 200 OK\r\n")
       uhttpd.send("Content-Type: text/json\r\n\r\n")
       uhttpd.send(json.encode(resp))
