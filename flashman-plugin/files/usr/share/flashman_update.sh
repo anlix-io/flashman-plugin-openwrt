@@ -223,14 +223,14 @@ then
     if [ "$_app_password" != "$APP_PASSWORD" ]
     then
       log "FLASHMAN UPDATER" "Updating app access password ..."
-      echo "$_app_password" > /root/router_passwd
+      echo -n "$_app_password" > /root/router_passwd
     fi
 
     # Blocked devices firewall update - always do this to avoid file diff logic
     log "FLASHMAN UPDATER" "Rewriting user firewall rules ..."
     rm /etc/firewall.user
     touch /etc/firewall.user
-    echo "$_blocked_devices" > /root/blacklist_mac
+    echo -n "$_blocked_devices" > /root/blacklist_mac
     for mac in $_blocked_macs
     do
       echo "iptables -I FORWARD -m mac --mac-source $mac -j DROP" >> /etc/firewall.user
