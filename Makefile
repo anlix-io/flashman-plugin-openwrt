@@ -50,6 +50,7 @@ define Package/flashman-plugin
 			+wireless-tools \
 			+uhttpd \
 			+uhttpd-mod-lua \
+			+px5g-mbedtls \
 			+libustream-mbedtls \
 			+libuuid \
 			+libcares \
