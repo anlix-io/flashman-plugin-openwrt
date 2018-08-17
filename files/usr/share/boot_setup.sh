@@ -218,6 +218,7 @@ firstboot() {
   fi
 
   #Configure uhttpd to use anlix scripts
+  uci set uhttpd.main.no_dirlists='1'
   uci set uhttpd.main.lua_prefix='/anlix'
   uci set uhttpd.main.lua_handler='/usr/share/anlix/index.lua'
   uci commit uhttpd
