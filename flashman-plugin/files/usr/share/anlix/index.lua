@@ -38,6 +38,16 @@ local function get_flashman_server()
   return result:sub(1,-2)
 end
 
+local function check_file(path)
+  local file = io.open(path, "rb")
+  if not file then
+    return false
+  else
+    file:close()
+    return true
+  end
+end
+
 local function read_file(path)
   local file = io.open(path, "rb")
   if not file then return nil end
@@ -54,6 +64,23 @@ local function read_lines(path)
     table.insert(content, line)
   end
   return content
+end
+
+local function trim_file(path)
+  if not check_file(path) then return end
+  local file = io.lines(path)
+  local content = {}
+  local line_count = 0
+  for line in file do
+    table.insert(content, line)
+    line_count = line_count + 1
+  end
+  file = io.open(path, "wb")
+  for index, line in ipairs(content) do
+    if (index > 1 or line_count <= 5) then
+      file:write(line .. "\n")
+    end
+  end
 end
 
 local function append_to_file(path, content)
@@ -99,16 +126,6 @@ local function write_firewall_file()
     local mac = line:match("%x%x:%x%x:%x%x:%x%x:%x%x:%x%x")
     local rule = "iptables -I FORWARD -m mac --mac-source " .. mac .. " -j DROP"
     firewall_file:write(rule .. "\n")
-  end
-end
-
-local function check_file(path)
-  local file = io.open(path, "rb")
-  if not file then
-    return false
-  else
-    file:close()
-    return true
   end
 end
 
@@ -363,6 +380,24 @@ function handle_request(env)
       write_firewall_file()
       run_process("/etc/init.d/firewall restart")
       resp["whitelisted"] = 1
+      uhttpd.send("Status: 200 OK\r\n")
+      uhttpd.send("Content-Type: text/json\r\n\r\n")
+      uhttpd.send(json.encode(resp))
+    elseif command == "setHashCommand" then
+      local hash = data.command_hash
+      local timeout = data.command_timeout
+      local epoch_timeout = os.time() + timeout - 1
+      append_to_file("/root/to_do_hashes", hash .. " " .. epoch_timeout .. "\n")
+      trim_file("/root/to_do_hashes")
+      trim_file("/root/done_hashes")
+      resp["is_set"] = 1
+      uhttpd.send("Status: 200 OK\r\n")
+      uhttpd.send("Content-Type: text/json\r\n\r\n")
+      uhttpd.send(json.encode(resp))
+    elseif command == "getHashCommand" then
+      local hash = data.command_hash
+      local is_done = remove_from_file("/root/done_hashes", hash)
+      resp["command_done"] = is_done
       uhttpd.send("Status: 200 OK\r\n")
       uhttpd.send("Content-Type: text/json\r\n\r\n")
       uhttpd.send(json.encode(resp))

@@ -6,6 +6,28 @@
 . /usr/share/functions.sh
 . /usr/share/boot_setup.sh
 
+# If a command hash is provided, check if it should still be done
+COMMANDHASH=""
+if [ "$1" != "" ]
+then
+  if [ -f /root/to_do_hashes ] && [ "$(grep $1 /root/to_do_hashes)" != "" ]
+  then
+    TIMEOUT="$(grep $1 /root/to_do_hashes | tail -n 1)"
+    COMMANDHASH="$(echo $TIMEOUT | cut -d " " -f 1)"
+    TIMEOUT="$(echo $TIMEOUT | cut -d " " -f 2)"
+    if [ "$(date +%s)" -gt "$TIMEOUT" ]
+    then
+      log "FLASHMAN UPDATER" "Provided hash received after command timeout"
+      log "FLASHMAN UPDATER" "Done"
+      exit 0
+    fi
+  else
+    log "FLASHMAN UPDATER" "Provided hash is not in the to do file"
+    log "FLASHMAN UPDATER" "Done"
+    exit 0
+  fi
+fi
+
 SERVER_ADDR="$FLM_SVADDR"
 OPENWRT_VER=$(cat /etc/openwrt_version)
 HARDWARE_MODEL=$(get_hardware_model)
@@ -236,6 +258,12 @@ then
       echo "iptables -I FORWARD -m mac --mac-source $mac -j DROP" >> /etc/firewall.user
     done
     /etc/init.d/firewall restart
+
+    # Store completed command hash if one was provided
+    if [ "$COMMANDHASH" != "" ]
+    then
+      echo "$COMMANDHASH" >> /root/done_hashes
+    fi
 
     if [ "$_do_update" == "1" ]
     then

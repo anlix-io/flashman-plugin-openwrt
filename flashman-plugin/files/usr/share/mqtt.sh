@@ -6,7 +6,7 @@
 case "$1" in
 1)
   log "MQTTMSG" "Running Update"
-  sh /usr/share/flashman_update.sh
+  sh /usr/share/flashman_update.sh $2
   ;;
 boot)
   log "MQTTMSG" "Rebooting"
