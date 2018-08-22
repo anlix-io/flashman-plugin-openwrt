@@ -247,5 +247,5 @@ then
 else
   log "FLASHMAN UPDATER" "Fail Authenticating device!"
 fi
-log "FLASHMAN UPDATER" "Done" 
+log "FLASHMAN UPDATER" "Done"
 

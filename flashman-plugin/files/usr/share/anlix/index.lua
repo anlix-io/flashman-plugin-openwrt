@@ -47,8 +47,8 @@ local function read_file(path)
 end
 
 local function read_lines(path)
+  if not check_file(path) then return nil end
   local file = io.lines(path)
-  if not file then return nil end
   local content = {}
   for line in file do
     table.insert(content, line)
@@ -65,12 +65,15 @@ local function append_to_file(path, content)
 end
 
 local function remove_from_file(path, data)
+  if not check_file(path) then return false end
   local file = io.lines(path)
-  if not file then return false end
+  local ret = false
   local content = {}
   for line in file do
     if not line:match(data) then
       table.insert(content, line)
+    else
+      ret = true
     end
   end
   file = io.open(path, "wb")
@@ -78,7 +81,7 @@ local function remove_from_file(path, data)
     file:write(line .. "\n")
   end
   file:close()
-  return true
+  return ret
 end
 
 local function touch_file(path)
