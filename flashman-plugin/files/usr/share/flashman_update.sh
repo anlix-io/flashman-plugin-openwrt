@@ -259,13 +259,13 @@ then
 
     # Named devices file update - always do this to avoid file diff logic
     log "FLASHMAN UPDATER" "Writing named devices file..."
-    echo -n "$_named_devices" > /root/named_devices
+    echo -n "$_named_devices" > /tmp/named_devices
 
     # Blocked devices firewall update - always do this to avoid file diff logic
     log "FLASHMAN UPDATER" "Rewriting user firewall rules ..."
     rm /etc/firewall.user
     touch /etc/firewall.user
-    echo -n "$_blocked_devices" > /root/blacklist_mac
+    echo -n "$_blocked_devices" > /tmp/blacklist_mac
     for mac in $_blocked_macs
     do
       echo "iptables -I FORWARD -m mac --mac-source $mac -j DROP" >> /etc/firewall.user

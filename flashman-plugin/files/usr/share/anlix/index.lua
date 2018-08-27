@@ -120,7 +120,7 @@ local function touch_file(path)
 end
 
 local function write_firewall_file()
-  local lines = read_lines("/root/blacklist_mac")
+  local lines = read_lines("/tmp/blacklist_mac")
   local firewall_file = io.open("/etc/firewall.user", "wb")
   for index, line in ipairs(lines) do
     local mac = line:match("%x%x:%x%x:%x%x:%x%x:%x%x:%x%x")
@@ -357,11 +357,11 @@ function handle_request(env)
       local result = leases_to_json(leases)
       local blacklist = {}
       local named_devices = {}
-      if check_file("/root/blacklist_mac") then
-        blacklist = read_lines("/root/blacklist_mac")
+      if check_file("/tmp/blacklist_mac") then
+        blacklist = read_lines("/tmp/blacklist_mac")
       end
-      if check_file("/root/named_devices") then
-        named_devices = read_lines("/root/named_devices")
+      if check_file("/tmp/named_devices") then
+        named_devices = read_lines("/tmp/named_devices")
       end
       local blacklist_info = separate_fields(blacklist)
       local named_devices_info = separate_keys(named_devices)
@@ -379,7 +379,7 @@ function handle_request(env)
         error_handle(11, "Error reading mac address")
         return
       end
-      append_to_file("/root/blacklist_mac", mac .. "|" .. id .. "\n")
+      append_to_file("/tmp/blacklist_mac", mac .. "|" .. id .. "\n")
       write_firewall_file()
       run_process("/etc/init.d/firewall restart")
       resp["blacklisted"] = 1
@@ -392,7 +392,7 @@ function handle_request(env)
         error_handle(11, "Error reading mac address")
         return
       end
-      remove_from_file("/root/blacklist_mac", mac)
+      remove_from_file("/tmp/blacklist_mac", mac)
       write_firewall_file()
       run_process("/etc/init.d/firewall restart")
       resp["whitelisted"] = 1
