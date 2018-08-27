@@ -193,13 +193,23 @@ local function leases_to_json(leases)
   return json.encode(result)
 end
 
-local function separate_fields(blacklist)
+local function separate_fields(devices)
   local result = {}
-  for index, info in ipairs(blacklist) do
+  for index, info in ipairs(devices) do
     local device = {}
     device.mac = info:match("%x%x:%x%x:%x%x:%x%x:%x%x:%x%x")
     device.id = info:match("|.+"):sub(2)
     table.insert(result, device)
+  end
+  return result
+end
+
+local function separate_keys(devices)
+  local result = {}
+  for index, info in ipairs(devices) do
+    local mac = info:match("%x%x:%x%x:%x%x:%x%x:%x%x:%x%x")
+    local name = info:match("|.+"):sub(2)
+    result[mac] = name
   end
   return result
 end
@@ -346,12 +356,18 @@ function handle_request(env)
       local leases = read_lines("/tmp/dhcp.leases")
       local result = leases_to_json(leases)
       local blacklist = {}
+      local named_devices = {}
       if check_file("/root/blacklist_mac") then
         blacklist = read_lines("/root/blacklist_mac")
       end
+      if check_file("/root/named_devices") then
+        named_devices = read_lines("/root/named_devices")
+      end
       local blacklist_info = separate_fields(blacklist)
+      local named_devices_info = separate_keys(named_devices)
       resp["leases"] = result
       resp["blacklist"] = json.encode(blacklist_info)
+      resp["named_devices"] = json.encode(named_devices_info)
       resp["origin"] = env.REMOTE_ADDR
       uhttpd.send("Status: 200 OK\r\n")
       uhttpd.send("Content-Type: text/json\r\n\r\n")

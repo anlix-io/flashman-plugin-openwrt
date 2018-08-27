@@ -124,9 +124,18 @@ then
       _mac_addr=$(echo "$_device" | head -c 17)
       _blocked_macs="$_mac_addr $_blocked_macs"
     done
+    _named_devices=""
+    json_select ..
+    json_select named_devices
+    INDEX="1"  # json library starts indexing at 1
+    while json_get_type TYPE $INDEX && [ "$TYPE" = string ]; do
+      json_get_var _device "$((INDEX++))"
+      _named_devices="$_named_devices""$_device"$'\n'
+    done
     # Remove trailing newline / space
     _blocked_macs=${_blocked_macs::-1}
     _blocked_devices=${_blocked_devices::-1}
+    _named_devices=${_named_devices::-1}
     json_close_object
 
     if [ "$HARDRESET" == "1" ]
@@ -247,6 +256,10 @@ then
       log "FLASHMAN UPDATER" "Updating app access password ..."
       echo -n "$_app_password" > /root/router_passwd
     fi
+
+    # Named devices file update - always do this to avoid file diff logic
+    log "FLASHMAN UPDATER" "Writing named devices file..."
+    echo -n "$_named_devices" > /root/named_devices
 
     # Blocked devices firewall update - always do this to avoid file diff logic
     log "FLASHMAN UPDATER" "Rewriting user firewall rules ..."
