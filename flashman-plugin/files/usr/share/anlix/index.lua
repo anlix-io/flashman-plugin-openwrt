@@ -243,7 +243,7 @@ function handle_request(env)
     if tonumber(app_protocol_ver) > 2 then
       error_handle(1, "Invalid Protocol Version", nil)
       return
-    else if tonumber(app_protocol_ver) == 1 then
+    elseif tonumber(app_protocol_ver) == 1 then
       blacklist_path = "/root/blacklist_mac"
     end
 
