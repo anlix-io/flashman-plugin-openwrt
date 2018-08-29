@@ -119,8 +119,8 @@ local function touch_file(path)
   return true
 end
 
-local function write_firewall_file()
-  local lines = read_lines("/tmp/blacklist_mac")
+local function write_firewall_file(blacklist_path)
+  local lines = read_lines(blacklist_path)
   local firewall_file = io.open("/etc/firewall.user", "wb")
   for index, line in ipairs(lines) do
     local mac = line:match("%x%x:%x%x:%x%x:%x%x:%x%x:%x%x")
@@ -235,13 +235,16 @@ function handle_request(env)
     local data = json.decode(post_data)
     local app_protocol_ver = data.version
     local app_id = data.app_id
+    local blacklist_path = "/tmp/blacklist_mac"
 
     if app_protocol_ver == nil then return end
     if app_id == nil then return end
 
-    if tonumber(app_protocol_ver) > 1 then
+    if tonumber(app_protocol_ver) > 2 then
       error_handle(1, "Invalid Protocol Version", nil)
       return
+    else if tonumber(app_protocol_ver) == 1 then
+      blacklist_path = "/root/blacklist_mac"
     end
 
     if command == "ping" then
@@ -357,8 +360,8 @@ function handle_request(env)
       local result = leases_to_json(leases)
       local blacklist = {}
       local named_devices = {}
-      if check_file("/tmp/blacklist_mac") then
-        blacklist = read_lines("/tmp/blacklist_mac")
+      if check_file(blacklist_path) then
+        blacklist = read_lines(blacklist_path)
       end
       if check_file("/tmp/named_devices") then
         named_devices = read_lines("/tmp/named_devices")
@@ -379,8 +382,8 @@ function handle_request(env)
         error_handle(11, "Error reading mac address")
         return
       end
-      append_to_file("/tmp/blacklist_mac", mac .. "|" .. id .. "\n")
-      write_firewall_file()
+      append_to_file(blacklist_path, mac .. "|" .. id .. "\n")
+      write_firewall_file(blacklist_path)
       run_process("/etc/init.d/firewall restart")
       resp["blacklisted"] = 1
       uhttpd.send("Status: 200 OK\r\n")
@@ -392,8 +395,8 @@ function handle_request(env)
         error_handle(11, "Error reading mac address")
         return
       end
-      remove_from_file("/tmp/blacklist_mac", mac)
-      write_firewall_file()
+      remove_from_file(blacklist_path, mac)
+      write_firewall_file(blacklist_path)
       run_process("/etc/init.d/firewall restart")
       resp["whitelisted"] = 1
       uhttpd.send("Status: 200 OK\r\n")

@@ -251,7 +251,7 @@ then
     fi
 
     # App password update
-    if [ "$_app_password" != "$APP_PASSWORD" ]
+    if ["$_app_password" != ""] && [ "$_app_password" != "$APP_PASSWORD" ]
     then
       log "FLASHMAN UPDATER" "Updating app access password ..."
       echo -n "$_app_password" > /root/router_passwd
