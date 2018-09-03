@@ -67,30 +67,6 @@ firstboot() {
     uci set firewall.@rule[-1].src="*"
     uci commit firewall
   fi
-  A=$(cat /etc/config/firewall | grep "anlix-negate-dns")
-  if [ -z "$A" ]
-  then
-    uci add firewall rule
-    uci set firewall.@rule[-1].enabled="1"
-    uci set firewall.@rule[-1].target="REJECT"
-    uci set firewall.@rule[-1].proto="all"
-    uci set firewall.@rule[-1].dest_port="53"
-    uci set firewall.@rule[-1].name="anlix-negate-dns"
-    uci set firewall.@rule[-1].src="wan"
-    uci commit firewall
-  fi
-  A=$(cat /etc/config/firewall | grep "anlix-negate-http")
-  if [ -z "$A" ]
-  then
-    uci add firewall rule
-    uci set firewall.@rule[-1].enabled="1"
-    uci set firewall.@rule[-1].target="REJECT"
-    uci set firewall.@rule[-1].proto="all"
-    uci set firewall.@rule[-1].dest_port="80"
-    uci set firewall.@rule[-1].name="anlix-negate-http"
-    uci set firewall.@rule[-1].src="wan"
-    uci commit firewall
-  fi
   log "FIRSTBOOT" "Firewall Configured"
 
   uci set dropbear.@dropbear[0]=dropbear
@@ -169,6 +145,7 @@ firstboot() {
   log "FIRSTBOOT" "Wireless set successfully"
 
   # Configure DHCP
+  uci add_list dhcp.@dnsmasq[0].interface='lan'
   uci set dhcp.lan.leasetime="1h"
   uci commit dhcp
 
@@ -218,6 +195,13 @@ firstboot() {
   fi
 
   #Configure uhttpd to use anlix scripts
+  uci delete uhttpd.main.listen_http
+  uci delete uhttpd.main.listen_https
+  uci add_list uhttpd.main.listen_https='anlixrouter:443'
+  uci set uhttpd.defaults.location='ANLIX'
+  uci set uhttpd.defaults.commonname='anlixrouter'
+  uci set uhttpd.defaults.state='rj'
+  uci set uhttpd.defaults.country='BR'
   uci set uhttpd.main.no_dirlists='1'
   uci set uhttpd.main.lua_prefix='/anlix'
   uci set uhttpd.main.lua_handler='/usr/share/anlix/index.lua'
