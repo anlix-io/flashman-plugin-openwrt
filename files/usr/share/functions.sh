@@ -4,6 +4,9 @@
 . /lib/functions/network.sh
 . /usr/share/libubox/jshn.sh
 
+ANLIX_PKG_VERSION=$(cat /etc/anlix_version)
+export ANLIX_PKG_VERSION
+
 log() {
   logger -t "$1 " "$2"
 }
