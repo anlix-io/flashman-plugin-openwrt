@@ -86,6 +86,11 @@ blink_leds () {
         echo 0 > /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:power/brightness  
         ledsoff=/sys/class/leds/$(cat /tmp/sysinfo/board_name)\:orange\:power             
         ;;
+      tl-wr840n-v4)
+        # Need to turn power off to avoid out-of-sync blink
+        echo 0 > /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:power/brightness
+        ledsoff=$(ls -d /sys/class/leds/*)
+        ;;
       tl-wr940n-v6)
         echo "none" > /sys/class/leds/tp-link\:blue\:wan/trigger
         echo 0 > /sys/class/leds/tp-link\:blue\:wan/brightness
