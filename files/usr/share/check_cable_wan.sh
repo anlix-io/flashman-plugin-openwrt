@@ -87,8 +87,8 @@ blink_leds () {
         ledsoff=/sys/class/leds/$(cat /tmp/sysinfo/board_name)\:orange\:power             
         ;;
       tl-wr940n-v6)
-        echo "none" > /sys/class/leds/tp-link\:blue\:wan
-        echo 0 > /sys/class/leds/tp-link\:blue\:wan
+        echo "none" > /sys/class/leds/tp-link\:blue\:wan/trigger
+        echo 0 > /sys/class/leds/tp-link\:blue\:wan/brightness
         ledsoff=/sys/class/leds/tp-link\:orange\:diag
   ;;
       tl-wr845n-v3 | archer-c20-v4)
