@@ -14,6 +14,12 @@ led_on () {
   fi
 }
 
+led_netdev () {
+  echo "netdev" > "$1"/trigger
+  echo "link tx rx" > "$1"/mode
+  echo "$2" > "$1"/device_name
+}
+
 reset_leds () {
   for trigger_path in $(ls -d /sys/class/leds/*)       
   do                                                   
@@ -32,6 +38,9 @@ reset_leds () {
         echo "0" >  /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:lan/port_mask
         echo "0x1e" > /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:lan/port_mask
       fi
+      ;;
+    tl-wr849n-v5 | tl-wr849n-v6)
+      led_netdev /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:power eth0.2
       ;;
     dl-dwr116-a3)
       led_on /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:status
@@ -81,11 +90,11 @@ blink_leds () {
         echo "none" > /sys/class/leds/tp-link\:blue\:wan
         echo 0 > /sys/class/leds/tp-link\:blue\:wan
         ledsoff=/sys/class/leds/tp-link\:orange\:diag
-	;;
+  ;;
       tl-wr845n-v3 | archer-c20-v4)
-	#we cant turn on orange and blue at same time in this model
-	ledsoff=$(ls -d /sys/class/leds/*green*)
-	;;
+  #we cant turn on orange and blue at same time in this model
+  ledsoff=$(ls -d /sys/class/leds/*green*)
+  ;;
       *)                                                                                  
         ledsoff=$(ls -d /sys/class/leds/*)                                                
         ;;                                                                                
