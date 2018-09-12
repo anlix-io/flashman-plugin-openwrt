@@ -14,6 +14,13 @@ led_on () {
   fi
 }
 
+led_off () {
+  if [ -f "$1"/trigger ]; then
+    echo "none" > "$trigger_path"/trigger
+    echo "0" > "$1"/brightness
+  fi
+}
+
 led_netdev () {
   echo "netdev" > "$1"/trigger
   echo "link tx rx" > "$1"/mode
@@ -23,8 +30,7 @@ led_netdev () {
 reset_leds () {
   for trigger_path in $(ls -d /sys/class/leds/*)       
   do                                                   
-    echo "none" > "$trigger_path"/trigger              
-    echo "0" > "$trigger_path"/brightness              
+    led_off "$trigger_path"              
   done
 
   /etc/init.d/led restart >/dev/nul
@@ -44,6 +50,12 @@ reset_leds () {
       ;;
     dl-dwr116-a3)
       led_on /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:status
+      ;;
+    tl-wr841n-v7)
+      led_on /sys/class/leds/tp-link\:green\:system
+      if [ -f /sys/class/leds/ath9k-phy0/trigger ]; then
+        echo "phy1tpt" > /sys/class/leds/ath9k-phy0/trigger
+      fi 
       ;;
     *)
       for system_led in /sys/class/leds/*system*
@@ -70,7 +82,7 @@ reset_leds () {
       #reset atheros 5G led
       if [ -f /sys/class/leds/ath9k-phy1/trigger ]; then
         echo "phy1tpt" > /sys/class/leds/ath9k-phy1/trigger
-      fi
+      fi      
       ;;
   esac
 
@@ -81,25 +93,27 @@ blink_leds () {
   if [ $do_restart -eq 0 ]                                                               
   then                                                                                   
     case $(cat /tmp/sysinfo/board_name) in                                               
-      tl-wr840n-v5 | tl-wr840n-v6 | tl-wr849n-v5 | tl-wr849n-v6)                         
-        echo "none" > /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:power/trigger
-        echo 0 > /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:power/brightness  
+      tl-wr840n-v5 | tl-wr840n-v6 | tl-wr849n-v5 | tl-wr849n-v6)
+        led_off /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:power                
         ledsoff=/sys/class/leds/$(cat /tmp/sysinfo/board_name)\:orange\:power             
         ;;
       tl-wr840n-v4)
         # Need to turn power off to avoid out-of-sync blink
-        echo 0 > /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:power/brightness
+        led_off /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:power
         ledsoff=$(ls -d /sys/class/leds/*)
         ;;
+      tl-wr741nd-v4 | tl-wr841n-v8)                                              
+        led_off /sys/class/leds/tp-link\:green\:system
+        ledsoff=$(ls -d /sys/class/leds/*)                      
+        ;; 
       tl-wr940n-v6)
-        echo "none" > /sys/class/leds/tp-link\:blue\:wan/trigger
-        echo 0 > /sys/class/leds/tp-link\:blue\:wan/brightness
+        led_off /sys/class/leds/tp-link\:blue\:wan
         ledsoff=/sys/class/leds/tp-link\:orange\:diag
-  ;;
+        ;;
       tl-wr845n-v3 | archer-c20-v4)
-  #we cant turn on orange and blue at same time in this model
-  ledsoff=$(ls -d /sys/class/leds/*green*)
-  ;;
+        #we cant turn on orange and blue at same time in this model
+        ledsoff=$(ls -d /sys/class/leds/*green*)
+        ;;
       *)                                                                                  
         ledsoff=$(ls -d /sys/class/leds/*)                                                
         ;;                                                                                
