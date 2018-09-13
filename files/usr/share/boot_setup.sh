@@ -109,7 +109,7 @@ firstboot() {
       uci set wireless.@wifi-iface[0].network="lan"
       uci set wireless.@wifi-iface[0].device="radio0"
 
-      if [ "$HARDWARE_MODEL" = "ArcherC20" ]
+      if [ "$HARDWARE_MODEL" = "ARCHERC20" ]
       then
         #5GHz
         uci set wireless.radio1=wifi-device
@@ -160,14 +160,14 @@ firstboot() {
     cp /sbin/mtkwifi /sbin/wifi
   fi
   
-  if [ "$HARDWARE_MODEL" = "ArcherC20" ]
-  then
-    rule_name=$(uci add system led_wlan5g) 
-    uci set system.$rule_name.name='wlan5g'
-    uci set system.$rule_name.sysfs='archer-c20-v4:green:wlan5g'
-    uci set system.$rule_name.trigger='netdev'
-    uci set system.$rule_name.dev='rai0'
-    uci set system.$rule_name.mode='link tx rx'    
+  if [ "$HARDWARE_MODEL" = "ARCHERC20" ]
+  then 
+    uci set system.led_wlan5g=led
+    uci set system.led_wlan5g.name='wlan5g'
+    uci set system.led_wlan5g.sysfs='archer-c20-v4:green:wlan5g'
+    uci set system.led_wlan5g.trigger='netdev'
+    uci set system.led_wlan5g.dev='rai0'
+    uci set system.led_wlan5g.mode='link tx rx'    
     uci commit
     /usr/bin/uci2dat -d radio1 -f /etc/Wireless/iNIC/iNIC_ap.dat > /dev/null
     LOWERMAC=$(echo $CLIENT_MAC | awk '{ print tolower($1) }')
