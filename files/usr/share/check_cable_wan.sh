@@ -111,6 +111,7 @@ blink_leds () {
         ledsoff=/sys/class/leds/tp-link\:orange\:diag
         ;;
       tl-wr845n-v3 | archer-c20-v4)
+        led_off /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:power
         #we cant turn on orange and blue at same time in this model
         ledsoff=$(ls -d /sys/class/leds/*green*)
         ;;
