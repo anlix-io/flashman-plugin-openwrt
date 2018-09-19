@@ -153,6 +153,29 @@ local function flashman_update(app_id, app_secret)
   end
 end
 
+local function save_router_passwd_flashman(passwd, app_id, app_secret)
+  local flashman_addr = get_flashman_server()
+  auth = {}
+  auth["id"]=get_router_id()
+  auth["secret"]=get_router_secret()
+  auth["app_id"]=app_id
+  auth["app_secret"]=app_secret
+  auth["router_passwd"]=passwd
+  post_data = json.encode(auth)
+
+  post_data = post_data:gsub("\"","\\\"")
+  cmd_curl = "curl -s --tlsv1.2 -X POST -H \"Content-Type:application/json\" -d \"".. post_data  .."\" https://".. flashman_addr .."/deviceinfo/app/addpass?api=1"
+
+  local result = run_process(cmd_curl)
+  local jres = json.decode(result)
+
+  if jres["is_registered"] == 1 then
+    return true
+  else
+    return false
+  end
+end
+
 local function get_key(id)
   return read_file("/tmp/" .. id)
 end
@@ -326,6 +349,13 @@ function handle_request(env)
       if new_passwd == nil then
         error_handle(3, "Invalid Parameters", auth)
         return
+      end
+
+      if passwd == nil then
+        if not save_router_passwd_flashman(new_passwd, app_id, secret) then
+          error_handle(4, "Error saving password", auth)
+          return
+        end
       end
 
       if not save_router_passwd(new_passwd) then
