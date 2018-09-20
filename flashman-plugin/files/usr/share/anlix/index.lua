@@ -171,6 +171,9 @@ local function save_router_passwd_flashman(passwd, app_id, app_secret)
 
   if jres["is_registered"] == 1 then
     return true
+  elseif jres["is_registered"] == nil then
+    -- Legacy flashman doesn't have the url, can't set password on flashman
+    return true
   else
     return false
   end
