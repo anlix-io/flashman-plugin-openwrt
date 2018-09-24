@@ -60,6 +60,7 @@ do
       json_load "$_res"
       json_get_var _do_update do_update
       json_get_var _do_newprobe do_newprobe
+      json_get_var _mqtt_status mqtt_status
       json_close_object
 
       if [ "$_do_newprobe" = "1" ]
@@ -82,6 +83,17 @@ do
         #More than 7 checks (>20 min), force a firmware update
         log "KEEPALIVE" "Running update ..."                                                                                                                                          
         sh /usr/share/flashman_update.sh
+      fi
+
+      if [ "$_mqtt_status" = "0" ]
+      then
+        #Check is mqtt is running
+        mqttpid=$(pgrep anlix-mqtt)
+        if [ $mqttpid -gt 0 ]
+        then
+          log "KEEPALIVE" "MQTT not connected to Flashman! Restarting..."
+          kill -9 $mqttpid
+        fi
       fi
     elif [ $_retstatus -eq 2 ]
     then

@@ -55,14 +55,18 @@ firstboot() {
   uci commit firewall
 
   # SSH access
-  uci add firewall rule
-  uci set firewall.@rule[-1].enabled="1"
-  uci set firewall.@rule[-1].target="ACCEPT"
-  uci set firewall.@rule[-1].proto="tcp"
-  uci set firewall.@rule[-1].dest_port="36022"
-  uci set firewall.@rule[-1].name="custom-ssh"
-  uci set firewall.@rule[-1].src="*"
-  uci commit firewall
+  A=$(cat /etc/config/firewall | grep "anlix-ssh\|custom-ssh") 
+  if [ -z "$A" ]
+  then 
+    uci add firewall rule
+    uci set firewall.@rule[-1].enabled="1"
+    uci set firewall.@rule[-1].target="ACCEPT"
+    uci set firewall.@rule[-1].proto="tcp"
+    uci set firewall.@rule[-1].dest_port="36022"
+    uci set firewall.@rule[-1].name="anlix-ssh"
+    uci set firewall.@rule[-1].src="*"
+    uci commit firewall
+  fi
   log "FIRSTBOOT" "Firewall Configured"
 
   uci set dropbear.@dropbear[0]=dropbear
@@ -87,7 +91,7 @@ firstboot() {
       setssid="$FLM_SSID$MAC_LAST_CHARS"
     fi
 
-    if [ "$SYSTEM_MODEL" == "MT7628AN" ]
+    if [ "$SYSTEM_MODEL" = "MT7628AN" ]
     then
       log "FIRSTBOOT" "Wireless MT7628AN"
       touch /etc/config/wireless
@@ -104,6 +108,24 @@ firstboot() {
       uci set wireless.@wifi-iface[0].mode="ap"
       uci set wireless.@wifi-iface[0].network="lan"
       uci set wireless.@wifi-iface[0].device="radio0"
+
+      if [ "$HARDWARE_MODEL" = "ARCHERC20" ]
+      then
+        #5GHz
+        uci set wireless.radio1=wifi-device
+        uci set wireless.@wifi-device[1].type="ralink"
+        uci set wireless.@wifi-device[1].txpower="100"
+        uci set wireless.@wifi-device[1].variant="mt7610e"
+        uci set wireless.@wifi-device[1].disabled="1"
+        uci set wireless.default_radio1=wifi-iface
+        uci set wireless.@wifi-iface[1].ifname="rai0"
+        uci set wireless.@wifi-iface[1].mode="ap"
+        uci set wireless.@wifi-iface[1].network="lan"
+        uci set wireless.@wifi-iface[1].device="radio1"
+        uci set wireless.@wifi-iface[1].ssid="$setssid"
+        uci set wireless.@wifi-iface[1].encryption="psk2"
+        uci set wireless.@wifi-iface[1].key="$FLM_PASSWD"
+      fi
     else
       uci set wireless.@wifi-device[0].type="mac80211"
       uci set wireless.@wifi-device[0].txpower="17"
@@ -126,21 +148,39 @@ firstboot() {
     uci commit wireless
   fi
 
-  if [ "$SYSTEM_MODEL" == "MT7628AN" ]
+  if [ "$SYSTEM_MODEL" = "MT7628AN" ]
   then
     uci set system.led_wifi_led.dev="ra0"
     uci set system.led_wlan2g.dev="ra0"
     uci commit system
-    /usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat
+    /usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat > /dev/null
     LOWERMAC=$(echo $CLIENT_MAC | awk '{ print tolower($1) }')
     insmod /lib/modules/`uname -r`/mt7628.ko mac=$LOWERMAC
     echo "mt7628 mac=$LOWERMAC" >> /etc/modules.d/50-mt7628
     cp /sbin/mtkwifi /sbin/wifi
   fi
+  
+  if [ "$HARDWARE_MODEL" = "ARCHERC20" ]
+  then 
+    uci set system.led_wlan5g=led
+    uci set system.led_wlan5g.name='wlan5g'
+    uci set system.led_wlan5g.sysfs='archer-c20-v4:green:wlan5g'
+    uci set system.led_wlan5g.trigger='netdev'
+    uci set system.led_wlan5g.dev='rai0'
+    uci set system.led_wlan5g.mode='link tx rx'    
+    uci commit
+    /usr/bin/uci2dat -d radio1 -f /etc/Wireless/iNIC/iNIC_ap.dat > /dev/null
+    LOWERMAC=$(echo $CLIENT_MAC | awk '{ print tolower($1) }')
+    insmod /lib/modules/`uname -r`/mt7610e.ko mac=$LOWERMAC
+    echo "mt7610e mac=$LOWERMAC" >> /etc/modules.d/51-mt7610e
+    cp /sbin/mtkwifi /sbin/wifi    
+  fi
+
   /sbin/wifi up
   log "FIRSTBOOT" "Wireless set successfully"
 
   # Configure DHCP
+  uci add_list dhcp.@dnsmasq[0].interface='lan'
   uci set dhcp.lan.leasetime="1h"
   uci commit dhcp
 
@@ -177,11 +217,6 @@ firstboot() {
 
   # Configure Zabbix
   sed -i "s%ZABBIX-SERVER-ADDR%$ZBX_SVADDR%" /etc/zabbix_agentd.conf
-  _count_logtype=$(grep -c "LogType" /etc/zabbix_agentd.conf)
-  if [ "$DISTRIBID" == "'LEDE'" ] && [ "$_count_logtype" -lt 1 ]
-  then
-    echo "LogType=system" >> /etc/zabbix_agentd.conf
-  fi
   if [ "$ZBX_SEND_DATA" == "y" ]
   then
     # Enable Zabbix
@@ -195,6 +230,14 @@ firstboot() {
   fi
 
   #Configure uhttpd to use anlix scripts
+  uci delete uhttpd.main.listen_http
+  uci delete uhttpd.main.listen_https
+  uci add_list uhttpd.main.listen_https='anlixrouter:443'
+  uci set uhttpd.defaults.location='ANLIX'
+  uci set uhttpd.defaults.commonname='anlixrouter'
+  uci set uhttpd.defaults.state='rj'
+  uci set uhttpd.defaults.country='BR'
+  uci set uhttpd.main.no_dirlists='1'
   uci set uhttpd.main.lua_prefix='/anlix'
   uci set uhttpd.main.lua_handler='/usr/share/anlix/index.lua'
   uci commit uhttpd

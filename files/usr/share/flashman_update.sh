@@ -218,7 +218,7 @@ then
     fi
 
     # WiFi update
-    if [ "$(uci get wireless.@wifi-device[0].disabled)" == "0" ] || [ "$SYSTEM_MODEL" == "MT7628AN" ]
+    if [ "$(uci get wireless.@wifi-device[0].disabled)" = "0" ] || [ "$SYSTEM_MODEL" = "MT7628AN" ]
     then
       if [ "$_wifi_ssid" != "" ] && [ "$_wifi_password" != "" ] && \
          [ "$_wifi_channel" != "" ]
@@ -232,7 +232,7 @@ then
           uci set wireless.@wifi-iface[0].key="$_wifi_password"
           uci set wireless.radio0.channel="$_wifi_channel"
           #5Ghz
-          if [ "$(uci get wireless.@wifi-device[1].disabled)" == "0" ]
+          if [ "$(uci get wireless.@wifi-device[1].disabled)" = "0" ] || [ "$HARDWARE_MODEL" = "ARCHERC20" ]
           then
             uci set wireless.@wifi-iface[1].ssid="$_wifi_ssid"
             uci set wireless.@wifi-iface[1].key="$_wifi_password"
@@ -241,7 +241,11 @@ then
 
           if [ "$SYSTEM_MODEL" == "MT7628AN" ]
           then
-            /usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat 
+            /usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat > /dev/null
+            if [ "$HARDWARE_MODEL" = "ARCHERC20" ]
+            then
+              /usr/bin/uci2dat -d radio1 -f /etc/Wireless/iNIC/iNIC_ap.dat > /dev/null
+            fi
             /sbin/mtkwifi reload
           else
             /etc/init.d/network restart

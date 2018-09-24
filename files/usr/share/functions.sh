@@ -4,6 +4,9 @@
 . /lib/functions/network.sh
 . /usr/share/libubox/jshn.sh
 
+ANLIX_PKG_VERSION=$(cat /etc/anlix_version)
+export ANLIX_PKG_VERSION
+
 log() {
   logger -t "$1 " "$2"
 }
@@ -228,7 +231,8 @@ set_mqtt_secret()
   then
     cat /root/mqtt_secret
   else
-    MQTTSEC=$(cat /dev/urandom | tr -dc _A-Z-a-z-0-9 | head -c${1:-32})
+    _rand=$(head /dev/urandom | tr -dc A-Z-a-z-0-9)
+    MQTTSEC=${_rand:0:32}
     _data="id=$CLIENT_MAC&mqttsecret=$MQTTSEC"                  
     _url="https://$FLM_SVADDR/deviceinfo/mqtt/add"                                                                     
     _res=$(rest_flashman "$_url" "$_data") 

@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=flasman-plugin
-PKG_VERSION:=0.8.4
+PKG_VERSION:=0.9.0
 PKG_RELEASE:=1
 
 PKG_LICENSE:=GPL
@@ -47,6 +47,16 @@ define Package/flashman-plugin
 			+iputils-ping6 \
 			+zabbix-agentd \
 			+zabbix-extra-network \
+			+wireless-tools \
+			+uhttpd \
+			+uhttpd-mod-lua \
+			+px5g-mbedtls \
+			+libustream-mbedtls \
+			+libuuid \
+			+libcares \
+			+rpcd \
+			+libuci-lua \
+			+libubus-lua \
 			+libmbedtls
 	MENU:=1
 endef
@@ -120,7 +130,7 @@ endif
 	echo 'ZBX_SEND_DATA=$(CONFIG_ZABBIX_SEND_DATA)' >>$(1)/usr/share/flashman_init.conf
 	echo 'ZBX_SVADDR=$(CONFIG_ZABBIX_SERVER_ADDR)' >>$(1)/usr/share/flashman_init.conf
 
-	echo 'ANLIX_PKG_VERSION=$(PKG_VERSION)' >>$(1)/usr/share/flashman_init.conf
+	echo $(PKG_VERSION) > $(1)/etc/anlix_version
 
 	mkdir -p $(1)/etc/dropbear
 	cat $(CONFIG_FLASHMAN_KEYS_PATH)/$(CONFIG_FLASHMAN_PUBKEY_FNAME) >>$(1)/etc/dropbear/authorized_keys
