@@ -269,8 +269,6 @@ function handle_request(env)
     if tonumber(app_protocol_ver) > 2 then
       error_handle(1, "Invalid Protocol Version", nil)
       return
-    elseif tonumber(app_protocol_ver) == 1 then
-      blacklist_path = "/root/blacklist_mac"
     end
 
     if command == "ping" then
@@ -290,6 +288,11 @@ function handle_request(env)
         info["router_has_passwd"] = 0
       end
       uhttpd.send(json.encode(info))
+      return
+    end
+
+    if tonumber(app_protocol_ver) == 1 then
+      error_handle(1, "Invalid Protocol Version", nil)
       return
     end
 
