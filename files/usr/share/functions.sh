@@ -56,29 +56,29 @@ resync_ntp()
 }
 
 #send data to flashman using rest api
-rest_flashman()                      
-{                                    
-  _url=$1                            
-  _data=$2                           
-                                     
+rest_flashman()
+{
+  _url=$1
+  _data=$2
+
   _res=$(curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
-     --tlsv1.2 --connect-timeout 5 --retry 1 --data "$_data&secret=$FLM_CLIENT_SECRET" "$_url")            
-              
+     --tlsv1.2 --connect-timeout 5 --retry 1 --data "$_data&secret=$FLM_CLIENT_SECRET" "https://$SERVER_ADDR/$_url")
+
   _curl_out=$?
 
-  if [ "$_curl_out" -eq 0 ]                                                          
-  then                                                                       
-    echo $_res                                                               
+  if [ "$_curl_out" -eq 0 ]
+  then
+    echo "$_res"
     return 0
   elif [ "$_curl_out" -eq 51 ]
   then
     # curl code 51 is bad certificate
-    return 2                                                                                                                           
+    return 2
   else
-    # other curl errors                                                           
-    return 1       
-  fi               
-} 
+    # other curl errors
+    return 1
+  fi
+}
 
 # Verify if connection is up.
 check_connectivity_flashman()
@@ -233,20 +233,20 @@ set_mqtt_secret()
   else
     _rand=$(head /dev/urandom | tr -dc A-Z-a-z-0-9)
     MQTTSEC=${_rand:0:32}
-    _data="id=$CLIENT_MAC&mqttsecret=$MQTTSEC"                  
-    _url="https://$FLM_SVADDR/deviceinfo/mqtt/add"                                                                     
+    _data="id=$CLIENT_MAC&mqttsecret=$MQTTSEC"
+    _url="deviceinfo/mqtt/add"
     _res=$(rest_flashman "$_url" "$_data") 
 
     json_load "$_res"
     json_get_var _is_registered is_registered
     json_close_object
 
-    if [ "$_is_registered" = "1" ]                                                                       
-    then                                                                                                 
+    if [ "$_is_registered" = "1" ]
+    then
       echo $MQTTSEC > /root/mqtt_secret
-      cat /root/mqtt_secret                                                                                     
+      cat /root/mqtt_secret
     fi
-  fi  
+  fi
 }
 
 reset_mqtt_secret()
