@@ -27,7 +27,7 @@ firstboot() {
 
   uci set system.ntp.enabled="1"
   uci set system.ntp.enable_server="0"
-  uci delete system.ntp.server
+  uci -q delete system.ntp.server
   uci add_list system.ntp.server="$NTP_SVADDR"
   uci commit system
   /etc/init.d/system restart
@@ -51,7 +51,6 @@ firstboot() {
   uci set firewall.@zone[1].input="ACCEPT"
   uci set firewall.@zone[1].output="ACCEPT"
   uci set firewall.@zone[1].forward="REJECT"
-  uci set firewall.@zone[1].network="wan"
   uci commit firewall
 
   # SSH access
@@ -68,6 +67,56 @@ firstboot() {
     uci commit firewall
   fi
   log "FIRSTBOOT" "Firewall Configured"
+
+  # DMZ
+  A=$(uci show firewall | grep "@zone\[.\].name='dmz'")
+  if [ -z "$A" ] 
+  then
+    uci set network.dmz=interface
+    uci set network.dmz.proto='static'
+    uci set network.dmz.netmask='255.255.255.0'
+    uci set network.dmz.ip6assign='60'
+    uci set network.dmz.ifname='@lan'
+    uci set network.dmz.ipaddr='192.168.43.1'
+    uci commit network
+
+    uci -q add firewall zone
+    uci set firewall.@zone[-1].name="dmz"
+    uci set firewall.@zone[-1].input="REJECT"
+    uci set firewall.@zone[-1].output="ACCEPT"
+    uci set firewall.@zone[-1].forward="REJECT"
+    uci set firewall.@zone[-1].subnet="192.168.43.0/24"
+
+    uci -q add firewall forwarding
+    uci set firewall.@forwarding[-1].src='dmz'
+    uci set firewall.@forwarding[-1].dest='wan'
+    uci add firewall forwarding
+    uci set firewall.@forwarding[-1].src='lan'
+    uci set firewall.@forwarding[-1].dest='dmz'
+
+    uci -q add firewall rule
+    uci set firewall.@rule[-1].name="dmz-dns"
+    uci set firewall.@rule[-1].src='dmz'
+    uci set firewall.@rule[-1].proto='tcpudp'
+    uci set firewall.@rule[-1].dest_port='53'
+    uci set firewall.@rule[-1].target='ACCEPT'
+
+    uci -q add firewall rule
+    uci set firewall.@rule[-1].name="dmz-dhcp"
+    uci set firewall.@rule[-1].src='dmz'
+    uci set firewall.@rule[-1].proto='udp'
+    uci set firewall.@rule[-1].dest_port='67'
+    uci set firewall.@rule[-1].target='ACCEPT'
+    uci commit firewall
+
+    uci set dhcp.dmz=dhcp
+    uci set dhcp.dmz.interface='dmz'
+    uci set dhcp.dmz.dynamicdhcp='0'
+    uci set dhcp.dmz.leasetime='1h'
+    uci commit dhcp
+
+    log "FIRSTBOOT" "DMZ Configured"
+  fi
 
   uci set dropbear.@dropbear[0]=dropbear
   uci set dropbear.@dropbear[0].PasswordAuth=off
@@ -180,6 +229,11 @@ firstboot() {
   log "FIRSTBOOT" "Wireless set successfully"
 
   # Configure DHCP
+  A=$(uci get dhcp.@dnsmasq[0].interface)
+  if [ "$A" ] 
+  then
+    uci delete dhcp.@dnsmasq[0].interface
+  fi
   uci add_list dhcp.@dnsmasq[0].interface='lan'
   uci set dhcp.lan.leasetime="1h"
   uci commit dhcp
@@ -188,7 +242,11 @@ firstboot() {
   uci set network.lan.ipaddr="10.0.10.1"
   uci set network.lan.netmask="255.255.255.0"
   uci commit network
-  echo "10.0.10.1 anlixrouter" >> /etc/hosts
+  A=$(grep "10.0.10.1 anlixrouter" /etc/hosts)
+  if [ ! "$A" ] 
+  then
+    echo "10.0.10.1 anlixrouter" >> /etc/hosts
+  fi
   /sbin/ifup lan
   log "FIRSTBOOT" "LAN Configured successfully"
 
@@ -205,6 +263,8 @@ firstboot() {
   fi
   uci commit network
   /etc/init.d/network restart
+  /etc/init.d/firewall restart
+  /etc/init.d/dnsmasq restart
   log "FIRSTBOOT" "WAN Configured successfully"
 
   # Set root password
