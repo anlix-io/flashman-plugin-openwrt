@@ -280,3 +280,73 @@ is_authenticated()
 
   return $_is_authenticated
 }
+
+add_static_ip() {
+  _mac=$1
+  _dmz=$2
+
+  A=$(grep "$_mac" /etc/ethers | awk '{print $2}')
+  if [ "$A" ] && [ "$_dmz" = "1" ] && [ "${A:0:10}" = "192.168.43" ] 
+  then
+    echo "$A"
+    return
+  fi
+
+  if [ "$A" ] && [ "$_dmz" = "0" ] && [ "${A:0:7}" = "10.0.10" ] 
+  then
+    echo "$A"
+    return
+  fi
+
+  [ "$A" ] && sed -i "/$_mac/d" /etc/ethers
+
+  if [ "$_dmz" = "1" ] 
+  then
+    NXDMZ=$(grep 192.168.43 /etc/ethers | awk '{print substr($2,length($2)-2,3)}' | tail -1) 
+    [ ! "$NXDMZ" ] && NXDMZ="101"
+    echo "$_mac 192.168.43.$NXDMZ" >> /etc/ethers
+    echo $NXDMZ
+  else
+    A=$(grep "$_mac" /tmp/dhcp.leases | awk '{print $3}')
+    if [ "$A" ] && [ "${A:0:7}" = "10.0.10" ]
+    then
+      echo "$_mac $A" >> /etc/ethers
+      echo "$A"
+    else
+      NXDMZ=$(grep 10.0.10 /etc/ethers | awk '{print substr($2,length($2)-2,2)}' | tail -1) 
+      [ ! "$NXDMZ" ] && NXDMZ="50"
+      echo "$_mac 10.0.10.$NXDMZ" >> /etc/ethers
+      echo "$NXDMZ"            
+    fi
+  fi
+}
+
+update_port_forward() {
+  CLIENT_MAC=$(get_mac)
+  log "PORT FORWARD" "Requesting Flashman ..."
+  _data="id=$CLIENT_MAC"
+  _url="deviceinfo/portforward/"
+  _res=$(rest_flashman "$_url" "$_data") 
+
+  _retstatus=$?
+  if [ $_retstatus -eq 0 ]
+  then
+    json_load "$_res"
+    json_select firewall_rules
+    INDEX="1"  
+    [ -f /etc/firewall.forward ] && rm /etc/firewall.forward
+    while json_get_type TYPE $INDEX && [ "$TYPE" = object ]; do
+      json_select "$((INDEX++))"
+      json_get_var _mac mac
+      json_get_var _port port
+      json_get_var _dmz dmz
+
+      IP=$(add_static_ip "$_mac" "$_dmz")
+      
+
+      json_select ".."
+    done
+    json_close_object
+  fi
+}
+

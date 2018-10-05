@@ -53,21 +53,6 @@ firstboot() {
   uci set firewall.@zone[1].forward="REJECT"
   uci commit firewall
 
-  # SSH access
-  A=$(cat /etc/config/firewall | grep "anlix-ssh\|custom-ssh") 
-  if [ -z "$A" ]
-  then 
-    uci add firewall rule
-    uci set firewall.@rule[-1].enabled="1"
-    uci set firewall.@rule[-1].target="ACCEPT"
-    uci set firewall.@rule[-1].proto="tcp"
-    uci set firewall.@rule[-1].dest_port="36022"
-    uci set firewall.@rule[-1].name="anlix-ssh"
-    uci set firewall.@rule[-1].src="*"
-    uci commit firewall
-  fi
-  log "FIRSTBOOT" "Firewall Configured"
-
   # DMZ
   A=$(uci show firewall | grep "@zone\[.\].name='dmz'")
   if [ -z "$A" ] 
@@ -107,6 +92,13 @@ firstboot() {
     uci set firewall.@rule[-1].proto='udp'
     uci set firewall.@rule[-1].dest_port='67'
     uci set firewall.@rule[-1].target='ACCEPT'
+
+    uci add firewall rule
+    uci set firewall.@rule[-1].target="DROP"
+    uci set firewall.@rule[-1].proto="tcp"
+    uci set firewall.@rule[-1].dest_port="36022"
+    uci set firewall.@rule[-1].name="dmz-block-ssh"
+    uci set firewall.@rule[-1].src="dmz"
     uci commit firewall
 
     uci set dhcp.dmz=dhcp
@@ -117,6 +109,47 @@ firstboot() {
 
     log "FIRSTBOOT" "DMZ Configured"
   fi
+
+  #Block Port Scan (stealth mode)
+  A=$(uci -X show firewall | grep "path='/etc/firewall.blockscan'" | awk -F '.' '{ print "firewall."$2 }')
+  if [ -z "$A" ]
+  then 
+    uci delete $A
+  fi
+  if [ -f /etc/firewall.blockscan ]
+  then
+    uci add firewall include
+    uci set firewall.@include[-1].path='/etc/firewall.blockscan'
+  fi
+
+  #Port Forward
+  A=$(uci -X show firewall | grep "path='/etc/firewall.forward'" | awk -F '.' '{ print "firewall."$2 }')
+  if [ -z "$A" ]
+  then 
+    uci delete $A
+  fi
+  if [ ! -f /etc/firewall.forward ]
+  then
+    touch /etc/firewall.forward
+  fi
+  uci add firewall include
+  uci set firewall.@include[-1].path='/etc/firewall.forward'
+  uci commit firewall
+
+  # SSH access 
+  A=$(uci -X show firewall | grep "firewall\..*\.name='\(anlix-ssh\|custom-ssh\)'" | awk -F '.' '{ print "firewall."$2 }')
+  if [ -z "$A" ]
+  then 
+    uci delete $A
+  fi
+  uci add firewall rule
+  uci set firewall.@rule[-1].enabled="1"
+  uci set firewall.@rule[-1].target="ACCEPT"
+  uci set firewall.@rule[-1].proto="tcp"
+  uci set firewall.@rule[-1].dest_port="36022"
+  uci set firewall.@rule[-1].name="anlix-ssh"
+  uci set firewall.@rule[-1].src="*"
+  uci commit firewall
 
   uci set dropbear.@dropbear[0]=dropbear
   uci set dropbear.@dropbear[0].PasswordAuth=off
