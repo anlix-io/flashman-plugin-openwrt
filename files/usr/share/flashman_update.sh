@@ -114,6 +114,8 @@ then
     json_get_var _wifi_password wifi_password
     json_get_var _wifi_channel wifi_channel
     json_get_var _app_password app_password
+    json_get_var _forward_index forward_index
+
     _blocked_macs=""
     _blocked_devices=""
     json_select blocked_devices
@@ -275,6 +277,9 @@ then
       echo "iptables -I FORWARD -m mac --mac-source $mac -j DROP" >> /etc/firewall.user
     done
     /etc/init.d/firewall restart
+
+    A=$(json_get_index "forward_index")
+    [ "$A" != "$_forward_index" ] && update_port_forward
 
     # Store completed command hash if one was provided
     if [ "$COMMANDHASH" != "" ]

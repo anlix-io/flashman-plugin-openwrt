@@ -281,43 +281,63 @@ is_authenticated()
   return $_is_authenticated
 }
 
+json_update_index() {
+  _index=$1
+  _json_var=$2
+
+  json_init
+  [ -f /etc/anlix_indexes ] && json_load "$(cat /etc/anlix_indexes)"
+  json_add_string "$_json_var" "$_index"
+  json_close_object
+  json_dump | sed "s/\"/\'/g" > /etc/anlix_indexes
+}
+
+json_get_index() {
+  _index=$1
+  _idx_val=""
+
+  if [ -f /etc/anlix_indexes ]
+  then
+    json_load "$(cat /etc/anlix_indexes)"
+    json_get_var _idx_val "$_index"
+    json_close_object
+  fi
+  echo "$_idx_val"
+}
+
 add_static_ip() {
   _mac=$1
   _dmz=$2
 
-  A=$(grep "$_mac" /etc/ethers | awk '{print $2}')
+  A=$(grep "$_mac" /tmp/dhcp.leases | awk '{print $3}')
+
+  #Device is online: use the same ip address
   if [ "$A" ] && [ "$_dmz" = "1" ] && [ "${A:0:10}" = "192.168.43" ] 
   then
+    echo "$_mac $A" >> /etc/ethers
     echo "$A"
     return
   fi
 
   if [ "$A" ] && [ "$_dmz" = "0" ] && [ "${A:0:7}" = "10.0.10" ] 
   then
+    echo "$_mac $A" >> /etc/ethers
     echo "$A"
     return
   fi
 
-  [ "$A" ] && sed -i "/$_mac/d" /etc/ethers
-
+  #Device is offline, choose an ip address 
   if [ "$_dmz" = "1" ] 
   then
-    NXDMZ=$(grep 192.168.43 /etc/ethers | awk '{print substr($2,length($2)-2,3)}' | tail -1) 
+    [ -f /etc/ethers ] && NXDMZ=$(grep 192.168.43 /etc/ethers | awk '{print substr($2,length($2)-2,3)}' | tail -1) 
     [ ! "$NXDMZ" ] && NXDMZ="101"
     echo "$_mac 192.168.43.$NXDMZ" >> /etc/ethers
-    echo $NXDMZ
+    echo "192.168.43.$NXDMZ"
   else
-    A=$(grep "$_mac" /tmp/dhcp.leases | awk '{print $3}')
-    if [ "$A" ] && [ "${A:0:7}" = "10.0.10" ]
-    then
-      echo "$_mac $A" >> /etc/ethers
-      echo "$A"
-    else
-      NXDMZ=$(grep 10.0.10 /etc/ethers | awk '{print substr($2,length($2)-2,2)}' | tail -1) 
-      [ ! "$NXDMZ" ] && NXDMZ="50"
-      echo "$_mac 10.0.10.$NXDMZ" >> /etc/ethers
-      echo "$NXDMZ"            
-    fi
+    [ -f /etc/ethers ] && NXDMZ=$(grep 10.0.10 /etc/ethers | awk '{print substr($2,length($2)-2,2)}' | tail -1) 
+    [ ! "$NXDMZ" ] && NXDMZ="50"
+    echo "$_mac 10.0.10.$NXDMZ" >> /etc/ethers
+    echo "10.0.10.$NXDMZ"            
   fi
 }
 
@@ -325,28 +345,62 @@ update_port_forward() {
   CLIENT_MAC=$(get_mac)
   log "PORT FORWARD" "Requesting Flashman ..."
   _data="id=$CLIENT_MAC"
-  _url="deviceinfo/portforward/"
+  _url="deviceinfo/get/portforward/"
   _res=$(rest_flashman "$_url" "$_data") 
 
   _retstatus=$?
   if [ $_retstatus -eq 0 ]
   then
     json_load "$_res"
-    json_select firewall_rules
-    INDEX="1"  
-    [ -f /etc/firewall.forward ] && rm /etc/firewall.forward
+    json_get_var _FLASHIDX forward_index
+
+    [ -f /etc/ethers ] && rm /etc/ethers
+
+    #remove old forward rules
+    A=$(uci -X show firewall | grep ".name='anlix_forward_.*'") 
+    for i in $A 
+    do 
+      B=$(echo "$i"|awk -F '.' '{ print "firewall."$2}')
+      uci delete "$B"
+    done
+
+    json_select forward_rules
+    INDEX="1" 
+    IDX=1
     while json_get_type TYPE $INDEX && [ "$TYPE" = object ]; do
       json_select "$((INDEX++))"
       json_get_var _mac mac
-      json_get_var _port port
       json_get_var _dmz dmz
-
       IP=$(add_static_ip "$_mac" "$_dmz")
-      
 
+      json_select ports
+      PORTIDX=1
+      while json_get_type TYPE $PORTIDX && [ "$TYPE" = int ]; do
+        json_get_var _port "$((PORTIDX++))"
+        uci add firewall redirect
+        uci set firewall.@redirect[-1].src='wan'
+        uci set firewall.@redirect[-1].src_dport="$_port" 
+        uci set firewall.@redirect[-1].proto='tcpudp'
+        if [ "$_dmz" = 1 ]
+        then
+          uci set firewall.@redirect[-1].dest='dmz'
+        else
+          uci set firewall.@redirect[-1].dest='lan'
+        fi
+        uci set firewall.@redirect[-1].dest_ip="$IP"
+        uci set firewall.@redirect[-1].target="DNAT"
+        uci set firewall.@redirect[-1].name="anlix_forward_$((IDX++))"
+        json_select ".."
+      done
       json_select ".."
     done
     json_close_object
+    uci commit firewall
+    /etc/init.d/dnsmasq reload
+    /etc/init.d/firewall reload 
+
+    #Save index
+    json_update_index "$_FLASHIDX" "forward_index"
   fi
 }
 
