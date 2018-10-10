@@ -373,9 +373,9 @@ update_port_forward() {
       json_get_var _dmz dmz
       IP=$(add_static_ip "$_mac" "$_dmz")
 
-      json_select ports
+      json_select port
       PORTIDX=1
-      while json_get_type TYPE $PORTIDX && [ "$TYPE" = int ]; do
+      while json_get_type TYPEPORT $PORTIDX && [ "$TYPEPORT" = int ]; do
         json_get_var _port "$((PORTIDX++))"
         uci add firewall redirect
         uci set firewall.@redirect[-1].src='wan'
@@ -390,7 +390,6 @@ update_port_forward() {
         uci set firewall.@redirect[-1].dest_ip="$IP"
         uci set firewall.@redirect[-1].target="DNAT"
         uci set firewall.@redirect[-1].name="anlix_forward_$((IDX++))"
-        json_select ".."
       done
       json_select ".."
     done
