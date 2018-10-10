@@ -121,19 +121,6 @@ firstboot() {
     uci add firewall include
     uci set firewall.@include[-1].path='/etc/firewall.blockscan'
   fi
-
-  #Port Forward
-  A=$(uci -X show firewall | grep "path='/etc/firewall.forward'" | awk -F '.' '{ print "firewall."$2 }')
-  if [ -z "$A" ]
-  then 
-    uci delete $A
-  fi
-  if [ ! -f /etc/firewall.forward ]
-  then
-    touch /etc/firewall.forward
-  fi
-  uci add firewall include
-  uci set firewall.@include[-1].path='/etc/firewall.forward'
   uci commit firewall
 
   # SSH access 
