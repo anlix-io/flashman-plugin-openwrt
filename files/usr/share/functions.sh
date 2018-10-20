@@ -330,7 +330,7 @@ add_static_ip() {
   if [ "$_dmz" = "1" ] 
   then
     [ -f /etc/ethers ] && NXDMZ=$(grep 192.168.43 /etc/ethers | awk '{print substr($2,length($2)-2,3)}' | tail -1) 
-    [ ! "$NXDMZ" ] && NXDMZ="101"
+    [ ! "$NXDMZ" ] && NXDMZ="130"
     echo "$_mac 192.168.43.$NXDMZ" >> /etc/ethers
     echo "192.168.43.$NXDMZ"
   else
@@ -403,3 +403,35 @@ update_port_forward() {
   fi
 }
 
+get_online_devices() {
+  MACSDHCP=$(awk '{ print $2 }' /tmp/dhcp.leases)
+  IPSDHCP=$(awk '{ print $3 }' /tmp/dhcp.leases)
+  NAMESDHCP=$(awk '{ if ($4=="*") print "!"; else print $4 }' /tmp/dhcp.leases) 
+
+  json_init
+  json_add_object "Devices"
+  idx=1 
+  for i in $MACSDHCP
+  do
+    json_add_object "$i"
+    json_add_string "ip" "$(echo $IPSDHCP | awk -v N=$idx '{ print $N }')"  
+    json_add_string "hostname" "$(echo $NAMESDHCP | awk -v N=$idx '{ print $N }')"
+    idx=$((idx+1))
+    json_close_object
+  done
+  json_close_object
+  json_dump 
+}
+
+send_online_devices() {
+  CLIENT_MAC=$(get_mac)
+
+  _res=$(get_online_devices | curl -s --tlsv1.2 --connect-timeout 5 --retry 1 -H "Content-Type: application/json" \
+  -H "X-ANLIX-ID: $CLIENT_MAC" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" --data @- "https://$FLM_SVADDR/deviceinfo/receive/devices")
+
+  json_load "$_res"
+  json_get_var _processed processed
+  json_close_object
+
+  return $_processed
+}

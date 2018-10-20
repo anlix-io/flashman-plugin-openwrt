@@ -70,7 +70,7 @@ firstboot() {
     uci set firewall.@zone[-1].input="REJECT"
     uci set firewall.@zone[-1].output="ACCEPT"
     uci set firewall.@zone[-1].forward="REJECT"
-    uci set firewall.@zone[-1].subnet="192.168.43.0/24"
+    uci set firewall.@zone[-1].subnet="192.168.43.128/25"
 
     uci -q add firewall forwarding
     uci set firewall.@forwarding[-1].src='dmz'
@@ -92,14 +92,6 @@ firstboot() {
     uci set firewall.@rule[-1].proto='udp'
     uci set firewall.@rule[-1].dest_port='67'
     uci set firewall.@rule[-1].target='ACCEPT'
-
-    uci add firewall rule
-    uci set firewall.@rule[-1].target="DROP"
-    uci set firewall.@rule[-1].proto="tcp"
-    uci set firewall.@rule[-1].dest_port="36022"
-    uci set firewall.@rule[-1].name="dmz-block-ssh"
-    uci set firewall.@rule[-1].src="dmz"
-    uci commit firewall
 
     uci set dhcp.dmz=dhcp
     uci set dhcp.dmz.interface='dmz'
@@ -135,13 +127,23 @@ firstboot() {
   uci set firewall.@rule[-1].proto="tcp"
   uci set firewall.@rule[-1].dest_port="36022"
   uci set firewall.@rule[-1].name="anlix-ssh"
-  uci set firewall.@rule[-1].src="*"
+  uci set firewall.@rule[-1].src="wan"
   uci commit firewall
 
+  [ "$(uci get dropbear.@dropbear[0])" != 'dropbear' ] && uci add dropbear dropbear
   uci set dropbear.@dropbear[0]=dropbear
   uci set dropbear.@dropbear[0].PasswordAuth=off
   uci set dropbear.@dropbear[0].RootPasswordAuth=off
   uci set dropbear.@dropbear[0].Port=36022
+  uci set dropbear.@dropbear[0].Interface=wan
+
+  [ "$(uci get dropbear.@dropbear[1])" != 'dropbear' ] && uci add dropbear dropbear
+  uci set dropbear.@dropbear[1]=dropbear
+  uci set dropbear.@dropbear[1].PasswordAuth=off
+  uci set dropbear.@dropbear[1].RootPasswordAuth=off
+  uci set dropbear.@dropbear[1].Port=36022
+  uci set dropbear.@dropbear[1].Interface=lan
+
   uci commit dropbear
   /etc/init.d/dropbear restart
   log "FIRSTBOOT" "Dropbear Configured"
