@@ -57,7 +57,8 @@ define Package/flashman-plugin
 			+rpcd \
 			+libuci-lua \
 			+libubus-lua \
-			+libmbedtls
+			+libmbedtls \
+			+iptables-mod-conntrack-extra
 	MENU:=1
 endef
 

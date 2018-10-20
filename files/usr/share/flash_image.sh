@@ -46,7 +46,7 @@ run_reflash()
     if get_image "$_sv_address" "$_release_id"
     then
       echo "$_release_id" > /root/upgrade_info
-      tar -zcf /tmp/config.tar.gz /etc/config /root/router_passwd /root/mqtt_secret /root/custom_connection_type /root/upgrade_info
+      tar -zcf /tmp/config.tar.gz /etc/config/wireless /root/router_passwd /root/mqtt_secret /root/custom_connection_type /root/upgrade_info
       rm -f /root/upgrade_info
       if sysupgrade -T "/tmp/"$_vendor"_"$_model"_"$_ver"_"$_release_id".bin"
       then

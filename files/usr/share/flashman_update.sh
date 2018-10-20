@@ -96,7 +96,7 @@ then
   NTP_INFO=$(ntp_anlix)
 
   _data="id=$CLIENT_MAC&flm_updater=1&version=$ANLIX_PKG_VERSION&model=$HARDWARE_MODEL&model_ver=$HARDWARE_VER&release_id=$FLM_RELID&pppoe_user=$PPPOE_USER&pppoe_password=$PPPOE_PASSWD&wan_ip=$WAN_IP_ADDR&wifi_ssid=$WIFI_SSID&wifi_password=$WIFI_PASSWD&wifi_channel=$WIFI_CHANNEL&connection_type=$WAN_CONNECTION_TYPE&ntp=$NTP_INFO&hardreset=$HARDRESET&upgfirm=$UPGRADEFIRMWARE"
-  _url="https://$SERVER_ADDR/deviceinfo/syn/"
+  _url="deviceinfo/syn/"
   _res=$(rest_flashman "$_url" "$_data") 
 
   if [ "$?" -eq 1 ]
@@ -114,6 +114,8 @@ then
     json_get_var _wifi_password wifi_password
     json_get_var _wifi_channel wifi_channel
     json_get_var _app_password app_password
+    json_get_var _forward_index forward_index
+
     _blocked_macs=""
     _blocked_devices=""
     json_select blocked_devices
@@ -138,21 +140,21 @@ then
     _named_devices=${_named_devices::-1}
     json_close_object
 
-    if [ "$HARDRESET" == "1" ]
+    if [ "$HARDRESET" = "1" ]
     then
       rm /root/hard_reset
     fi
 
-    if [ "$UPGRADEFIRMWARE" == "1" ]
+    if [ "$UPGRADEFIRMWARE" = "1" ]
     then
       rm /root/upgrade_info
     fi
 
-    if [ "$_do_newprobe" == "1" ]
+    if [ "$_do_newprobe" = "1" ]
     then
       log "FLASHMAN UPDATER" "Router Registred in Flashman Successfully!"
       #on a new probe, force a new registry in mqtt secret
-      reset_mqtt_secret
+      reset_mqtt_secret > /dev/null
     fi
 
     # send boot log information if boot is completed and probe is registred!
@@ -279,6 +281,9 @@ then
       echo "iptables -I FORWARD -m mac --mac-source $mac -j DROP" >> /etc/firewall.user
     done
     /etc/init.d/firewall restart
+
+    A=$(json_get_index "forward_index")
+    [ "$A" != "$_forward_index" ] && update_port_forward
 
     # Store completed command hash if one was provided
     if [ "$COMMANDHASH" != "" ]
