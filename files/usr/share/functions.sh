@@ -330,12 +330,12 @@ add_static_ip() {
   if [ "$_dmz" = "1" ] 
   then
     [ -f /etc/ethers ] && NXDMZ=$(grep 192.168.43 /etc/ethers | awk '{print substr($2,length($2)-2,3)}' | tail -1) 
-    [ ! "$NXDMZ" ] && NXDMZ="130"
+    [ ! "$NXDMZ" ] && NXDMZ="130" || NXDMZ=$((NXDMZ+1))
     echo "$_mac 192.168.43.$NXDMZ" >> /etc/ethers
     echo "192.168.43.$NXDMZ"
   else
-    [ -f /etc/ethers ] && NXDMZ=$(grep 10.0.10 /etc/ethers | awk '{print substr($2,length($2)-2,2)}' | tail -1) 
-    [ ! "$NXDMZ" ] && NXDMZ="50"
+    [ -f /etc/ethers ] && NXDMZ=$(grep 10.0.10 /etc/ethers | awk '{print substr($2,length($2)-1,2)}' | tail -1) 
+    [ ! "$NXDMZ" ] && NXDMZ="50" || NXDMZ=$((NXDMZ+1))
     echo "$_mac 10.0.10.$NXDMZ" >> /etc/ethers
     echo "10.0.10.$NXDMZ"            
   fi
@@ -391,6 +391,7 @@ update_port_forward() {
         uci set firewall.@redirect[-1].target="DNAT"
         uci set firewall.@redirect[-1].name="anlix_forward_$((IDX++))"
       done
+      json_select ".."
       json_select ".."
     done
     json_close_object
