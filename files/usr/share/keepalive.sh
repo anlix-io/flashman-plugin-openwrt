@@ -50,7 +50,7 @@ do
 
      log "KEEPALIVE" "Ping Flashman ..."
     _data="id=$CLIENT_MAC&flm_updater=0&version=$ANLIX_PKG_VERSION&model=$HARDWARE_MODEL&model_ver=$HARDWARE_VER&release_id=$FLM_RELID&pppoe_user=$PPPOE_USER&pppoe_password=$PPPOE_PASSWD&wan_ip=$WAN_IP_ADDR&wifi_ssid=$WIFI_SSID&wifi_password=$WIFI_PASSWD&wifi_channel=$WIFI_CHANNEL&connection_type=$WAN_CONNECTION_TYPE&ntp=$NTP_INFO"
-    _url="https://$SERVER_ADDR/deviceinfo/syn/"
+    _url="deviceinfo/syn/"
     _res=$(rest_flashman "$_url" "$_data") 
 
     _retstatus=$?
@@ -67,7 +67,7 @@ do
       then
         log "KEEPALIVE" "Router Registred in Flashman Successfully!"
         #on a new probe, force a new registry in mqtt secret
-        reset_mqtt_secret
+        reset_mqtt_secret > /dev/null
         sh /usr/share/flashman_update.sh
       fi
 
@@ -89,7 +89,7 @@ do
       then
         #Check is mqtt is running
         mqttpid=$(pgrep anlix-mqtt)
-        if [ $mqttpid -gt 0 ]
+        if [ "$mqttpid" ] && [ $mqttpid -gt 0 ]
         then
           log "KEEPALIVE" "MQTT not connected to Flashman! Restarting..."
           kill -9 $mqttpid

@@ -38,6 +38,16 @@ local function get_flashman_server()
   return result:sub(1,-2)
 end
 
+local function check_file(path)
+  local file = io.open(path, "rb")
+  if not file then
+    return false
+  else
+    file:close()
+    return true
+  end
+end
+
 local function read_file(path)
   local file = io.open(path, "rb")
   if not file then return nil end
@@ -47,13 +57,30 @@ local function read_file(path)
 end
 
 local function read_lines(path)
+  if not check_file(path) then return nil end
   local file = io.lines(path)
-  if not file then return nil end
   local content = {}
   for line in file do
     table.insert(content, line)
   end
   return content
+end
+
+local function trim_file(path)
+  if not check_file(path) then return end
+  local file = io.lines(path)
+  local content = {}
+  local line_count = 0
+  for line in file do
+    table.insert(content, line)
+    line_count = line_count + 1
+  end
+  file = io.open(path, "wb")
+  for index, line in ipairs(content) do
+    if (index > 1 or line_count <= 5) then
+      file:write(line .. "\n")
+    end
+  end
 end
 
 local function append_to_file(path, content)
@@ -65,12 +92,15 @@ local function append_to_file(path, content)
 end
 
 local function remove_from_file(path, data)
+  if not check_file(path) then return false end
   local file = io.lines(path)
-  if not file then return false end
+  local ret = false
   local content = {}
   for line in file do
     if not line:match(data) then
       table.insert(content, line)
+    else
+      ret = true
     end
   end
   file = io.open(path, "wb")
@@ -78,7 +108,7 @@ local function remove_from_file(path, data)
     file:write(line .. "\n")
   end
   file:close()
-  return true
+  return ret
 end
 
 local function touch_file(path)
@@ -89,13 +119,13 @@ local function touch_file(path)
   return true
 end
 
-local function check_file(path)
-  local file = io.open(path, "rb")
-  if not file then
-    return false
-  else
-    file:close()
-    return true
+local function write_firewall_file(blacklist_path)
+  local lines = read_lines(blacklist_path)
+  local firewall_file = io.open("/etc/firewall.user", "wb")
+  for index, line in ipairs(lines) do
+    local mac = line:match("%x%x:%x%x:%x%x:%x%x:%x%x:%x%x")
+    local rule = "iptables -I FORWARD -m mac --mac-source " .. mac .. " -j DROP"
+    firewall_file:write(rule .. "\n")
   end
 end
 
@@ -117,6 +147,32 @@ local function flashman_update(app_id, app_secret)
   local jres = json.decode(result)
 
   if jres["is_registered"] == 1 then
+    return true
+  else
+    return false
+  end
+end
+
+local function save_router_passwd_flashman(passwd, app_id, app_secret)
+  local flashman_addr = get_flashman_server()
+  auth = {}
+  auth["id"]=get_router_id()
+  auth["secret"]=get_router_secret()
+  auth["app_id"]=app_id
+  auth["app_secret"]=app_secret
+  auth["router_passwd"]=passwd
+  post_data = json.encode(auth)
+
+  post_data = post_data:gsub("\"","\\\"")
+  cmd_curl = "curl -s --tlsv1.2 -X POST -H \"Content-Type:application/json\" -d \"".. post_data  .."\" https://".. flashman_addr .."/deviceinfo/app/addpass?api=1"
+
+  local result = run_process(cmd_curl)
+  local jres = json.decode(result)
+
+  if jres["is_registered"] == 1 then
+    return true
+  elseif jres["is_registered"] == nil then
+    -- Legacy flashman doesn't have the url, can't set password on flashman
     return true
   else
     return false
@@ -163,23 +219,23 @@ local function leases_to_json(leases)
   return json.encode(result)
 end
 
-local function write_firewall_file()
-  local lines = read_lines("/root/blacklist_mac")
-  local firewall_file = io.open("/etc/firewall.user", "wb")
-  for index, line in ipairs(lines) do
-    local mac = line:match("%x%x:%x%x:%x%x:%x%x:%x%x:%x%x")
-    local rule = "iptables -I FORWARD -m mac --mac-source " .. mac .. " -j DROP"
-    firewall_file:write(rule .. "\n")
-  end
-end
-
-local function separate_fields(blacklist)
+local function separate_fields(devices)
   local result = {}
-  for index, info in ipairs(blacklist) do
+  for index, info in ipairs(devices) do
     local device = {}
     device.mac = info:match("%x%x:%x%x:%x%x:%x%x:%x%x:%x%x")
     device.id = info:match("|.+"):sub(2)
     table.insert(result, device)
+  end
+  return result
+end
+
+local function separate_keys(devices)
+  local result = {}
+  for index, info in ipairs(devices) do
+    local mac = info:match("%x%x:%x%x:%x%x:%x%x:%x%x:%x%x")
+    local name = info:match("|.+"):sub(2)
+    result[mac] = name
   end
   return result
 end
@@ -205,11 +261,12 @@ function handle_request(env)
     local data = json.decode(post_data)
     local app_protocol_ver = data.version
     local app_id = data.app_id
+    local blacklist_path = "/tmp/blacklist_mac"
 
     if app_protocol_ver == nil then return end
     if app_id == nil then return end
 
-    if tonumber(app_protocol_ver) > 1 then
+    if tonumber(app_protocol_ver) > 2 then
       error_handle(1, "Invalid Protocol Version", nil)
       return
     end
@@ -224,13 +281,18 @@ function handle_request(env)
       if(system_model == nil) then system_model = "INVALID MODEL" end
       info = {}
       info["anlix_model"] = system_model
-      info["protocol_version"] = 1.0
+      info["protocol_version"] = 2.0
       if passwd ~= nil then
         info["router_has_passwd"] = 1
       else
         info["router_has_passwd"] = 0
       end
       uhttpd.send(json.encode(info))
+      return
+    end
+
+    if tonumber(app_protocol_ver) == 1 then
+      error_handle(1, "Invalid Protocol Version", nil)
       return
     end
 
@@ -295,6 +357,13 @@ function handle_request(env)
         return
       end
 
+      if passwd == nil then
+        if not save_router_passwd_flashman(new_passwd, app_id, secret) then
+          error_handle(4, "Error saving password", auth)
+          return
+        end
+      end
+
       if not save_router_passwd(new_passwd) then
         error_handle(4, "Error saving password", auth)
         return
@@ -326,12 +395,18 @@ function handle_request(env)
       local leases = read_lines("/tmp/dhcp.leases")
       local result = leases_to_json(leases)
       local blacklist = {}
-      if check_file("/root/blacklist_mac") then
-        blacklist = read_lines("/root/blacklist_mac")
+      local named_devices = {}
+      if check_file(blacklist_path) then
+        blacklist = read_lines(blacklist_path)
+      end
+      if check_file("/tmp/named_devices") then
+        named_devices = read_lines("/tmp/named_devices")
       end
       local blacklist_info = separate_fields(blacklist)
+      local named_devices_info = separate_keys(named_devices)
       resp["leases"] = result
       resp["blacklist"] = json.encode(blacklist_info)
+      resp["named_devices"] = json.encode(named_devices_info)
       resp["origin"] = env.REMOTE_ADDR
       uhttpd.send("Status: 200 OK\r\n")
       uhttpd.send("Content-Type: text/json\r\n\r\n")
@@ -343,8 +418,8 @@ function handle_request(env)
         error_handle(11, "Error reading mac address")
         return
       end
-      append_to_file("/root/blacklist_mac", mac .. "|" .. id .. "\n")
-      write_firewall_file()
+      append_to_file(blacklist_path, mac .. "|" .. id .. "\n")
+      write_firewall_file(blacklist_path)
       run_process("/etc/init.d/firewall restart")
       resp["blacklisted"] = 1
       uhttpd.send("Status: 200 OK\r\n")
@@ -356,10 +431,28 @@ function handle_request(env)
         error_handle(11, "Error reading mac address")
         return
       end
-      remove_from_file("/root/blacklist_mac", mac)
-      write_firewall_file()
+      remove_from_file(blacklist_path, mac)
+      write_firewall_file(blacklist_path)
       run_process("/etc/init.d/firewall restart")
       resp["whitelisted"] = 1
+      uhttpd.send("Status: 200 OK\r\n")
+      uhttpd.send("Content-Type: text/json\r\n\r\n")
+      uhttpd.send(json.encode(resp))
+    elseif command == "setHashCommand" then
+      local hash = data.command_hash
+      local timeout = data.command_timeout
+      local epoch_timeout = os.time() + timeout - 1
+      append_to_file("/root/to_do_hashes", hash .. " " .. epoch_timeout .. "\n")
+      trim_file("/root/to_do_hashes")
+      trim_file("/root/done_hashes")
+      resp["is_set"] = 1
+      uhttpd.send("Status: 200 OK\r\n")
+      uhttpd.send("Content-Type: text/json\r\n\r\n")
+      uhttpd.send(json.encode(resp))
+    elseif command == "getHashCommand" then
+      local hash = data.command_hash
+      local is_done = remove_from_file("/root/done_hashes", hash)
+      resp["command_done"] = is_done
       uhttpd.send("Status: 200 OK\r\n")
       uhttpd.send("Content-Type: text/json\r\n\r\n")
       uhttpd.send(json.encode(resp))

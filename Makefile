@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=flasman-plugin
-PKG_VERSION:=0.9.0
+PKG_VERSION:=0.10.0
 PKG_RELEASE:=1
 
 PKG_LICENSE:=GPL
@@ -57,7 +57,8 @@ define Package/flashman-plugin
 			+rpcd \
 			+libuci-lua \
 			+libubus-lua \
-			+libmbedtls
+			+libmbedtls \
+			+iptables-mod-conntrack-extra
 	MENU:=1
 endef
 

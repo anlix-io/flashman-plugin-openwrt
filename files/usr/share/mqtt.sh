@@ -6,7 +6,7 @@
 case "$1" in
 1)
   log "MQTTMSG" "Running Update"
-  sh /usr/share/flashman_update.sh
+  sh /usr/share/flashman_update.sh $2
   ;;
 boot)
   log "MQTTMSG" "Rebooting"
@@ -23,6 +23,10 @@ rstapp)
 log)
   log "MQTTMSG" "Sending LIVE log "
   send_boot_log "live"
+  ;;
+onlinedev)
+  log "MQTTMSG" "Sending Online Devices.."
+  send_online_devices 
   ;;
 *)
   log "MQTTMSG" "Cant recognize message: $1"
