@@ -45,8 +45,19 @@ run_reflash()
     clean_memory
     if get_image "$_sv_address" "$_release_id"
     then
+      # Save pppoe user and pass if current conn type is pppoe
+      local _wan_proto_value=$(uci get network.wan.proto)
+      if [ "$_wan_proto_value" = "pppoe" ]
+      then
+        local _pppoe_user=$(uci get network.wan.username)
+        local _pppoe_password=$(uci get network.wan.password)
+        echo "$_pppoe_user" > /root/custom_pppoe_user
+        echo "$_pppoe_password" > /root/custom_pppoe_password
+      fi
       echo "$_release_id" > /root/upgrade_info
-      tar -zcf /tmp/config.tar.gz /etc/config/wireless /root/router_passwd /root/mqtt_secret /root/custom_connection_type /root/upgrade_info
+      tar -zcf /tmp/config.tar.gz /etc/config/wireless /root/router_passwd \
+               /root/mqtt_secret /root/custom_connection_type /root/upgrade_info \
+               /root/custom_pppoe_user /root/custom_pppoe_password
       rm -f /root/upgrade_info
       if sysupgrade -T "/tmp/"$_vendor"_"$_model"_"$_ver"_"$_release_id".bin"
       then
