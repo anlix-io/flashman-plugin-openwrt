@@ -283,6 +283,16 @@ firstboot() {
     uci set network.wan.password="$FLM_WAN_PPPOE_PASSWD"
     uci set network.wan.service="$FLM_WAN_PPPOE_SERVICE"
   fi
+  # Check for custom pppoe credentials
+  if [ "$custom_connection_type" = "pppoe" ] && [ -f  /root/custom_pppoe_user ] && [ -f  /root/custom_pppoe_password ]
+  then
+    _custom_pppoe_user=$(cat /root/custom_pppoe_user)
+    _custom_pppoe_password=$(cat /root/custom_pppoe_password)
+    uci set network.wan.username="$_custom_pppoe_user"
+    uci set network.wan.password="$_custom_pppoe_password"
+    uci set network.wan.proto="$custom_connection_type"
+    uci set network.wan.service="$FLM_WAN_PPPOE_SERVICE"
+  fi
   uci commit network
   /etc/init.d/network restart
   /etc/init.d/firewall restart
