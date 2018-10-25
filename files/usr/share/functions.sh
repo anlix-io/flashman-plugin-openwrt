@@ -62,7 +62,7 @@ rest_flashman()
   _data=$2
 
   _res=$(curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
-     --tlsv1.2 --connect-timeout 5 --retry 1 --data "$_data&secret=$FLM_CLIENT_SECRET" "https://$SERVER_ADDR/$_url")
+     --tlsv1.2 --connect-timeout 5 --retry 1 --data "$_data&secret=$FLM_CLIENT_SECRET" "https://$FLM_SVADDR/$_url")
 
   _curl_out=$?
 
