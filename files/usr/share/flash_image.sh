@@ -1,5 +1,6 @@
 #!/bin/sh
 
+. /usr/share/flashman_init.conf
 . /usr/share/functions.sh
 
 clean_memory()
@@ -64,13 +65,13 @@ run_reflash()
         curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
              --tlsv1.2 --connect-timeout 5 --retry 0 \
              --data "id=$CLIENT_MAC&status=1" \
-             "https://$SERVER_ADDR/deviceinfo/ack/"
+             "https://$_sv_address/deviceinfo/ack/"
         sysupgrade -f /tmp/config.tar.gz "/tmp/"$_vendor"_"$_model"_"$_ver"_"$_release_id".bin"
       else
         curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
            --tlsv1.2 --connect-timeout 5 --retry 0 \
            --data "id=$CLIENT_MAC&status=0" \
-           "https://$SERVER_ADDR/deviceinfo/ack/"
+           "https://$_sv_address/deviceinfo/ack/"
         echo "Image check failed"
         return 1
       fi
@@ -78,7 +79,7 @@ run_reflash()
       curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
         --tlsv1.2 --connect-timeout 5 --retry 0 \
         --data "id=$CLIENT_MAC&status=2" \
-        "https://$SERVER_ADDR/deviceinfo/ack/"
+        "https://$_sv_address/deviceinfo/ack/"
     fi
   else
     echo "Error in number of args"

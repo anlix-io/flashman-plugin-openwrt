@@ -4,7 +4,6 @@
 . /usr/share/functions.sh
 . /usr/share/libubox/jshn.sh
 
-SERVER_ADDR="$FLM_SVADDR"
 OPENWRT_VER=$(cat /etc/openwrt_version)
 HARDWARE_MODEL=$(get_hardware_model)
 HARDWARE_VER=$(cat /tmp/sysinfo/model | awk '{ print toupper($3) }')
