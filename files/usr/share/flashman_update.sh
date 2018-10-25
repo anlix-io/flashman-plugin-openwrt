@@ -28,7 +28,6 @@ then
   fi
 fi
 
-SERVER_ADDR="$FLM_SVADDR"
 OPENWRT_VER=$(cat /etc/openwrt_version)
 HARDWARE_MODEL=$(get_hardware_model)
 SYSTEM_MODEL=$(get_system_model)
@@ -295,7 +294,7 @@ then
     then
       log "FLASHMAN UPDATER" "Reflashing ..."
       # Execute firmware update
-      run_reflash $SERVER_ADDR $_release_id
+      run_reflash $FLM_SVADDR $_release_id
     fi
   fi
 else
