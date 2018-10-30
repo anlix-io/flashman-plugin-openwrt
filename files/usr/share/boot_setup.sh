@@ -179,35 +179,17 @@ firstboot() {
       uci set wireless.@wifi-iface[0].mode="ap"
       uci set wireless.@wifi-iface[0].network="lan"
       uci set wireless.@wifi-iface[0].device="radio0"
-
-      if [ "$HARDWARE_MODEL" = "ARCHERC20" ]
-      then
-        #5GHz
-        uci set wireless.radio1=wifi-device
-        uci set wireless.@wifi-device[1].type="ralink"
-        uci set wireless.@wifi-device[1].txpower="100"
-        uci set wireless.@wifi-device[1].variant="mt7610e"
-        uci set wireless.@wifi-device[1].disabled="1"
-        uci set wireless.default_radio1=wifi-iface
-        uci set wireless.@wifi-iface[1].ifname="rai0"
-        uci set wireless.@wifi-iface[1].mode="ap"
-        uci set wireless.@wifi-iface[1].network="lan"
-        uci set wireless.@wifi-iface[1].device="radio1"
-        uci set wireless.@wifi-iface[1].ssid="$setssid"
-        uci set wireless.@wifi-iface[1].encryption="psk2"
-        uci set wireless.@wifi-iface[1].key="$FLM_PASSWD"
-      fi
     else
       uci set wireless.@wifi-device[0].type="mac80211"
       uci set wireless.@wifi-device[0].txpower="17"
       uci set wireless.@wifi-device[0].disabled="0"
       # 5GHz
-      uci set wireless.@wifi-device[1].disabled="0"
-      uci set wireless.@wifi-device[1].type="mac80211"
-      uci set wireless.@wifi-device[1].channel="36"
-      uci set wireless.@wifi-iface[1].ssid="$setssid"
-      uci set wireless.@wifi-iface[1].encryption="psk2"
-      uci set wireless.@wifi-iface[1].key="$FLM_PASSWD"
+      if [ "$(uci -q get wireless.@wifi-device[1])" ]
+      then
+        uci set wireless.@wifi-device[1].disabled="0"
+        uci set wireless.@wifi-device[1].type="mac80211"
+        uci set wireless.@wifi-device[1].channel="36"
+      fi
     fi
     uci set wireless.@wifi-device[0].channel="$FLM_24_CHANNEL"
     uci set wireless.@wifi-device[0].hwmode="11n"
@@ -216,6 +198,30 @@ firstboot() {
     uci set wireless.@wifi-iface[0].ssid="$setssid"
     uci set wireless.@wifi-iface[0].encryption="psk2"
     uci set wireless.@wifi-iface[0].key="$FLM_PASSWD"
+
+    if [ "$HARDWARE_MODEL" = "ARCHERC20" ] || [ "$HARDWARE_MODEL" = "DIR-819" ]
+    then
+      #5GHz - 7610
+      log "FIRSTBOOT" "Wireless 5GHz MT7610e"
+      uci set wireless.radio1=wifi-device
+      uci set wireless.@wifi-device[1].type="ralink"
+      uci set wireless.@wifi-device[1].txpower="100"
+      uci set wireless.@wifi-device[1].variant="mt7610e"
+      uci set wireless.@wifi-device[1].disabled="1"
+      uci set wireless.default_radio1=wifi-iface
+      uci set wireless.@wifi-iface[1].ifname="rai0"
+      uci set wireless.@wifi-iface[1].mode="ap"
+      uci set wireless.@wifi-iface[1].network="lan"
+      uci set wireless.@wifi-iface[1].device="radio1"
+    fi
+
+    if [ "$(uci -q get wireless.@wifi-iface[1])" ]
+    then
+      uci set wireless.@wifi-iface[1].ssid="$setssid"
+      uci set wireless.@wifi-iface[1].encryption="psk2"
+      uci set wireless.@wifi-iface[1].key="$FLM_PASSWD"
+    fi
+
     uci commit wireless
   fi
 
@@ -228,22 +234,28 @@ firstboot() {
     LOWERMAC=$(echo $CLIENT_MAC | awk '{ print tolower($1) }')
     insmod /lib/modules/`uname -r`/mt7628.ko mac=$LOWERMAC
     echo "mt7628 mac=$LOWERMAC" >> /etc/modules.d/50-mt7628
+    [ -e /sbin/wifi ] && mv /sbin/wifi /sbin/wifi_legacy
     cp /sbin/mtkwifi /sbin/wifi
   fi
-  
+
   if [ "$HARDWARE_MODEL" = "ARCHERC20" ]
-  then 
+  then
     uci set system.led_wlan5g=led
     uci set system.led_wlan5g.name='wlan5g'
     uci set system.led_wlan5g.sysfs='archer-c20-v4:green:wlan5g'
     uci set system.led_wlan5g.trigger='netdev'
     uci set system.led_wlan5g.dev='rai0'
     uci set system.led_wlan5g.mode='link tx rx'    
-    uci commit
+    uci commit system
+  fi
+  
+  if [ "$HARDWARE_MODEL" = "ARCHERC20" ] || [ "$HARDWARE_MODEL" = "DIR-819" ]
+  then 
     /usr/bin/uci2dat -d radio1 -f /etc/Wireless/iNIC/iNIC_ap.dat > /dev/null
     LOWERMAC=$(echo $CLIENT_MAC | awk '{ print tolower($1) }')
     insmod /lib/modules/`uname -r`/mt7610e.ko mac=$LOWERMAC
     echo "mt7610e mac=$LOWERMAC" >> /etc/modules.d/51-mt7610e
+    [ -e /sbin/wifi ] && mv /sbin/wifi /sbin/wifi_legacy
     cp /sbin/mtkwifi /sbin/wifi    
   fi
 
