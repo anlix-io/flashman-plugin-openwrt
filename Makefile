@@ -45,8 +45,6 @@ define Package/flashman-plugin
 	DEPENDS:=+curl \
 			+iputils-ping \
 			+iputils-ping6 \
-			+zabbix-agentd \
-			+zabbix-extra-network \
 			+wireless-tools \
 			+uhttpd \
 			+uhttpd-mod-lua \
