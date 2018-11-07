@@ -177,6 +177,7 @@ then
         uci commit network
 
         /etc/init.d/network restart
+        /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
 
         # This will persist connection type between firmware upgrades
         echo "dhcp" > /root/custom_connection_type
@@ -192,6 +193,7 @@ then
           uci commit network
 
           /etc/init.d/network restart
+          /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
 
           # This will persist connection type between firmware upgrades
           echo "pppoe" > /root/custom_connection_type
@@ -214,6 +216,7 @@ then
           uci commit network
 
           /etc/init.d/network restart
+          /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
         fi
       fi
     fi

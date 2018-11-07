@@ -270,6 +270,7 @@ firstboot() {
   fi
   uci add_list dhcp.@dnsmasq[0].interface='lan'
   uci set dhcp.lan.leasetime="1h"
+  uci -q delete network.globals # Remove IPv6 ULA prefix to avoid phone issues
   uci commit dhcp
 
   # Configure LAN
@@ -313,6 +314,7 @@ firstboot() {
   /etc/init.d/network restart
   /etc/init.d/firewall restart
   /etc/init.d/dnsmasq restart
+  /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
   log "FIRSTBOOT" "WAN Configured successfully"
 
   # Set root password
