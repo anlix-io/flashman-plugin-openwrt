@@ -236,7 +236,7 @@ then
           uci set wireless.@wifi-iface[0].key="$_wifi_password"
           uci set wireless.radio0.channel="$_wifi_channel"
           #5Ghz
-          if [ "$(uci get wireless.@wifi-device[1].disabled)" = "0" ] || [ "$HARDWARE_MODEL" = "ARCHERC20" ]
+          if [ "$(uci -q get wireless.@wifi-iface[1])" ]
           then
             uci set wireless.@wifi-iface[1].ssid="$_wifi_ssid"
             uci set wireless.@wifi-iface[1].key="$_wifi_password"
@@ -246,15 +246,14 @@ then
           if [ "$SYSTEM_MODEL" == "MT7628AN" ]
           then
             /usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat > /dev/null
-            if [ "$HARDWARE_MODEL" = "ARCHERC20" ]
-            then
-              /usr/bin/uci2dat -d radio1 -f /etc/Wireless/iNIC/iNIC_ap.dat > /dev/null
-            fi
-            /sbin/mtkwifi reload
-          else
-            /etc/init.d/network restart
-            /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
           fi
+
+          if [ "$HARDWARE_MODEL" = "ARCHERC20" ] || [ "$HARDWARE_MODEL" = "DIR-819" ]
+          then
+            /usr/bin/uci2dat -d radio1 -f /etc/Wireless/iNIC/iNIC_ap.dat > /dev/null
+          fi
+
+          /sbin/wifi reload
         fi
       fi
     fi
