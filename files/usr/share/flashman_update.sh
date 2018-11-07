@@ -283,6 +283,7 @@ then
       echo "iptables -I FORWARD -m mac --mac-source $mac -j DROP" >> /etc/firewall.user
     done
     /etc/init.d/firewall restart
+    /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
 
     A=$(json_get_index "forward_index")
     [ "$A" != "$_forward_index" ] && update_port_forward
