@@ -162,9 +162,9 @@ firstboot() {
       setssid="$FLM_SSID$MAC_LAST_CHARS"
     fi
 
-    if [ "$SYSTEM_MODEL" = "MT7628AN" ]
+    if [ "$SYSTEM_MODEL" = "MT7628AN" ] || [ "$HARDWARE_MODEL" = "DIR-819" ]
     then
-      log "FIRSTBOOT" "Wireless MT7628AN"
+      log "FIRSTBOOT" "Wireless MTK"
       touch /etc/config/wireless
       uci set wireless.radio0=wifi-device
 
@@ -236,6 +236,19 @@ firstboot() {
     echo "mt7628 mac=$LOWERMAC" >> /etc/modules.d/50-mt7628
     [ -e /sbin/wifi ] && mv /sbin/wifi /sbin/wifi_legacy
     cp /sbin/mtkwifi /sbin/wifi
+  fi
+
+  if [ "$HARDWARE_MODEL" = "DIR-819" ]
+  then
+    uci set system.led_wifi_led.dev="ra0"
+    uci set system.led_wlan2g.dev="ra0"
+    uci commit system
+    /usr/bin/uci2dat -d radio0 -f /etc/Wireless/RT2860/RT2860.dat > /dev/null
+    LOWERMAC=$(echo $CLIENT_MAC | awk '{ print tolower($1) }')
+    insmod /lib/modules/`uname -r`/mt7620.ko mac=$LOWERMAC
+    echo "mt7620 mac=$LOWERMAC" >> /etc/modules.d/50-mt7620
+    [ -e /sbin/wifi ] && mv /sbin/wifi /sbin/wifi_legacy
+    cp /sbin/mtkwifi /sbin/wifi    
   fi
 
   if [ "$HARDWARE_MODEL" = "ARCHERC20" ]
