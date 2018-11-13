@@ -243,7 +243,7 @@ firstboot() {
     uci set system.led_wifi_led.dev="ra0"
     uci set system.led_wlan2g.dev="ra0"
     uci commit system
-    /usr/bin/uci2dat -d radio0 -f /etc/Wireless/RT2860/RT2860.dat > /dev/null
+    /usr/bin/uci2dat -d radio0 -f /etc/Wireless/RT2860/RT2860AP.dat > /dev/null
     LOWERMAC=$(echo $CLIENT_MAC | awk '{ print tolower($1) }')
     insmod /lib/modules/`uname -r`/mt7620.ko mac=$LOWERMAC
     echo "mt7620 mac=$LOWERMAC" >> /etc/modules.d/50-mt7620
