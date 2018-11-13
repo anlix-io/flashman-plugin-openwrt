@@ -364,6 +364,7 @@ firstboot() {
   uci set uhttpd.main.lua_prefix='/anlix'
   uci set uhttpd.main.lua_handler='/usr/share/anlix/index.lua'
   uci commit uhttpd
+  /etc/init.d/uhttpd restart
 
   log "FIRSTBOOT" "First boot completed"
   echo "0" > /tmp/clean_boot
