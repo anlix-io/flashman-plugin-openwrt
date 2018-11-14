@@ -268,7 +268,10 @@ firstboot() {
     LOWERMAC=$(echo $CLIENT_MAC | awk '{ print tolower($1) }')
     insmod /lib/modules/`uname -r`/mt7610e.ko mac=$LOWERMAC
     echo "mt7610e mac=$LOWERMAC" >> /etc/modules.d/51-mt7610e
-    [ -e /sbin/wifi ] && mv /sbin/wifi /sbin/wifi_legacy
+    if [ -e /sbin/wifi ] && [ ! -e /sbin/wifi_legacy ] 
+    then
+      mv /sbin/wifi /sbin/wifi_legacy
+    fi
     cp /sbin/mtkwifi /sbin/wifi    
   fi
 

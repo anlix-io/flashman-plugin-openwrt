@@ -62,7 +62,8 @@ then
 
   # Get WiFi data if available
   # MT7628 wifi is always disabled in uci 
-  if [ "$(uci get wireless.@wifi-device[0].disabled)" == "0" ] || [ "$SYSTEM_MODEL" == "MT7628AN" ]
+  if [ "$(uci get wireless.@wifi-device[0].disabled)" = "0" ] 
+    || [ "$SYSTEM_MODEL" = "MT7628AN" ] || [ "$HARDWARE_MODEL" = "DIR-819" ]
   then
     WIFI_SSID=$(uci get wireless.@wifi-iface[0].ssid)
     WIFI_PASSWD=$(uci get wireless.@wifi-iface[0].key)
@@ -222,7 +223,8 @@ then
     fi
 
     # WiFi update
-    if [ "$(uci get wireless.@wifi-device[0].disabled)" = "0" ] || [ "$SYSTEM_MODEL" = "MT7628AN" ]
+    if [ "$(uci get wireless.@wifi-device[0].disabled)" = "0" ] 
+      || [ "$SYSTEM_MODEL" = "MT7628AN" ] || [ "$HARDWARE_MODEL" = "DIR-819" ]
     then
       if [ "$_wifi_ssid" != "" ] && [ "$_wifi_password" != "" ] && \
          [ "$_wifi_channel" != "" ]
@@ -248,6 +250,11 @@ then
             /usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat > /dev/null
           fi
 
+          if [ "$HARDWARE_MODEL" = "DIR-819" ]
+          then
+            /usr/bin/uci2dat -d radio0 -f /etc/Wireless/RT2860/RT2860AP.dat > /dev/null
+          fi
+
           if [ "$HARDWARE_MODEL" = "ARCHERC20" ] || [ "$HARDWARE_MODEL" = "DIR-819" ]
           then
             /usr/bin/uci2dat -d radio1 -f /etc/Wireless/iNIC/iNIC_ap.dat > /dev/null
@@ -262,7 +269,10 @@ then
     if [ "$_app_password" == "" ]
     then
       log "FLASHMAN UPDATER" "Removing app access password ..."
-      rm /root/router_passwd
+      if [ -e /root/router_passwd ]
+      then
+        rm /root/router_passwd
+      fi
     elif [ "$_app_password" != "$APP_PASSWORD" ]
     then
       log "FLASHMAN UPDATER" "Updating app access password ..."
