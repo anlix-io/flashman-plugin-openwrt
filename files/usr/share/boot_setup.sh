@@ -104,7 +104,7 @@ firstboot() {
 
   #Block Port Scan (stealth mode)
   A=$(uci -X show firewall | grep "path='/etc/firewall.blockscan'" | awk -F '.' '{ print "firewall."$2 }')
-  if [ -z "$A" ]
+  if [ "$A" ]
   then 
     uci delete $A
   fi
@@ -117,7 +117,7 @@ firstboot() {
 
   # SSH access 
   A=$(uci -X show firewall | grep "firewall\..*\.name='\(anlix-ssh\|custom-ssh\)'" | awk -F '.' '{ print "firewall."$2 }')
-  if [ -z "$A" ]
+  if [ "$A" ]
   then 
     uci delete $A
   fi
@@ -130,14 +130,14 @@ firstboot() {
   uci set firewall.@rule[-1].src="wan"
   uci commit firewall
 
-  [ "$(uci get dropbear.@dropbear[0])" != 'dropbear' ] && uci add dropbear dropbear
+  [ "$(uci -q get dropbear.@dropbear[0])" != 'dropbear' ] && uci add dropbear dropbear
   uci set dropbear.@dropbear[0]=dropbear
   uci set dropbear.@dropbear[0].PasswordAuth=off
   uci set dropbear.@dropbear[0].RootPasswordAuth=off
   uci set dropbear.@dropbear[0].Port=36022
   uci set dropbear.@dropbear[0].Interface=wan
 
-  [ "$(uci get dropbear.@dropbear[1])" != 'dropbear' ] && uci add dropbear dropbear
+  [ "$(uci -q get dropbear.@dropbear[1])" != 'dropbear' ] && uci add dropbear dropbear
   uci set dropbear.@dropbear[1]=dropbear
   uci set dropbear.@dropbear[1].PasswordAuth=off
   uci set dropbear.@dropbear[1].RootPasswordAuth=off

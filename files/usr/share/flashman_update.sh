@@ -62,8 +62,8 @@ then
 
   # Get WiFi data if available
   # MT7628 wifi is always disabled in uci 
-  if [ "$(uci get wireless.@wifi-device[0].disabled)" = "0" ] 
-    || [ "$SYSTEM_MODEL" = "MT7628AN" ] || [ "$HARDWARE_MODEL" = "DIR-819" ]
+  if [ "$(uci get wireless.@wifi-device[0].disabled)" = "0" ] || \
+     [ "$SYSTEM_MODEL" = "MT7628AN" ] || [ "$HARDWARE_MODEL" = "DIR-819" ]
   then
     WIFI_SSID=$(uci get wireless.@wifi-iface[0].ssid)
     WIFI_PASSWD=$(uci get wireless.@wifi-iface[0].key)
@@ -223,8 +223,8 @@ then
     fi
 
     # WiFi update
-    if [ "$(uci get wireless.@wifi-device[0].disabled)" = "0" ] 
-      || [ "$SYSTEM_MODEL" = "MT7628AN" ] || [ "$HARDWARE_MODEL" = "DIR-819" ]
+    if [ "$(uci get wireless.@wifi-device[0].disabled)" = "0" ] || \
+       [ "$SYSTEM_MODEL" = "MT7628AN" ] || [ "$HARDWARE_MODEL" = "DIR-819" ]
     then
       if [ "$_wifi_ssid" != "" ] && [ "$_wifi_password" != "" ] && \
          [ "$_wifi_channel" != "" ]
