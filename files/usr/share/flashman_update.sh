@@ -46,6 +46,12 @@ then
 else
   APP_PASSWORD=""
 fi
+if [ -f /root/zabbix_agentd.psk ]
+then
+  ZABBIX_PSK="$(cat /root/zabbix_agentd.psk)"
+else
+  ZABBIX_PSK=""
+fi
 
 log "FLASHMAN UPDATER" "Start ..." 
 
@@ -114,6 +120,7 @@ then
     json_get_var _wifi_password wifi_password
     json_get_var _wifi_channel wifi_channel
     json_get_var _app_password app_password
+    json_get_var _zabbix_psk zabbix_psk
     json_get_var _forward_index forward_index
 
     _blocked_macs=""
@@ -277,6 +284,20 @@ then
     then
       log "FLASHMAN UPDATER" "Updating app access password ..."
       echo -n "$_app_password" > /root/router_passwd
+    fi
+
+    # Zabbix psk update
+    if [ "$_zabbix_psk" != "" ]
+    then
+      if [ "$_zabbix_psk" != "$ZABBIX_PSK" ]
+      then
+        update_zabbix_psk "$_zabbix_psk"
+      fi
+    else
+      if [ "$ZABBIX_PSK" != "" ]
+      then
+        update_zabbix_psk ""
+      fi
     fi
 
     # Named devices file update - always do this to avoid file diff logic

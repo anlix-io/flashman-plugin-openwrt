@@ -28,6 +28,10 @@ onlinedev)
   log "MQTTMSG" "Sending Online Devices.."
   send_online_devices 
   ;;
+measure)
+  log "MQTTMSG" "Changing Zabbix PSK settings"
+  update_zabbix_psk "$2"
+  ;;
 *)
   log "MQTTMSG" "Cant recognize message: $1"
   ;;

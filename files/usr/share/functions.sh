@@ -442,3 +442,19 @@ send_online_devices() {
 
   return $_processed
 }
+
+update_zabbix_psk() {
+  if [ "$ZBX_SEND_DATA" == "y" ]
+  then
+    PSK="$1"
+    if [ "$PSK" != "" ]
+    then
+      /etc/init.d/zabbix_agentd stop
+      echo -n $PSK > /root/zabbix_agentd.psk
+      /etc/init.d/zabbix_agentd start
+    else
+      /etc/init.d/zabbix_agentd stop
+      rm /root/zabbix_agentd.psk
+    fi
+  fi
+}
