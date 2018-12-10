@@ -343,7 +343,7 @@ firstboot() {
 
   # Configure Zabbix
   sed -i "s%ZABBIX-SERVER-ADDR%$ZBX_SVADDR%" /etc/zabbix_agentd.conf
-  if [ "$ZBX_SEND_DATA" == "y" ]
+  if [ "$ZBX_SEND_DATA" == "y" ] && [ -f /root/zabbix_agentd.psk ]
   then
     # Enable Zabbix
     /etc/init.d/zabbix_agentd enable
