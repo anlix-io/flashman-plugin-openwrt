@@ -454,7 +454,10 @@ update_zabbix_psk() {
       /etc/init.d/zabbix_agentd start
     else
       /etc/init.d/zabbix_agentd stop
-      rm /root/zabbix_agentd.psk
+      if [ -f /root/zabbix_agentd.psk ]
+      then
+        rm /root/zabbix_agentd.psk
+      fi
     fi
   fi
 }
