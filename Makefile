@@ -76,6 +76,29 @@ FILE_DIR=
 		FILE_DIR="files"
 	endif
 
+CUSTOM_FILE_DIR=
+	ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_archer-c20-v4), y)
+		CUSTOM_FILE_DIR="custom-files/archer-c20-v4"
+	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_dir-819-a1), y)
+		CUSTOM_FILE_DIR="custom-files/dir-819-a1"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v4), y)
+		CUSTOM_FILE_DIR="custom-files/tl-wr840n-v4"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v5), y)
+		CUSTOM_FILE_DIR="custom-files/tl-wr840n-v5"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr845n-v3), y)
+		CUSTOM_FILE_DIR="custom-files/tl-wr845n-v3"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr845n-v4), y)
+		CUSTOM_FILE_DIR="custom-files/tl-wr845n-v4"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v4), y)
+		CUSTOM_FILE_DIR="custom-files/tl-wr849n-v4"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v5), y)
+		CUSTOM_FILE_DIR="custom-files/tl-wr849n-v5"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v6), y)
+		CUSTOM_FILE_DIR="custom-files/tl-wr849n-v6"
+	else
+		CUSTOM_FILE_DIR="custom-files/default"
+	endif	
+
 WAN_PROTO=
 	ifeq ($(CONFIG_FLASHMAN_WAN_PROTO_DHCP), y)
 		WAN_PROTO="dhcp"
@@ -96,6 +119,7 @@ SSID_SUFFIX=
 
 define Package/flashman-plugin/install
 	$(CP) ./$(FILE_DIR)/* $(1)/
+	$(CP) ./$(CUSTOM_FILE_DIR)/* $(1)/
 	
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/anlix-mqtt $(1)/usr/bin/
