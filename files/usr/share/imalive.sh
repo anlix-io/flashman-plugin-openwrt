@@ -69,6 +69,8 @@ do
     do                                                                                                                                              
       if [ "$(check_connectivity_flashman)" -eq 0 ]                                                                                                          
       then
+        log "IMALIVE" "Checking zabbix..."
+        check_zabbix_startup
         log "IMALIVE" "Connected! Running update ..."                                                                                                                                          
         sh /usr/share/flashman_update.sh                                                                                                        
         connected=true          

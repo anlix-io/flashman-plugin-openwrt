@@ -4,7 +4,6 @@
 . /usr/share/libubox/jshn.sh
 . /usr/share/flash_image.sh
 . /usr/share/functions.sh
-. /usr/share/boot_setup.sh
 
 # If a command hash is provided, check if it should still be done
 COMMANDHASH=""

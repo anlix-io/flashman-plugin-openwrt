@@ -442,3 +442,18 @@ send_online_devices() {
 
   return $_processed
 }
+
+check_zabbix_startup() {
+  sed -i "s%ZABBIX-SERVER-ADDR%$ZBX_SVADDR%" /etc/zabbix_agentd.conf
+  if [ "$ZBX_SEND_DATA" == "y" ]
+  then
+    # Enable Zabbix
+    /etc/init.d/zabbix_agentd enable
+    /etc/init.d/zabbix_agentd start
+    log "ZABBIX" "Zabbix Enabled"
+  else
+    # Disable Zabbix
+    /etc/init.d/zabbix_agentd stop
+    /etc/init.d/zabbix_agentd disable
+  fi
+}
