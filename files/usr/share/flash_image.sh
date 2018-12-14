@@ -64,13 +64,13 @@ run_reflash()
       then
         curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
              --tlsv1.2 --connect-timeout 5 --retry 0 \
-             --data "id=$CLIENT_MAC&status=1" \
+             --data "id=$(get_mac)&status=1" \
              "https://$_sv_address/deviceinfo/ack/"
         sysupgrade -f /tmp/config.tar.gz "/tmp/"$_vendor"_"$_model"_"$_ver"_"$_release_id".bin"
       else
         curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
            --tlsv1.2 --connect-timeout 5 --retry 0 \
-           --data "id=$CLIENT_MAC&status=0" \
+           --data "id=$(get_mac)&status=0" \
            "https://$_sv_address/deviceinfo/ack/"
         echo "Image check failed"
         return 1
@@ -78,7 +78,7 @@ run_reflash()
     else
       curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
         --tlsv1.2 --connect-timeout 5 --retry 0 \
-        --data "id=$CLIENT_MAC&status=2" \
+        --data "id=$(get_mac)&status=2" \
         "https://$_sv_address/deviceinfo/ack/"
     fi
   else
