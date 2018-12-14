@@ -6,7 +6,6 @@
 
 . /usr/share/flashman_init.conf
 . /usr/share/functions.sh
-. /usr/share/firsboot/custom-wireless.sh
 
 MAC_LAST_CHARS=$(get_mac | awk -F: '{ print $5$6 }')
 SSID_VALUE=$(uci get wireless.@wifi-iface[0].ssid)

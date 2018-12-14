@@ -43,6 +43,9 @@ then
   uci set network.wan.password="$_custom_pppoe_password"
 fi
 
+# Remove IPv6 ULA prefix to avoid phone issues
+uci -q delete network.globals
+
 uci commit network
 
 A=$(grep "$LAN_ADDR anlixrouter" /etc/hosts)

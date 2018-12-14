@@ -3,7 +3,7 @@
 . /usr/share/flashman_init.conf
 . /usr/share/functions.sh
 
-HOSTNAME=$(echo $CLIENT_MAC | sed -e "s/:/-/g")
+HOSTNAME=$(get_mac | sed -e "s/:/-/g")
 
 uci set system.@system[-1].timezone="BRT3BRST,M10.3.0/0,M2.3.0/0"
 uci set system.@system[-1].hostname="$HOSTNAME"

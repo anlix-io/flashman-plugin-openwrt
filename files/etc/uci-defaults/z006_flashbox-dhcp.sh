@@ -8,8 +8,6 @@ fi
 
 uci add_list dhcp.@dnsmasq[0].interface='lan'
 uci set dhcp.lan.leasetime="1h"
-# Remove IPv6 ULA prefix to avoid phone issues
-uci -q delete network.globals
 
 uci set dhcp.dmz=dhcp
 uci set dhcp.dmz.interface='dmz'
