@@ -8,8 +8,8 @@
 . /usr/share/functions.sh
 
 MAC_LAST_CHARS=$(get_mac | awk -F: '{ print $5$6 }')
-SSID_VALUE=$(uci get wireless.@wifi-iface[0].ssid)
-ENCRYPTION_VALUE=$(uci get wireless.@wifi-iface[0].encryption)
+SSID_VALUE=$(uci -q get wireless.@wifi-iface[0].ssid)
+ENCRYPTION_VALUE=$(uci -q get wireless.@wifi-iface[0].encryption)
 LOWERMAC=$(get_mac | awk '{ print tolower($1) }')
 
 # Wireless password cannot be empty or have less than 8 chars
@@ -19,8 +19,8 @@ then
 fi
 
 # Configure WiFi default SSID and password
-if { [ "$SSID_VALUE" = "OpenWrt" ] || [ "$SSID_VALUE" = "LEDE" ]; } && \
-     [ "$ENCRYPTION_VALUE" != "psk2" ]
+if { [ "$SSID_VALUE" = "OpenWrt" ] || [ "$SSID_VALUE" = "LEDE" ] || \
+     [ "$SSID_VALUE" = "" ]; } && [ "$ENCRYPTION_VALUE" != "psk2" ]
 then
   if [ "$FLM_SSID_SUFFIX" == "none" ]
   then
