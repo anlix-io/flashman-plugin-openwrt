@@ -1,9 +1,5 @@
 #!/bin/sh
 
-#
-# WARNING! This file might be a symbolic link! Check your sources!
-#
-
 . /usr/share/flashman_init.conf
 . /usr/share/functions.sh
 
