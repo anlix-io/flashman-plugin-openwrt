@@ -5,8 +5,10 @@
 do_restart=0
 
 led_on () {
-  if [ -f "$1"/brightness ]; then
-    if [ -f "$1"/max_brightness ]; then
+  if [ -f "$1"/brightness ]
+  then
+    if [ -f "$1"/max_brightness ]
+    then
       cat "$1"/max_brightness > "$1"/brightness
     else
       echo "255" > "$1"/brightness
@@ -15,7 +17,8 @@ led_on () {
 }
 
 led_off () {
-  if [ -f "$1"/trigger ]; then
+  if [ -f "$1"/trigger ]
+  then
     echo "none" > "$trigger_path"/trigger
     echo "0" > "$1"/brightness
   fi
@@ -53,7 +56,8 @@ reset_leds () {
       ;;
     tl-wr841n-v7)
       led_on /sys/class/leds/tp-link\:green\:system
-      if [ -f /sys/class/leds/ath9k-phy0/trigger ]; then
+      if [ -f /sys/class/leds/ath9k-phy0/trigger ]
+      then
         echo "phy1tpt" > /sys/class/leds/ath9k-phy0/trigger
       fi
       ;;
@@ -66,7 +70,8 @@ reset_leds () {
       #reset hardware lan ports if any
       for lan_led in /sys/class/leds/*lan*
       do
-        if [ -f "$lan_led"/enable_hw_mode ]; then
+        if [ -f "$lan_led"/enable_hw_mode ]
+        then
           echo 1 > "$lan_led"/enable_hw_mode
         fi
       done
@@ -74,13 +79,15 @@ reset_leds () {
       #reset hardware wan port if any
       for wan_led in /sys/class/leds/*wan*
       do
-        if [ -f "$wan_led"/enable_hw_mode ]; then
+        if [ -f "$wan_led"/enable_hw_mode ]
+        then
           echo 1 > "$wan_led"/enable_hw_mode
         fi
       done
 
       #reset atheros 5G led
-      if [ -f /sys/class/leds/ath9k-phy1/trigger ]; then
+      if [ -f /sys/class/leds/ath9k-phy1/trigger ]
+      then
         echo "phy1tpt" > /sys/class/leds/ath9k-phy1/trigger
       fi
       ;;
