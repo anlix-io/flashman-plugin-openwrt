@@ -20,21 +20,21 @@ ntp_anlix()
   else
     echo "unsync"
   fi
-} 
+}
 
 resync_ntp()
 {
   CLIENT_MAC=$(get_mac)
   _ntpinfo=$(ntp_anlix)
   _curdate=$(date +%s)
-  _data="id=$CLIENT_MAC&ntp=$_ntpinfo&date=$_curdate"                  
-  _url="https://$FLM_SVADDR/deviceinfo/ntp" 
+  _data="id=$CLIENT_MAC&ntp=$_ntpinfo&date=$_curdate"
+  _url="https://$FLM_SVADDR/deviceinfo/ntp"
 
   #date sync with flashman is done insecure
   _res=$(curl -k -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
    --tlsv1.2 --connect-timeout 5 --retry 1 --data "$_data" "$_url")
 
-  if [ "$?" -eq 0 ]                                                          
+  if [ "$?" -eq 0 ]
   then
     json_load "$_res"
     json_get_var _need_update need_update
@@ -43,16 +43,16 @@ resync_ntp()
 
     if [ $_need_update = "1" ]
     then
-      log "NTP_FLASHMAN" "Change date to $_new_date"                                                                       
+      log "NTP_FLASHMAN" "Change date to $_new_date"
       date +%s -s "@$_new_date"
-      echo "flash_sync" > /tmp/anlixntp                                                               
+      echo "flash_sync" > /tmp/anlixntp
     else
       log "NTP_FLASHMAN" "No need to change date (Server clock $_new_date)"
       echo "flash_sync" > /tmp/anlixntp
-    fi                                                                 
-  else                                                           
-    log "NTP_FLASHMAN" "Error in CURL: $?"     
-  fi  
+    fi
+  else
+    log "NTP_FLASHMAN" "Error in CURL: $?"
+  fi
 }
 
 #send data to flashman using rest api
@@ -62,7 +62,8 @@ rest_flashman()
   _data=$2
 
   _res=$(curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
-     --tlsv1.2 --connect-timeout 5 --retry 1 --data "$_data&secret=$FLM_CLIENT_SECRET" "https://$FLM_SVADDR/$_url")
+         --tlsv1.2 --connect-timeout 5 --retry 1 \
+         --data "$_data&secret=$FLM_CLIENT_SECRET" "https://$FLM_SVADDR/$_url")
 
   _curl_out=$?
 
@@ -154,8 +155,10 @@ send_boot_log()
 
   CLIENT_MAC=$(get_mac)
 
-  _res=$(logread | gzip | curl -s --tlsv1.2 --connect-timeout 5 --retry 1 -H "Content-Type: application/octet-stream" \
-  -H "X-ANLIX-ID: $CLIENT_MAC" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" -H "$header"  --data-binary @- "https://$FLM_SVADDR/deviceinfo/logs")
+  _res=$(logread | gzip | curl -s --tlsv1.2 --connect-timeout 5 --retry 1 \
+         -H "Content-Type: application/octet-stream" \
+         -H "X-ANLIX-ID: $CLIENT_MAC" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
+         -H "$header"  --data-binary @- "https://$FLM_SVADDR/deviceinfo/logs")
 
   json_load "$_res"
   json_get_var _processed processed
@@ -167,12 +170,13 @@ send_boot_log()
 get_hardware_model()
 {
   local _hardware_model=$(cat /tmp/sysinfo/model | awk '{ print toupper($2) }')
-  echo "$_hardware_model" 
+  echo "$_hardware_model"
 }
 
 get_system_model()
 {
-  local _system_model=$(grep "system type" /proc/cpuinfo | awk '{ print toupper($5) }')
+  local _system_model=$(grep "system type" /proc/cpuinfo | \
+                        awk '{ print toupper($5) }')
   echo "$_system_model"
 }
 
@@ -188,12 +192,12 @@ get_mac()
     then
       _mac_address_tag=$(awk '{ print toupper($1) }' /sys/class/net/eth0/address)
     fi
-  elif  [ "$_hardware_model" = "DIR-819" ]                                             
-  then                                                                                 
-    if [ ! -z "$(awk '{ print toupper($1) }' /sys/class/net/eth0.1/address)" ]         
-    then                                                                               
+  elif  [ "$_hardware_model" = "DIR-819" ]
+  then
+    if [ ! -z "$(awk '{ print toupper($1) }' /sys/class/net/eth0.1/address)" ]
+    then
       _mac_address_tag=$(awk '{ print toupper($1) }' /sys/class/net/eth0.1/address)    
-    fi 
+    fi
   else
     if [ ! -d "/sys/class/ieee80211/phy1" ] || [ "$_hardware_model" = "TL-WDR3500" ]
     then
@@ -229,7 +233,7 @@ set_mqtt_secret()
     MQTTSEC=${_rand:0:32}
     _data="id=$CLIENT_MAC&mqttsecret=$MQTTSEC"
     _url="deviceinfo/mqtt/add"
-    _res=$(rest_flashman "$_url" "$_data") 
+    _res=$(rest_flashman "$_url" "$_data")
 
     json_load "$_res"
     json_get_var _is_registered is_registered
@@ -261,9 +265,10 @@ is_authenticated()
     CLIENT_MAC=$(get_mac)
 
     _res=$(curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
-           --tlsv1.2 --connect-timeout 5 --retry 1 \
-           --data "id=$CLIENT_MAC&organization=$FLM_CLIENT_ORG&secret=$FLM_CLIENT_SECRET" \
-           "https://$FLM_AUTH_SVADDR/api/device/auth")
+      --tlsv1.2 --connect-timeout 5 --retry 1 \
+      --data \
+      "id=$CLIENT_MAC&organization=$FLM_CLIENT_ORG&secret=$FLM_CLIENT_SECRET" \
+      "https://$FLM_AUTH_SVADDR/api/device/auth")
 
     json_load "$_res"
     json_get_var _is_authenticated is_authenticated
@@ -306,14 +311,14 @@ add_static_ip() {
   A=$(grep "$_mac" /tmp/dhcp.leases | awk '{print $3}')
 
   #Device is online: use the same ip address
-  if [ "$A" ] && [ "$_dmz" = "1" ] && [ "${A:0:10}" = "192.168.43" ] 
+  if [ "$A" ] && [ "$_dmz" = "1" ] && [ "${A:0:10}" = "192.168.43" ]
   then
     echo "$_mac $A" >> /etc/ethers
     echo "$A"
     return
   fi
 
-  if [ "$A" ] && [ "$_dmz" = "0" ] && [ "${A:0:7}" = "10.0.10" ] 
+  if [ "$A" ] && [ "$_dmz" = "0" ] && [ "${A:0:7}" = "10.0.10" ]
   then
     echo "$_mac $A" >> /etc/ethers
     echo "$A"
@@ -321,17 +326,17 @@ add_static_ip() {
   fi
 
   #Device is offline, choose an ip address 
-  if [ "$_dmz" = "1" ] 
+  if [ "$_dmz" = "1" ]
   then
-    [ -f /etc/ethers ] && NXDMZ=$(grep 192.168.43 /etc/ethers | awk '{print substr($2,length($2)-2,3)}' | tail -1) 
+    [ -f /etc/ethers ] && NXDMZ=$(grep 192.168.43 /etc/ethers | awk '{print substr($2,length($2)-2,3)}' | tail -1)
     [ ! "$NXDMZ" ] && NXDMZ="130" || NXDMZ=$((NXDMZ+1))
     echo "$_mac 192.168.43.$NXDMZ" >> /etc/ethers
     echo "192.168.43.$NXDMZ"
   else
-    [ -f /etc/ethers ] && NXDMZ=$(grep 10.0.10 /etc/ethers | awk '{print substr($2,length($2)-1,2)}' | tail -1) 
+    [ -f /etc/ethers ] && NXDMZ=$(grep 10.0.10 /etc/ethers | awk '{print substr($2,length($2)-1,2)}' | tail -1)
     [ ! "$NXDMZ" ] && NXDMZ="50" || NXDMZ=$((NXDMZ+1))
     echo "$_mac 10.0.10.$NXDMZ" >> /etc/ethers
-    echo "10.0.10.$NXDMZ"            
+    echo "10.0.10.$NXDMZ"
   fi
 }
 
@@ -340,7 +345,7 @@ update_port_forward() {
   log "PORT FORWARD" "Requesting Flashman ..."
   _data="id=$CLIENT_MAC"
   _url="deviceinfo/get/portforward/"
-  _res=$(rest_flashman "$_url" "$_data") 
+  _res=$(rest_flashman "$_url" "$_data")
 
   _retstatus=$?
   if [ $_retstatus -eq 0 ]
@@ -351,15 +356,15 @@ update_port_forward() {
     [ -f /etc/ethers ] && rm /etc/ethers
 
     #remove old forward rules
-    A=$(uci -X show firewall | grep ".name='anlix_forward_.*'") 
-    for i in $A 
-    do 
+    A=$(uci -X show firewall | grep ".name='anlix_forward_.*'")
+    for i in $A
+    do
       B=$(echo "$i"|awk -F '.' '{ print "firewall."$2}')
       uci delete "$B"
     done
 
     json_select forward_rules
-    INDEX="1" 
+    INDEX="1"
     IDX=1
     while json_get_type TYPE $INDEX && [ "$TYPE" = object ]; do
       json_select "$((INDEX++))"
@@ -373,7 +378,7 @@ update_port_forward() {
         json_get_var _port "$((PORTIDX++))"
         uci add firewall redirect
         uci set firewall.@redirect[-1].src='wan'
-        uci set firewall.@redirect[-1].src_dport="$_port" 
+        uci set firewall.@redirect[-1].src_dport="$_port"
         uci set firewall.@redirect[-1].proto='tcpudp'
         if [ "$_dmz" = 1 ]
         then
@@ -391,7 +396,7 @@ update_port_forward() {
     json_close_object
     uci commit firewall
     /etc/init.d/dnsmasq reload
-    /etc/init.d/firewall reload 
+    /etc/init.d/firewall reload
 
     #Save index
     json_update_index "$_FLASHIDX" "forward_index"
@@ -401,28 +406,30 @@ update_port_forward() {
 get_online_devices() {
   MACSDHCP=$(awk '{ print $2 }' /tmp/dhcp.leases)
   IPSDHCP=$(awk '{ print $3 }' /tmp/dhcp.leases)
-  NAMESDHCP=$(awk '{ if ($4=="*") print "!"; else print $4 }' /tmp/dhcp.leases) 
+  NAMESDHCP=$(awk '{ if ($4=="*") print "!"; else print $4 }' /tmp/dhcp.leases)
 
   json_init
   json_add_object "Devices"
-  idx=1 
+  idx=1
   for i in $MACSDHCP
   do
     json_add_object "$i"
-    json_add_string "ip" "$(echo $IPSDHCP | awk -v N=$idx '{ print $N }')"  
+    json_add_string "ip" "$(echo $IPSDHCP | awk -v N=$idx '{ print $N }')"
     json_add_string "hostname" "$(echo $NAMESDHCP | awk -v N=$idx '{ print $N }')"
     idx=$((idx+1))
     json_close_object
   done
   json_close_object
-  json_dump 
+  json_dump
 }
 
 send_online_devices() {
   CLIENT_MAC=$(get_mac)
 
-  _res=$(get_online_devices | curl -s --tlsv1.2 --connect-timeout 5 --retry 1 -H "Content-Type: application/json" \
-  -H "X-ANLIX-ID: $CLIENT_MAC" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" --data @- "https://$FLM_SVADDR/deviceinfo/receive/devices")
+  _res=$(get_online_devices | curl -s --tlsv1.2 --connect-timeout 5 --retry 1 \
+         -H "Content-Type: application/json" -H "X-ANLIX-ID: $CLIENT_MAC" \
+         -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
+         --data @- "https://$FLM_SVADDR/deviceinfo/receive/devices")
 
   json_load "$_res"
   json_get_var _processed processed
