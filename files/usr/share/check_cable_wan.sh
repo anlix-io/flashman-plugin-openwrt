@@ -4,7 +4,19 @@
 
 do_restart=0
 
-led_on () {
+check_connectivity_internet()
+{
+  if ping -q -c 2 -W 2 www.google.com  >/dev/null
+  then
+    # true
+    echo 0
+  else
+    # false
+    echo 1
+  fi
+}
+
+led_on() {
   if [ -f "$1"/brightness ]
   then
     if [ -f "$1"/max_brightness ]
@@ -16,7 +28,7 @@ led_on () {
   fi
 }
 
-led_off () {
+led_off() {
   if [ -f "$1"/trigger ]
   then
     echo "none" > "$trigger_path"/trigger
@@ -24,13 +36,13 @@ led_off () {
   fi
 }
 
-led_netdev () {
+led_netdev() {
   echo "netdev" > "$1"/trigger
   echo "link tx rx" > "$1"/mode
   echo "$2" > "$1"/device_name
 }
 
-reset_leds () {
+reset_leds() {
   for trigger_path in $(ls -d /sys/class/leds/*)
   do
     led_off "$trigger_path"
@@ -44,12 +56,15 @@ reset_leds () {
       if [ $(cat /tmp/sysinfo/board_name) = "archer-c20-v4" ]
       then
         # bug on archer's lan led
-        echo "0" >  /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:lan/port_mask
-        echo "0x1e" > /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:lan/port_mask
+        echo "0" > \
+          /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:lan/port_mask
+        echo "0x1e" > \
+          /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:lan/port_mask
       fi
       ;;
     tl-wr849n-v5 | tl-wr849n-v6)
-      led_netdev /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:power eth0.2
+      led_netdev \
+        /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:power eth0.2
       ;;
     dl-dwr116-a3)
       led_on /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:status
@@ -96,7 +111,7 @@ reset_leds () {
   do_restart=0
 }
 
-blink_leds () {
+blink_leds() {
   if [ $do_restart -eq 0 ]
   then
     case $(cat /tmp/sysinfo/board_name) in

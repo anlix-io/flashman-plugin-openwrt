@@ -93,18 +93,6 @@ check_connectivity_flashman()
   fi
 }
 
-check_connectivity_internet()
-{
-  if ping -q -c 2 -W 2 www.google.com  >/dev/null
-  then
-    # true
-    echo 0
-  else
-    # false
-    echo 1
-  fi
-}
-
 download_file()
 {
   dfile="$2"
