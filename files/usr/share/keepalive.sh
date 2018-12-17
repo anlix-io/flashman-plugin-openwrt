@@ -3,6 +3,7 @@
 . /usr/share/flashman_init.conf
 . /usr/share/functions.sh
 . /usr/share/libubox/jshn.sh
+. /usr/share/functions/wireless_functions.sh
 
 OPENWRT_VER=$(cat /etc/openwrt_version)
 HARDWARE_MODEL=$(get_hardware_model)
@@ -11,9 +12,6 @@ SYSTEM_MODEL=$(get_system_model)
 CLIENT_MAC=$(get_mac)
 PPPOE_USER=""
 PPPOE_PASSWD=""
-WIFI_SSID=""
-WIFI_PASSWD=""
-WIFI_CHANNEL=""
 
 _need_update=0
 _cert_error=0
@@ -33,14 +31,19 @@ do
       PPPOE_PASSWD=$(uci get network.wan.password)
     fi
 
-    # Get WiFi data if available
-    if [ "$(uci get wireless.@wifi-device[0].disabled)" == "0" ] || \
-       [ "$SYSTEM_MODEL" == "MT7628AN" ]
-    then
-      WIFI_SSID=$(uci get wireless.@wifi-iface[0].ssid)
-      WIFI_PASSWD=$(uci get wireless.@wifi-iface[0].key)
-      WIFI_CHANNEL=$(uci get wireless.radio0.channel)
-    fi
+    # Get WiFi data
+    json_load $(get_wifi_local_config)
+    json_get_var _local_ssid_24 local_ssid_24
+    json_get_var _local_password_24 local_password_24
+    json_get_var _local_channel_24 local_channel_24
+    json_get_var _local_hwmode_24 local_hwmode_24
+    json_get_var _local_htmode_24 local_htmode_24
+    json_get_var _local_ssid_50 local_ssid_50
+    json_get_var _local_password_50 local_password_50
+    json_get_var _local_channel_50 local_channel_50
+    json_get_var _local_hwmode_50 local_hwmode_50
+    json_get_var _local_htmode_50 local_htmode_50
+    json_close_object
 
     #Get NTP status
     NTP_INFO=$(ntp_anlix)
@@ -61,9 +64,9 @@ release_id=$FLM_RELID&\
 pppoe_user=$PPPOE_USER&\
 pppoe_password=$PPPOE_PASSWD&\
 wan_ip=$WAN_IP_ADDR&\
-wifi_ssid=$WIFI_SSID&\
-wifi_password=$WIFI_PASSWD&\
-wifi_channel=$WIFI_CHANNEL&\
+wifi_ssid=$_local_ssid_24&\
+wifi_password=$_local_password_24&\
+wifi_channel=$_local_channel_24&\
 connection_type=$WAN_CONNECTION_TYPE&\
 ntp=$NTP_INFO"
     _url="deviceinfo/syn/"

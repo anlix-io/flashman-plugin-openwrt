@@ -4,6 +4,7 @@
 . /usr/share/libubox/jshn.sh
 . /usr/share/flash_image.sh
 . /usr/share/functions.sh
+. /usr/share/functions/wireless_functions.sh
 
 # If a command hash is provided, check if it should still be done
 COMMANDHASH=""
@@ -36,9 +37,6 @@ WAN_IP_ADDR=$(get_wan_ip)
 WAN_CONNECTION_TYPE=$(uci get network.wan.proto | awk '{ print tolower($1) }')
 PPPOE_USER=""
 PPPOE_PASSWD=""
-WIFI_SSID=""
-WIFI_PASSWD=""
-WIFI_CHANNEL=""
 if [ -f /root/router_passwd ]
 then
   APP_PASSWORD="$(cat /root/router_passwd)"
@@ -59,15 +57,19 @@ then
     PPPOE_PASSWD=$(uci get network.wan.password)
   fi
 
-  # Get WiFi data if available
-  # MT7628 wifi is always disabled in uci 
-  if [ "$(uci get wireless.@wifi-device[0].disabled)" = "0" ] || \
-     [ "$SYSTEM_MODEL" = "MT7628AN" ] || [ "$HARDWARE_MODEL" = "DIR-819" ]
-  then
-    WIFI_SSID=$(uci get wireless.@wifi-iface[0].ssid)
-    WIFI_PASSWD=$(uci get wireless.@wifi-iface[0].key)
-    WIFI_CHANNEL=$(uci get wireless.radio0.channel)
-  fi
+  # Get WiFi data
+  json_load $(get_wifi_local_config)
+  json_get_var _local_ssid_24 local_ssid_24
+  json_get_var _local_password_24 local_password_24
+  json_get_var _local_channel_24 local_channel_24
+  json_get_var _local_hwmode_24 local_hwmode_24
+  json_get_var _local_htmode_24 local_htmode_24
+  json_get_var _local_ssid_50 local_ssid_50
+  json_get_var _local_password_50 local_password_50
+  json_get_var _local_channel_50 local_channel_50
+  json_get_var _local_hwmode_50 local_hwmode_50
+  json_get_var _local_htmode_50 local_htmode_50
+  json_close_object
 
   # Report if a hard reset has occured
   if [ -e /root/hard_reset ]
@@ -105,9 +107,9 @@ release_id=$FLM_RELID&\
 pppoe_user=$PPPOE_USER&\
 pppoe_password=$PPPOE_PASSWD&\
 wan_ip=$WAN_IP_ADDR&\
-wifi_ssid=$WIFI_SSID&\
-wifi_password=$WIFI_PASSWD&\
-wifi_channel=$WIFI_CHANNEL&\
+wifi_ssid=$_local_ssid_24&\
+wifi_password=$_local_password_24&\
+wifi_channel=$_local_channel_24&\
 connection_type=$WAN_CONNECTION_TYPE&\
 ntp=$NTP_INFO&\
 hardreset=$HARDRESET&\
@@ -239,51 +241,11 @@ upgfirm=$UPGRADEFIRMWARE"
     fi
 
     # WiFi update
-    if [ "$(uci get wireless.@wifi-device[0].disabled)" = "0" ] || \
-       [ "$SYSTEM_MODEL" = "MT7628AN" ] || [ "$HARDWARE_MODEL" = "DIR-819" ]
-    then
-      if [ "$_wifi_ssid" != "" ] && [ "$_wifi_password" != "" ] && \
-         [ "$_wifi_channel" != "" ]
-      then
-        if [ "$_wifi_ssid" != "$WIFI_SSID" ] || \
-           [ "$_wifi_password" != "$WIFI_PASSWD" ] || \
-           [ "$_wifi_channel" != "$WIFI_CHANNEL" ]
-        then
-          log "FLASHMAN UPDATER" "Updating Wireless ..."
-          uci set wireless.@wifi-iface[0].ssid="$_wifi_ssid"
-          uci set wireless.@wifi-iface[0].key="$_wifi_password"
-          uci set wireless.radio0.channel="$_wifi_channel"
-          #5Ghz
-          if [ "$(uci -q get wireless.@wifi-iface[1])" ]
-          then
-            uci set wireless.@wifi-iface[1].ssid="$_wifi_ssid"
-            uci set wireless.@wifi-iface[1].key="$_wifi_password"
-          fi
-          uci commit wireless
-
-          if [ "$SYSTEM_MODEL" == "MT7628AN" ]
-          then
-            /usr/bin/uci2dat -d radio0 \
-                             -f /etc/wireless/mt7628/mt7628.dat > /dev/null
-          fi
-
-          if [ "$HARDWARE_MODEL" = "DIR-819" ]
-          then
-            /usr/bin/uci2dat -d radio0 \
-                             -f /etc/Wireless/RT2860/RT2860AP.dat > /dev/null
-          fi
-
-          if [ "$HARDWARE_MODEL" = "ARCHERC20" ] || \
-             [ "$HARDWARE_MODEL" = "DIR-819" ]
-          then
-            /usr/bin/uci2dat -d radio1 \
-                             -f /etc/Wireless/iNIC/iNIC_ap.dat > /dev/null
-          fi
-
-          /sbin/wifi reload
-        fi
-      fi
-    fi
+    log "FLASHMAN UPDATER" "Updating Wireless ..."
+    set_wifi_local_config "$_wifi_ssid" "$_wifi_password" "$_wifi_channel" \
+                          "" "" \
+                          "$_wifi_ssid" "$_wifi_password" "$_wifi_channel" \
+                          "" ""
 
     # App password update
     if [ "$_app_password" == "" ]
