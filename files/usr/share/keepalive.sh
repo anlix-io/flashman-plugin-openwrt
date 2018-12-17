@@ -34,7 +34,8 @@ do
     fi
 
     # Get WiFi data if available
-    if [ "$(uci get wireless.@wifi-device[0].disabled)" == "0" ] || [ "$SYSTEM_MODEL" == "MT7628AN" ]
+    if [ "$(uci get wireless.@wifi-device[0].disabled)" == "0" ] || \
+       [ "$SYSTEM_MODEL" == "MT7628AN" ]
     then
       WIFI_SSID=$(uci get wireless.@wifi-iface[0].ssid)
       WIFI_PASSWD=$(uci get wireless.@wifi-iface[0].key)
@@ -48,9 +49,25 @@ do
     WAN_CONNECTION_TYPE=$(uci get network.wan.proto | awk '{ print tolower($1) }')
 
      log "KEEPALIVE" "Ping Flashman ..."
-    _data="id=$CLIENT_MAC&flm_updater=0&version=$ANLIX_PKG_VERSION&model=$HARDWARE_MODEL&model_ver=$HARDWARE_VER&release_id=$FLM_RELID&pppoe_user=$PPPOE_USER&pppoe_password=$PPPOE_PASSWD&wan_ip=$WAN_IP_ADDR&wifi_ssid=$WIFI_SSID&wifi_password=$WIFI_PASSWD&wifi_channel=$WIFI_CHANNEL&connection_type=$WAN_CONNECTION_TYPE&ntp=$NTP_INFO"
+     #
+     # WARNING! No spaces or tabs inside the following string!
+     #
+    _data="id=$CLIENT_MAC&\
+flm_updater=0&\
+version=$ANLIX_PKG_VERSION&\
+model=$HARDWARE_MODEL&\
+model_ver=$HARDWARE_VER&\
+release_id=$FLM_RELID&\
+pppoe_user=$PPPOE_USER&\
+pppoe_password=$PPPOE_PASSWD&\
+wan_ip=$WAN_IP_ADDR&\
+wifi_ssid=$WIFI_SSID&\
+wifi_password=$WIFI_PASSWD&\
+wifi_channel=$WIFI_CHANNEL&\
+connection_type=$WAN_CONNECTION_TYPE&\
+ntp=$NTP_INFO"
     _url="deviceinfo/syn/"
-    _res=$(rest_flashman "$_url" "$_data") 
+    _res=$(rest_flashman "$_url" "$_data")
 
     _retstatus=$?
     if [ $_retstatus -eq 0 ]
@@ -80,7 +97,7 @@ do
       if [ $_need_update -gt 7 ]
       then
         #More than 7 checks (>20 min), force a firmware update
-        log "KEEPALIVE" "Running update ..."                                                                                                                                          
+        log "KEEPALIVE" "Running update ..."
         sh /usr/share/flashman_update.sh
       fi
 
@@ -103,7 +120,7 @@ do
       if [ $_cert_error -gt 7 ]
       then
         #More than 7 checks (>20 min), force a date update
-        log "KEEPALIVE" "Try resync date with Flashman!"                                                                                                                                          
+        log "KEEPALIVE" "Try resync date with Flashman!"
         resync_ntp
         _cert_error=0
       fi

@@ -46,7 +46,7 @@ else
   APP_PASSWORD=""
 fi
 
-log "FLASHMAN UPDATER" "Start ..." 
+log "FLASHMAN UPDATER" "Start ..."
 
 if is_authenticated
 then
@@ -93,10 +93,27 @@ then
 
   #Get NTP status
   NTP_INFO=$(ntp_anlix)
-
-  _data="id=$CLIENT_MAC&flm_updater=1&version=$ANLIX_PKG_VERSION&model=$HARDWARE_MODEL&model_ver=$HARDWARE_VER&release_id=$FLM_RELID&pppoe_user=$PPPOE_USER&pppoe_password=$PPPOE_PASSWD&wan_ip=$WAN_IP_ADDR&wifi_ssid=$WIFI_SSID&wifi_password=$WIFI_PASSWD&wifi_channel=$WIFI_CHANNEL&connection_type=$WAN_CONNECTION_TYPE&ntp=$NTP_INFO&hardreset=$HARDRESET&upgfirm=$UPGRADEFIRMWARE"
+  #
+  # WARNING! No spaces or tabs inside the following string!
+  #
+  _data="id=$CLIENT_MAC&\
+flm_updater=1&\
+version=$ANLIX_PKG_VERSION&\
+model=$HARDWARE_MODEL&\
+model_ver=$HARDWARE_VER&\
+release_id=$FLM_RELID&\
+pppoe_user=$PPPOE_USER&\
+pppoe_password=$PPPOE_PASSWD&\
+wan_ip=$WAN_IP_ADDR&\
+wifi_ssid=$WIFI_SSID&\
+wifi_password=$WIFI_PASSWD&\
+wifi_channel=$WIFI_CHANNEL&\
+connection_type=$WAN_CONNECTION_TYPE&\
+ntp=$NTP_INFO&\
+hardreset=$HARDRESET&\
+upgfirm=$UPGRADEFIRMWARE"
   _url="deviceinfo/syn/"
-  _res=$(rest_flashman "$_url" "$_data") 
+  _res=$(rest_flashman "$_url" "$_data")
 
   if [ "$?" -eq 1 ]
   then
@@ -246,17 +263,21 @@ then
 
           if [ "$SYSTEM_MODEL" == "MT7628AN" ]
           then
-            /usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat > /dev/null
+            /usr/bin/uci2dat -d radio0 \
+                             -f /etc/wireless/mt7628/mt7628.dat > /dev/null
           fi
 
           if [ "$HARDWARE_MODEL" = "DIR-819" ]
           then
-            /usr/bin/uci2dat -d radio0 -f /etc/Wireless/RT2860/RT2860AP.dat > /dev/null
+            /usr/bin/uci2dat -d radio0 \
+                             -f /etc/Wireless/RT2860/RT2860AP.dat > /dev/null
           fi
 
-          if [ "$HARDWARE_MODEL" = "ARCHERC20" ] || [ "$HARDWARE_MODEL" = "DIR-819" ]
+          if [ "$HARDWARE_MODEL" = "ARCHERC20" ] || \
+             [ "$HARDWARE_MODEL" = "DIR-819" ]
           then
-            /usr/bin/uci2dat -d radio1 -f /etc/Wireless/iNIC/iNIC_ap.dat > /dev/null
+            /usr/bin/uci2dat -d radio1 \
+                             -f /etc/Wireless/iNIC/iNIC_ap.dat > /dev/null
           fi
 
           /sbin/wifi reload
@@ -289,7 +310,8 @@ then
     echo -n "$_blocked_devices" > /tmp/blacklist_mac
     for mac in $_blocked_macs
     do
-      echo "iptables -I FORWARD -m mac --mac-source $mac -j DROP" >> /etc/firewall.user
+      echo "iptables -I FORWARD -m mac --mac-source $mac -j DROP" >> \
+           /etc/firewall.user
     done
     /etc/init.d/firewall restart
     /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
