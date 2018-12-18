@@ -9,7 +9,7 @@ local function run_process(proc)
 end
 
 local function get_router_id()
-  local result = run_process("sh -c \". /usr/share/functions.sh; get_mac\"")
+  local result = run_process("sh -c \". /usr/share/functions/device_functions.sh; get_mac\"")
   -- remove \n
   return result:sub(1,-2)
 end

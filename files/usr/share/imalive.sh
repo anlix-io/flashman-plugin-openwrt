@@ -2,6 +2,7 @@
 
 . /usr/share/flashman_init.conf
 . /usr/share/functions.sh
+. /usr/share/functions/device_functions.sh
 
 CLIENT_MAC=$(get_mac)
 log "IMALIVE" "ROUTER STARTED!"

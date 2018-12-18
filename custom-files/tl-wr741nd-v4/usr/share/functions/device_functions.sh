@@ -75,3 +75,15 @@ blink_leds() {
     done
   fi
 }
+
+get_mac() {
+  local _mac_address_tag=""
+  local _p0=$(awk '{print toupper($1)}' /sys/class/ieee80211/phy0/macaddress)
+
+  if [ ! -z "$_p0" ]
+  then
+    _mac_address_tag=$_p0
+  fi
+
+  echo "$_mac_address_tag"
+}

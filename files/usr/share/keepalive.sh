@@ -3,12 +3,12 @@
 . /usr/share/flashman_init.conf
 . /usr/share/functions.sh
 . /usr/share/libubox/jshn.sh
+. /usr/share/functions/device_functions.sh
 . /usr/share/functions/wireless_functions.sh
 
 OPENWRT_VER=$(cat /etc/openwrt_version)
 HARDWARE_MODEL=$(get_hardware_model)
 HARDWARE_VER=$(cat /tmp/sysinfo/model | awk '{ print toupper($3) }')
-SYSTEM_MODEL=$(get_system_model)
 CLIENT_MAC=$(get_mac)
 PPPOE_USER=""
 PPPOE_PASSWD=""

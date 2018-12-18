@@ -4,6 +4,7 @@
 . /usr/share/libubox/jshn.sh
 . /usr/share/flash_image.sh
 . /usr/share/functions.sh
+. /usr/share/functions/device_functions.sh
 . /usr/share/functions/wireless_functions.sh
 
 # If a command hash is provided, check if it should still be done
@@ -30,7 +31,6 @@ fi
 
 OPENWRT_VER=$(cat /etc/openwrt_version)
 HARDWARE_MODEL=$(get_hardware_model)
-SYSTEM_MODEL=$(get_system_model)
 HARDWARE_VER=$(cat /tmp/sysinfo/model | awk '{ print toupper($3) }')
 CLIENT_MAC=$(get_mac)
 WAN_IP_ADDR=$(get_wan_ip)

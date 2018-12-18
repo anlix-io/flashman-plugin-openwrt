@@ -2,6 +2,7 @@
 
 . /usr/share/flashman_init.conf
 . /usr/share/functions.sh
+. /usr/share/functions/device_functions.sh
 
 HOSTNAME=$(get_mac | sed -e "s/:/-/g")
 

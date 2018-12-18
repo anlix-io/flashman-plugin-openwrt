@@ -45,3 +45,14 @@ blink_leds() {
     done
   fi
 }
+
+get_mac() {
+  local _mac_address_tag=""
+
+  if [ ! -z "$(awk '{ print toupper($1) }' /sys/class/net/eth0/address)" ]
+  then
+    _mac_address_tag=$(awk '{ print toupper($1) }' /sys/class/net/eth0/address)
+  fi
+
+  echo "$_mac_address_tag"
+}

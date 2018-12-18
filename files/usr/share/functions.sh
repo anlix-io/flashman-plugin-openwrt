@@ -3,6 +3,7 @@
 . /usr/share/flashman_init.conf
 . /lib/functions/network.sh
 . /usr/share/libubox/jshn.sh
+. /usr/share/functions/device_functions.sh
 
 ANLIX_PKG_VERSION=$(cat /etc/anlix_version)
 export ANLIX_PKG_VERSION
@@ -11,7 +12,7 @@ log() {
   logger -t "$1 " "$2"
 }
 
-#Verify ntp
+# Verify ntp
 ntp_anlix()
 {
   if [ -f /tmp/anlixntp ]
@@ -171,48 +172,6 @@ get_hardware_model()
 {
   local _hardware_model=$(cat /tmp/sysinfo/model | awk '{ print toupper($2) }')
   echo "$_hardware_model"
-}
-
-get_system_model()
-{
-  local _system_model=$(grep "system type" /proc/cpuinfo | \
-                        awk '{ print toupper($5) }')
-  echo "$_system_model"
-}
-
-get_mac()
-{
-  local _mac_address_tag=""
-  local _system_model=$(get_system_model)
-  local _hardware_model=$(get_hardware_model)
-
-  if [ "$_system_model" = "MT7628AN" ]
-  then
-    if [ ! -z "$(awk '{ print toupper($1) }' /sys/class/net/eth0/address)" ]
-    then
-      _mac_address_tag=$(awk '{ print toupper($1) }' /sys/class/net/eth0/address)
-    fi
-  elif  [ "$_hardware_model" = "DIR-819" ]
-  then
-    if [ ! -z "$(awk '{ print toupper($1) }' /sys/class/net/eth0.1/address)" ]
-    then
-      _mac_address_tag=$(awk '{ print toupper($1) }' /sys/class/net/eth0.1/address)    
-    fi
-  else
-    if [ ! -d "/sys/class/ieee80211/phy1" ] || [ "$_hardware_model" = "TL-WDR3500" ]
-    then
-      if [ ! -z "$(awk '{ print toupper($1) }' /sys/class/ieee80211/phy0/macaddress)" ]
-      then
-        _mac_address_tag=$(awk '{ print toupper($1) }' /sys/class/ieee80211/phy0/macaddress)
-      fi
-    else
-      if [ ! -z "$(awk '{ print toupper($1) }' /sys/class/ieee80211/phy1/macaddress)" ]
-      then
-        _mac_address_tag=$(awk '{ print toupper($1) }' /sys/class/ieee80211/phy1/macaddress)
-      fi
-    fi
-  fi
-  echo "$_mac_address_tag"
 }
 
 get_wan_ip()

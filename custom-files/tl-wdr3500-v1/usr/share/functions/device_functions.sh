@@ -32,7 +32,34 @@ reset_leds() {
 
   /etc/init.d/led restart > /dev/null
 
-  led_on /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:status
+  for system_led in /sys/class/leds/*system*
+  do
+    led_on "$system_led"
+  done
+
+  # reset hardware lan ports if any
+  for lan_led in /sys/class/leds/*lan*
+  do
+    if [ -f "$lan_led"/enable_hw_mode ]
+    then
+      echo 1 > "$lan_led"/enable_hw_mode
+    fi
+  done
+
+  # reset hardware wan port if any
+  for wan_led in /sys/class/leds/*wan*
+  do
+    if [ -f "$wan_led"/enable_hw_mode ]
+    then
+      echo 1 > "$wan_led"/enable_hw_mode
+    fi
+  done
+
+  # reset atheros 5G led
+  if [ -f /sys/class/leds/ath9k-phy1/trigger ]
+  then
+    echo "phy1tpt" > /sys/class/leds/ath9k-phy1/trigger
+  fi
 }
 
 blink_leds() {
