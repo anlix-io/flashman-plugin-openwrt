@@ -112,12 +112,23 @@ download_file()
       zflag=
     fi
 
+    local _md5_remote_hash=`curl -I -s -w "%{http_code}" \
+    -u routersync:landufrj123 \
+    --tlsv1.2 --connect-timeout 5 --retry 3 "$uri" \
+    | grep "X-Checksum-Md5" | awk '{ print $2 }'`
+
     curl_code=`curl -s -w "%{http_code}" -u routersync:landufrj123 \
               --tlsv1.2 --connect-timeout 5 --retry 3 \
               -o "/tmp/$dfile" $zflag "$uri"`
 
     if [ "$curl_code" = "200" ]
     then
+      local _md5_local_hash=$(md5sum /tmp/$dfile | awk '{ print $1 }')
+      if [ "$md5_remote_hash" != "$md5_local_hash" ]
+      then
+        rm "/tmp/$dfile"
+        return 1
+      fi
       mv "/tmp/$dfile" "$dest_dir/$dfile"
       echo "Download file on $uri"
       return 0
