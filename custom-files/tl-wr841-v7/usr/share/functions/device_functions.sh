@@ -2,7 +2,6 @@
 
 save_wifi_local_config() {
   uci commit wireless
-  /usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat > /dev/null
 }
 
 led_on() {
@@ -33,16 +32,19 @@ reset_leds() {
 
   /etc/init.d/led restart > /dev/null
 
-  led_on /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:power
+  led_on /sys/class/leds/tp-link\:green\:system
+  if [ -f /sys/class/leds/ath9k-phy0/trigger ]
+  then
+    echo "phy1tpt" > /sys/class/leds/ath9k-phy0/trigger
+  fi
 }
 
 blink_leds() {
-  local _do_restart=$1
+	local _do_restart=$1
 
   if [ $_do_restart -eq 0 ]
   then
     ledsoff=$(ls -d /sys/class/leds/*)
-
     for trigger_path in $ledsoff
     do
       echo "timer" > "$trigger_path"/trigger

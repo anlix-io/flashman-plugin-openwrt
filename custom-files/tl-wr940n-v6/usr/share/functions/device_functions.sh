@@ -2,8 +2,6 @@
 
 save_wifi_local_config() {
   uci commit wireless
-  /usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat > /dev/null
-  /usr/bin/uci2dat -d radio1 -f /etc/Wireless/iNIC/iNIC_ap.dat > /dev/null
 }
 
 led_on() {
@@ -34,12 +32,34 @@ reset_leds() {
 
   /etc/init.d/led restart > /dev/null
 
-  led_on /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:power
-  # bug on archer's lan led
-  echo "0" > \
-    /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:lan/port_mask
-  echo "0x1e" > \
-    /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:lan/port_mask
+  for system_led in /sys/class/leds/*system*
+  do
+    led_on "$system_led"
+  done
+
+  # reset hardware lan ports if any
+  for lan_led in /sys/class/leds/*lan*
+  do
+    if [ -f "$lan_led"/enable_hw_mode ]
+    then
+      echo 1 > "$lan_led"/enable_hw_mode
+    fi
+  done
+
+  # reset hardware wan port if any
+  for wan_led in /sys/class/leds/*wan*
+  do
+    if [ -f "$wan_led"/enable_hw_mode ]
+    then
+      echo 1 > "$wan_led"/enable_hw_mode
+    fi
+  done
+
+  # reset atheros 5G led
+  if [ -f /sys/class/leds/ath9k-phy1/trigger ]
+  then
+    echo "phy1tpt" > /sys/class/leds/ath9k-phy1/trigger
+  fi
 }
 
 blink_leds() {
@@ -47,10 +67,8 @@ blink_leds() {
 
   if [ $_do_restart -eq 0 ]
   then
-    led_off /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:power
-    # we cant turn on orange and blue at same time in this model
-    ledsoff=$(ls -d /sys/class/leds/*green*)
-
+    led_off /sys/class/leds/tp-link\:blue\:wan
+    ledsoff=/sys/class/leds/tp-link\:orange\:diag
     for trigger_path in $ledsoff
     do
       echo "timer" > "$trigger_path"/trigger
