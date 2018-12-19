@@ -182,6 +182,12 @@ get_hardware_model()
   echo "$_hardware_model" 
 }
 
+get_hardware_version()
+{
+  local _hardware_ver=$(cat /tmp/sysinfo/model | awk '{ print toupper($3) }')
+  echo "$_hardware_ver"
+}
+
 get_system_model()
 {
   local _system_model=$(grep "system type" /proc/cpuinfo | awk '{ print toupper($5) }')
@@ -271,10 +277,12 @@ is_authenticated()
   if [ "$FLM_USE_AUTH_SVADDR" == "y" ]
   then
     CLIENT_MAC=$(get_mac)
+    HARDWARE_MODEL=$(get_hardware_model)
+    HARDWARE_VER=$(get_hardware_version)
 
     _res=$(curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
            --tlsv1.2 --connect-timeout 5 --retry 1 \
-           --data "id=$CLIENT_MAC&organization=$FLM_CLIENT_ORG&secret=$FLM_CLIENT_SECRET" \
+           --data "id=$CLIENT_MAC&organization=$FLM_CLIENT_ORG&secret=$FLM_CLIENT_SECRET&model=$HARDWARE_MODEL&model_ver=$HARDWARE_VER" \
            "https://$FLM_AUTH_SVADDR/api/device/auth")
 
     json_load "$_res"
