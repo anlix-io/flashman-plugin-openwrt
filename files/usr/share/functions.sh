@@ -113,9 +113,9 @@ download_file()
     fi
 
     local _md5_remote_hash=`curl -I -s -w "%{http_code}" \
-    -u routersync:landufrj123 \
-    --tlsv1.2 --connect-timeout 5 --retry 3 "$uri" \
-    | grep "X-Checksum-Md5" | awk '{ print $2 }'`
+                           -u routersync:landufrj123 \
+                           --tlsv1.2 --connect-timeout 5 --retry 3 "$uri" \
+                           | grep "X-Checksum-Md5" | awk '{ print $2 }'`
 
     curl_code=`curl -s -w "%{http_code}" -u routersync:landufrj123 \
               --tlsv1.2 --connect-timeout 5 --retry 3 \
@@ -194,16 +194,19 @@ get_wan_ip()
 
 set_mqtt_secret()
 {
-  CLIENT_MAC=$(get_mac)
-  if [ -e "/root/mqtt_secret" ]
+  json_load_file /root/flashbox_config.json
+  json_get_var _mqtt_secret mqtt_secret
+  json_close_object
+
+  if [ "$_mqtt_secret" != "" ]
   then
-    cat /root/mqtt_secret
+    echo "$_mqtt_secret"
   else
-    _rand=$(head /dev/urandom | tr -dc A-Z-a-z-0-9)
-    MQTTSEC=${_rand:0:32}
-    _data="id=$CLIENT_MAC&mqttsecret=$MQTTSEC"
-    _url="deviceinfo/mqtt/add"
-    _res=$(rest_flashman "$_url" "$_data")
+    local _rand=$(head /dev/urandom | tr -dc A-Z-a-z-0-9)
+    local _mqttsec=${_rand:0:32}
+    local _data="id=$(get_mac)&mqttsecret=$_mqttsec"
+    local _url="deviceinfo/mqtt/add"
+    local _res=$(rest_flashman "$_url" "$_data")
 
     json_load "$_res"
     json_get_var _is_registered is_registered
@@ -211,8 +214,12 @@ set_mqtt_secret()
 
     if [ "$_is_registered" = "1" ]
     then
-      echo $MQTTSEC > /root/mqtt_secret
-      cat /root/mqtt_secret
+      json_load_file /root/flashbox_config.json
+      json_add_string mqtt_secret $_mqttsec
+      json_dump > /root/flashbox_config.json
+      json_get_var _mqtt_secret mqtt_secret
+      json_close_object
+      echo "$_mqtt_secret"
     fi
   fi
 }
@@ -221,7 +228,10 @@ reset_mqtt_secret()
 {
   if [ -e "/root/mqtt_secret" ]
   then
-    rm /root/mqtt_secret
+    json_load_file /root/flashbox_config.json
+    json_add_string mqtt_secret ""
+    json_dump > /root/flashbox_config.json
+    json_close_object
   fi
   set_mqtt_secret
 }

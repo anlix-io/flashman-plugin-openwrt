@@ -58,7 +58,7 @@ run_reflash()
       fi
       echo "$_release_id" > /root/upgrade_info
       tar -zcf /tmp/config.tar.gz /etc/config/wireless /root/router_passwd \
-               /root/mqtt_secret /root/custom_connection_type /root/upgrade_info \
+               /root/custom_connection_type /root/upgrade_info \
                /root/custom_pppoe_user /root/custom_pppoe_password
       rm -f /root/upgrade_info
       if sysupgrade -T "/tmp/"$_vendor"_"$_model"_"$_ver"_"$_release_id".bin"
