@@ -79,7 +79,10 @@ then
   fi
 
   # Report a firmware upgrade
-  if [ -e /root/upgrade_info ]
+  json_load_file /root/flashbox_config.json
+  json_get_var _upgrade_version_info upgrade_version_info
+  json_close_object
+  if [ "$_upgrade_version_info" != "" ]
   then
     log "FLASHMAN UPDATER" "Sending UPGRADE FIRMWARE Information to server"
     UPGRADEFIRMWARE="1"
@@ -159,7 +162,10 @@ upgfirm=$UPGRADEFIRMWARE"
 
     if [ "$UPGRADEFIRMWARE" = "1" ]
     then
-      rm /root/upgrade_info
+      json_load_file /root/flashbox_config.json
+      json_add_string upgrade_version_info ""
+      json_dump > /root/flashbox_config.json
+      json_close_object
     fi
 
     if [ "$_do_newprobe" = "1" ]

@@ -47,9 +47,14 @@ run_reflash()
     clean_memory
     if get_image "$_sv_address" "$_release_id"
     then
-      echo "$_release_id" > /root/upgrade_info
-      tar -zcf /tmp/config.tar.gz /etc/config/wireless /root/upgrade_info
-      rm -f /root/upgrade_info
+      json_load_file /root/flashbox_config.json
+      json_add_string upgrade_version_info "$_release_id"
+      json_dump > /root/flashbox_config.json
+      tar -zcf /tmp/config.tar.gz \
+               /etc/config/wireless /root/flashbox_config.json
+      json_add_string upgrade_version_info ""
+      json_dump > /root/flashbox_config.json
+      json_close_object
       if sysupgrade -T "/tmp/"$_vendor"_"$_model"_"$_ver"_"$_release_id".bin"
       then
         curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
