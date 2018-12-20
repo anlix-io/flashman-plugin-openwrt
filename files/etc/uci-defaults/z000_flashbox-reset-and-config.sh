@@ -51,11 +51,17 @@ then
     _tmp_flashapp_pass=$(cat /root/router_passwd)
     rm /root/router_passwd
   fi
-  _tmp_upgrade_version_info=""
+  _tmp_has_upgraded_version="0"
   if [ -f /root/upgrade_info ]
   then
-    _tmp_upgrade_version_info=$(cat /root/upgrade_info)
+    _tmp_has_upgraded_version="1"
     rm /root/upgrade_info
+  fi
+  _tmp_hard_reset_info="0"
+  if [ -f /root/hard_reset ]
+  then
+    _tmp_hard_reset_info="1"
+    rm /root/hard_reset
   fi
   #
   # WARNING! No spaces or tabs inside the following string!
@@ -66,7 +72,8 @@ then
 'pppoe_user': '$_tmp_pppoe_user',\
 'pppoe_pass': '$_tmp_pppoe_pass',\
 'flashapp_pass': '$_tmp_flashapp_pass',\
-'upgrade_version_info': '$_tmp_upgrade_version_info'}"
+'has_upgraded_version': '$_tmp_has_upgraded_version',\
+'hard_reset_info': '$_tmp_hard_reset_info'}"
 
   echo "$_flashbox_config_json" > /root/flashbox_config.json
 fi

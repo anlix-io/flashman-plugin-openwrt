@@ -48,11 +48,11 @@ run_reflash()
     if get_image "$_sv_address" "$_release_id"
     then
       json_load_file /root/flashbox_config.json
-      json_add_string upgrade_version_info "$_release_id"
+      json_add_string has_upgraded_version "1"
       json_dump > /root/flashbox_config.json
       tar -zcf /tmp/config.tar.gz \
                /etc/config/wireless /root/flashbox_config.json
-      json_add_string upgrade_version_info ""
+      json_add_string has_upgraded_version "0"
       json_dump > /root/flashbox_config.json
       json_close_object
       if sysupgrade -T "/tmp/"$_vendor"_"$_model"_"$_ver"_"$_release_id".bin"

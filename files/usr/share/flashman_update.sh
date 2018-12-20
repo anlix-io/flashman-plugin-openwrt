@@ -29,11 +29,8 @@ then
   fi
 fi
 
-OPENWRT_VER=$(cat /etc/openwrt_version)
 HARDWARE_MODEL=$(get_hardware_model)
 HARDWARE_VER=$(cat /tmp/sysinfo/model | awk '{ print toupper($3) }')
-CLIENT_MAC=$(get_mac)
-WAN_IP_ADDR=$(get_wan_ip)
 WAN_CONNECTION_TYPE=$(uci get network.wan.proto | awk '{ print tolower($1) }')
 PPPOE_USER=""
 PPPOE_PASSWD=""
@@ -65,37 +62,25 @@ then
   json_get_var _local_htmode_50 local_htmode_50
   json_close_object
 
+  json_load_file /root/flashbox_config.json
+  json_get_var _has_upgraded_version has_upgraded_version
+  json_get_var _hard_reset_info hard_reset_info
+  json_close_object
+
   # Report if a hard reset has occured
-  if [ -e /root/hard_reset ]
+  if [ "_hard_reset_info" = "1" ]
   then
     log "FLASHMAN UPDATER" "Sending HARD RESET Information to server"
-    HARDRESET="1"
     if [ -e /sysupgrade.tgz ]
     then
       rm /sysupgrade.tgz
     fi
-  else
-    HARDRESET="0"
   fi
 
-  # Report a firmware upgrade
-  json_load_file /root/flashbox_config.json
-  json_get_var _upgrade_version_info upgrade_version_info
-  json_close_object
-  if [ "$_upgrade_version_info" != "" ]
-  then
-    log "FLASHMAN UPDATER" "Sending UPGRADE FIRMWARE Information to server"
-    UPGRADEFIRMWARE="1"
-  else
-    UPGRADEFIRMWARE="0"
-  fi
-
-  #Get NTP status
-  NTP_INFO=$(ntp_anlix)
   #
   # WARNING! No spaces or tabs inside the following string!
   #
-  _data="id=$CLIENT_MAC&\
+  _data="id=$(get_mac)&\
 flm_updater=1&\
 version=$ANLIX_PKG_VERSION&\
 model=$HARDWARE_MODEL&\
@@ -103,14 +88,14 @@ model_ver=$HARDWARE_VER&\
 release_id=$FLM_RELID&\
 pppoe_user=$PPPOE_USER&\
 pppoe_password=$PPPOE_PASSWD&\
-wan_ip=$WAN_IP_ADDR&\
+wan_ip=$(get_wan_ip)&\
 wifi_ssid=$_local_ssid_24&\
 wifi_password=$_local_password_24&\
 wifi_channel=$_local_channel_24&\
 connection_type=$WAN_CONNECTION_TYPE&\
-ntp=$NTP_INFO&\
-hardreset=$HARDRESET&\
-upgfirm=$UPGRADEFIRMWARE"
+ntp=$(ntp_anlix)&\
+hardreset=$_hard_reset_info&\
+upgfirm=$_has_upgraded_version"
   _url="deviceinfo/syn/"
   _res=$(rest_flashman "$_url" "$_data")
 
@@ -134,7 +119,7 @@ upgfirm=$UPGRADEFIRMWARE"
     _blocked_macs=""
     _blocked_devices=""
     json_select blocked_devices
-    INDEX="1"  # json library starts indexing at 1
+    INDEX="1"  # Json library starts indexing at 1
     while json_get_type TYPE $INDEX && [ "$TYPE" = string ]; do
       json_get_var _device "$((INDEX++))"
       _blocked_devices="$_blocked_devices""$_device"$'\n'
@@ -144,7 +129,7 @@ upgfirm=$UPGRADEFIRMWARE"
     _named_devices=""
     json_select ..
     json_select named_devices
-    INDEX="1"  # json library starts indexing at 1
+    INDEX="1"  # Json library starts indexing at 1
     while json_get_type TYPE $INDEX && [ "$TYPE" = string ]; do
       json_get_var _device "$((INDEX++))"
       _named_devices="$_named_devices""$_device"$'\n'
@@ -155,27 +140,30 @@ upgfirm=$UPGRADEFIRMWARE"
     _named_devices=${_named_devices::-1}
     json_close_object
 
-    if [ "$HARDRESET" = "1" ]
-    then
-      rm /root/hard_reset
-    fi
-
-    if [ "$UPGRADEFIRMWARE" = "1" ]
+    if [ "$_hard_reset_info" = "1" ]
     then
       json_load_file /root/flashbox_config.json
-      json_add_string upgrade_version_info ""
+      json_add_string hard_reset_info "0"
+      json_dump > /root/flashbox_config.json
+      json_close_object
+    fi
+
+    if [ "$_has_upgraded_version" = "1" ]
+    then
+      json_load_file /root/flashbox_config.json
+      json_add_string has_upgraded_version "0"
       json_dump > /root/flashbox_config.json
       json_close_object
     fi
 
     if [ "$_do_newprobe" = "1" ]
     then
-      log "FLASHMAN UPDATER" "Router Registred in Flashman Successfully!"
-      #on a new probe, force a new registry in mqtt secret
+      log "FLASHMAN UPDATER" "Router Registered in Flashman Successfully!"
+      # On a new probe, force a new registry in mqtt secret
       reset_mqtt_secret > /dev/null
     fi
 
-    # send boot log information if boot is completed and probe is registred!
+    # Send boot log information if boot is completed and probe is registred!
     if [ ! -e /tmp/boot_completed ]
     then
       log "FLASHMAN UPDATER" "Sending BOOT log"

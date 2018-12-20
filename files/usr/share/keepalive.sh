@@ -6,10 +6,7 @@
 . /usr/share/functions/device_functions.sh
 . /usr/share/functions/wireless_functions.sh
 
-OPENWRT_VER=$(cat /etc/openwrt_version)
-HARDWARE_MODEL=$(get_hardware_model)
 HARDWARE_VER=$(cat /tmp/sysinfo/model | awk '{ print toupper($3) }')
-CLIENT_MAC=$(get_mac)
 PPPOE_USER=""
 PPPOE_PASSWD=""
 
@@ -45,30 +42,26 @@ do
     json_get_var _local_htmode_50 local_htmode_50
     json_close_object
 
-    #Get NTP status
-    NTP_INFO=$(ntp_anlix)
-
-    WAN_IP_ADDR=$(get_wan_ip)
     WAN_CONNECTION_TYPE=$(uci get network.wan.proto | awk '{ print tolower($1) }')
 
-     log "KEEPALIVE" "Ping Flashman ..."
-     #
-     # WARNING! No spaces or tabs inside the following string!
-     #
-    _data="id=$CLIENT_MAC&\
+    log "KEEPALIVE" "Ping Flashman ..."
+    #
+    # WARNING! No spaces or tabs inside the following string!
+    #
+    _data="id=$(get_mac)&\
 flm_updater=0&\
 version=$ANLIX_PKG_VERSION&\
-model=$HARDWARE_MODEL&\
+model=$(get_hardware_model)&\
 model_ver=$HARDWARE_VER&\
 release_id=$FLM_RELID&\
 pppoe_user=$PPPOE_USER&\
 pppoe_password=$PPPOE_PASSWD&\
-wan_ip=$WAN_IP_ADDR&\
+wan_ip=$(get_wan_ip)&\
 wifi_ssid=$_local_ssid_24&\
 wifi_password=$_local_password_24&\
 wifi_channel=$_local_channel_24&\
 connection_type=$WAN_CONNECTION_TYPE&\
-ntp=$NTP_INFO"
+ntp=$(ntp_anlix)"
     _url="deviceinfo/syn/"
     _res=$(rest_flashman "$_url" "$_data")
 
@@ -85,7 +78,7 @@ ntp=$NTP_INFO"
       if [ "$_do_newprobe" = "1" ]
       then
         log "KEEPALIVE" "Router Registred in Flashman Successfully!"
-        #on a new probe, force a new registry in mqtt secret
+        # On a new probe, force a new registry in mqtt secret
         reset_mqtt_secret > /dev/null
         sh /usr/share/flashman_update.sh
       fi
@@ -99,14 +92,14 @@ ntp=$NTP_INFO"
 
       if [ $_need_update -gt 7 ]
       then
-        #More than 7 checks (>20 min), force a firmware update
+        # More than 7 checks (>20 min), force a firmware update
         log "KEEPALIVE" "Running update ..."
         sh /usr/share/flashman_update.sh
       fi
 
       if [ "$_mqtt_status" = "0" ]
       then
-        #Check is mqtt is running
+        # Check is mqtt is running
         mqttpid=$(pgrep anlix-mqtt)
         if [ "$mqttpid" ] && [ $mqttpid -gt 0 ]
         then
@@ -122,7 +115,7 @@ ntp=$NTP_INFO"
       _cert_error=$(( _cert_error + 1 ))
       if [ $_cert_error -gt 7 ]
       then
-        #More than 7 checks (>20 min), force a date update
+        # More than 7 checks (>20 min), force a date update
         log "KEEPALIVE" "Try resync date with Flashman!"
         resync_ntp
         _cert_error=0
