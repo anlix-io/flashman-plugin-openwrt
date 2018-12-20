@@ -37,12 +37,6 @@ WAN_IP_ADDR=$(get_wan_ip)
 WAN_CONNECTION_TYPE=$(uci get network.wan.proto | awk '{ print tolower($1) }')
 PPPOE_USER=""
 PPPOE_PASSWD=""
-if [ -f /root/router_passwd ]
-then
-  APP_PASSWORD="$(cat /root/router_passwd)"
-else
-  APP_PASSWORD=""
-fi
 
 log "FLASHMAN UPDATER" "Start ..."
 
@@ -199,7 +193,12 @@ upgfirm=$UPGRADEFIRMWARE"
         /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
 
         # This will persist connection type between firmware upgrades
-        echo "dhcp" > /root/custom_connection_type
+        json_load_file /root/flashbox_config.json
+        json_add_string wan_conn_type "dhcp"
+        json_add_string pppoe_user ""
+        json_add_string pppoe_pass ""
+        json_dump > /root/flashbox_config.json
+        json_close_object
       elif [ "$_connection_type" == "pppoe" ]
       then
         if [ "$_pppoe_user" != "" ] && [ "$_pppoe_password" != "" ]
@@ -215,7 +214,12 @@ upgfirm=$UPGRADEFIRMWARE"
           /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
 
           # This will persist connection type between firmware upgrades
-          echo "pppoe" > /root/custom_connection_type
+          json_load_file /root/flashbox_config.json
+          json_add_string wan_conn_type "pppoe"
+          json_add_string pppoe_user "$_pppoe_user"
+          json_add_string pppoe_pass "$_pppoe_password"
+          json_dump > /root/flashbox_config.json
+          json_close_object
         fi
       fi
       # Don't put anything outside here. _content_type may be corrupted
@@ -251,14 +255,11 @@ upgfirm=$UPGRADEFIRMWARE"
     if [ "$_app_password" == "" ]
     then
       log "FLASHMAN UPDATER" "Removing app access password ..."
-      if [ -e /root/router_passwd ]
-      then
-        rm /root/router_passwd
-      fi
-    elif [ "$_app_password" != "$APP_PASSWORD" ]
+      reset_flashapp_pass
+    elif [ "$_app_password" != "$(get_flashapp_pass)" ]
     then
       log "FLASHMAN UPDATER" "Updating app access password ..."
-      echo -n "$_app_password" > /root/router_passwd
+      set_flashapp_pass "$_app_password"
     fi
 
     # Named devices file update - always do this to avoid file diff logic

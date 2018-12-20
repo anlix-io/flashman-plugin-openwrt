@@ -18,7 +18,7 @@ rstmqtt)
   ;;
 rstapp)
   log "MQTTMSG" "Clean up APP secret"
-  rm /root/router_passwd
+  reset_flashapp_pass
   ;;
 log)
   log "MQTTMSG" "Sending LIVE log "
@@ -26,7 +26,7 @@ log)
   ;;
 onlinedev)
   log "MQTTMSG" "Sending Online Devices.."
-  send_online_devices 
+  send_online_devices
   ;;
 *)
   log "MQTTMSG" "Cant recognize message: $1"

@@ -193,14 +193,14 @@ local function gen_app_key(id)
 end
 
 local function get_router_passwd()
-  return read_file("/root/router_passwd")
+  local result = run_process("sh -c \". /usr/share/functions.sh; echo $(get_flashapp_pass)\"")
+  -- remove \n
+  result = result:sub(1,-2)
+  return result
 end
 
 local function save_router_passwd(pass)
-  local file = io.open("/root/router_passwd", "wb")
-  if not file then return false end
-  file:write(pass)
-  file:close()
+  run_process("sh -c \". /usr/share/functions.sh; set_flashapp_pass ".. pass .."\"")
   return true
 end
 

@@ -226,13 +226,16 @@ set_mqtt_secret()
 
 reset_mqtt_secret()
 {
-  if [ -e "/root/mqtt_secret" ]
+  json_load_file /root/flashbox_config.json
+  json_get_var _mqtt_secret mqtt_secret
+
+  if [ "$_mqtt_secret" != "" ]
   then
-    json_load_file /root/flashbox_config.json
     json_add_string mqtt_secret ""
     json_dump > /root/flashbox_config.json
-    json_close_object
   fi
+
+  json_close_object
   set_mqtt_secret
 }
 
@@ -431,4 +434,35 @@ check_zabbix_startup() {
     /etc/init.d/zabbix_agentd stop
     /etc/init.d/zabbix_agentd disable
   fi
+}
+
+reset_flashapp_pass()
+{
+  json_load_file /root/flashbox_config.json
+  json_get_var _flashapp_pass flashapp_pass
+
+  if [ "$_flashapp_pass" != "" ]
+  then
+    json_add_string flashapp_pass ""
+    json_dump > /root/flashbox_config.json
+  fi
+
+  json_close_object
+}
+
+get_flashapp_pass()
+{
+  json_load_file /root/flashbox_config.json
+  json_get_var _flashapp_pass flashapp_pass
+  json_close_object
+
+  echo "$_flashapp_pass"
+}
+
+set_flashapp_pass()
+{
+  json_load_file /root/flashbox_config.json
+  json_add_string flashapp_pass "$1"
+  json_dump > /root/flashbox_config.json
+  json_close_object
 }
