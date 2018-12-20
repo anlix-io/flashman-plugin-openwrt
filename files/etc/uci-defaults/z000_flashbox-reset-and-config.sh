@@ -25,31 +25,37 @@ then
   if [ -f /root/mqtt_secret ]
   then
     _tmp_mqtt_secret=$(cat /root/mqtt_secret)
+    rm /root/mqtt_secret
   fi
   _tmp_conn_type=""
   if [ -f /root/custom_connection_type ]
   then
     _tmp_conn_type=$(cat /root/custom_connection_type)
+    rm /root/custom_connection_type
   fi
   _tmp_pppoe_user=""
   if [ -f /root/custom_pppoe_user ]
   then
     _tmp_pppoe_user=$(cat /root/custom_pppoe_user)
+    rm /root/custom_pppoe_user
   fi
   _tmp_pppoe_pass=""
   if [ -f /root/custom_pppoe_password ]
   then
     _tmp_pppoe_pass=$(cat /root/custom_pppoe_password)
+    rm /root/custom_pppoe_password
   fi
   _tmp_flashapp_pass=""
   if [ -f /root/router_passwd ]
   then
     _tmp_flashapp_pass=$(cat /root/router_passwd)
+    rm /root/router_passwd
   fi
   _tmp_upgrade_version_info=""
   if [ -f /root/upgrade_info ]
   then
     _tmp_upgrade_version_info=$(cat /root/upgrade_info)
+    rm /root/upgrade_info
   fi
   #
   # WARNING! No spaces or tabs inside the following string!
