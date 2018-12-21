@@ -1,6 +1,6 @@
 #!/bin/sh
 
-. /usr/share/functions.sh
+. /usr/share/functions/common_functions.sh
 . /usr/share/functions/device_functions.sh
 
 DO_RESTART=0

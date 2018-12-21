@@ -1,14 +1,12 @@
 #!/bin/sh
 
 . /usr/share/flashman_init.conf
-. /usr/share/functions.sh
 . /usr/share/libubox/jshn.sh
+. /usr/share/functions/common_functions.sh
+. /usr/share/functions/system_functions.sh
 . /usr/share/functions/device_functions.sh
 . /usr/share/functions/wireless_functions.sh
-
-HARDWARE_VER=$(cat /tmp/sysinfo/model | awk '{ print toupper($3) }')
-PPPOE_USER=""
-PPPOE_PASSWD=""
+. /usr/share/functions/network_functions.sh
 
 _need_update=0
 _cert_error=0
@@ -21,13 +19,6 @@ do
 
   if [ "$_number" -eq 3 ] || [ "$1" == "now" ]
   then
-    # Get PPPoE data if available
-    if [ "$WAN_CONNECTION_TYPE" == "pppoe" ]
-    then
-      PPPOE_USER=$(uci get network.wan.username)
-      PPPOE_PASSWD=$(uci get network.wan.password)
-    fi
-
     # Get WiFi data
     json_load $(get_wifi_local_config)
     json_get_var _local_ssid_24 local_ssid_24
@@ -42,25 +33,23 @@ do
     json_get_var _local_htmode_50 local_htmode_50
     json_close_object
 
-    WAN_CONNECTION_TYPE=$(uci get network.wan.proto | awk '{ print tolower($1) }')
-
     log "KEEPALIVE" "Ping Flashman ..."
     #
     # WARNING! No spaces or tabs inside the following string!
     #
     _data="id=$(get_mac)&\
 flm_updater=0&\
-version=$ANLIX_PKG_VERSION&\
+version=$(get_flashbox_version)&\
 model=$(get_hardware_model)&\
-model_ver=$HARDWARE_VER&\
+model_ver=$(get_hardware_version)&\
 release_id=$FLM_RELID&\
-pppoe_user=$PPPOE_USER&\
-pppoe_password=$PPPOE_PASSWD&\
+pppoe_user=$(uci -q get network.wan.username)&\
+pppoe_password=$(uci -q get network.wan.password)&\
 wan_ip=$(get_wan_ip)&\
 wifi_ssid=$_local_ssid_24&\
 wifi_password=$_local_password_24&\
 wifi_channel=$_local_channel_24&\
-connection_type=$WAN_CONNECTION_TYPE&\
+connection_type=$(get_wan_type)&\
 ntp=$(ntp_anlix)"
     _url="deviceinfo/syn/"
     _res=$(rest_flashman "$_url" "$_data")

@@ -1,10 +1,37 @@
 #!/bin/sh
 
 . /usr/share/flashman_init.conf
-. /usr/share/functions.sh
+. /usr/share/functions/common_functions.sh
+. /usr/share/functions/system_functions.sh
 . /usr/share/functions/device_functions.sh
 
-CLIENT_MAC=$(get_mac)
+# Verify if connection is up.
+check_connectivity_flashman() {
+  if ping -q -c 2 -W 2 "$FLM_SVADDR"  >/dev/null
+  then
+    # true
+    echo 0
+  else
+    # false
+    echo 1
+  fi
+}
+
+check_zabbix_startup() {
+  sed -i "s%ZABBIX-SERVER-ADDR%$ZBX_SVADDR%" /etc/zabbix_agentd.conf
+  if [ "$ZBX_SEND_DATA" = "y" ]
+  then
+    # Enable Zabbix
+    /etc/init.d/zabbix_agentd enable
+    /etc/init.d/zabbix_agentd start
+    log "ZABBIX" "Zabbix Enabled"
+  else
+    # Disable Zabbix
+    /etc/init.d/zabbix_agentd stop
+    /etc/init.d/zabbix_agentd disable
+  fi
+}
+
 log "IMALIVE" "ROUTER STARTED!"
 
 connected=false
@@ -50,10 +77,10 @@ do
     log "IMALIVE" "Empty MQTT Secret... Waiting..."
   else
     log "IMALIVE" "Running MQTT client"
-    anlix-mqtt flashman/update/$CLIENT_MAC --clientid $CLIENT_MAC \
+    anlix-mqtt flashman/update/$(get_mac) --clientid $(get_mac) \
     --host $FLM_SVADDR --port $MQTT_PORT \
     --cafile /etc/ssl/certs/ca-certificates.crt \
-    --shell "sh /usr/share/mqtt.sh " --username $CLIENT_MAC --password $MQTTSEC
+    --shell "sh /usr/share/mqtt.sh " --username $(get_mac) --password $MQTTSEC
     if [ $? -eq 0 ]
     then
       log "IMALIVE" "MQTT Exit OK"

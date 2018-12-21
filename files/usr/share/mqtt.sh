@@ -1,7 +1,9 @@
 #!/bin/sh
 
 . /usr/share/flashman_init.conf
-. /usr/share/functions.sh
+. /usr/share/functions/common_functions.sh
+. /usr/share/functions/dhcp_functions.sh
+. /usr/share/functions/api_functions.sh
 
 case "$1" in
 1)

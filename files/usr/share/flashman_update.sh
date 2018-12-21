@@ -3,9 +3,13 @@
 . /usr/share/flashman_init.conf
 . /usr/share/libubox/jshn.sh
 . /usr/share/flash_image.sh
-. /usr/share/functions.sh
+. /usr/share/functions/common_functions.sh
+. /usr/share/functions/system_functions.sh
 . /usr/share/functions/device_functions.sh
 . /usr/share/functions/wireless_functions.sh
+. /usr/share/functions/network_functions.sh
+. /usr/share/functions/firewall_functions.sh
+. /usr/share/functions/api_functions.sh
 
 # If a command hash is provided, check if it should still be done
 COMMANDHASH=""
@@ -29,24 +33,11 @@ then
   fi
 fi
 
-HARDWARE_MODEL=$(get_hardware_model)
-HARDWARE_VER=$(cat /tmp/sysinfo/model | awk '{ print toupper($3) }')
-WAN_CONNECTION_TYPE=$(uci get network.wan.proto | awk '{ print tolower($1) }')
-PPPOE_USER=""
-PPPOE_PASSWD=""
-
 log "FLASHMAN UPDATER" "Start ..."
 
 if is_authenticated
 then
   log "FLASHMAN UPDATER" "Authenticated ..."
-
-  # Get PPPoE data if available
-  if [ "$WAN_CONNECTION_TYPE" == "pppoe" ]
-  then
-    PPPOE_USER=$(uci get network.wan.username)
-    PPPOE_PASSWD=$(uci get network.wan.password)
-  fi
 
   # Get WiFi data
   json_load $(get_wifi_local_config)
@@ -82,17 +73,17 @@ then
   #
   _data="id=$(get_mac)&\
 flm_updater=1&\
-version=$ANLIX_PKG_VERSION&\
-model=$HARDWARE_MODEL&\
-model_ver=$HARDWARE_VER&\
+version=$(get_flashbox_version)&\
+model=$(get_hardware_model)&\
+model_ver=$(get_hardware_version)&\
 release_id=$FLM_RELID&\
-pppoe_user=$PPPOE_USER&\
-pppoe_password=$PPPOE_PASSWD&\
+pppoe_user=$(uci -q get network.wan.username)&\
+pppoe_password=$(uci -q get network.wan.password)&\
 wan_ip=$(get_wan_ip)&\
 wifi_ssid=$_local_ssid_24&\
 wifi_password=$_local_password_24&\
 wifi_channel=$_local_channel_24&\
-connection_type=$WAN_CONNECTION_TYPE&\
+connection_type=$(get_wan_type)&\
 ntp=$(ntp_anlix)&\
 hardreset=$_hard_reset_info&\
 upgfirm=$_has_upgraded_version"
@@ -163,7 +154,7 @@ upgfirm=$_has_upgraded_version"
       reset_mqtt_secret > /dev/null
     fi
 
-    # Send boot log information if boot is completed and probe is registred!
+    # Send boot log information if boot is completed and probe is registered!
     if [ ! -e /tmp/boot_completed ]
     then
       log "FLASHMAN UPDATER" "Sending BOOT log"
@@ -171,72 +162,11 @@ upgfirm=$_has_upgraded_version"
       echo "0" > /tmp/boot_completed
     fi
 
-    # Connection type update
-    if [ "$_connection_type" != "$WAN_CONNECTION_TYPE" ]
-    then
-      if [ "$_connection_type" == "dhcp" ]
-      then
-        log "FLASHMAN UPDATER" "Updating connection type to DHCP ..."
-        uci set network.wan.proto="dhcp"
-        uci set network.wan.username=""
-        uci set network.wan.password=""
-        uci set network.wan.service=""
-        uci commit network
-
-        /etc/init.d/network restart
-        /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
-
-        # This will persist connection type between firmware upgrades
-        json_load_file /root/flashbox_config.json
-        json_add_string wan_conn_type "dhcp"
-        json_add_string pppoe_user ""
-        json_add_string pppoe_pass ""
-        json_dump > /root/flashbox_config.json
-        json_close_object
-      elif [ "$_connection_type" == "pppoe" ]
-      then
-        if [ "$_pppoe_user" != "" ] && [ "$_pppoe_password" != "" ]
-        then
-          log "FLASHMAN UPDATER" "Updating connection type to PPPOE ..."
-          uci set network.wan.proto="pppoe"
-          uci set network.wan.username="$_pppoe_user"
-          uci set network.wan.password="$_pppoe_password"
-          uci set network.wan.service="$FLM_WAN_PPPOE_SERVICE"
-          uci commit network
-
-          /etc/init.d/network restart
-          /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
-
-          # This will persist connection type between firmware upgrades
-          json_load_file /root/flashbox_config.json
-          json_add_string wan_conn_type "pppoe"
-          json_add_string pppoe_user "$_pppoe_user"
-          json_add_string pppoe_pass "$_pppoe_password"
-          json_dump > /root/flashbox_config.json
-          json_close_object
-        fi
-      fi
-      # Don't put anything outside here. _content_type may be corrupted
-    fi
+    # WAN connection type update
+    set_wan_type "$_connection_type" "$_pppoe_user" "$_pppoe_password"
 
     # PPPoE update
-    if [ "$WAN_CONNECTION_TYPE" == "pppoe" ]
-    then
-      if [ "$_pppoe_user" != "" ] && [ "$_pppoe_password" != "" ]
-      then
-        if [ "$_pppoe_user" != "$PPPOE_USER" ] || \
-           [ "$_pppoe_password" != "$PPPOE_PASSWD" ]
-        then
-          log "FLASHMAN UPDATER" "Updating PPPoE ..."
-          uci set network.wan.username="$_pppoe_user"
-          uci set network.wan.password="$_pppoe_password"
-          uci commit network
-
-          /etc/init.d/network restart
-          /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
-        fi
-      fi
-    fi
+    set_pppoe_credentials "$_pppoe_user" "$_pppoe_password"
 
     # WiFi update
     log "FLASHMAN UPDATER" "Updating Wireless ..."
@@ -244,8 +174,7 @@ upgfirm=$_has_upgraded_version"
                           "" "" \
                           "$_wifi_ssid" "$_wifi_password" "$_wifi_channel" \
                           "" ""
-
-    # App password update
+    # Flash App password update
     if [ "$_app_password" == "" ]
     then
       log "FLASHMAN UPDATER" "Removing app access password ..."
@@ -273,7 +202,7 @@ upgfirm=$_has_upgraded_version"
     /etc/init.d/firewall restart
     /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
 
-    A=$(json_get_index "forward_index")
+    A=$(get_forward_indexes "forward_index")
     [ "$A" != "$_forward_index" ] && update_port_forward
 
     # Store completed command hash if one was provided
@@ -293,4 +222,3 @@ else
   log "FLASHMAN UPDATER" "Fail Authenticating device!"
 fi
 log "FLASHMAN UPDATER" "Done"
-

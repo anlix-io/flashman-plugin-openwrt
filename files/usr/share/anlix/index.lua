@@ -15,7 +15,7 @@ local function get_router_id()
 end
 
 local function is_authenticated()
-  local result = run_process("sh -c \". /usr/share/functions.sh; if is_authenticated; then echo 1; else echo 0; fi\"")
+  local result = run_process("sh -c \". /usr/share/functions/common_functions.sh; if is_authenticated; then echo 1; else echo 0; fi\"")
   -- remove \n
   result = result:sub(1,-2)
 
@@ -193,14 +193,14 @@ local function gen_app_key(id)
 end
 
 local function get_router_passwd()
-  local result = run_process("sh -c \". /usr/share/functions.sh; echo $(get_flashapp_pass)\"")
+  local result = run_process("sh -c \". /usr/share/functions/api_functions.sh; echo $(get_flashapp_pass)\"")
   -- remove \n
   result = result:sub(1,-2)
   return result
 end
 
 local function save_router_passwd(pass)
-  run_process("sh -c \". /usr/share/functions.sh; set_flashapp_pass ".. pass .."\"")
+  run_process("sh -c \". /usr/share/functions/api_functions.sh; set_flashapp_pass ".. pass .."\"")
   return true
 end
 

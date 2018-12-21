@@ -1,51 +1,105 @@
 #!/bin/sh
 
 . /usr/share/flashman_init.conf
-. /usr/share/functions.sh
+. /usr/share/libubox/jshn.sh
+. /usr/share/functions/common_functions.sh
 . /usr/share/functions/device_functions.sh
 
-clean_memory()
-{
+clean_memory() {
   rm -r /tmp/opkg-lists/
   echo 3 > /proc/sys/vm/drop_caches
 }
 
-# Downloads correct image based on current model
-get_image()
-{
-  if [ "$#" -eq 2 ]
-  then
-    _sv_address=$1
-    _release_id=$2
-    _vendor=$(cat /tmp/sysinfo/model | awk '{ print toupper($1) }')
-    _model=$(get_hardware_model | awk -F "/" '{ if($2 != "") { print $1"D"; } else { print $1 } }')
-    _ver=$(cat /tmp/sysinfo/model | awk '{ print toupper($3) }')
+download_file() {
+  local _dfile="$2"
+  local _uri="$1/$_dfile"
+  local _dest_dir="$3"
 
-    if ! download_file "https://$_sv_address/firmwares" $_vendor"_"$_model"_"$_ver"_"$_release_id".bin" "/tmp"
+  if [ "$#" -eq 3 ]
+  then
+    mkdir -p "$_dest_dir"
+
+    local _zflag=""
+    if test -e "$_dest_dir/$_dfile"
     then
-      echo "Image download failed"
+      _zflag="-z $_dest_dir/$_dfile"
+    fi
+
+    local _md5_remote_hash=`curl -I -s -w "%{http_code}" \
+                           -u routersync:landufrj123 \
+                           --tlsv1.2 --connect-timeout 5 --retry 3 "$_uri" \
+                           | grep "X-Checksum-Md5" | awk '{ print $2 }'`
+
+    local _curl_code=`curl -s -w "%{http_code}" -u routersync:landufrj123 \
+                           --tlsv1.2 --connect-timeout 5 --retry 3 \
+                           -o "/tmp/$_dfile" "$_zflag" "$_uri"`
+
+    if [ "$_curl_code" = "200" ]
+    then
+      local _md5_local_hash=$(md5sum /tmp/$_dfile | awk '{ print $1 }')
+      if [ "$md5_remote_hash" != "$md5_local_hash" ]
+      then
+        log "FLASHBOX UPGRADE" "No match on MD5 hash"
+        rm "/tmp/$_dfile"
+        return 1
+      fi
+      mv "/tmp/$_dfile" "$_dest_dir/$_dfile"
+      log "FLASHBOX UPGRADE" "Downloaded file on $_uri"
+      return 0
+    else
+      log "FLASHBOX UPGRADE" "Download error on $_uri"
+      if [ "$_curl_code" != "304" ]
+      then
+        rm "/tmp/$_dfile"
+        return 1
+      else
+        return 0
+      fi
+    fi
+  else
+    log "FLASHBOX UPGRADE" "Wrong number of arguments"
+    return 1
+  fi
+}
+
+# Downloads correct image based on current model
+get_image() {
+  if [ "$#" -eq 5 ]
+  then
+    local _sv_address=$1
+    local _release_id=$2
+    local _vendor=$3
+    local _model=$4
+    local _ver=$5
+    download_file "https://$_sv_address/firmwares" \
+                  $_vendor"_"$_model"_"$_ver"_"$_release_id".bin" "/tmp"
+    local _retstatus=$?
+
+    if [ $_retstatus -eq 1 ]
+    then
+      log "FLASHBOX UPGRADE" "Image download failed"
       return 1
     fi
   else
-    echo "Error in number of args"
+    log "FLASHBOX UPGRADE" "Error in number of args"
     return 1
   fi
   return 0
 }
 
-run_reflash()
-{
+run_reflash() {
   if [ "$#" -eq 2 ]
   then
-    echo "Init image reflash"
+    log "FLASHBOX UPGRADE" "Init image reflash"
     _sv_address=$1
     _release_id=$2
     _vendor=$(cat /tmp/sysinfo/model | awk '{ print toupper($1) }')
-    _model=$(get_hardware_model | awk -F "/" '{ if($2 != "") { print $1"D"; } else { print $1 } }')
-    _ver=$(cat /tmp/sysinfo/model | awk '{ print toupper($3) }')
+    _model=$(get_hardware_model | \
+             awk -F "/" '{ if($2 != "") { print $1"D"; } else { print $1 } }')
+    _ver=$(get_hardware_version)
 
     clean_memory
-    if get_image "$_sv_address" "$_release_id"
+    if get_image "$_sv_address" "$_release_id" "$_vendor" "$_model" "$_ver"
     then
       json_load_file /root/flashbox_config.json
       json_add_string has_upgraded_version "1"
@@ -61,23 +115,24 @@ run_reflash()
              --tlsv1.2 --connect-timeout 5 --retry 0 \
              --data "id=$(get_mac)&status=1" \
              "https://$_sv_address/deviceinfo/ack/"
-        sysupgrade -f /tmp/config.tar.gz "/tmp/"$_vendor"_"$_model"_"$_ver"_"$_release_id".bin"
+        sysupgrade -f /tmp/config.tar.gz \
+                      "/tmp/"$_vendor"_"$_model"_"$_ver"_"$_release_id".bin"
       else
         curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
            --tlsv1.2 --connect-timeout 5 --retry 0 \
            --data "id=$(get_mac)&status=0" \
            "https://$_sv_address/deviceinfo/ack/"
-        echo "Image check failed"
+        log "FLASHBOX UPGRADE" "Image check failed"
         return 1
       fi
     else
       curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
-        --tlsv1.2 --connect-timeout 5 --retry 0 \
-        --data "id=$(get_mac)&status=2" \
-        "https://$_sv_address/deviceinfo/ack/"
+           --tlsv1.2 --connect-timeout 5 --retry 0 \
+           --data "id=$(get_mac)&status=2" \
+           "https://$_sv_address/deviceinfo/ack/"
     fi
   else
-    echo "Error in number of args"
+    log "FLASHBOX UPGRADE" "Error in number of args"
     return 1
   fi
 }

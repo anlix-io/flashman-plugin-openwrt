@@ -3,7 +3,7 @@
 [ "$ACTION" = stratum ] || exit 0
 
 . /usr/share/flashman_init.conf
-. /usr/share/functions.sh
+. /usr/share/functions/common_functions.sh
 
 if [ "$ACTION" = unsync ]
 then

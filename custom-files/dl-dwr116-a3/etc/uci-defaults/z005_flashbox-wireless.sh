@@ -5,7 +5,6 @@
 #
 
 . /usr/share/flashman_init.conf
-. /usr/share/functions.sh
 . /usr/share/functions/device_functions.sh
 
 MAC_LAST_CHARS=$(get_mac | awk -F: '{ print $5$6 }')
