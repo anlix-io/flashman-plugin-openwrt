@@ -27,8 +27,12 @@ log)
   send_boot_log "live"
   ;;
 onlinedev)
-  log "MQTTMSG" "Sending Online Devices.."
+  log "MQTTMSG" "Sending Online Devices..."
   send_online_devices
+  ;;
+ping)
+  log "MQTTMSG" "Running ping test"
+  run_ping_ondemand_test
   ;;
 *)
   log "MQTTMSG" "Cant recognize message: $1"
