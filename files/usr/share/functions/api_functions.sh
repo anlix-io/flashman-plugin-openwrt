@@ -27,6 +27,7 @@ send_boot_log() {
          -H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
          -H "$_header"  --data-binary @- "https://$FLM_SVADDR/deviceinfo/logs")
 
+  json_cleanup
   json_load "$_res"
   json_get_var _processed processed
   json_close_object
@@ -35,6 +36,7 @@ send_boot_log() {
 }
 
 reset_flashapp_pass() {
+  json_cleanup
   json_load_file /root/flashbox_config.json
   json_get_var _flashapp_pass flashapp_pass
 
@@ -48,6 +50,7 @@ reset_flashapp_pass() {
 }
 
 get_flashapp_pass() {
+  json_cleanup
   json_load_file /root/flashbox_config.json
   json_get_var _flashapp_pass flashapp_pass
   json_close_object
@@ -56,6 +59,7 @@ get_flashapp_pass() {
 }
 
 set_flashapp_pass() {
+  json_cleanup
   json_load_file /root/flashbox_config.json
   json_add_string flashapp_pass "$1"
   json_dump > /root/flashbox_config.json
@@ -71,6 +75,7 @@ flashbox_ping() {
   local _lossval=""
   local _latval=""
 
+  json_cleanup
   json_load_file "$_hosts_file"
   json_select "hosts"
   if [ "$?" -eq 1 ]

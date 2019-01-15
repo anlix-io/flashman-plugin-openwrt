@@ -20,6 +20,7 @@ do
   if [ "$_number" -eq 3 ] || [ "$1" == "now" ]
   then
     # Get WiFi data
+    json_cleanup
     json_load $(get_wifi_local_config)
     json_get_var _local_ssid_24 local_ssid_24
     json_get_var _local_password_24 local_password_24
@@ -58,6 +59,7 @@ ntp=$(ntp_anlix)"
     if [ $_retstatus -eq 0 ]
     then
       _cert_error=0
+      json_cleanup
       json_load "$_res"
       json_get_var _do_update do_update
       json_get_var _do_newprobe do_newprobe

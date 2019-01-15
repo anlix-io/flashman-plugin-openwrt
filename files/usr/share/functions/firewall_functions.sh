@@ -22,6 +22,7 @@ get_forward_indexes() {
 
   if [ -f /etc/anlix_indexes ]
   then
+    json_cleanup
     json_load_file /etc/anlix_indexes
     json_get_var _idx_val "$_index"
     json_close_object
@@ -38,6 +39,7 @@ update_port_forward() {
 
   if [ $_retstatus -eq 0 ]
   then
+    json_cleanup
     json_load "$_res"
     json_get_var _flash_idx forward_index
 

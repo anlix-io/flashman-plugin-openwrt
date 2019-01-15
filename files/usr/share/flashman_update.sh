@@ -40,6 +40,7 @@ then
   log "FLASHMAN UPDATER" "Authenticated ..."
 
   # Get WiFi data
+  json_cleanup
   json_load $(get_wifi_local_config)
   json_get_var _local_ssid_24 local_ssid_24
   json_get_var _local_password_24 local_password_24
@@ -52,7 +53,7 @@ then
   json_get_var _local_hwmode_50 local_hwmode_50
   json_get_var _local_htmode_50 local_htmode_50
   json_close_object
-
+  json_cleanup
   json_load_file /root/flashbox_config.json
   json_get_var _has_upgraded_version has_upgraded_version
   json_get_var _hard_reset_info hard_reset_info
@@ -94,6 +95,7 @@ upgfirm=$_has_upgraded_version"
   then
     log "FLASHMAN UPDATER" "Fail in Rest Flashman! Aborting..."
   else
+    json_cleanup
     json_load "$_res"
     json_get_var _do_update do_update
     json_get_var _do_newprobe do_newprobe
@@ -133,6 +135,7 @@ upgfirm=$_has_upgraded_version"
 
     if [ "$_hard_reset_info" = "1" ]
     then
+      json_cleanup
       json_load_file /root/flashbox_config.json
       json_add_string hard_reset_info "0"
       json_dump > /root/flashbox_config.json
@@ -141,6 +144,7 @@ upgfirm=$_has_upgraded_version"
 
     if [ "$_has_upgraded_version" = "1" ]
     then
+      json_cleanup
       json_load_file /root/flashbox_config.json
       json_add_string has_upgraded_version "0"
       json_dump > /root/flashbox_config.json

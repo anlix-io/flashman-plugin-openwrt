@@ -6,6 +6,7 @@
 _lan_addr="10.0.10.1"
 _wan_proto_value=$(uci get network.wan.proto)
 
+json_cleanup
 json_load_file /root/flashbox_config.json
 json_get_var _wan_conn_type wan_conn_type
 json_get_var _pppoe_user pppoe_user

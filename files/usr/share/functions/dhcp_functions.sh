@@ -29,6 +29,7 @@ send_online_devices() {
                -H "X-ANLIX-ID: $(get_mac)" \
                -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
                --data @- "https://$FLM_SVADDR/deviceinfo/receive/devices")
+  json_cleanup
   json_load "$_res"
   json_get_var _processed processed
   json_close_object

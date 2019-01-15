@@ -26,6 +26,7 @@ resync_ntp() {
                     "$_url")
   if [ "$?" -eq 0 ]
   then
+    json_cleanup
     json_load "$_res"
     json_get_var _need_update need_update
     json_get_var _new_date new_date

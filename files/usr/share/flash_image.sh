@@ -101,6 +101,7 @@ run_reflash() {
     clean_memory
     if get_image "$_sv_address" "$_release_id" "$_vendor" "$_model" "$_ver"
     then
+      json_cleanup
       json_load_file /root/flashbox_config.json
       json_add_string has_upgraded_version "1"
       json_dump > /root/flashbox_config.json

@@ -21,6 +21,7 @@ get_hardware_version() {
 }
 
 set_mqtt_secret() {
+  json_cleanup
   json_load_file /root/flashbox_config.json
   json_get_var _mqtt_secret mqtt_secret
   json_close_object
@@ -35,12 +36,14 @@ set_mqtt_secret() {
     local _url="deviceinfo/mqtt/add"
     local _res=$(rest_flashman "$_url" "$_data")
 
+    json_cleanup
     json_load "$_res"
     json_get_var _is_registered is_registered
     json_close_object
 
     if [ "$_is_registered" = "1" ]
     then
+      json_cleanup
       json_load_file /root/flashbox_config.json
       json_add_string mqtt_secret $_mqttsec
       json_dump > /root/flashbox_config.json
@@ -52,6 +55,7 @@ set_mqtt_secret() {
 }
 
 reset_mqtt_secret() {
+  json_cleanup
   json_load_file /root/flashbox_config.json
   json_get_var _mqtt_secret mqtt_secret
 
@@ -102,6 +106,7 @@ is_authenticated() {
       "id=$(get_mac)&organization=$FLM_CLIENT_ORG&secret=$FLM_CLIENT_SECRET" \
       "https://$FLM_AUTH_SVADDR/api/device/auth")
 
+    json_cleanup
     json_load "$_res"
     json_get_var _is_authenticated is_authenticated
     json_close_object
