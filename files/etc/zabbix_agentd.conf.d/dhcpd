@@ -1,3 +1,3 @@
 UserParameter=dhcpd.hosts.discovery,devarraystr="{\"data\":["; devlist=$(cat /tmp/dhcp.leases | awk '{ print $2 }'); for dev in $devlist; do hostname=$(cat /tmp/dhcp.leases | grep "$dev" | awk '{ print $4 }'); devarraystr=$devarraystr"{\"{#MAC}\":\""$dev"\", \"{#DEVHOSTNAME}\":\""$hostname"\"},"; done; devarraystr=$devarraystr"]}"; echo $devarraystr | sed 's/\(.*\),/\1/'
 
-UserParameter=dhcpd.hosts.tx[*],iw dev wlan0 station get $1 | grep 'tx bitrate' | awk '{ print $ 3 }'
+UserParameter=dhcpd.hosts.tx[*],. /usr/share/functions/wireless_functions.sh && get_wifi_host_txbitrate "$1" 
