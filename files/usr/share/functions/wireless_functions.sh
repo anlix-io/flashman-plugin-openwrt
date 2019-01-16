@@ -68,31 +68,31 @@ set_wifi_local_config() {
      [ "$_remote_ssid_24" != "$_local_ssid_24" ]
   then
     uci set wireless.@wifi-iface[0].ssid="$_remote_ssid_24"
-    local _do_reload=1
+    _do_reload=1
   fi
   if [ "$_remote_password_24" != "" ] && \
      [ "$_remote_password_24" != "$_local_password_24" ]
   then
     uci set wireless.@wifi-iface[0].key="$_remote_password_24"
-    local _do_reload=1
+    _do_reload=1
   fi
   if [ "$_remote_channel_24" != "" ] && \
      [ "$_remote_channel_24" != "$_local_channel_24" ]
   then
     uci set wireless.radio0.channel="$_remote_channel_24"
-    local _do_reload=1
+    _do_reload=1
   fi
   if [ "$_remote_hwmode_24" != "" ] && \
      [ "$_remote_hwmode_24" != "$_local_hwmode_24" ]
   then
     uci set wireless.radio0.hwmode="$_remote_hwmode_24"
-    local _do_reload=1
+    _do_reload=1
   fi
   if [ "$_remote_htmode_24" != "" ] && \
      [ "$_remote_htmode_24" != "$_local_htmode_24" ]
   then
     uci set wireless.radio0.htmode="$_remote_htmode_24"
-    local _do_reload=1
+    _do_reload=1
   fi
 
   # 5GHz
@@ -102,31 +102,31 @@ set_wifi_local_config() {
        [ "$_remote_ssid_50" != "$_local_ssid_50" ]
     then
       uci set wireless.@wifi-iface[1].ssid="$_remote_ssid_50"
-      local _do_reload=1
+      _do_reload=1
     fi
     if [ "$_remote_password_50" != "" ] && \
        [ "$_remote_password_50" != "$_local_password_50" ]
     then
       uci set wireless.@wifi-iface[1].key="$_remote_password_50"
-      local _do_reload=1
+      _do_reload=1
     fi
     if [ "$_remote_channel_50" != "" ] && \
        [ "$_remote_channel_50" != "$_local_channel_50" ]
     then
       uci set wireless.radio1.channel="$_remote_channel_50"
-      local _do_reload=1
+      _do_reload=1
     fi
     if [ "$_remote_hwmode_50" != "" ] && \
        [ "$_remote_hwmode_50" != "$_local_hwmode_50" ]
     then
       uci set wireless.radio1.hwmode="$_remote_hwmode_50"
-      local _do_reload=1
+      _do_reload=1
     fi
     if [ "$_remote_htmode_50" != "" ] && \
        [ "$_remote_htmode_50" != "$_local_htmode_50" ]
     then
       uci set wireless.radio1.htmode="$_remote_htmode_50"
-      local _do_reload=1
+      _do_reload=1
     fi
   fi
 
@@ -140,6 +140,7 @@ set_wifi_local_config() {
 get_wifi_host_txbitrate() {
   local _host_mac="$1"
   local _host_info
+  local _retstatus
   _host_info=$(iw dev wlan0 station get "$_host_mac")
   _retstatus=$?
 

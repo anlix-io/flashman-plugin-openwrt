@@ -34,8 +34,10 @@ update_port_forward() {
   log "PORT FORWARD" "Requesting Flashman ..."
   local _data="id=$(get_mac)"
   local _url="deviceinfo/get/portforward/"
-  local _res=$(rest_flashman "$_url" "$_data")
-  local _retstatus=$?
+  local _res
+  local _retstatus
+  _res=$(rest_flashman "$_url" "$_data")
+  _retstatus=$?
 
   if [ $_retstatus -eq 0 ]
   then

@@ -24,11 +24,12 @@ get_online_devices() {
 }
 
 send_online_devices() {
-  local _res=$(get_online_devices | curl -s --tlsv1.2 --connect-timeout 5 \
-               --retry 1 -H "Content-Type: application/json" \
-               -H "X-ANLIX-ID: $(get_mac)" \
-               -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
-               --data @- "https://$FLM_SVADDR/deviceinfo/receive/devices")
+  local _res
+  _res=$(get_online_devices | curl -s --tlsv1.2 --connect-timeout 5 \
+         --retry 1 -H "Content-Type: application/json" \
+         -H "X-ANLIX-ID: $(get_mac)" \
+         -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
+         --data @- "https://$FLM_SVADDR/deviceinfo/receive/devices")
   json_cleanup
   json_load "$_res"
   json_get_var _processed processed

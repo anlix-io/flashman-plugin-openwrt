@@ -20,11 +20,14 @@ resync_ntp() {
   local _url="https://$FLM_SVADDR/deviceinfo/ntp"
 
   # Date sync with Flashman is done insecurely
-  local _res=$(curl -k -s \
-                    -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
-                    --tlsv1.2 --connect-timeout 5 --retry 1 --data "$_data" \
-                    "$_url")
-  if [ "$?" -eq 0 ]
+  local _res
+  local _retstatus
+  _res=$(curl -k -s \
+         -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
+         --tlsv1.2 --connect-timeout 5 --retry 1 --data "$_data" \
+         "$_url")
+  _retstatus=$?
+  if [ $_retstatus -eq 0 ]
   then
     json_cleanup
     json_load "$_res"
@@ -42,6 +45,6 @@ resync_ntp() {
       echo "flash_sync" > /tmp/anlixntp
     fi
   else
-    log "NTP_FLASHMAN" "Error in CURL: $?"
+    log "NTP_FLASHMAN" "Error in CURL: $_retstatus"
   fi
 }

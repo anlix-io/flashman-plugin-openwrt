@@ -79,7 +79,8 @@ blink_leds() {
 
 get_mac() {
   local _mac_address_tag=""
-  local _p0=$(awk '{print toupper($1)}' /sys/class/net/eth0.1/address)
+  local _p0
+  _p0=$(awk '{print toupper($1)}' /sys/class/net/eth0.1/address)
 
   if [ ! -z "$_p0" ]
   then

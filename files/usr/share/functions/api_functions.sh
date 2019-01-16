@@ -5,6 +5,7 @@
 . /usr/share/functions/device_functions.sh
 
 send_boot_log() {
+  local _res
   local _header="X-ANLIX-LOGS: NONE"
 
   if [ "$1" = "boot" ]
@@ -21,7 +22,7 @@ send_boot_log() {
     _header="X-ANLIX-LOGS: LIVE"
   fi
 
-  local _res=$(logread | gzip | curl -s --tlsv1.2 --connect-timeout 5 \
+  _res=$(logread | gzip | curl -s --tlsv1.2 --connect-timeout 5 \
          --retry 1 \
          -H "Content-Type: application/octet-stream" \
          -H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
@@ -128,11 +129,12 @@ flashbox_ping() {
 run_ping_ondemand_test() {
   local _hosts_file="/tmp/hosts_file.json"
   local _out_file="/tmp/ping_result.json"
-
   local _data="id=$(get_mac)"
   local _url="deviceinfo/get/pinghosts"
-  local _res=$(rest_flashman "$_url" "$_data")
-  local _retstatus=$?
+  local _res
+  local _retstatus
+  _res=$(rest_flashman "$_url" "$_data")
+  _retstatus=$?
 
   if [ $_retstatus -eq 0 ]
   then
@@ -145,7 +147,8 @@ run_ping_ondemand_test() {
     flashbox_ping "$_hosts_file" "$_out_file" "all"
     if [ -f "$_out_file" ]
     then
-      local _res=$(flashbox_ping | curl -s --tlsv1.2 --connect-timeout 5 \
+      _res=""
+      _res=$(flashbox_ping | curl -s --tlsv1.2 --connect-timeout 5 \
              --retry 1 -H "Content-Type: application/json" \
              -H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
              --data @- "https://$FLM_SVADDR/receive/pingresult")

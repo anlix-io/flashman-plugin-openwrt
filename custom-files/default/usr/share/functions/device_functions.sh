@@ -77,7 +77,9 @@ blink_leds() {
 
 get_mac() {
   local _mac_address_tag=""
-  local _p0=$(awk '{print toupper($1)}' /sys/class/ieee80211/phy0/macaddress)
+  local _p0
+  local _p1
+  _p0=$(awk '{print toupper($1)}' /sys/class/ieee80211/phy0/macaddress)
 
   if [ ! -d "/sys/class/ieee80211/phy1" ]
   then
@@ -86,7 +88,7 @@ get_mac() {
       _mac_address_tag=$_p0
     fi
   else
-    local _p1=$(awk '{print toupper($1)}' /sys/class/ieee80211/phy1/macaddress)
+    _pi=$(awk '{print toupper($1)}' /sys/class/ieee80211/phy1/macaddress)
     if [ ! -z "$_p1" ]
     then
       _mac_address_tag=$_p1

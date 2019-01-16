@@ -71,9 +71,10 @@ get_image() {
     local _vendor=$3
     local _model=$4
     local _ver=$5
+    local _retstatus
     download_file "https://$_sv_address/firmwares" \
                   $_vendor"_"$_model"_"$_ver"_"$_release_id".bin" "/tmp"
-    local _retstatus=$?
+    _retstatus=$?
 
     if [ $_retstatus -eq 1 ]
     then
@@ -91,8 +92,11 @@ run_reflash() {
   if [ "$#" -eq 2 ]
   then
     log "FLASHBOX UPGRADE" "Init image reflash"
-    _sv_address=$1
-    _release_id=$2
+    local _sv_address=$1
+    local _release_id=$2
+    local _vendor
+    local _model
+    local _ver
     _vendor=$(cat /tmp/sysinfo/model | awk '{ print toupper($1) }')
     _model=$(get_hardware_model | \
              awk -F "/" '{ if($2 != "") { print $1"D"; } else { print $1 } }')
