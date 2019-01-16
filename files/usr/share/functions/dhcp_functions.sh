@@ -37,3 +37,18 @@ send_online_devices() {
 
   return $_processed
 }
+
+get_active_device_leases() {
+  local _devarraystr="{\"data\":["
+  local _devlist=$(cat /tmp/dhcp.leases | awk '{ print $2 }')
+  local _hostname
+  local _dev
+  for _dev in $_devlist
+  do
+    _hostname=$(cat /tmp/dhcp.leases | grep "$_dev" | awk '{ print $4 }')
+    _devarraystr="$_devarraystr\
+{\"{#MAC}\":\"$_dev\", \"{#DEVHOSTNAME}\":\"$_hostname\"},"
+  done
+  _devarraystr=$_devarraystr"]}"
+  echo $_devarraystr | sed 's/\(.*\),/\1/'
+}

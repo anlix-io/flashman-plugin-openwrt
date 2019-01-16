@@ -68,6 +68,49 @@ set_flashapp_pass() {
 }
 
 flashbox_ping() {
+  local _host="$1"
+  local _type="$2"
+  local _out="$3"
+  local _result=$(ping -q -i 0.01 -c 100 "$_host")
+  local _latval=$(echo "$_result" | awk -F= 'NR==5 { print $2 }' | \
+                  awk -F/ '{ print $2 }')
+  local _lossval=$(echo "$_result" | awk -F, 'NR==4 { print $3 }' | \
+                   awk '{ print $1 }' | awk -F% '{ print $1 }')
+
+  if [ "$_type" = "lat" ]
+  then
+    if [ "$_out" = "json" ]
+    then
+      json_add_object "$_host"
+      json_add_string "lat" "$_latval"
+      json_close_object
+    else
+      echo "$_latval"
+    fi
+  elif [ "$_type" = "loss" ]
+  then
+    if [ "$_out" = "json" ]
+    then
+      json_add_object "$_host"
+      json_add_string "loss" "$_lossval"
+      json_close_object
+    else
+      echo "$_lossval"
+    fi
+  else
+    if [ "$_out" = "json" ]
+    then
+      json_add_object "$_host"
+      json_add_string "lat" "$_latval"
+      json_add_string "loss" "$_lossval"
+      json_close_object
+    else
+      echo "$_latval $_lossval"
+    fi
+  fi
+}
+
+flashbox_multi_ping() {
   local _hosts_file=$1
   local _hosts=""
   local _out=$2
@@ -97,29 +140,7 @@ flashbox_ping() {
   # Don't put double quotes on _hosts variable!
   for _host in $_hosts
   do
-    _result=$(ping -q -i 0.01 -c 100 "$_host")
-
-    json_add_object "$_host"
-
-    if [ "$_type" = "latency" ]
-    then
-      _latval=$(echo "$_result" | awk -F= 'NR==5 { print $2 }' | \
-                awk -F/ '{ print $2 }')
-      json_add_string "lat" "$_latval"
-    elif [ "$_type" = "loss" ]
-    then
-      _lossval=$(echo "$_result" | awk -F, 'NR==4 { print $3 }' | \
-                 awk '{ print $1 }' | awk -F% '{ print $1 }')
-      json_add_string "loss" "$_lossval"
-    else
-      _latval=$(echo "$_result" | awk -F= 'NR==5 { print $2 }' | \
-                awk -F/ '{ print $2 }')
-      json_add_string "lat" "$_latval"
-      _lossval=$(echo "$_result" | awk -F, 'NR==4 { print $3 }' | \
-                 awk '{ print $1 }' | awk -F% '{ print $1 }')
-      json_add_string "loss" "$_lossval"
-    fi
-    json_close_object
+    flashbox_ping "$_host" "$_type" "json"
   done
   json_close_object
   json_dump > "$_out"
@@ -144,7 +165,7 @@ run_ping_ondemand_test() {
     json_close_object
     json_cleanup
 
-    flashbox_ping "$_hosts_file" "$_out_file" "all"
+    flashbox_multi_ping "$_hosts_file" "$_out_file" "all"
     if [ -f "$_out_file" ]
     then
       _res=""

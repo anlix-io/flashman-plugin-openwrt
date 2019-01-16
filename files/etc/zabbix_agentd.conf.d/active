@@ -1,3 +1,2 @@
-
-UserParameter=active.burst.ping.loss,. /usr/share/flashman_init.conf && ping -q -i 0.01 -c 100 $FLM_SVADDR | awk -F, 'NR==4 { print $3 }' | awk '{ print $1 }' | awk -F% '{ print $1 }'
-UserParameter=active.burst.ping.avg,. /usr/share/flashman_init.conf && ping -q -i 0.01 -c 100 $FLM_SVADDR | awk -F= 'NR==5 { print $2 }' | awk -F/ '{ print $2 }'
+UserParameter=active.burst.ping.loss,. /usr/share/flashman_init.conf && . /usr/share/functions/api_functions.sh && flashbox_ping $FLM_SVADDR loss
+UserParameter=active.burst.ping.avg,. /usr/share/flashman_init.conf && . /usr/share/functions/api_functions.sh && flashbox_ping $FLM_SVADDR lat
