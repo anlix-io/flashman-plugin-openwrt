@@ -319,6 +319,7 @@ firstboot() {
     uci set network.wan.username="$FLM_WAN_PPPOE_USER"
     uci set network.wan.password="$FLM_WAN_PPPOE_PASSWD"
     uci set network.wan.service="$FLM_WAN_PPPOE_SERVICE"
+    
   fi
   # Check custom wan type for pppoe
   if [ "$custom_connection_type" = "pppoe" ]
@@ -334,6 +335,8 @@ firstboot() {
     uci set network.wan.username="$_custom_pppoe_user"
     uci set network.wan.password="$_custom_pppoe_password"
   fi
+  # Keep this config in case of PPPoE setting. DHCP doesn't care.
+  uci set network.wan.keepalive="60 3"
   uci commit network
   /etc/init.d/network restart
   /etc/init.d/firewall restart
