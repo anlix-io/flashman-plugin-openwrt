@@ -263,7 +263,11 @@ firstboot() {
   fi
   
   if [ "$HARDWARE_MODEL" = "ARCHERC20" ] || [ "$HARDWARE_MODEL" = "DIR-819" ]
-  then 
+  then
+    # Optimal 5GHz wireless parameters
+    uci set wireless.@wifi-device[1].bw="2"
+    uci set wireless.@wifi-device[1].channel="auto"
+    uci commit wireless
     /usr/bin/uci2dat -d radio1 -f /etc/Wireless/iNIC/iNIC_ap.dat > /dev/null
     LOWERMAC=$(echo $CLIENT_MAC | awk '{ print tolower($1) }')
     insmod /lib/modules/`uname -r`/mt7610e.ko mac=$LOWERMAC
