@@ -3,6 +3,7 @@
 . /usr/share/flashman_init.conf
 . /lib/functions.sh
 . /usr/share/functions.sh
+. /lib/functions/system.sh
 
 HARDWARE_MODEL=$(get_hardware_model)
 SYSTEM_MODEL=$(get_system_model)
@@ -232,6 +233,7 @@ firstboot() {
     uci commit system
     /usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat > /dev/null
     LOWERMAC=$(echo $CLIENT_MAC | awk '{ print tolower($1) }')
+    printf "MacAddress=$LOWERMAC\n\n" >> /etc/wireless/mt7628/mt7628.dat
     insmod /lib/modules/`uname -r`/mt7628.ko mac=$LOWERMAC
     echo "mt7628 mac=$LOWERMAC" >> /etc/modules.d/50-mt7628
     [ -e /sbin/wifi ] && mv /sbin/wifi /sbin/wifi_legacy
@@ -245,6 +247,7 @@ firstboot() {
     uci commit system
     /usr/bin/uci2dat -d radio0 -f /etc/Wireless/RT2860/RT2860AP.dat > /dev/null
     LOWERMAC=$(echo $CLIENT_MAC | awk '{ print tolower($1) }')
+    printf "MacAddress=$LOWERMAC\n\n" >> /etc/Wireless/RT2860/RT2860AP.dat
     insmod /lib/modules/`uname -r`/mt7620.ko mac=$LOWERMAC
     echo "mt7620 mac=$LOWERMAC" >> /etc/modules.d/50-mt7620
     [ -e /sbin/wifi ] && mv /sbin/wifi /sbin/wifi_legacy
@@ -269,7 +272,8 @@ firstboot() {
     uci set wireless.@wifi-device[1].channel="auto"
     uci commit wireless
     /usr/bin/uci2dat -d radio1 -f /etc/Wireless/iNIC/iNIC_ap.dat > /dev/null
-    LOWERMAC=$(echo $CLIENT_MAC | awk '{ print tolower($1) }')
+    LOWERMAC=$(macaddr_add "$CLIENT_MAC" 2 | awk '{ print tolower($1) }')
+    printf "MacAddress=$LOWERMAC\n\n" >> /etc/Wireless/iNIC/iNIC_ap.dat
     insmod /lib/modules/`uname -r`/mt7610e.ko mac=$LOWERMAC
     echo "mt7610e mac=$LOWERMAC" >> /etc/modules.d/51-mt7610e
     if [ -e /sbin/wifi ] && [ ! -e /sbin/wifi_legacy ] 
