@@ -86,12 +86,39 @@ set_wifi_local_config() {
      [ "$_remote_hwmode_24" != "$_local_hwmode_24" ]
   then
     uci set wireless.radio0.hwmode="$_remote_hwmode_24"
+    if [ "$_remote_hwmode_24" = "11n" ]
+    then
+      uci set wireless.radio0.wifimode="6"
+    elif [ "$_remote_hwmode_24" = "11g" ]
+    then
+      uci set wireless.radio0.wifimode="4"
+    elif [ "$_remote_hwmode_24" = "11ac" ]
+    then
+      uci set wireless.radio0.wifimode="15"
+    else
+      uci set wireless.radio0.wifimode="9"
+    fi
     _do_reload=1
   fi
   if [ "$_remote_htmode_24" != "" ] && \
      [ "$_remote_htmode_24" != "$_local_htmode_24" ]
   then
     uci set wireless.radio0.htmode="$_remote_htmode_24"
+    if [ "$_remote_htmode_24" = "HT40" ]
+    then
+      uci set wireless.radio0.ht_bsscoexist="0"
+      uci set wireless.radio0.bw="1"
+    elif [ "$_remote_htmode_24" = "HT20" ]
+    then
+      uci set wireless.radio0.ht_bsscoexist="1"
+      uci set wireless.radio0.bw="0"
+    elif [ "$_remote_htmode_24" = "VHT20" ]
+    then
+      echo "TODO" > /dev/null
+    elif [ "$_remote_htmode_24" = "VHT40" ]
+    then
+      echo "TODO" > /dev/null
+    fi
     _do_reload=1
   fi
 
