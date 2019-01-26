@@ -200,6 +200,12 @@ get_mac()
     then
       _mac_address_tag=$(awk '{ print toupper($1) }' /sys/class/net/eth0/address)
     fi
+  elif  [ "$_hardware_model" = "DIR-819" ]                                             
+  then                                                                                 
+    if [ ! -z "$(awk '{ print toupper($1) }' /sys/class/net/eth0.1/address)" ]         
+    then                                                                               
+      _mac_address_tag=$(awk '{ print toupper($1) }' /sys/class/net/eth0.1/address)    
+    fi 
   else
     if [ ! -d "/sys/class/ieee80211/phy1" ] || [ "$_hardware_model" = "TL-WDR3500" ]
     then

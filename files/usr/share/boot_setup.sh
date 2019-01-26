@@ -3,6 +3,7 @@
 . /usr/share/flashman_init.conf
 . /lib/functions.sh
 . /usr/share/functions.sh
+. /lib/functions/system.sh
 
 HARDWARE_MODEL=$(get_hardware_model)
 SYSTEM_MODEL=$(get_system_model)
@@ -104,7 +105,7 @@ firstboot() {
 
   #Block Port Scan (stealth mode)
   A=$(uci -X show firewall | grep "path='/etc/firewall.blockscan'" | awk -F '.' '{ print "firewall."$2 }')
-  if [ -z "$A" ]
+  if [ "$A" ]
   then 
     uci delete $A
   fi
@@ -117,7 +118,7 @@ firstboot() {
 
   # SSH access 
   A=$(uci -X show firewall | grep "firewall\..*\.name='\(anlix-ssh\|custom-ssh\)'" | awk -F '.' '{ print "firewall."$2 }')
-  if [ -z "$A" ]
+  if [ "$A" ]
   then 
     uci delete $A
   fi
@@ -130,14 +131,14 @@ firstboot() {
   uci set firewall.@rule[-1].src="wan"
   uci commit firewall
 
-  [ "$(uci get dropbear.@dropbear[0])" != 'dropbear' ] && uci add dropbear dropbear
+  [ "$(uci -q get dropbear.@dropbear[0])" != 'dropbear' ] && uci add dropbear dropbear
   uci set dropbear.@dropbear[0]=dropbear
   uci set dropbear.@dropbear[0].PasswordAuth=off
   uci set dropbear.@dropbear[0].RootPasswordAuth=off
   uci set dropbear.@dropbear[0].Port=36022
   uci set dropbear.@dropbear[0].Interface=wan
 
-  [ "$(uci get dropbear.@dropbear[1])" != 'dropbear' ] && uci add dropbear dropbear
+  [ "$(uci -q get dropbear.@dropbear[1])" != 'dropbear' ] && uci add dropbear dropbear
   uci set dropbear.@dropbear[1]=dropbear
   uci set dropbear.@dropbear[1].PasswordAuth=off
   uci set dropbear.@dropbear[1].RootPasswordAuth=off
@@ -162,9 +163,9 @@ firstboot() {
       setssid="$FLM_SSID$MAC_LAST_CHARS"
     fi
 
-    if [ "$SYSTEM_MODEL" = "MT7628AN" ]
+    if [ "$SYSTEM_MODEL" = "MT7628AN" ] || [ "$HARDWARE_MODEL" = "DIR-819" ]
     then
-      log "FIRSTBOOT" "Wireless MT7628AN"
+      log "FIRSTBOOT" "Wireless MTK"
       touch /etc/config/wireless
       uci set wireless.radio0=wifi-device
 
@@ -232,10 +233,25 @@ firstboot() {
     uci commit system
     /usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat > /dev/null
     LOWERMAC=$(echo $CLIENT_MAC | awk '{ print tolower($1) }')
+    printf "MacAddress=$LOWERMAC\n\n" >> /etc/wireless/mt7628/mt7628.dat
     insmod /lib/modules/`uname -r`/mt7628.ko mac=$LOWERMAC
     echo "mt7628 mac=$LOWERMAC" >> /etc/modules.d/50-mt7628
     [ -e /sbin/wifi ] && mv /sbin/wifi /sbin/wifi_legacy
     cp /sbin/mtkwifi /sbin/wifi
+  fi
+
+  if [ "$HARDWARE_MODEL" = "DIR-819" ]
+  then
+    uci set system.led_wifi_led.dev="ra0"
+    uci set system.led_wlan2g.dev="ra0"
+    uci commit system
+    /usr/bin/uci2dat -d radio0 -f /etc/Wireless/RT2860/RT2860AP.dat > /dev/null
+    LOWERMAC=$(echo $CLIENT_MAC | awk '{ print tolower($1) }')
+    printf "MacAddress=$LOWERMAC\n\n" >> /etc/Wireless/RT2860/RT2860AP.dat
+    insmod /lib/modules/`uname -r`/mt7620.ko mac=$LOWERMAC
+    echo "mt7620 mac=$LOWERMAC" >> /etc/modules.d/50-mt7620
+    [ -e /sbin/wifi ] && mv /sbin/wifi /sbin/wifi_legacy
+    cp /sbin/mtkwifi /sbin/wifi    
   fi
 
   if [ "$HARDWARE_MODEL" = "ARCHERC20" ]
@@ -250,12 +266,20 @@ firstboot() {
   fi
   
   if [ "$HARDWARE_MODEL" = "ARCHERC20" ] || [ "$HARDWARE_MODEL" = "DIR-819" ]
-  then 
+  then
+    # Optimal 5GHz wireless parameters
+    uci set wireless.@wifi-device[1].bw="2"
+    uci set wireless.@wifi-device[1].channel="auto"
+    uci commit wireless
     /usr/bin/uci2dat -d radio1 -f /etc/Wireless/iNIC/iNIC_ap.dat > /dev/null
-    LOWERMAC=$(echo $CLIENT_MAC | awk '{ print tolower($1) }')
+    LOWERMAC=$(macaddr_add "$CLIENT_MAC" 2 | awk '{ print tolower($1) }')
+    printf "MacAddress=$LOWERMAC\n\n" >> /etc/Wireless/iNIC/iNIC_ap.dat
     insmod /lib/modules/`uname -r`/mt7610e.ko mac=$LOWERMAC
     echo "mt7610e mac=$LOWERMAC" >> /etc/modules.d/51-mt7610e
-    [ -e /sbin/wifi ] && mv /sbin/wifi /sbin/wifi_legacy
+    if [ -e /sbin/wifi ] && [ ! -e /sbin/wifi_legacy ] 
+    then
+      mv /sbin/wifi /sbin/wifi_legacy
+    fi
     cp /sbin/mtkwifi /sbin/wifi    
   fi
 
@@ -295,6 +319,7 @@ firstboot() {
     uci set network.wan.username="$FLM_WAN_PPPOE_USER"
     uci set network.wan.password="$FLM_WAN_PPPOE_PASSWD"
     uci set network.wan.service="$FLM_WAN_PPPOE_SERVICE"
+    
   fi
   # Check custom wan type for pppoe
   if [ "$custom_connection_type" = "pppoe" ]
@@ -310,6 +335,8 @@ firstboot() {
     uci set network.wan.username="$_custom_pppoe_user"
     uci set network.wan.password="$_custom_pppoe_password"
   fi
+  # Keep this config in case of PPPoE setting. DHCP doesn't care.
+  uci set network.wan.keepalive="60 3"
   uci commit network
   /etc/init.d/network restart
   /etc/init.d/firewall restart
