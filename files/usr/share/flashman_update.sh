@@ -252,6 +252,12 @@ then
 
           if [ "$HARDWARE_MODEL" = "DIR-819" ]
           then
+            # Current MT7620 driver has a bug with 2.4 "auto" channel mode
+            if [ "$_wifi_channel" = "auto" ]
+            then
+              uci set wireless.radio0.channel="6"
+              uci commit wireless
+            fi
             /usr/bin/uci2dat -d radio0 -f /etc/Wireless/RT2860/RT2860AP.dat > /dev/null
           fi
 
