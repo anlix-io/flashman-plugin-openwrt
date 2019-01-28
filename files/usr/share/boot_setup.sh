@@ -218,12 +218,26 @@ firstboot() {
 
     if [ "$(uci -q get wireless.@wifi-iface[1])" ]
     then
-      uci set wireless.@wifi-iface[1].ssid="$setssid"
+      uci set wireless.@wifi-iface[1].ssid="$setssid""-5GHz"
       uci set wireless.@wifi-iface[1].encryption="psk2"
       uci set wireless.@wifi-iface[1].key="$FLM_PASSWD"
     fi
 
     uci commit wireless
+  fi
+
+  # Fix naming of 5Ghz SSID to always contain a suffix 
+  if [ "$(uci -q get wireless.@wifi-iface[1])" ]
+  then
+    _wifi_ssid_5=$(uci get wireless.@wifi-iface[1].ssid)
+    # Check last 5 chars for 5GHz suffix
+    echo "$_wifi_ssid_5" | grep -o '.....$' | grep -q "\-5GHz"
+    _res=$?
+    if [ "$_res" = "1" ]
+    then
+      uci set wireless.@wifi-iface[1].ssid="$_wifi_ssid_5""-5GHz"
+      uci commit wireless
+    fi
   fi
 
   if [ "$SYSTEM_MODEL" = "MT7628AN" ]
@@ -245,6 +259,13 @@ firstboot() {
     uci set system.led_wifi_led.dev="ra0"
     uci set system.led_wlan2g.dev="ra0"
     uci commit system
+    # Current MT7620 driver has a bug with 2.4 "auto" channel mode
+    _wifi_channel=$(uci get wireless.radio0.channel)
+    if [ "$_wifi_channel" = "auto" ]
+    then
+      uci set wireless.radio0.channel="6"
+      uci commit wireless
+    fi
     /usr/bin/uci2dat -d radio0 -f /etc/Wireless/RT2860/RT2860AP.dat > /dev/null
     LOWERMAC=$(echo $CLIENT_MAC | awk '{ print tolower($1) }')
     printf "MacAddress=$LOWERMAC\n\n" >> /etc/Wireless/RT2860/RT2860AP.dat
