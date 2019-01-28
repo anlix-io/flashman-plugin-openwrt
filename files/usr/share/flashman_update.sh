@@ -240,7 +240,7 @@ then
           #5Ghz
           if [ "$(uci -q get wireless.@wifi-iface[1])" ]
           then
-            uci set wireless.@wifi-iface[1].ssid="$_wifi_ssid"
+            uci set wireless.@wifi-iface[1].ssid="$_wifi_ssid""-5GHz"
             uci set wireless.@wifi-iface[1].key="$_wifi_password"
           fi
           uci commit wireless

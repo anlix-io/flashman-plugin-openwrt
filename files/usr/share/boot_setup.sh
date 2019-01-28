@@ -218,12 +218,26 @@ firstboot() {
 
     if [ "$(uci -q get wireless.@wifi-iface[1])" ]
     then
-      uci set wireless.@wifi-iface[1].ssid="$setssid"
+      uci set wireless.@wifi-iface[1].ssid="$setssid""-5GHz"
       uci set wireless.@wifi-iface[1].encryption="psk2"
       uci set wireless.@wifi-iface[1].key="$FLM_PASSWD"
     fi
 
     uci commit wireless
+  fi
+
+  # Fix naming of 5Ghz SSID to always contain a suffix 
+  if [ "$(uci -q get wireless.@wifi-iface[1])" ]
+  then
+    _wifi_ssid_5=$(uci get wireless.@wifi-iface[1].ssid)
+    # Check last 5 chars for 5GHz suffix
+    echo "$_wifi_ssid_5" | grep -o '.....$' | grep -q "\-5GHz"
+    _res=$?
+    if [ "$_res" = "1" ]
+    then
+      uci set wireless.@wifi-iface[1].ssid="$_wifi_ssid_5""-5GHz"
+      uci commit wireless
+    fi
   fi
 
   if [ "$SYSTEM_MODEL" = "MT7628AN" ]
