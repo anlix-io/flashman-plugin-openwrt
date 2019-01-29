@@ -52,6 +52,7 @@ set_wan_type() {
         uci set network.wan.username="$_pppoe_user_remote"
         uci set network.wan.password="$_pppoe_password_remote"
         uci set network.wan.service="$FLM_WAN_PPPOE_SERVICE"
+        uci set network.wan.keepalive="60 3"
         uci commit network
 
         /etc/init.d/network restart

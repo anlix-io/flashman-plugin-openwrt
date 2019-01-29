@@ -33,12 +33,14 @@ then
   uci set network.wan.username="$FLM_WAN_PPPOE_USER"
   uci set network.wan.password="$FLM_WAN_PPPOE_PASSWD"
   uci set network.wan.service="$FLM_WAN_PPPOE_SERVICE"
+  uci set network.wan.keepalive="60 3"
 fi
 # Check custom wan type for pppoe
 if [ "$_wan_conn_type" = "pppoe" ]
 then
   uci set network.wan.proto="$_wan_conn_type"
   uci set network.wan.service="$FLM_WAN_PPPOE_SERVICE"
+  uci set network.wan.keepalive="60 3"
 fi
 # Check for custom pppoe credentials
 if [ "$_wan_conn_type" = "pppoe" ] && \
