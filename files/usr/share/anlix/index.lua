@@ -195,7 +195,11 @@ end
 local function get_router_passwd()
   local result = run_process("sh -c \". /usr/share/functions/api_functions.sh; get_flashapp_pass\"")
   -- remove \n
-  return result:sub(1,-2)
+  result = result:sub(1,-2)
+  if result == nil or result == "" then
+    result = nil
+  end
+  return result
 end
 
 local function save_router_passwd(pass)
