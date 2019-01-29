@@ -193,10 +193,9 @@ local function gen_app_key(id)
 end
 
 local function get_router_passwd()
-  local result = run_process("sh -c \". /usr/share/functions/api_functions.sh; echo $(get_flashapp_pass)\"")
+  local result = run_process("sh -c \". /usr/share/functions/api_functions.sh; get_flashapp_pass\"")
   -- remove \n
-  result = result:sub(1,-2)
-  return result
+  return result:sub(1,-2)
 end
 
 local function save_router_passwd(pass)
