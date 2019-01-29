@@ -62,5 +62,7 @@ echo "mt7628 mac=$LOWERMAC" >> /etc/modules.d/50-mt7628
 
 [ -e /sbin/wifi ] && mv /sbin/wifi /sbin/wifi_legacy
 cp /sbin/mtkwifi /sbin/wifi
+# MT7628 driver needs to reload the first time it loads
+/sbin/wifi reload
 
 exit 0
