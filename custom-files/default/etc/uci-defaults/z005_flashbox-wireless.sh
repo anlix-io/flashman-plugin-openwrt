@@ -10,6 +10,7 @@
 MAC_LAST_CHARS=$(get_mac | awk -F: '{ print $5$6 }')
 SSID_VALUE=$(uci -q get wireless.@wifi-iface[0].ssid)
 ENCRYPTION_VALUE=$(uci -q get wireless.@wifi-iface[0].encryption)
+SUFFIX_5="-5GHz"
 
 # Wireless password cannot be empty or have less than 8 chars
 if [ "$FLM_PASSWD" == "" ] || [ $(echo "$FLM_PASSWD" | wc -m) -lt 9 ]
@@ -32,22 +33,28 @@ then
 
   uci set wireless.@wifi-device[0].type="mac80211"
   uci set wireless.@wifi-device[0].txpower="17"
-  uci set wireless.@wifi-device[0].disabled="0"
   uci set wireless.@wifi-device[0].channel="$FLM_24_CHANNEL"
   uci set wireless.@wifi-device[0].hwmode="11n"
   uci set wireless.@wifi-device[0].country="BR"
   uci set wireless.@wifi-device[0].htmode="HT40"
+  uci set wireless.@wifi-device[0].noscan="1"
+  uci set wireless.@wifi-device[0].disabled="0"
   uci set wireless.@wifi-iface[0].ssid="$setssid"
   uci set wireless.@wifi-iface[0].encryption="psk2"
   uci set wireless.@wifi-iface[0].key="$FLM_PASSWD"
 
-  # 5GHz
+  # 5GHz 802.11 a/n mode
   if [ "$(uci -q get wireless.@wifi-iface[1])" ]
   then
-    uci set wireless.@wifi-device[1].disabled="0"
     uci set wireless.@wifi-device[1].type="mac80211"
-    uci set wireless.@wifi-device[1].channel="36"
-    uci set wireless.@wifi-iface[1].ssid="$setssid"
+    uci set wireless.@wifi-device[0].txpower="17"
+    uci set wireless.@wifi-device[1].channel="$FLM_50_CHANNEL"
+    uci set wireless.@wifi-device[0].hwmode="11na"
+    uci set wireless.@wifi-device[0].country="BR"
+    uci set wireless.@wifi-device[0].htmode="HT40"
+    uci set wireless.@wifi-device[1].noscan="1"
+    uci set wireless.@wifi-device[1].disabled="0"
+    uci set wireless.@wifi-iface[1].ssid="$setssid$SUFFIX_5"
     uci set wireless.@wifi-iface[1].encryption="psk2"
     uci set wireless.@wifi-iface[1].key="$FLM_PASSWD"
   fi
