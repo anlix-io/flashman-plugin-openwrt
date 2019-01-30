@@ -18,12 +18,20 @@ check_connectivity_flashman() {
 }
 
 check_zabbix_startup() {
+  local _do_restart
+  _do_restart="$1"
+
   sed -i "s%ZABBIX-SERVER-ADDR%$ZBX_SVADDR%" /etc/zabbix_agentd.conf
   if [ "$ZBX_SEND_DATA" = "y" ]
   then
     # Enable Zabbix
     /etc/init.d/zabbix_agentd enable
-    /etc/init.d/zabbix_agentd start
+    if [ "$_do_restart" = "true" ]
+    then
+      /etc/init.d/zabbix_agentd restart
+    else
+      /etc/init.d/zabbix_agentd start
+    fi
     log "ZABBIX" "Zabbix Enabled"
   else
     # Disable Zabbix
@@ -54,7 +62,10 @@ do
         sleep 5
       fi
     else
-      log "IMALIVE" "Running update ..."
+      log "IMALIVE" "Connected!"
+      log "IMALIVE" "Checking zabbix..."
+      check_zabbix_startup "false"
+      log "IMALIVE" "Running update..."
       sh /usr/share/flashman_update.sh
       connected=true
     fi
@@ -100,9 +111,10 @@ do
     do
       if [ "$(check_connectivity_flashman)" -eq 0 ]
       then
+        log "IMALIVE" "Reconnected!"
         log "IMALIVE" "Checking zabbix..."
-        check_zabbix_startup
-        log "IMALIVE" "Connected! Running update ..."
+        check_zabbix_startup "true"
+        log "IMALIVE" "Running update..."
         sh /usr/share/flashman_update.sh
         connected=true
         numbacks=1
@@ -125,4 +137,3 @@ do
   fi
   log "IMALIVE" "Retrying count $numbacks ..."
 done
-
