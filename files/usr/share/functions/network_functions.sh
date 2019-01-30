@@ -18,8 +18,8 @@ get_wan_type() {
 set_wan_type() {
   local _wan_type=$(get_wan_type)
   local _wan_type_remote=$1
-  local _pppoe_user_remote=$1
-  local _pppoe_password_remote=$2
+  local _pppoe_user_remote=$2
+  local _pppoe_password_remote=$3
 
   if [ "$_wan_type_remote" != "$_wan_type" ]
   then
