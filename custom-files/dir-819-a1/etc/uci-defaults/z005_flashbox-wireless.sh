@@ -104,5 +104,7 @@ echo "mt7610e mac=$LOWERMAC_5" >> /etc/modules.d/51-mt7610e
 
 [ -e /sbin/wifi ] && mv /sbin/wifi /sbin/wifi_legacy
 cp /sbin/mtkwifi /sbin/wifi
+# MT7620 driver needs to reload the first time it loads
+/sbin/wifi reload
 
 exit 0
