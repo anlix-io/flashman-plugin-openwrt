@@ -37,7 +37,7 @@ download_file() {
     if [ "$_curl_code" = "200" ]
     then
       local _md5_local_hash=$(md5sum /tmp/$_dfile | awk '{ print $1 }')
-      if [ "$md5_remote_hash" != "$md5_local_hash" ]
+      if [ "$_md5_remote_hash" != "$_md5_local_hash" ]
       then
         log "FLASHBOX UPGRADE" "No match on MD5 hash"
         rm "/tmp/$_dfile"
