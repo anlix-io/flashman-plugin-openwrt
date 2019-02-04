@@ -49,6 +49,11 @@ then
   uci set network.wan.username="$_pppoe_user"
   uci set network.wan.password="$_pppoe_pass"
 fi
+# Check custom wan type for dhcp
+if [ "$_wan_conn_type" = "dhcp" ]
+then
+  uci set network.wan.proto="$_wan_conn_type"
+fi
 
 # Remove IPv6 ULA prefix to avoid phone issues
 uci -q delete network.globals
