@@ -1,9 +1,45 @@
 #!/bin/sh
 
 . /usr/share/flashman_init.conf
-. /usr/share/functions.sh
+. /usr/share/functions/common_functions.sh
+. /usr/share/functions/system_functions.sh
+. /usr/share/functions/device_functions.sh
 
-CLIENT_MAC=$(get_mac)
+# Verify if connection is up.
+check_connectivity_flashman() {
+  if ping -q -c 2 -W 2 "$FLM_SVADDR"  >/dev/null
+  then
+    # true
+    echo 0
+  else
+    # false
+    echo 1
+  fi
+}
+
+check_zabbix_startup() {
+  local _do_restart
+  _do_restart="$1"
+
+  sed -i "s%ZABBIX-SERVER-ADDR%$ZBX_SVADDR%" /etc/zabbix_agentd.conf
+  if [ "$ZBX_SEND_DATA" = "y" ]
+  then
+    # Enable Zabbix
+    /etc/init.d/zabbix_agentd enable
+    if [ "$_do_restart" = "true" ]
+    then
+      /etc/init.d/zabbix_agentd restart
+    else
+      /etc/init.d/zabbix_agentd start
+    fi
+    log "ZABBIX" "Zabbix Enabled"
+  else
+    # Disable Zabbix
+    /etc/init.d/zabbix_agentd stop
+    /etc/init.d/zabbix_agentd disable
+  fi
+}
+
 log "IMALIVE" "ROUTER STARTED!"
 
 connected=false
@@ -20,14 +56,17 @@ do
       if [ $_num_ntptests -gt 30 ]
       then
         #More than 30 checks (>15 min), force a date update
-        log "IMALIVE" "Try resync date with Flashman!"                                                                                                                                          
+        log "IMALIVE" "Try resync date with Flashman!"
         resync_ntp
       else
         sleep 5
       fi
     else
-      log "IMALIVE" "Running update ..."
-      sh /usr/share/flashman_update.sh 
+      log "IMALIVE" "Connected!"
+      log "IMALIVE" "Checking zabbix..."
+      check_zabbix_startup "false"
+      log "IMALIVE" "Running update..."
+      sh /usr/share/flashman_update.sh
       connected=true
     fi
   else
@@ -49,7 +88,10 @@ do
     log "IMALIVE" "Empty MQTT Secret... Waiting..."
   else
     log "IMALIVE" "Running MQTT client"
-    anlix-mqtt flashman/update/$CLIENT_MAC --clientid $CLIENT_MAC --host $FLM_SVADDR --port $MQTT_PORT --cafile /etc/ssl/certs/ca-certificates.crt --shell "sh /usr/share/mqtt.sh " --username $CLIENT_MAC --password $MQTTSEC
+    anlix-mqtt flashman/update/$(get_mac) --clientid $(get_mac) \
+    --host $FLM_SVADDR --port $MQTT_PORT \
+    --cafile /etc/ssl/certs/ca-certificates.crt \
+    --shell "sh /usr/share/mqtt.sh " --username $(get_mac) --password $MQTTSEC
     if [ $? -eq 0 ]
     then
       log "IMALIVE" "MQTT Exit OK"
@@ -64,32 +106,34 @@ do
   if [ ! "$(check_connectivity_flashman)" -eq 0 ]
   then
     log "IMALIVE" "Cant reach Flashman server!"
-    connected=false                                                                                                                                 
-    while [ "$connected" != true ]                                                                                                                  
-    do                                                                                                                                              
-      if [ "$(check_connectivity_flashman)" -eq 0 ]                                                                                                          
+    connected=false
+    while [ "$connected" != true ]
+    do
+      if [ "$(check_connectivity_flashman)" -eq 0 ]
       then
-        log "IMALIVE" "Connected! Running update ..."                                                                                                                                          
-        sh /usr/share/flashman_update.sh                                                                                                        
-        connected=true          
-        numbacks=1                                                                                                                  
-      else                                                                                                                                            
+        log "IMALIVE" "Reconnected!"
+        log "IMALIVE" "Checking zabbix..."
+        check_zabbix_startup "true"
+        log "IMALIVE" "Running update..."
+        sh /usr/share/flashman_update.sh
+        connected=true
+        numbacks=1
+      else
         sleep 5
-      fi                                                                                                                                       
-    done      
+      fi
+    done
   fi
 
   #backoff
   _rand=$(head /dev/urandom | tr -dc "123456789")
   ran=${_rand:0:2}
-  backoff=$(( numbacks + ( ran % numbacks ) )) 
-  
+  backoff=$(( numbacks + ( ran % numbacks ) ))
+
   sleep $backoff
-  numbacks=$(( numbacks + 1 )) 
-  if [ $numbacks -gt 60 ] 
+  numbacks=$(( numbacks + 1 ))
+  if [ $numbacks -gt 60 ]
   then
     numbacks=60
   fi
-  log "IMALIVE" "Retrying count $numbacks ..." 
+  log "IMALIVE" "Retrying count $numbacks ..."
 done
-

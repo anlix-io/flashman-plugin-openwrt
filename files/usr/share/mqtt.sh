@@ -1,7 +1,9 @@
 #!/bin/sh
 
 . /usr/share/flashman_init.conf
-. /usr/share/functions.sh
+. /usr/share/functions/common_functions.sh
+. /usr/share/functions/dhcp_functions.sh
+. /usr/share/functions/api_functions.sh
 
 case "$1" in
 1)
@@ -18,15 +20,19 @@ rstmqtt)
   ;;
 rstapp)
   log "MQTTMSG" "Clean up APP secret"
-  rm /root/router_passwd
+  reset_flashapp_pass
   ;;
 log)
   log "MQTTMSG" "Sending LIVE log "
   send_boot_log "live"
   ;;
 onlinedev)
-  log "MQTTMSG" "Sending Online Devices.."
-  send_online_devices 
+  log "MQTTMSG" "Sending Online Devices..."
+  send_online_devices
+  ;;
+ping)
+  log "MQTTMSG" "Running ping test"
+  run_ping_ondemand_test
   ;;
 *)
   log "MQTTMSG" "Cant recognize message: $1"

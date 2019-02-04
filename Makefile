@@ -21,6 +21,7 @@ PKG_CONFIG_DEPENDS:= \
 	CONFIG_FLASHMAN_WIFI_SSID \
 	CONFIG_FLASHMAN_WIFI_PASSWD \
 	CONFIG_FLASHMAN_WIFI_CHANNEL \
+	CONFIG_FLASHMAN_WIFI_5GHZ_CHANNEL \
 	CONFIG_FLASHMAN_RELEASE_ID \
 	CONFIG_FLASHMAN_CLIENT_ORG
 
@@ -76,6 +77,43 @@ FILE_DIR=
 		FILE_DIR="files"
 	endif
 
+CUSTOM_FILE_DIR=
+	ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_archer-c20-v4), y)
+		CUSTOM_FILE_DIR="custom-files/archer-c20-v4"
+	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_dl-dwr116-a3), y)
+		CUSTOM_FILE_DIR="custom-files/dl-dwr116-a3"
+	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_dir-819-a1), y)
+		CUSTOM_FILE_DIR="custom-files/dir-819-a1"
+	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr741nd-v4), y)
+		CUSTOM_FILE_DIR="custom-files/tl-wr741nd-v4"
+	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr841-v7), y)
+		CUSTOM_FILE_DIR="custom-files/tl-wr841-v7"
+	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr841-v8), y)
+		CUSTOM_FILE_DIR="custom-files/tl-wr841-v8"
+	else ifeq ($(CONFIG_TARGET_ar71xx_generic_DEVICE_tl-wdr3500-v1), y)
+		CUSTOM_FILE_DIR="custom-files/tl-wdr3500-v1"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v4), y)
+		CUSTOM_FILE_DIR="custom-files/tl-wr840n-v4"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v5), y)
+		CUSTOM_FILE_DIR="custom-files/tl-wr840n-v5"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v6), y)
+		CUSTOM_FILE_DIR="custom-files/tl-wr840n-v6"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr845n-v3), y)
+		CUSTOM_FILE_DIR="custom-files/tl-wr845n-v3"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr845n-v4), y)
+		CUSTOM_FILE_DIR="custom-files/tl-wr845n-v4"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v4), y)
+		CUSTOM_FILE_DIR="custom-files/tl-wr849n-v4"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v5), y)
+		CUSTOM_FILE_DIR="custom-files/tl-wr849n-v5"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v6), y)
+		CUSTOM_FILE_DIR="custom-files/tl-wr849n-v6"
+	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr940n-v6), y)
+		CUSTOM_FILE_DIR="custom-files/tl-wr940n-v6"
+	else
+		CUSTOM_FILE_DIR="custom-files/default"
+	endif	
+
 WAN_PROTO=
 	ifeq ($(CONFIG_FLASHMAN_WAN_PROTO_DHCP), y)
 		WAN_PROTO="dhcp"
@@ -96,6 +134,7 @@ SSID_SUFFIX=
 
 define Package/flashman-plugin/install
 	$(CP) ./$(FILE_DIR)/* $(1)/
+	$(CP) ./$(CUSTOM_FILE_DIR)/* $(1)/
 	
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/anlix-mqtt $(1)/usr/bin/
@@ -105,6 +144,7 @@ define Package/flashman-plugin/install
 	echo 'FLM_SSID=$(CONFIG_FLASHMAN_WIFI_SSID)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_PASSWD=$(CONFIG_FLASHMAN_WIFI_PASSWD)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_24_CHANNEL=$(CONFIG_FLASHMAN_WIFI_CHANNEL)' >>$(1)/usr/share/flashman_init.conf
+	echo 'FLM_50_CHANNEL=$(CONFIG_FLASHMAN_WIFI_5GHZ_CHANNEL)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_RELID=$(CONFIG_FLASHMAN_RELEASE_ID)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_SVADDR=$(CONFIG_FLASHMAN_SERVER_ADDR)' >>$(1)/usr/share/flashman_init.conf
 	echo 'NTP_SVADDR=$(CONFIG_NTP_SERVER_ADDR)' >>$(1)/usr/share/flashman_init.conf
