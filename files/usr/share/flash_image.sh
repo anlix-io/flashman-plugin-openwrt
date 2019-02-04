@@ -18,12 +18,7 @@ download_file() {
   if [ "$#" -eq 3 ]
   then
     mkdir -p "$_dest_dir"
-
-    local _zflag=""
-    if test -e "$_dest_dir/$_dfile"
-    then
-      _zflag="-z $_dest_dir/$_dfile"
-    fi
+    local _zflag="-z $_dest_dir/$_dfile"
 
     local _md5_remote_hash=`curl -I -s -w "%{http_code}" \
                            -u routersync:landufrj123 \
