@@ -4,6 +4,7 @@
 . /usr/share/functions/common_functions.sh
 . /usr/share/functions/system_functions.sh
 . /usr/share/functions/device_functions.sh
+. /usr/share/functions/zabbix_functions.sh
 
 # Verify if connection is up.
 check_connectivity_flashman() {
@@ -14,29 +15,6 @@ check_connectivity_flashman() {
   else
     # false
     echo 1
-  fi
-}
-
-check_zabbix_startup() {
-  local _do_restart
-  _do_restart="$1"
-
-  sed -i "s%ZABBIX-SERVER-ADDR%$ZBX_SVADDR%" /etc/zabbix_agentd.conf
-  if [ "$ZBX_SEND_DATA" = "y" ]
-  then
-    # Enable Zabbix
-    /etc/init.d/zabbix_agentd enable
-    if [ "$_do_restart" = "true" ]
-    then
-      /etc/init.d/zabbix_agentd restart
-    else
-      /etc/init.d/zabbix_agentd start
-    fi
-    log "ZABBIX" "Zabbix Enabled"
-  else
-    # Disable Zabbix
-    /etc/init.d/zabbix_agentd stop
-    /etc/init.d/zabbix_agentd disable
   fi
 }
 

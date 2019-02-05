@@ -10,6 +10,7 @@
 . /usr/share/functions/network_functions.sh
 . /usr/share/functions/firewall_functions.sh
 . /usr/share/functions/api_functions.sh
+. /usr/share/functions/zabbix_functions.sh
 
 # If a command hash is provided, check if it should still be done
 COMMANDHASH=""
@@ -53,10 +54,12 @@ then
   json_get_var _local_hwmode_50 local_hwmode_50
   json_get_var _local_htmode_50 local_htmode_50
   json_close_object
+  # Get config data
   json_cleanup
   json_load_file /root/flashbox_config.json
   json_get_var _has_upgraded_version has_upgraded_version
   json_get_var _hard_reset_info hard_reset_info
+  json_get_var _stored_zabbix_psk zabbix_psk
   json_close_object
 
   # Report if a hard reset has occured
@@ -107,6 +110,7 @@ upgfirm=$_has_upgraded_version"
     json_get_var _wifi_password wifi_password
     json_get_var _wifi_channel wifi_channel
     json_get_var _app_password app_password
+    json_get_var _zabbix_psk zabbix_psk
     json_get_var _forward_index forward_index
 
     _blocked_macs=""
@@ -187,6 +191,20 @@ upgfirm=$_has_upgraded_version"
     then
       log "FLASHMAN UPDATER" "Updating app access password ..."
       set_flashapp_pass "$_app_password"
+    fi
+
+    # Zabbix psk update
+    if [ "$_zabbix_psk" != "" ]
+    then
+      if [ "$_zabbix_psk" != "$_stored_zabbix_psk" ]
+      then
+        update_zabbix_psk "$_zabbix_psk"
+      fi
+    else
+      if [ "$_stored_zabbix_psk" != "" ]
+      then
+        update_zabbix_psk ""
+      fi
     fi
 
     # Named devices file update - always do this to avoid file diff logic

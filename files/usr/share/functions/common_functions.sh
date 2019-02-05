@@ -102,11 +102,20 @@ is_authenticated() {
 
   if [ "$FLM_USE_AUTH_SVADDR" == "y" ]
   then
+    #
+    # WARNING! No spaces or tabs inside the following string!
+    #
+    local _data
+    _data="id=$(get_mac)&\
+organization=$FLM_CLIENT_ORG&\
+secret=$FLM_CLIENT_SECRET&\
+model=$(get_hardware_model)&\
+model_ver=$(get_hardware_version)"
+
     _res=$(curl -s \
       -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
       --tlsv1.2 --connect-timeout 5 --retry 1 \
-      --data \
-      "id=$(get_mac)&organization=$FLM_CLIENT_ORG&secret=$FLM_CLIENT_SECRET" \
+      --data "$_data" \
       "https://$FLM_AUTH_SVADDR/api/device/auth")
 
     json_cleanup
