@@ -148,6 +148,9 @@ define Package/flashman-plugin/install
 	echo 'FLM_RELID=$(CONFIG_FLASHMAN_RELEASE_ID)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_SVADDR=$(CONFIG_FLASHMAN_SERVER_ADDR)' >>$(1)/usr/share/flashman_init.conf
 	echo 'NTP_SVADDR=$(CONFIG_NTP_SERVER_ADDR)' >>$(1)/usr/share/flashman_init.conf
+	echo 'NTP_SVADDR_2=$(CONFIG_NTP_SERVER_ADDR_2)' >>$(1)/usr/share/flashman_init.conf
+	echo 'NTP_SVADDR_3=$(CONFIG_NTP_SERVER_ADDR_3)' >>$(1)/usr/share/flashman_init.conf
+	echo 'NTP_SVADDR_4=$(CONFIG_NTP_SERVER_ADDR_4)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_WAN_PROTO=$(WAN_PROTO)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_WAN_MTU=$(CONFIG_FLASHMAN_WAN_MTU)' >>$(1)/usr/share/flashman_init.conf
 	echo 'MQTT_PORT=$(CONFIG_MQTT_PORT)' >>$(1)/usr/share/flashman_init.conf

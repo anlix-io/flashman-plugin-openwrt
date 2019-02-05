@@ -12,6 +12,9 @@ uci set system.ntp.enabled="1"
 uci set system.ntp.enable_server="0"
 uci -q delete system.ntp.server
 uci add_list system.ntp.server="$NTP_SVADDR"
+uci add_list system.ntp.server="$NTP_SVADDR_2"
+uci add_list system.ntp.server="$NTP_SVADDR_3"
+uci add_list system.ntp.server="$NTP_SVADDR_4"
 
 uci commit system
 

@@ -33,7 +33,7 @@ do
       _num_ntptests=$(( _num_ntptests + 1 ))
       if [ $_num_ntptests -gt 30 ]
       then
-        #More than 30 checks (>15 min), force a date update
+        #More than 30 checks (>150s), force a date update
         log "IMALIVE" "Try resync date with Flashman!"
         resync_ntp
       else

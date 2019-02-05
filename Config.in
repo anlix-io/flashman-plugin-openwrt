@@ -65,8 +65,20 @@ config ZABBIX_SERVER_ADDR
 	default ""
 
 config NTP_SERVER_ADDR
-	string "NTP server IP or FQDN"
+	string "First NTP server IP or FQDN"
 	default "a.st1.ntp.br"
+
+config NTP_SERVER_ADDR_2
+	string "Second NTP server IP or FQDN"
+	default "b.st1.ntp.br"
+
+config NTP_SERVER_ADDR_3
+	string "Third NTP server IP or FQDN"
+	default "c.st1.ntp.br"
+
+config NTP_SERVER_ADDR_4
+	string "Fourth NTP server IP or FQDN"
+	default "d.st1.ntp.br"
 
 choice
 	prompt "WAN connection protocol"
