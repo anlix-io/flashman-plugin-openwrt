@@ -77,3 +77,6 @@ then
 
   echo "$_flashbox_config_json" > /root/flashbox_config.json
 fi
+
+# Create temporary file to differentiate between a boot after a upgrade
+echo "0" > /tmp/clean_boot
