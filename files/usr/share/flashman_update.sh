@@ -87,6 +87,13 @@ wan_ip=$(get_wan_ip)&\
 wifi_ssid=$_local_ssid_24&\
 wifi_password=$_local_password_24&\
 wifi_channel=$_local_channel_24&\
+wifi_band=$_local_htmode_24&\
+wifi_mode=$_local_hwmode_24&\
+wifi_ssid_5ghz=$_local_ssid_50&\
+wifi_password_5ghz=$_local_password_50&\
+wifi_channel_5ghz=$_local_channel_50&\
+wifi_band_5ghz=$_local_htmode_50&\
+wifi_mode_5ghz=$_local_hwmode_50&\
 connection_type=$(get_wan_type)&\
 ntp=$(ntp_anlix)&\
 hardreset=$_hard_reset_info&\
@@ -106,9 +113,16 @@ upgfirm=$_has_upgraded_version"
     json_get_var _connection_type connection_type
     json_get_var _pppoe_user pppoe_user
     json_get_var _pppoe_password pppoe_password
-    json_get_var _wifi_ssid wifi_ssid
-    json_get_var _wifi_password wifi_password
-    json_get_var _wifi_channel wifi_channel
+    json_get_var _wifi_ssid_24 wifi_ssid
+    json_get_var _wifi_password_24 wifi_password
+    json_get_var _wifi_channel_24 wifi_channel
+    json_get_var _wifi_htmode_24 wifi_band
+    json_get_var _wifi_hwmode_24 wifi_mode
+    json_get_var _wifi_ssid_50 wifi_ssid_5ghz
+    json_get_var _wifi_password_50 wifi_password_5ghz
+    json_get_var _wifi_channel_50 wifi_channel_5ghz
+    json_get_var _wifi_htmode_50 wifi_band_5ghz
+    json_get_var _wifi_hwmode_50 wifi_mode_5ghz
     json_get_var _app_password app_password
     json_get_var _zabbix_psk zabbix_psk
     json_get_var _forward_index forward_index
@@ -178,10 +192,12 @@ upgfirm=$_has_upgraded_version"
 
     # WiFi update
     log "FLASHMAN UPDATER" "Updating Wireless ..."
-    set_wifi_local_config "$_wifi_ssid" "$_wifi_password" "$_wifi_channel" \
-                          "" "" \
-                          "$_wifi_ssid" "$_wifi_password" "$_wifi_channel" \
-                          "" ""
+    set_wifi_local_config "$_wifi_ssid_24" "$_wifi_password_24" \
+                          "$_wifi_channel_24" "$_wifi_hwmode_24" \
+                          "$_wifi_htmode_24" \
+                          "$_wifi_ssid_50" "$_wifi_password_50" \
+                          "$_wifi_channel_50" "$_wifi_hwmode_50" \
+                          "$_wifi_htmode_50"
     # Flash App password update
     if [ "$_app_password" == "" ]
     then
