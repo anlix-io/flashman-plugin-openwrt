@@ -5,6 +5,11 @@ save_wifi_local_config() {
   /usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat > /dev/null
 }
 
+is_5ghz_capable() {
+  # false
+  echo "0"
+}
+
 led_on() {
   if [ -f "$1"/brightness ]
   then

@@ -6,6 +6,11 @@ save_wifi_local_config() {
   /usr/bin/uci2dat -d radio1 -f /etc/Wireless/iNIC/iNIC_ap.dat > /dev/null
 }
 
+is_5ghz_capable() {
+  # true
+  echo "1"
+}
+
 led_on() {
   if [ -f "$1"/brightness ]
   then

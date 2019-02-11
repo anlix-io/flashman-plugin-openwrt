@@ -10,6 +10,7 @@ get_wifi_local_config() {
   local _hwmode_24="$(uci -q get wireless.radio0.hwmode)"
   local _htmode_24="$(uci -q get wireless.radio0.htmode)"
 
+  local _is_5ghz_capable="$(is_5ghz_capable)"
   local _ssid_50="$(uci -q get wireless.@wifi-iface[1].ssid)"
   local _password_50="$(uci -q get wireless.@wifi-iface[1].key)"
   local _channel_50="$(uci -q get wireless.radio1.channel)"
@@ -25,6 +26,7 @@ get_wifi_local_config() {
 'local_channel_24':'$_channel_24',\
 'local_hwmode_24':'$_hwmode_24',\
 'local_htmode_24':'$_htmode_24',\
+'local_5ghz_capable':'$_is_5ghz_capable',\
 'local_ssid_50':'$_ssid_50',\
 'local_password_50':'$_password_50',\
 'local_channel_50':'$_channel_50',\
