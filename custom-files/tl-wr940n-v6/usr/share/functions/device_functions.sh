@@ -93,3 +93,13 @@ get_mac() {
 
   echo "$_mac_address_tag"
 }
+
+# Possible values: 10 or 100
+get_wan_negotiated_speed() {
+  cat /sys/class/net/eth0/speed
+}
+
+# Possible values: half or full
+get_wan_negotiated_duplex() {
+  cat /sys/class/net/eth0/duplex
+}
