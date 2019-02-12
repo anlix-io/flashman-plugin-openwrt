@@ -109,6 +109,10 @@ config FLASHMAN_WAN_MTU
 	string "WAN MTU"
 	default "1500"
 
+config FLASHMAN_LAN_SUBNET
+	string "LAN subnet gateway"
+	default "10.0.10.0"
+
 config MQTT_PORT
 	string "MQTT port"
 	default "1883"
