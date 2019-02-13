@@ -153,3 +153,28 @@ add_static_ip() {
     echo "10.0.10.$_next_dmz_ip_id"
   fi
 }
+
+valid_ip() {
+  local ip=$1
+  local filtered_ip
+  local stat=1
+  local b1
+  local b2
+  local b3
+  local b4
+
+  filtered_ip=$(printf "%s\n" "$ip" |
+                grep -E '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$')
+
+  if [ "$filtered_ip" != "" ]
+  then
+    b1="$(echo $ip | awk -F. '{print $1}')"
+    b2="$(echo $ip | awk -F. '{print $2}')"
+    b3="$(echo $ip | awk -F. '{print $3}')"
+    b4="$(echo $ip | awk -F. '{print $4}')"
+
+    [[ $b1 -le 255 && $b2 -le 255 && $b3 -le 255 && $b4 -le 255 ]]
+    stat=$?
+  fi
+  return $stat
+}

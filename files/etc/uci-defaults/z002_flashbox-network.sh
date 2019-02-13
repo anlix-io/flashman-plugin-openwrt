@@ -3,7 +3,7 @@
 . /usr/share/flashman_init.conf
 . /usr/share/libubox/jshn.sh
 
-_lan_addr="10.0.10.1"
+_lan_addr="$FLM_LAN_SUBNET"
 _wan_proto_value=$(uci get network.wan.proto)
 
 json_cleanup
