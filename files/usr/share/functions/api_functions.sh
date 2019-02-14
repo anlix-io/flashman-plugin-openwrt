@@ -169,7 +169,7 @@ run_ping_ondemand_test() {
     if [ -f "$_out_file" ]
     then
       _res=""
-      _res=$(flashbox_ping | curl -s --tlsv1.2 --connect-timeout 5 \
+      _res=$(cat "$_out_file" | curl -s --tlsv1.2 --connect-timeout 5 \
              --retry 1 -H "Content-Type: application/json" \
              -H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
              --data @- "https://$FLM_SVADDR/deviceinfo/receive/pingresult")
