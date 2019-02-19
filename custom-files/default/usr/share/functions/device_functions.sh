@@ -93,11 +93,21 @@ get_mac() {
       _mac_address_tag=$_p0
     fi
   else
-    _pi=$(awk '{print toupper($1)}' /sys/class/ieee80211/phy1/macaddress)
+    _p1=$(awk '{print toupper($1)}' /sys/class/ieee80211/phy1/macaddress)
     if [ ! -z "$_p1" ]
     then
       _mac_address_tag=$_p1
     fi
   fi
   echo "$_mac_address_tag"
+}
+
+# Possible values: 10 or 100
+get_wan_negotiated_speed() {
+  cat /sys/class/net/eth0/speed
+}
+
+# Possible values: half or full
+get_wan_negotiated_duplex() {
+  cat /sys/class/net/eth0/duplex
 }

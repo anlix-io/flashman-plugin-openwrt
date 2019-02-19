@@ -2,7 +2,6 @@
 
 save_wifi_local_config() {
   uci commit wireless
-  /usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat > /dev/null
 }
 
 is_5ghz_capable() {
@@ -38,18 +37,42 @@ reset_leds() {
 
   /etc/init.d/led restart > /dev/null
 
-  led_on /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:power
+  for system_led in /sys/class/leds/*system*
+  do
+    led_on "$system_led"
+  done
+
+  # reset hardware lan ports if any
+  for lan_led in /sys/class/leds/*lan*
+  do
+    if [ -f "$lan_led"/enable_hw_mode ]
+    then
+      echo 1 > "$lan_led"/enable_hw_mode
+    fi
+  done
+
+  # reset hardware wan port if any
+  for wan_led in /sys/class/leds/*wan*
+  do
+    if [ -f "$wan_led"/enable_hw_mode ]
+    then
+      echo 1 > "$wan_led"/enable_hw_mode
+    fi
+  done
+
+  # reset atheros 5G led
+  if [ -f /sys/class/leds/ath9k-phy1/trigger ]
+  then
+    echo "phy1tpt" > /sys/class/leds/ath9k-phy1/trigger
+  fi
 }
 
 blink_leds() {
-  local _do_restart=$1
+	local _do_restart=$1
 
   if [ $_do_restart -eq 0 ]
   then
-    led_off /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:power
-    # we cant turn on orange and blue at same time in this model
-    ledsoff=$(ls -d /sys/class/leds/*green*)
-
+    ledsoff=$(ls -d /sys/class/leds/*)
     for trigger_path in $ledsoff
     do
       echo "timer" > "$trigger_path"/trigger
@@ -59,12 +82,23 @@ blink_leds() {
 
 get_mac() {
   local _mac_address_tag=""
+  local _p0
+  local _p1
+  _p0=$(awk '{print toupper($1)}' /sys/class/ieee80211/phy0/macaddress)
 
-  if [ ! -z "$(awk '{ print toupper($1) }' /sys/class/net/eth0/address)" ]
+  if [ ! -d "/sys/class/ieee80211/phy1" ]
   then
-    _mac_address_tag=$(awk '{ print toupper($1) }' /sys/class/net/eth0/address)
+    if [ ! -z "$_p0" ]
+    then
+      _mac_address_tag=$_p0
+    fi
+  else
+    _p1=$(awk '{print toupper($1)}' /sys/class/ieee80211/phy1/macaddress)
+    if [ ! -z "$_p1" ]
+    then
+      _mac_address_tag=$_p1
+    fi
   fi
-
   echo "$_mac_address_tag"
 }
 

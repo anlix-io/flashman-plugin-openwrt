@@ -1,13 +1,19 @@
 #!/bin/sh
 
 save_wifi_local_config() {
+  # Current MT7620 driver has a bug with 2.4 "auto" channel mode
+  if [ "$(uci -q get wireless.radio0.channel)" = "auto" ]
+  then
+    uci set wireless.radio0.channel="6"
+  fi
   uci commit wireless
-  /usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat > /dev/null
+  /usr/bin/uci2dat -d radio0 -f /etc/Wireless/RT2860/RT2860AP.dat > /dev/null
+  /usr/bin/uci2dat -d radio1 -f /etc/Wireless/iNIC/iNIC_ap.dat > /dev/null
 }
 
 is_5ghz_capable() {
-  # false
-  echo "0"
+  # true
+  echo "1"
 }
 
 led_on() {
@@ -39,10 +45,15 @@ reset_leds() {
   /etc/init.d/led restart > /dev/null
 
   led_on /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:power
+  # bug on archer's lan led
+  echo "0" > \
+    /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:lan/port_mask
+  echo "0x1e" > \
+    /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:lan/port_mask
 }
 
 blink_leds() {
-  local _do_restart=$1
+	local _do_restart=$1
 
   if [ $_do_restart -eq 0 ]
   then
@@ -70,12 +81,12 @@ get_mac() {
 
 # Possible values: empty, 10, 100 or 100
 get_wan_negotiated_speed() {
-  swconfig dev switch0 port 0 get link | \
+  swconfig dev switch1 port 0 get link | \
   awk '{print $3}' | awk -F: '{print $2}' | awk -Fbase '{print $1}'
 }
 
 # Possible values: empty, half or full
 get_wan_negotiated_duplex() {
-  swconfig dev switch0 port 0 get link | \
+  swconfig dev switch1 port 0 get link | \
   awk '{print $4}' | awk -F- '{print $1}'
 }
