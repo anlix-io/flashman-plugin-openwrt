@@ -152,10 +152,12 @@ get_lan_netmask() {
 set_lan_subnet() {
   local _lan_addr
   local _lan_netmask
+  local _lan_net
   local _retstatus
   local _ipcalc_res
   local _ipcalc_netmask
   local _ipcalc_addr
+  local _current_lan_net=$(get_lan_subnet)
   _lan_addr=$1
   _lan_netmask=$2
 
@@ -176,31 +178,47 @@ set_lan_subnet() {
       # Use first address available returned by ipcalc
       _ipcalc_addr=$(echo "$_ipcalc_res" | grep "START" | awk -F= '{print $2}')
       _lan_addr="$_ipcalc_addr"
+      _lan_net=$(echo "$_ipcalc_res" | grep "NETWORK" | awk -F= '{print $2}')
       # Calculate DHCP start and limit
       _addr_net=$(echo "$_ipcalc_res" | grep "NETWORK" | awk -F. '{print $4}')
       _addr_end=$(echo "$_ipcalc_res" | grep "END" | awk -F. '{print $4}')
       _addr_limit=$(( (_addr_end - _addr_net) / 2 ))
       _addr_start=$(( _addr_end - _addr_limit ))
 
-      uci set network.lan.ipaddr="$_lan_addr"
-      uci set network.lan.netmask="$_lan_netmask"
-      uci commit network
-      uci set dhcp.lan.start="$_addr_start"
-      uci set dhcp.lan.limit="$_addr_limit"
-      uci commit dhcp
+      # Only change LAN if its not the same
+      if [ "$_lan_net" != "$_current_lan_net" ]
+      then
+        uci set network.lan.ipaddr="$_lan_addr"
+        uci set network.lan.netmask="$_lan_netmask"
+        uci commit network
+        uci set dhcp.lan.start="$_addr_start"
+        uci set dhcp.lan.limit="$_addr_limit"
+        uci commit dhcp
 
-      /etc/init.d/network restart
-      /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
-      /etc/init.d/dnsmasq reload
+        /etc/init.d/network restart
+        /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
+        /etc/init.d/dnsmasq reload
 
-      # Save LAN config
-      json_cleanup
-      json_load_file /root/flashbox_config.json
-      json_add_string lan_addr "$_lan_addr"
-      json_add_string lan_netmask "$_lan_netmask"
-      json_dump > /root/flashbox_config.json
-      json_close_object
+        # Save LAN config
+        json_cleanup
+        json_load_file /root/flashbox_config.json
+        json_add_string lan_addr "$_lan_net"
+        json_add_string lan_netmask "$_lan_netmask"
+        json_dump > /root/flashbox_config.json
+        json_close_object
+
+        return 0
+      else
+        # No change
+        return 1
+      fi
+    else
+      # Parse error
+      return 1
     fi
+  else
+    # Parse error
+    return 1
   fi
 }
 

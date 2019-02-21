@@ -200,6 +200,11 @@ upgfirm=$_has_upgraded_version"
 
     # LAN connection subnet update
     set_lan_subnet "$_lan_addr" "$_lan_netmask"
+    # If LAN has changed then reload port forward mapping
+    if [ $? -eq 0 ]
+    then
+      update_port_forward
+    fi
 
     # WiFi update
     log "FLASHMAN UPDATER" "Updating Wireless ..."
@@ -251,6 +256,7 @@ upgfirm=$_has_upgraded_version"
     /etc/init.d/firewall restart
     /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
 
+    # Check for updates in port forward mapping 
     A=$(get_forward_indexes "forward_index")
     [ "$A" != "$_forward_index" ] && update_port_forward
 
