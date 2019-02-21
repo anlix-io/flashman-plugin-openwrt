@@ -87,6 +87,8 @@ pppoe_password=$(uci -q get network.wan.password)&\
 wan_ip=$(get_wan_ip)&\
 wan_negociated_speed=$(get_wan_negotiated_speed)&\
 wan_negociated_duplex=$(get_wan_negotiated_duplex)&\
+lan_addr=$(get_lan_subnet)&\
+lan_netmask=$(get_lan_netmask)&\
 wifi_ssid=$_local_ssid_24&\
 wifi_password=$_local_password_24&\
 wifi_channel=$_local_channel_24&\
@@ -117,6 +119,8 @@ upgfirm=$_has_upgraded_version"
     json_get_var _connection_type connection_type
     json_get_var _pppoe_user pppoe_user
     json_get_var _pppoe_password pppoe_password
+    json_get_var _lan_addr lan_addr
+    json_get_var _lan_netmask lan_netmask
     json_get_var _wifi_ssid_24 wifi_ssid
     json_get_var _wifi_password_24 wifi_password
     json_get_var _wifi_channel_24 wifi_channel
@@ -193,6 +197,9 @@ upgfirm=$_has_upgraded_version"
 
     # PPPoE update
     set_pppoe_credentials "$_pppoe_user" "$_pppoe_password"
+
+    # LAN connection subnet update
+    set_lan_subnet "$_lan_addr" "$_lan_netmask"
 
     # WiFi update
     log "FLASHMAN UPDATER" "Updating Wireless ..."
