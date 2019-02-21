@@ -98,62 +98,6 @@ set_pppoe_credentials() {
   fi
 }
 
-add_static_ip() {
-  local _mac=$1
-  local _dmz=$2
-  local _device_ip=$(grep "$_mac" /tmp/dhcp.leases | awk '{print $3}')
-
-  # Device is online: use the same ip address
-  if [ "$_device_ip" ] && [ "$_dmz" = "1" ] && \
-     [ "${_device_ip:0:10}" = "192.168.43" ]
-  then
-    echo "$_mac $_device_ip" >> /etc/ethers
-    echo "$_device_ip"
-    return
-  fi
-
-  if [ "$_device_ip" ] && [ "$_dmz" = "0" ] && \
-     [ "${_device_ip:0:7}" = "10.0.10" ]
-  then
-    echo "$_mac $_device_ip" >> /etc/ethers
-    echo "$_device_ip"
-    return
-  fi
-
-  # Device is offline, choose an ip address 
-  local _next_dmz_ip_id=""
-  if [ "$_dmz" = "1" ]
-  then
-    if [ -f /etc/ethers ]
-    then
-      _next_dmz_ip_id=$(grep 192.168.43 /etc/ethers | \
-                        awk '{print substr($2,length($2)-2,3)}' | tail -1)
-    fi
-    if [ ! "$_next_dmz_ip_id" ]
-    then
-      _next_dmz_ip_id="130"
-    else
-      _next_dmz_ip_id=$((_next_dmz_ip_id+1))
-    fi
-    echo "$_mac 192.168.43.$_next_dmz_ip_id" >> /etc/ethers
-    echo "192.168.43.$_next_dmz_ip_id"
-  else
-    if [ -f /etc/ethers ]
-    then
-      _next_dmz_ip_id=$(grep 10.0.10 /etc/ethers | \
-                        awk '{print substr($2,length($2)-1,2)}' | tail -1)
-    fi
-    if [ ! "$_next_dmz_ip_id" ]
-    then
-      _next_dmz_ip_id="50"
-    else
-      _next_dmz_ip_id=$((_next_dmz_ip_id+1))
-    fi
-    echo "$_mac 10.0.10.$_next_dmz_ip_id" >> /etc/ethers
-    echo "10.0.10.$_next_dmz_ip_id"
-  fi
-}
-
 valid_ip() {
   local ip=$1
   local filtered_ip
@@ -177,4 +121,181 @@ valid_ip() {
     stat=$?
   fi
   return $stat
+}
+
+get_lan_subnet() {
+  local _ipcalc_res
+  local _uci_lan_ipaddr
+  local _uci_lan_netmask
+  local _lan_addr
+  _uci_lan_ipaddr=$(uci get network.lan.ipaddr)
+  _uci_lan_netmask=$(uci get network.lan.netmask)
+  _ipcalc_res="$(/bin/ipcalc.sh $_uci_lan_ipaddr $_uci_lan_netmask)"
+  _lan_addr="$(echo "$_ipcalc_res" | grep "NETWORK" | awk -F= '{print $2}')"
+
+  echo "$_lan_addr"
+}
+
+get_lan_netmask() {
+  local _ipcalc_res
+  local _uci_lan_ipaddr
+  local _uci_lan_netmask
+  local _lan_netmask
+  _uci_lan_ipaddr=$(uci get network.lan.ipaddr)
+  _uci_lan_netmask=$(uci get network.lan.netmask)
+  _ipcalc_res="$(/bin/ipcalc.sh $_uci_lan_ipaddr $_uci_lan_netmask)"
+  _lan_netmask="$(echo "$_ipcalc_res" | grep "PREFIX" | awk -F= '{print $2}')"
+
+  echo "$_lan_netmask"
+}
+
+set_lan_subnet() {
+  local _lan_addr
+  local _lan_netmask
+  local _retstatus
+  local _ipcalc_res
+  local _ipcalc_netmask
+  local _ipcalc_addr
+  _lan_addr=$1
+  _lan_netmask=$2
+
+  # Validate LAN gateway address
+  valid_ip "$_lan_addr"
+  _retstatus=$?
+  if [ $_retstatus -eq 0 ]
+  then
+    _ipcalc_res="$(/bin/ipcalc.sh $_lan_addr $_lan_netmask 1 255)"
+
+    _ipcalc_netmask=$(echo "$_ipcalc_res" | grep "PREFIX" | \
+                      awk -F= '{print $2}')
+    # Accepted netmasks: 24 to 26
+    if [ $_ipcalc_netmask -ge 24 ] && [ $_ipcalc_netmask -le 26 ]
+    then
+      # Valid netmask
+      _lan_netmask="$_ipcalc_netmask"
+      # Use first address available returned by ipcalc
+      _ipcalc_addr=$(echo "$_ipcalc_res" | grep "START" | awk -F= '{print $2}')
+      _lan_addr="$_ipcalc_addr"
+      # Calculate DHCP start and limit
+      _addr_net=$(echo "$_ipcalc_res" | grep "NETWORK" | awk -F. '{print $4}')
+      _addr_end=$(echo "$_ipcalc_res" | grep "END" | awk -F. '{print $4}')
+      _addr_limit=$(( (_addr_end - _addr_net) / 2 ))
+      _addr_start=$(( _addr_end - _addr_limit ))
+
+      uci set network.lan.ipaddr="$_lan_addr"
+      uci set network.lan.netmask="$_lan_netmask"
+      uci commit network
+      uci set dhcp.lan.start="$_addr_start"
+      uci set dhcp.lan.limit="$_addr_limit"
+      uci commit dhcp
+
+      /etc/init.d/network restart
+      /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
+      /etc/init.d/dnsmasq reload
+    fi
+  fi
+}
+
+# Arg 1: IP address to check, Arg 2: LAN subnet, Arg 3: LAN netmask
+is_ip_in_lan() {
+  local _device_ip
+  local _lan_subnet
+  local _lan_netmask
+  local _ipcalc_res
+  local _ipcalc_addr
+
+  if [ $# -eq 3 ] && [ "$1" ]
+  then
+    _device_ip=$1
+    _lan_subnet=$2
+    _lan_netmask=$3
+    _ipcalc_res="$(/bin/ipcalc.sh $_lan_subnet $_lan_netmask $_device_ip)"
+    _ipcalc_addr=$(echo "$_ipcalc_res" | grep "START" | awk -F= '{print $2}')
+    if [ "$_ipcalc_addr" = "$_device_ip" ]
+    then
+      # IP belongs to LAN subnet
+      return 0
+    else
+      # No match
+      return 1
+    fi
+  else
+    # Error
+    return 1
+  fi
+}
+
+add_static_ip() {
+  local _mac=$1
+  local _dmz=$2
+  local _device_ip=$(grep "$_mac" /tmp/dhcp.leases | awk '{print $3}')
+  local _lan_subnet=$(get_lan_subnet)
+  local _lan_netmask=$(get_lan_netmask)
+  local _dmz_subnet="192.168.43.0"
+  local _dmz_netmask="24"
+  local _device_on_lan
+  local _device_on_dmz
+  local _fixed_ip
+  local _ipcalc_res
+  local _next_addr=""
+
+  is_ip_in_lan "$_device_ip" "$_lan_subnet" "$_lan_netmask"
+  _device_on_lan=$?
+  is_ip_in_lan "$_device_ip" "$_dmz_subnet" "$_dmz_netmask"
+  _device_on_dmz=$?
+
+  # Device is online. Use the same ip address
+  if [ "$_device_ip" ]
+  then
+    if { [ "$_dmz" = "1" ] && [ $_device_on_dmz -eq 0 ]; } || \
+       { [ "$_dmz" = "0" ] && [ $_device_on_lan -eq 0 ]; }
+    then
+      echo "$_mac $_device_ip" >> /etc/ethers
+      echo "$_device_ip"
+      return
+    fi
+  fi
+
+  # Device is offline. Choose an ip address 
+  if [ "$_dmz" = "1" ]
+  then
+    if [ -f /etc/ethers ]
+    then
+      while read _fixed_ip
+      do
+        is_ip_in_lan "$_fixed_ip" "$_dmz_subnet" "$_dmz_netmask"
+        if [ $? -eq 0 ]
+        then
+          _ipcalc_res="$(/bin/ipcalc.sh $_dmz_subnet \
+                         $_dmz_netmask $_fixed_ip 1)"
+          _next_addr="$(echo "$_ipcalc_res" | grep "END" | \
+                        awk -F= '{print $2}')"
+        fi
+      done < /etc/ethers
+    else
+      # It must start at 130 to isolate routes
+      _ipcalc_res="$(/bin/ipcalc.sh $_dmz_subnet $_dmz_netmask 1 129)"
+      _next_addr="$(echo "$_ipcalc_res" | grep "END" | awk -F= '{print $2}')"
+    fi
+  else
+    if [ -f /etc/ethers ]
+    then
+      while read _fixed_ip
+      do
+        is_ip_in_lan "$_fixed_ip" "$_lan_subnet" "$_lan_netmask"
+        if [ $? -eq 0 ]
+        then
+          _ipcalc_res="$(/bin/ipcalc.sh $_lan_subnet \
+                         $_lan_netmask $_fixed_ip 1)"
+          _next_addr="$(echo "$_ipcalc_res" | grep "END" | \
+                        awk -F= '{print $2}')"
+        fi
+      done < /etc/ethers
+    else
+      _ipcalc_res="$(/bin/ipcalc.sh $_lan_subnet $_lan_netmask 1 1)"
+      _next_addr="$(echo "$_ipcalc_res" | grep "END" | awk -F= '{print $2}')"
+    fi
+  fi
+  echo "$_mac $_next_addr" >> /etc/ethers
+  echo "$_next_addr"
 }
