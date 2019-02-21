@@ -185,6 +185,14 @@ set_lan_subnet() {
       _addr_limit=$(( (_addr_end - _addr_net) / 2 ))
       _addr_start=$(( _addr_end - _addr_limit ))
 
+      # DMZ lan is forbidden
+      local _dmzprefix="$(echo $_lan_net | awk -F. '{print $1$2$3}')"
+      if [ "$_dmzprefix" = "19216843" ]
+      then
+        # Error. DMZ is forbidden
+        return 1
+      fi
+
       # Only change LAN if its not the same
       if [ "$_lan_net" != "$_current_lan_net" ]
       then
