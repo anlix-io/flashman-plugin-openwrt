@@ -192,6 +192,14 @@ set_lan_subnet() {
       /etc/init.d/network restart
       /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
       /etc/init.d/dnsmasq reload
+
+      # Save LAN config
+      json_cleanup
+      json_load_file /root/flashbox_config.json
+      json_add_string lan_addr "$_lan_addr"
+      json_add_string lan_netmask "$_lan_netmask"
+      json_dump > /root/flashbox_config.json
+      json_close_object
     fi
   fi
 }

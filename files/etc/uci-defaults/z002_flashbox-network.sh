@@ -4,8 +4,6 @@
 . /usr/share/libubox/jshn.sh
 . /usr/share/functions/network_functions.sh
 
-_lan_addr="$FLM_LAN_SUBNET"
-_lan_netmask="$FLM_LAN_NETMASK"
 _wan_proto_value=$(uci get network.wan.proto)
 
 json_cleanup
@@ -13,7 +11,16 @@ json_load_file /root/flashbox_config.json
 json_get_var _wan_conn_type wan_conn_type
 json_get_var _pppoe_user pppoe_user
 json_get_var _pppoe_pass pppoe_pass
+json_get_var _lan_addr lan_addr
+json_get_var _lan_netmask lan_netmask
 json_close_object
+
+
+if [ "$_lan_addr" = "" ] || [ "$_lan_netmask" = "" ]
+then
+  _lan_addr="$FLM_LAN_SUBNET"
+  _lan_netmask="$FLM_LAN_NETMASK"
+fi
 
 # Validate LAN gateway address
 valid_ip "$_lan_addr"
