@@ -1,5 +1,7 @@
 #!/bin/sh
 
+. /usr/share/libubox/jshn.sh
+
 # Reset blockscan rule
 A=$(uci -X show firewall | grep "path='/etc/firewall.blockscan'" | \
     awk -F '.' '{ print "firewall."$2 }')
@@ -76,6 +78,16 @@ then
 'hard_reset_info': '$_tmp_hard_reset_info'}"
 
   echo "$_flashbox_config_json" > /root/flashbox_config.json
+else
+  json_cleanup
+  json_load_file /root/flashbox_config.json
+  json_get_var _zabbix_send_data zabbix_send_data
+  if [ "$_zabbix_send_data" = "" ]
+  then
+    json_add_string zabbix_send_data "n"
+    json_dump > /root/flashbox_config.json
+  fi
+  json_close_object
 fi
 
 # Create temporary file to differentiate between a boot after a upgrade
