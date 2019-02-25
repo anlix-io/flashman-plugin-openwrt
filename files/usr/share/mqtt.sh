@@ -37,7 +37,7 @@ ping)
   ;;
 measure)
   log "MQTTMSG" "Changing Zabbix PSK settings"
-  update_zabbix_psk "$2"
+  update_zabbix_params "$2"
   ;;
 *)
   log "MQTTMSG" "Cant recognize message: $1"
