@@ -106,14 +106,14 @@ update_zabbix_params() {
       then
         json_get_var _psk psk
         json_get_var _fqdn fqdn
-        if [ "$_psk" != "" ] && [ "$_fqdn" != "" ] && [ "$_psk" != "$(get_zabbix_psk)" ] && [ "$_fqdn" != "$(get_zabbix_fqdn)" ]
+        if [ "$_psk" != "" ] && [ "$_fqdn" != "" ] && \
+           { [ "$_psk" != "$(get_zabbix_psk)" ] || \
+             [ "$_fqdn" != "$(get_zabbix_fqdn)" ]; }
         then
           log "ZABBIX" "Updating psk and fqdn parameters"
-          /etc/init.d/zabbix_agentd stop
           set_zabbix_psk "$_psk"
           set_zabbix_fqdn "$_fqdn"
           set_zabbix_send_data "y"
-          /etc/init.d/zabbix_agentd start
         else
           log "ZABBIX" "No change in psk or fqdn parameters"
         fi
@@ -123,6 +123,11 @@ update_zabbix_params() {
       json_close_object
     else
       log "ZABBIX" "Failed to get parameters in flashman"
+    fi
+    if [ "$(get_zabbix_send_data)" = "y" ] && [ -f /etc/zabbix_agentd.psk ]
+    then
+      /etc/init.d/zabbix_agentd stop
+      /etc/init.d/zabbix_agentd start
     fi
   elif [ "$1" = "off" ]
   then
