@@ -60,7 +60,7 @@ reset_leds() {
     fi
   done
 
-  if [ -f /sys/class/leds/ath9k-phy1/trigger ]
+  if [ -f /sys/class/leds/ath9k-phy0/trigger ]
   then
     echo "phy0tpt" > /sys/class/leds/ath9k-phy0/trigger
   fi

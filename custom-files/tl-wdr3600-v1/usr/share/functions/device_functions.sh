@@ -60,6 +60,11 @@ reset_leds() {
     fi
   done
 
+  # reset atheros 2.4G led
+  if [ -f /sys/class/leds/ath9k-phy0/trigger ]
+  then
+    echo "phy0tpt" > /sys/class/leds/ath9k-phy0/trigger
+  fi
   # reset atheros 5G led
   if [ -f /sys/class/leds/ath9k-phy1/trigger ]
   then
@@ -75,6 +80,7 @@ blink_leds() {
     ledsoff=$(ls -d /sys/class/leds/*)
     for trigger_path in $ledsoff
     do
+      led_off "$trigger_path"
       echo "timer" > "$trigger_path"/trigger
     done
   fi
