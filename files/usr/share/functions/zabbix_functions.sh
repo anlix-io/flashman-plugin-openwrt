@@ -113,7 +113,6 @@ update_zabbix_params() {
           log "ZABBIX" "Updating psk and fqdn parameters"
           set_zabbix_psk "$_psk"
           set_zabbix_fqdn "$_fqdn"
-          set_zabbix_send_data "y"
         else
           log "ZABBIX" "No change in psk or fqdn parameters"
         fi
@@ -124,8 +123,9 @@ update_zabbix_params() {
     else
       log "ZABBIX" "Failed to get parameters in flashman"
     fi
-    if [ "$(get_zabbix_send_data)" = "y" ] && [ -f /etc/zabbix_agentd.psk ]
+    if [ "$(get_zabbix_psk)" != "" ] && [ "$(get_zabbix_fqdn)" != "" ]
     then
+      set_zabbix_send_data "y"
       /etc/init.d/zabbix_agentd stop
       /etc/init.d/zabbix_agentd start
     fi
