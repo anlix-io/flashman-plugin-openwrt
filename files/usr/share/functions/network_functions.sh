@@ -207,6 +207,9 @@ set_lan_subnet() {
         /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
         /etc/init.d/dnsmasq reload
 
+        # Replace IP so Flash App can find the router
+        sed -i 's/.*anlixrouter/'"$_lan_addr"' anlixrouter/' /etc/hosts
+
         # Save LAN config
         json_cleanup
         json_load_file /root/flashbox_config.json
