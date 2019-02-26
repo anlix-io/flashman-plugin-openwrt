@@ -106,7 +106,7 @@ update_zabbix_params() {
       then
         json_get_var _psk psk
         json_get_var _fqdn fqdn
-        if [ "$_psk" != "" ] && [ "$_fqdn" != "" ] && [ [ "$_psk" != "$(get_zabbix_psk)" ] || [ "$_fqdn" != "$(get_zabbix_fqdn)" ] ]
+        if [ "$_psk" != "" ] && [ "$_fqdn" != "" ] && [[ ("$_psk" != "$(get_zabbix_psk)") || ("$_fqdn" != "$(get_zabbix_fqdn)") ]]
         then
           log "ZABBIX" "Updating psk and fqdn parameters"
           set_zabbix_psk "$_psk"
