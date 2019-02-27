@@ -14,14 +14,6 @@ get_zabbix_send_data() {
   echo "$_send"
 }
 
-set_zabbix_send_data() {
-  json_cleanup
-  json_load_file /root/flashbox_config.json
-  json_add_string zabbix_send_data "$1"
-  json_dump > /root/flashbox_config.json
-  json_close_object
-}
-
 get_zabbix_psk() {
   local _psk
   json_cleanup
@@ -30,15 +22,6 @@ get_zabbix_psk() {
   json_close_object
 
   echo "$_psk"
-}
-
-set_zabbix_psk() {
-  json_cleanup
-  json_load_file /root/flashbox_config.json
-  json_add_string zabbix_psk "$1"
-  json_dump > /root/flashbox_config.json
-  json_close_object
-  echo -n "$1" > /etc/zabbix_agentd.psk
 }
 
 get_zabbix_fqdn() {
@@ -51,14 +34,54 @@ get_zabbix_fqdn() {
   echo "$_fqdn"
 }
 
-set_zabbix_fqdn() {
+# $1 - psk / $2 - fqdn / $3 - send_data
+set_zabbix_params() {
+  local _changed_params=false
+  local _psk="$(get_zabbix_psk)"
+  local _fqdn="$(get_zabbix_fqdn)"
+  local _send_data="$(get_zabbix_send_data)"
   json_cleanup
   json_load_file /root/flashbox_config.json
-  json_add_string zabbix_fqdn "$1"
-  json_dump > /root/flashbox_config.json
-  json_close_object
-  sed -i 's/Server=.*/Server='"$1"'/' /etc/zabbix_agentd.conf
-  sed -i 's/ServerActive=.*/ServerActive='"$1"':80/' /etc/zabbix_agentd.conf
+  # Check if psk changed
+  if [ "$1" != "" ] && [ "$1" != "$(_psk)" ]
+  then
+    log "ZABBIX" "Updating zabbix PSK parameter"
+    _psk="$1"
+    json_add_string zabbix_psk "$1"
+    echo -n "$1" > /etc/zabbix_agentd.psk
+    _changed_params=true
+  fi
+  # Check if zabbix fqdn changed
+  if [ "$2" != "" ] && [ "$2" != "$(_fqdn)" ]
+  then
+    log "ZABBIX" "Updating zabbix FQDN parameter"
+    _fqdn="$2"
+    json_add_string zabbix_fqdn "$2"
+    sed -i 's/Server=.*/Server='"$2"'/' /etc/zabbix_agentd.conf
+    sed -i 's/ServerActive=.*/ServerActive='"$2"':80/' /etc/zabbix_agentd.conf
+    _changed_params=true
+  fi
+  if [ "$3" = true ] && { [ "$_send_data" != "y" ] || [ "$_changed_params" = true ]; }
+  then
+    # Properly restart zabbix service if was active and anything changed
+    # or if was inactive and new values are valid
+    if [ "$_psk" != "" ] && [ "$_fqdn" != "" ]
+    then
+      log "ZABBIX" "Starting zabbix agent"
+      json_add_string zabbix_send_data "y"
+      /etc/init.d/zabbix_agentd stop
+      /etc/init.d/zabbix_agentd start
+    else
+      log "ZABBIX" "Stopping zabbix agent"
+      /etc/init.d/zabbix_agentd stop
+      json_add_string zabbix_send_data "n"
+    fi
+  else
+    # Properly kill zabbix service
+    log "ZABBIX" "Stopping zabbix agent"
+    /etc/init.d/zabbix_agentd stop
+    json_add_string zabbix_send_data "n"
+  fi
 }
 
 check_zabbix_startup() {
@@ -90,6 +113,7 @@ update_zabbix_params() {
   local _success
   local _psk
   local _fqdn
+  local _send_data
 
   if [ "$1" = "on" ]
   then
@@ -106,16 +130,8 @@ update_zabbix_params() {
       then
         json_get_var _psk psk
         json_get_var _fqdn fqdn
-        if [ "$_psk" != "" ] && [ "$_fqdn" != "" ] && \
-           { [ "$_psk" != "$(get_zabbix_psk)" ] || \
-             [ "$_fqdn" != "$(get_zabbix_fqdn)" ]; }
-        then
-          log "ZABBIX" "Updating psk and fqdn parameters"
-          set_zabbix_psk "$_psk"
-          set_zabbix_fqdn "$_fqdn"
-        else
-          log "ZABBIX" "No change in psk or fqdn parameters"
-        fi
+        json_get_var _send_data is_active
+        set_zabbix_params "$_psk" "$_fqdn" "_send_data"
       else
         log "ZABBIX" "Error retrieving parameters from flashman"
       fi
@@ -123,15 +139,13 @@ update_zabbix_params() {
     else
       log "ZABBIX" "Failed to get parameters in flashman"
     fi
-    if [ "$(get_zabbix_psk)" != "" ] && [ "$(get_zabbix_fqdn)" != "" ]
-    then
-      set_zabbix_send_data "y"
-      /etc/init.d/zabbix_agentd stop
-      /etc/init.d/zabbix_agentd start
-    fi
   elif [ "$1" = "off" ]
   then
-    set_zabbix_send_data "n"
+    json_cleanup
+    json_load_file /root/flashbox_config.json
+    json_add_string zabbix_send_data "n"
+    json_dump > /root/flashbox_config.json
+    json_close_object
     /etc/init.d/zabbix_agentd stop
   fi
 }

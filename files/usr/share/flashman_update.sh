@@ -132,6 +132,9 @@ upgfirm=$_has_upgraded_version"
     json_get_var _wifi_hwmode_50 wifi_mode_5ghz
     json_get_var _app_password app_password
     json_get_var _forward_index forward_index
+    json_get_var _zabbix_psk zabbix_psk
+    json_get_var _zabbix_fqdn zabbix_fqdn
+    json_get_var _zabbix_active zabbix_active
 
     _blocked_macs=""
     _blocked_devices=""
@@ -239,6 +242,9 @@ upgfirm=$_has_upgraded_version"
     done
     /etc/init.d/firewall restart
     /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
+
+    # Update zabbix parameters as necessary
+    set_zabbix_params "$_zabbix_psk" "$_zabbix_fqdn" "$_zabbix_active"
 
     # Check for updates in port forward mapping 
     A=$(get_forward_indexes "forward_index")
