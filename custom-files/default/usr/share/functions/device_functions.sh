@@ -75,6 +75,7 @@ blink_leds() {
     ledsoff=$(ls -d /sys/class/leds/*)
     for trigger_path in $ledsoff
     do
+      led_off "$trigger_path"
       echo "timer" > "$trigger_path"/trigger
     done
   fi

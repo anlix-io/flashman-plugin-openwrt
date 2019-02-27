@@ -40,7 +40,7 @@ reset_leds() {
   led_on /sys/class/leds/tp-link\:green\:system
   if [ -f /sys/class/leds/ath9k-phy0/trigger ]
   then
-    echo "phy1tpt" > /sys/class/leds/ath9k-phy0/trigger
+    echo "phy0tpt" > /sys/class/leds/ath9k-phy0/trigger
   fi
 }
 
@@ -52,6 +52,7 @@ blink_leds() {
     ledsoff=$(ls -d /sys/class/leds/*)
     for trigger_path in $ledsoff
     do
+      led_off "$trigger_path"
       echo "timer" > "$trigger_path"/trigger
     done
   fi

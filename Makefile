@@ -163,6 +163,8 @@ define Package/flashman-plugin/install
 	echo 'NTP_SVADDR_4=$(CONFIG_NTP_SERVER_ADDR_4)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_WAN_PROTO=$(WAN_PROTO)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_WAN_MTU=$(CONFIG_FLASHMAN_WAN_MTU)' >>$(1)/usr/share/flashman_init.conf
+	echo 'FLM_LAN_SUBNET=$(CONFIG_FLASHMAN_LAN_SUBNET)' >>$(1)/usr/share/flashman_init.conf
+	echo 'FLM_LAN_NETMASK=$(CONFIG_FLASHMAN_LAN_NETMASK)' >>$(1)/usr/share/flashman_init.conf
 	echo 'MQTT_PORT=$(CONFIG_MQTT_PORT)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_CLIENT_ORG=$(CONFIG_FLASHMAN_CLIENT_ORG)' >>$(1)/usr/share/flashman_init.conf
 
@@ -178,9 +180,6 @@ ifeq ($(CONFIG_FLASHMAN_USE_AUTH_SERVER), y)
 	echo 'FLM_AUTH_SVADDR=$(CONFIG_FLASHMAN_AUTH_SERVER_ADDR)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_CLIENT_SECRET=$(CONFIG_FLASHMAN_CLIENT_SECRET)' >>$(1)/usr/share/flashman_init.conf
 endif
-
-	echo 'ZBX_SEND_DATA=$(CONFIG_ZABBIX_SEND_DATA)' >>$(1)/usr/share/flashman_init.conf
-	echo 'ZBX_SVADDR=$(CONFIG_ZABBIX_SERVER_ADDR)' >>$(1)/usr/share/flashman_init.conf
 
 	echo $(PKG_VERSION) > $(1)/etc/anlix_version
 

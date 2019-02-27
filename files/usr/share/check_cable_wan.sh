@@ -7,7 +7,7 @@ DO_RESTART=0
 
 check_connectivity_internet()
 {
-  if ping -q -c 2 -W 2 www.google.com  >/dev/null
+  if ping -q -c 2 -w 2 www.google.com  >/dev/null
   then
     # true
     echo 0

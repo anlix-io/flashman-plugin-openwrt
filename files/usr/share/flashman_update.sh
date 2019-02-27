@@ -60,7 +60,6 @@ then
   json_load_file /root/flashbox_config.json
   json_get_var _has_upgraded_version has_upgraded_version
   json_get_var _hard_reset_info hard_reset_info
-  json_get_var _stored_zabbix_psk zabbix_psk
   json_close_object
 
   # Report if a hard reset has occured
@@ -87,6 +86,8 @@ pppoe_password=$(uci -q get network.wan.password)&\
 wan_ip=$(get_wan_ip)&\
 wan_negociated_speed=$(get_wan_negotiated_speed)&\
 wan_negociated_duplex=$(get_wan_negotiated_duplex)&\
+lan_addr=$(get_lan_subnet)&\
+lan_netmask=$(get_lan_netmask)&\
 wifi_ssid=$_local_ssid_24&\
 wifi_password=$_local_password_24&\
 wifi_channel=$_local_channel_24&\
@@ -117,6 +118,8 @@ upgfirm=$_has_upgraded_version"
     json_get_var _connection_type connection_type
     json_get_var _pppoe_user pppoe_user
     json_get_var _pppoe_password pppoe_password
+    json_get_var _lan_addr lan_addr
+    json_get_var _lan_netmask lan_netmask
     json_get_var _wifi_ssid_24 wifi_ssid
     json_get_var _wifi_password_24 wifi_password
     json_get_var _wifi_channel_24 wifi_channel
@@ -128,8 +131,10 @@ upgfirm=$_has_upgraded_version"
     json_get_var _wifi_htmode_50 wifi_band_5ghz
     json_get_var _wifi_hwmode_50 wifi_mode_5ghz
     json_get_var _app_password app_password
-    json_get_var _zabbix_psk zabbix_psk
     json_get_var _forward_index forward_index
+    json_get_var _zabbix_psk zabbix_psk
+    json_get_var _zabbix_fqdn zabbix_fqdn
+    json_get_var _zabbix_active zabbix_active
 
     _blocked_macs=""
     _blocked_devices=""
@@ -194,6 +199,14 @@ upgfirm=$_has_upgraded_version"
     # PPPoE update
     set_pppoe_credentials "$_pppoe_user" "$_pppoe_password"
 
+    # LAN connection subnet update
+    set_lan_subnet "$_lan_addr" "$_lan_netmask"
+    # If LAN has changed then reload port forward mapping
+    if [ $? -eq 0 ]
+    then
+      update_port_forward
+    fi
+
     # WiFi update
     log "FLASHMAN UPDATER" "Updating Wireless ..."
     set_wifi_local_config "$_wifi_ssid_24" "$_wifi_password_24" \
@@ -213,20 +226,6 @@ upgfirm=$_has_upgraded_version"
       set_flashapp_pass "$_app_password"
     fi
 
-    # Zabbix psk update
-    if [ "$_zabbix_psk" != "" ]
-    then
-      if [ "$_zabbix_psk" != "$_stored_zabbix_psk" ]
-      then
-        update_zabbix_psk "$_zabbix_psk"
-      fi
-    else
-      if [ "$_stored_zabbix_psk" != "" ]
-      then
-        update_zabbix_psk ""
-      fi
-    fi
-
     # Named devices file update - always do this to avoid file diff logic
     log "FLASHMAN UPDATER" "Writing named devices file..."
     echo -n "$_named_devices" > /tmp/named_devices
@@ -244,6 +243,10 @@ upgfirm=$_has_upgraded_version"
     /etc/init.d/firewall restart
     /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
 
+    # Update zabbix parameters as necessary
+    set_zabbix_params "$_zabbix_psk" "$_zabbix_fqdn" "$_zabbix_active"
+
+    # Check for updates in port forward mapping 
     A=$(get_forward_indexes "forward_index")
     [ "$A" != "$_forward_index" ] && update_port_forward
 
