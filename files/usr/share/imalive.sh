@@ -8,7 +8,7 @@
 
 # Verify if connection is up.
 check_connectivity_flashman() {
-  if ping -q -c 2 -W 2 "$FLM_SVADDR"  >/dev/null
+  if ping -q -c 2 -w 2 "$FLM_SVADDR"  >/dev/null
   then
     # true
     echo 0
