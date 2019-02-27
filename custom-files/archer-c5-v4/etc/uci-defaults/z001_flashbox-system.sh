@@ -15,15 +15,6 @@ uci add_list system.ntp.server="$NTP_SVADDR"
 uci add_list system.ntp.server="$NTP_SVADDR_2"
 uci add_list system.ntp.server="$NTP_SVADDR_3"
 uci add_list system.ntp.server="$NTP_SVADDR_4"
-# LEDs
-uci set system.led_wifi_led.dev="ra0"
-uci set system.led_wlan2g.dev="ra0"
-uci set system.led_wlan5g=led
-uci set system.led_wlan5g.name='wlan5g'
-uci set system.led_wlan5g.sysfs='archer-c5-v4:green:wlan5g'
-uci set system.led_wlan5g.trigger='netdev'
-uci set system.led_wlan5g.dev='rai0'
-uci set system.led_wlan5g.mode='link tx rx'
 
 uci commit system
 

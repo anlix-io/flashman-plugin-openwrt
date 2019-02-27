@@ -64,13 +64,13 @@ then
   uci set wireless.@wifi-iface[0].ssid="$setssid"
   uci set wireless.@wifi-iface[0].encryption="psk2"
   uci set wireless.@wifi-iface[0].key="$FLM_PASSWD"
-  # 5GHz - MT7610e
+  # 5GHz - MT7612e
   uci set wireless.radio1=wifi-device
   # Disable the interface!
-  # MT7610e use a dat file, we only get the parameters from here
+  # MT7612e use a dat file, we only get the parameters from here
   uci set wireless.@wifi-device[1].type="ralink"
   uci set wireless.@wifi-device[1].txpower="100"
-  uci set wireless.@wifi-device[1].variant="mt7610e"
+  uci set wireless.@wifi-device[1].variant="mt7612e"
   uci set wireless.@wifi-device[1].channel="$FLM_50_CHANNEL"
   uci set wireless.@wifi-device[1].hwmode="11ac"
   uci set wireless.@wifi-device[1].wifimode="15"
@@ -96,11 +96,15 @@ fi
 printf "MacAddress=$LOWERMAC\n\n" >> /etc/Wireless/RT2860/RT2860AP.dat
 insmod /lib/modules/`uname -r`/mt7620.ko mac=$LOWERMAC
 echo "mt7620 mac=$LOWERMAC" >> /etc/modules.d/50-mt7620
+
+#Dump firmware in /lib/firmware for mt7612e
+dd if=/dev/mtd8ro of=/lib/firmware/mt7612e.eeprom.bin bs=1k skip=32 count=32
+
 # 5 GHz
-/usr/bin/uci2dat -d radio1 -f /etc/Wireless/iNIC/iNIC_ap.dat > /dev/null
-printf "MacAddress=$LOWERMAC_5\n\n" >> /etc/Wireless/iNIC/iNIC_ap.dat
-insmod /lib/modules/`uname -r`/mt7610e.ko mac=$LOWERMAC_5
-echo "mt7610e mac=$LOWERMAC_5" >> /etc/modules.d/51-mt7610e
+/usr/bin/uci2dat -d radio1 -f /etc/Wireless/mt76x2e/mt76x2e.dat > /dev/null
+printf "MacAddress=$LOWERMAC_5\n\n" >> /etc/Wireless/mt76x2e/mt76x2e.dat
+insmod /lib/modules/`uname -r`/mt76x2e.ko mac=$LOWERMAC_5
+echo "mt76x2e mac=$LOWERMAC_5" >> /etc/modules.d/51-mt7612e
 
 [ -e /sbin/wifi ] && mv /sbin/wifi /sbin/wifi_legacy
 cp /sbin/mtkwifi /sbin/wifi
