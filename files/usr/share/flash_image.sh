@@ -19,7 +19,6 @@ download_file() {
   if [ "$#" -eq 3 ]
   then
     mkdir -p "$_dest_dir"
-    local _zflag="-z $_dest_dir/$_dfile"
 
     local _md5_remote_hash=`curl -I -s -w "%{http_code}" \
                            -u routersync:landufrj123 \
@@ -28,7 +27,7 @@ download_file() {
 
     local _curl_code=`curl -s -w "%{http_code}" -u routersync:landufrj123 \
                            --tlsv1.2 --connect-timeout 5 --retry 3 \
-                           -o "/tmp/$_dfile" "$_zflag" "$_uri"`
+                           -o "/tmp/$_dfile" "$_uri"`
 
     if [ "$_curl_code" = "200" ]
     then
