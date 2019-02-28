@@ -77,6 +77,7 @@ set_zabbix_params() {
       json_add_string zabbix_send_data "n"
     fi
   elif [ "$3" = "0" ]
+  then
     # Properly kill zabbix service
     log "ZABBIX" "Stopping zabbix agent"
     /etc/init.d/zabbix_agentd stop
