@@ -36,32 +36,32 @@ get_zabbix_fqdn() {
 
 # $1 - psk / $2 - fqdn / $3 - send_data
 set_zabbix_params() {
-  local _changed_params=false
+  local _changed_params=0
   local _psk="$(get_zabbix_psk)"
   local _fqdn="$(get_zabbix_fqdn)"
   local _send_data="$(get_zabbix_send_data)"
   json_cleanup
   json_load_file /root/flashbox_config.json
   # Check if psk changed
-  if [ "$1" != "" ] && [ "$1" != "$(_psk)" ]
+  if [ "$1" != "" ] && [ "$1" != "$_psk" ]
   then
     log "ZABBIX" "Updating zabbix PSK parameter"
     _psk="$1"
     json_add_string zabbix_psk "$1"
     echo -n "$1" > /etc/zabbix_agentd.psk
-    _changed_params=true
+    _changed_params=1
   fi
   # Check if zabbix fqdn changed
-  if [ "$2" != "" ] && [ "$2" != "$(_fqdn)" ]
+  if [ "$2" != "" ] && [ "$2" != "$_fqdn" ]
   then
     log "ZABBIX" "Updating zabbix FQDN parameter"
     _fqdn="$2"
     json_add_string zabbix_fqdn "$2"
     sed -i 's/Server=.*/Server='"$2"'/' /etc/zabbix_agentd.conf
     sed -i 's/ServerActive=.*/ServerActive='"$2"':80/' /etc/zabbix_agentd.conf
-    _changed_params=true
+    _changed_params=1
   fi
-  if [ "$3" = true ] && { [ "$_send_data" != "y" ] || [ "$_changed_params" = true ]; }
+  if [ "$3" = "1" ] && { [ "$_send_data" != "y" ] || [ "$_changed_params" = "1" ]; }
   then
     # Properly restart zabbix service if was active and anything changed
     # or if was inactive and new values are valid
@@ -131,7 +131,7 @@ update_zabbix_params() {
         json_get_var _psk psk
         json_get_var _fqdn fqdn
         json_get_var _send_data is_active
-        set_zabbix_params "$_psk" "$_fqdn" "_send_data"
+        set_zabbix_params "$_psk" "$_fqdn" "$_send_data"
       else
         log "ZABBIX" "Error retrieving parameters from flashman"
       fi
