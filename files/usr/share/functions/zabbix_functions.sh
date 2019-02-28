@@ -76,12 +76,16 @@ set_zabbix_params() {
       /etc/init.d/zabbix_agentd stop
       json_add_string zabbix_send_data "n"
     fi
-  else
+  elif [ "$3" = "0" ]
     # Properly kill zabbix service
     log "ZABBIX" "Stopping zabbix agent"
     /etc/init.d/zabbix_agentd stop
     json_add_string zabbix_send_data "n"
+  else
+    log "ZABBIX" "No changes in zabbix service"
   fi
+  json_dump > /root/flashbox_config.json
+  json_close_object
 }
 
 check_zabbix_startup() {
