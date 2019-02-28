@@ -8,7 +8,7 @@ save_wifi_local_config() {
   fi
   uci commit wireless
   /usr/bin/uci2dat -d radio0 -f /etc/Wireless/RT2860/RT2860AP.dat > /dev/null
-  /usr/bin/uci2dat -d radio1 -f /etc/Wireless/iNIC/iNIC_ap.dat > /dev/null
+  /usr/bin/uci2dat -d radio1 -f /etc/Wireless/mt76x2e/mt76x2e.dat > /dev/null
 }
 
 is_5ghz_capable() {
@@ -44,11 +44,10 @@ reset_leds() {
 
   /etc/init.d/led restart > /dev/null
 
-  led_on /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:power
   # bug on archer's lan led
   echo "0" > \
     /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:lan/port_mask
-  echo "0x1e" > \
+  echo "0xf" > \
     /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:lan/port_mask
 }
 
@@ -81,12 +80,12 @@ get_mac() {
 
 # Possible values: empty, 10, 100 or 100
 get_wan_negotiated_speed() {
-  swconfig dev switch1 port 0 get link | \
+  swconfig dev switch1 port 4 get link | \
   awk '{print $3}' | awk -F: '{print $2}' | awk -Fbase '{print $1}'
 }
 
 # Possible values: empty, half or full
 get_wan_negotiated_duplex() {
-  swconfig dev switch1 port 0 get link | \
+  swconfig dev switch1 port 4 get link | \
   awk '{print $4}' | awk -F- '{print $1}'
 }
