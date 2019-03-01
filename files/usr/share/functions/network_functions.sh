@@ -215,6 +215,7 @@ set_lan_subnet() {
         /etc/init.d/network restart
         /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
         /etc/init.d/dnsmasq reload
+        /etc/init.d/uhttpd restart # Must restart to update Flash App API
 
         # Replace IP so Flash App can find the router
         sed -i 's/.*anlixrouter/'"$_lan_addr"' anlixrouter/' /etc/hosts
