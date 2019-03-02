@@ -201,12 +201,22 @@ get_wifi_host_txbitrate() {
   local _host_mac="$1"
   local _host_info
   local _retstatus
-  _host_info=$(iw dev wlan0 station get "$_host_mac")
+  local _cmd_res
+
+  _cmd_res=$(command -v iw)
   _retstatus=$?
 
   if [ $_retstatus -eq 0 ]
   then
-    echo "$_host_info" | grep 'tx bitrate' | awk '{ print $3 }'
+    _host_info=$(iw dev wlan0 station get "$_host_mac")
+    _retstatus=$?
+
+    if [ $_retstatus -eq 0 ]
+    then
+      echo "$_host_info" | grep 'tx bitrate' | awk '{ print $3 }'
+    else
+      echo "0.0"
+    fi
   else
     echo "0.0"
   fi
