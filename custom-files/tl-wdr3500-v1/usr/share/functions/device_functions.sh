@@ -1,6 +1,16 @@
 #!/bin/sh
 
 save_wifi_local_config() {
+  # This model does not support AC options
+  if [ "$(uci -q get wireless.radio1.htmode)" != "HT40" ] ||
+     [ "$(uci -q get wireless.radio1.htmode)" != "HT20" ]
+  then
+    uci set wireless.radio1.htmode="HT40"
+  fi
+  if [ "$(uci -q get wireless.radio1.hwmode)" != "11na" ]
+  then
+    uci set wireless.radio1.hwmode="11na"
+  fi
   uci commit wireless
 }
 
