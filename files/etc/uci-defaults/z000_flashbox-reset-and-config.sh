@@ -96,6 +96,7 @@ then
     uci set wireless.@wifi-device[1].noscan="1"
     uci set wireless.@wifi-device[1].ht_bsscoexist="0"
     uci set wireless.@wifi-device[1].bw="2"
+    uci set wireless.@wifi-device[1].country="BR"
   fi
   uci commit wireless
 fi
