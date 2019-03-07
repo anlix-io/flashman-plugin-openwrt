@@ -1,17 +1,9 @@
 #!/bin/sh
 
-[ "$ACTION" = stratum ] || exit 0
+. /usr/share/functions/common_functions.sh
 
-. /usr/share/flashman_init.conf
-. /usr/share/functions.sh
+[ "$ACTION" = stratum ] || [ "$ACTION" = step ] || exit 0
 
-if [ "$ACTION" = unsync ]
-then
-  log "NTP" "SYNC ERROR"
-  echo "unsync" > /tmp/anlixntp
-else
-  # step and periodic
-  log "NTP" "Server sync date with $NTP_SVADDR: offset $offset"
-  echo "$offset" > /tmp/anlixntp
-fi
-
+# step and periodic
+log "NTP" "Host synced date with offset: $offset"
+echo "$offset" > /tmp/anlixntp

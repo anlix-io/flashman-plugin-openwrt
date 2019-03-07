@@ -3,8 +3,14 @@
 . /usr/share/flashman_init.conf
 . /usr/share/libubox/jshn.sh
 . /usr/share/flash_image.sh
-. /usr/share/functions.sh
-. /usr/share/boot_setup.sh
+. /usr/share/functions/common_functions.sh
+. /usr/share/functions/system_functions.sh
+. /usr/share/functions/device_functions.sh
+. /usr/share/functions/wireless_functions.sh
+. /usr/share/functions/network_functions.sh
+. /usr/share/functions/firewall_functions.sh
+. /usr/share/functions/api_functions.sh
+. /usr/share/functions/zabbix_functions.sh
 
 # If a command hash is provided, check if it should still be done
 COMMANDHASH=""
@@ -28,81 +34,83 @@ then
   fi
 fi
 
-OPENWRT_VER=$(cat /etc/openwrt_version)
-HARDWARE_MODEL=$(get_hardware_model)
-SYSTEM_MODEL=$(get_system_model)
-HARDWARE_VER=$(cat /tmp/sysinfo/model | awk '{ print toupper($3) }')
-CLIENT_MAC=$(get_mac)
-WAN_IP_ADDR=$(get_wan_ip)
-WAN_CONNECTION_TYPE=$(uci get network.wan.proto | awk '{ print tolower($1) }')
-PPPOE_USER=""
-PPPOE_PASSWD=""
-WIFI_SSID=""
-WIFI_PASSWD=""
-WIFI_CHANNEL=""
-if [ -f /root/router_passwd ]
-then
-  APP_PASSWORD="$(cat /root/router_passwd)"
-else
-  APP_PASSWORD=""
-fi
-
-log "FLASHMAN UPDATER" "Start ..." 
+log "FLASHMAN UPDATER" "Start ..."
 
 if is_authenticated
 then
   log "FLASHMAN UPDATER" "Authenticated ..."
 
-  # Get PPPoE data if available
-  if [ "$WAN_CONNECTION_TYPE" == "pppoe" ]
-  then
-    PPPOE_USER=$(uci get network.wan.username)
-    PPPOE_PASSWD=$(uci get network.wan.password)
-  fi
-
-  # Get WiFi data if available
-  # MT7628 wifi is always disabled in uci 
-  if [ "$(uci get wireless.@wifi-device[0].disabled)" = "0" ] || \
-     [ "$SYSTEM_MODEL" = "MT7628AN" ] || [ "$HARDWARE_MODEL" = "DIR-819" ]
-  then
-    WIFI_SSID=$(uci get wireless.@wifi-iface[0].ssid)
-    WIFI_PASSWD=$(uci get wireless.@wifi-iface[0].key)
-    WIFI_CHANNEL=$(uci get wireless.radio0.channel)
-  fi
+  # Get WiFi data
+  json_cleanup
+  json_load $(get_wifi_local_config)
+  json_get_var _local_ssid_24 local_ssid_24
+  json_get_var _local_password_24 local_password_24
+  json_get_var _local_channel_24 local_channel_24
+  json_get_var _local_hwmode_24 local_hwmode_24
+  json_get_var _local_htmode_24 local_htmode_24
+  json_get_var _local_5ghz_capable local_5ghz_capable
+  json_get_var _local_ssid_50 local_ssid_50
+  json_get_var _local_password_50 local_password_50
+  json_get_var _local_channel_50 local_channel_50
+  json_get_var _local_hwmode_50 local_hwmode_50
+  json_get_var _local_htmode_50 local_htmode_50
+  json_close_object
+  # Get config data
+  json_cleanup
+  json_load_file /root/flashbox_config.json
+  json_get_var _has_upgraded_version has_upgraded_version
+  json_get_var _hard_reset_info hard_reset_info
+  json_close_object
 
   # Report if a hard reset has occured
-  if [ -e /root/hard_reset ]
+  if [ "_hard_reset_info" = "1" ]
   then
     log "FLASHMAN UPDATER" "Sending HARD RESET Information to server"
-    HARDRESET="1"
     if [ -e /sysupgrade.tgz ]
     then
       rm /sysupgrade.tgz
     fi
-  else
-    HARDRESET="0"
   fi
 
-  # Report a firmware upgrade
-  if [ -e /root/upgrade_info ]
-  then
-    log "FLASHMAN UPDATER" "Sending UPGRADE FIRMWARE Information to server"
-    UPGRADEFIRMWARE="1"
-  else
-    UPGRADEFIRMWARE="0"
-  fi
-
-  #Get NTP status
-  NTP_INFO=$(ntp_anlix)
-
-  _data="id=$CLIENT_MAC&flm_updater=1&version=$ANLIX_PKG_VERSION&model=$HARDWARE_MODEL&model_ver=$HARDWARE_VER&release_id=$FLM_RELID&pppoe_user=$PPPOE_USER&pppoe_password=$PPPOE_PASSWD&wan_ip=$WAN_IP_ADDR&wifi_ssid=$WIFI_SSID&wifi_password=$WIFI_PASSWD&wifi_channel=$WIFI_CHANNEL&connection_type=$WAN_CONNECTION_TYPE&ntp=$NTP_INFO&hardreset=$HARDRESET&upgfirm=$UPGRADEFIRMWARE"
+  #
+  # WARNING! No spaces or tabs inside the following string!
+  #
+  _data="id=$(get_mac)&\
+flm_updater=1&\
+version=$(get_flashbox_version)&\
+model=$(get_hardware_model)&\
+model_ver=$(get_hardware_version)&\
+release_id=$FLM_RELID&\
+pppoe_user=$(uci -q get network.wan.username)&\
+pppoe_password=$(uci -q get network.wan.password)&\
+wan_ip=$(get_wan_ip)&\
+wan_negociated_speed=$(get_wan_negotiated_speed)&\
+wan_negociated_duplex=$(get_wan_negotiated_duplex)&\
+lan_addr=$(get_lan_subnet)&\
+lan_netmask=$(get_lan_netmask)&\
+wifi_ssid=$_local_ssid_24&\
+wifi_password=$_local_password_24&\
+wifi_channel=$_local_channel_24&\
+wifi_band=$_local_htmode_24&\
+wifi_mode=$_local_hwmode_24&\
+wifi_5ghz_capable=$_local_5ghz_capable&\
+wifi_ssid_5ghz=$_local_ssid_50&\
+wifi_password_5ghz=$_local_password_50&\
+wifi_channel_5ghz=$_local_channel_50&\
+wifi_band_5ghz=$_local_htmode_50&\
+wifi_mode_5ghz=$_local_hwmode_50&\
+connection_type=$(get_wan_type)&\
+ntp=$(ntp_anlix)&\
+hardreset=$_hard_reset_info&\
+upgfirm=$_has_upgraded_version"
   _url="deviceinfo/syn/"
-  _res=$(rest_flashman "$_url" "$_data") 
+  _res=$(rest_flashman "$_url" "$_data")
 
   if [ "$?" -eq 1 ]
   then
     log "FLASHMAN UPDATER" "Fail in Rest Flashman! Aborting..."
   else
+    json_cleanup
     json_load "$_res"
     json_get_var _do_update do_update
     json_get_var _do_newprobe do_newprobe
@@ -110,16 +118,28 @@ then
     json_get_var _connection_type connection_type
     json_get_var _pppoe_user pppoe_user
     json_get_var _pppoe_password pppoe_password
-    json_get_var _wifi_ssid wifi_ssid
-    json_get_var _wifi_password wifi_password
-    json_get_var _wifi_channel wifi_channel
+    json_get_var _lan_addr lan_addr
+    json_get_var _lan_netmask lan_netmask
+    json_get_var _wifi_ssid_24 wifi_ssid
+    json_get_var _wifi_password_24 wifi_password
+    json_get_var _wifi_channel_24 wifi_channel
+    json_get_var _wifi_htmode_24 wifi_band
+    json_get_var _wifi_hwmode_24 wifi_mode
+    json_get_var _wifi_ssid_50 wifi_ssid_5ghz
+    json_get_var _wifi_password_50 wifi_password_5ghz
+    json_get_var _wifi_channel_50 wifi_channel_5ghz
+    json_get_var _wifi_htmode_50 wifi_band_5ghz
+    json_get_var _wifi_hwmode_50 wifi_mode_5ghz
     json_get_var _app_password app_password
     json_get_var _forward_index forward_index
+    json_get_var _zabbix_psk zabbix_psk
+    json_get_var _zabbix_fqdn zabbix_fqdn
+    json_get_var _zabbix_active zabbix_active
 
     _blocked_macs=""
     _blocked_devices=""
     json_select blocked_devices
-    INDEX="1"  # json library starts indexing at 1
+    INDEX="1"  # Json library starts indexing at 1
     while json_get_type TYPE $INDEX && [ "$TYPE" = string ]; do
       json_get_var _device "$((INDEX++))"
       _blocked_devices="$_blocked_devices""$_device"$'\n'
@@ -129,7 +149,7 @@ then
     _named_devices=""
     json_select ..
     json_select named_devices
-    INDEX="1"  # json library starts indexing at 1
+    INDEX="1"  # Json library starts indexing at 1
     while json_get_type TYPE $INDEX && [ "$TYPE" = string ]; do
       json_get_var _device "$((INDEX++))"
       _named_devices="$_named_devices""$_device"$'\n'
@@ -140,24 +160,32 @@ then
     _named_devices=${_named_devices::-1}
     json_close_object
 
-    if [ "$HARDRESET" = "1" ]
+    if [ "$_hard_reset_info" = "1" ]
     then
-      rm /root/hard_reset
+      json_cleanup
+      json_load_file /root/flashbox_config.json
+      json_add_string hard_reset_info "0"
+      json_dump > /root/flashbox_config.json
+      json_close_object
     fi
 
-    if [ "$UPGRADEFIRMWARE" = "1" ]
+    if [ "$_has_upgraded_version" = "1" ]
     then
-      rm /root/upgrade_info
+      json_cleanup
+      json_load_file /root/flashbox_config.json
+      json_add_string has_upgraded_version "0"
+      json_dump > /root/flashbox_config.json
+      json_close_object
     fi
 
     if [ "$_do_newprobe" = "1" ]
     then
-      log "FLASHMAN UPDATER" "Router Registred in Flashman Successfully!"
-      #on a new probe, force a new registry in mqtt secret
+      log "FLASHMAN UPDATER" "Router Registered in Flashman Successfully!"
+      # On a new probe, force a new registry in mqtt secret
       reset_mqtt_secret > /dev/null
     fi
 
-    # send boot log information if boot is completed and probe is registred!
+    # Send boot log information if boot is completed and probe is registered!
     if [ ! -e /tmp/boot_completed ]
     then
       log "FLASHMAN UPDATER" "Sending BOOT log"
@@ -165,124 +193,37 @@ then
       echo "0" > /tmp/boot_completed
     fi
 
-    # Connection type update
-    if [ "$_connection_type" != "$WAN_CONNECTION_TYPE" ]
-    then
-      if [ "$_connection_type" == "dhcp" ]
-      then
-        log "FLASHMAN UPDATER" "Updating connection type to DHCP ..."
-        uci set network.wan.proto="dhcp"
-        uci set network.wan.username=""
-        uci set network.wan.password=""
-        uci set network.wan.service=""
-        uci commit network
-
-        /etc/init.d/network restart
-        /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
-
-        # This will persist connection type between firmware upgrades
-        echo "dhcp" > /root/custom_connection_type
-      elif [ "$_connection_type" == "pppoe" ]
-      then
-        if [ "$_pppoe_user" != "" ] && [ "$_pppoe_password" != "" ]
-        then
-          log "FLASHMAN UPDATER" "Updating connection type to PPPOE ..."
-          uci set network.wan.proto="pppoe"
-          uci set network.wan.username="$_pppoe_user"
-          uci set network.wan.password="$_pppoe_password"
-          uci set network.wan.service="$FLM_WAN_PPPOE_SERVICE"
-          uci commit network
-
-          /etc/init.d/network restart
-          /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
-
-          # This will persist connection type between firmware upgrades
-          echo "pppoe" > /root/custom_connection_type
-        fi
-      fi
-      # Don't put anything outside here. _content_type may be corrupted
-    fi
+    # WAN connection type update
+    set_wan_type "$_connection_type" "$_pppoe_user" "$_pppoe_password"
 
     # PPPoE update
-    if [ "$WAN_CONNECTION_TYPE" == "pppoe" ]
-    then
-      if [ "$_pppoe_user" != "" ] && [ "$_pppoe_password" != "" ]
-      then
-        if [ "$_pppoe_user" != "$PPPOE_USER" ] || \
-           [ "$_pppoe_password" != "$PPPOE_PASSWD" ]
-        then
-          log "FLASHMAN UPDATER" "Updating PPPoE ..."
-          uci set network.wan.username="$_pppoe_user"
-          uci set network.wan.password="$_pppoe_password"
-          uci commit network
+    set_pppoe_credentials "$_pppoe_user" "$_pppoe_password"
 
-          /etc/init.d/network restart
-          /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
-        fi
-      fi
+    # LAN connection subnet update
+    set_lan_subnet "$_lan_addr" "$_lan_netmask"
+    # If LAN has changed then reload port forward mapping
+    if [ $? -eq 0 ]
+    then
+      update_port_forward
     fi
 
     # WiFi update
-    if [ "$(uci get wireless.@wifi-device[0].disabled)" = "0" ] || \
-       [ "$SYSTEM_MODEL" = "MT7628AN" ] || [ "$HARDWARE_MODEL" = "DIR-819" ]
-    then
-      if [ "$_wifi_ssid" != "" ] && [ "$_wifi_password" != "" ] && \
-         [ "$_wifi_channel" != "" ]
-      then
-        if [ "$_wifi_ssid" != "$WIFI_SSID" ] || \
-           [ "$_wifi_password" != "$WIFI_PASSWD" ] || \
-           [ "$_wifi_channel" != "$WIFI_CHANNEL" ]
-        then
-          log "FLASHMAN UPDATER" "Updating Wireless ..."
-          uci set wireless.@wifi-iface[0].ssid="$_wifi_ssid"
-          uci set wireless.@wifi-iface[0].key="$_wifi_password"
-          uci set wireless.radio0.channel="$_wifi_channel"
-          #5Ghz
-          if [ "$(uci -q get wireless.@wifi-iface[1])" ]
-          then
-            uci set wireless.@wifi-iface[1].ssid="$_wifi_ssid""-5GHz"
-            uci set wireless.@wifi-iface[1].key="$_wifi_password"
-          fi
-          uci commit wireless
-
-          if [ "$SYSTEM_MODEL" == "MT7628AN" ]
-          then
-            /usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat > /dev/null
-          fi
-
-          if [ "$HARDWARE_MODEL" = "DIR-819" ]
-          then
-            # Current MT7620 driver has a bug with 2.4 "auto" channel mode
-            if [ "$_wifi_channel" = "auto" ]
-            then
-              uci set wireless.radio0.channel="6"
-              uci commit wireless
-            fi
-            /usr/bin/uci2dat -d radio0 -f /etc/Wireless/RT2860/RT2860AP.dat > /dev/null
-          fi
-
-          if [ "$HARDWARE_MODEL" = "ARCHERC20" ] || [ "$HARDWARE_MODEL" = "DIR-819" ]
-          then
-            /usr/bin/uci2dat -d radio1 -f /etc/Wireless/iNIC/iNIC_ap.dat > /dev/null
-          fi
-
-          /sbin/wifi reload
-        fi
-      fi
-    fi
-
-    # App password update
+    log "FLASHMAN UPDATER" "Updating Wireless ..."
+    set_wifi_local_config "$_wifi_ssid_24" "$_wifi_password_24" \
+                          "$_wifi_channel_24" "$_wifi_hwmode_24" \
+                          "$_wifi_htmode_24" \
+                          "$_wifi_ssid_50" "$_wifi_password_50" \
+                          "$_wifi_channel_50" "$_wifi_hwmode_50" \
+                          "$_wifi_htmode_50"
+    # Flash App password update
     if [ "$_app_password" == "" ]
     then
       log "FLASHMAN UPDATER" "Removing app access password ..."
-      if [ -e /root/router_passwd ]
-      then
-        rm /root/router_passwd
-      fi
-    elif [ "$_app_password" != "$APP_PASSWORD" ]
+      reset_flashapp_pass
+    elif [ "$_app_password" != "$(get_flashapp_pass)" ]
     then
       log "FLASHMAN UPDATER" "Updating app access password ..."
-      echo -n "$_app_password" > /root/router_passwd
+      set_flashapp_pass "$_app_password"
     fi
 
     # Named devices file update - always do this to avoid file diff logic
@@ -296,12 +237,17 @@ then
     echo -n "$_blocked_devices" > /tmp/blacklist_mac
     for mac in $_blocked_macs
     do
-      echo "iptables -I FORWARD -m mac --mac-source $mac -j DROP" >> /etc/firewall.user
+      echo "iptables -I FORWARD -m mac --mac-source $mac -j DROP" >> \
+           /etc/firewall.user
     done
     /etc/init.d/firewall restart
     /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
 
-    A=$(json_get_index "forward_index")
+    # Update zabbix parameters as necessary
+    set_zabbix_params "$_zabbix_psk" "$_zabbix_fqdn" "$_zabbix_active"
+
+    # Check for updates in port forward mapping 
+    A=$(get_forward_indexes "forward_index")
     [ "$A" != "$_forward_index" ] && update_port_forward
 
     # Store completed command hash if one was provided
@@ -321,4 +267,3 @@ else
   log "FLASHMAN UPDATER" "Fail Authenticating device!"
 fi
 log "FLASHMAN UPDATER" "Done"
-
