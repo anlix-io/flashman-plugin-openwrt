@@ -5,8 +5,8 @@ save_wifi_local_config() {
 }
 
 is_5ghz_capable() {
-  # true
-  echo "1"
+  # false
+  echo "0"
 }
 
 led_on() {
