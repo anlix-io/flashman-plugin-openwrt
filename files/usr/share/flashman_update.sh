@@ -42,7 +42,7 @@ then
 
   # Get WiFi data
   json_cleanup
-  json_load $(get_wifi_local_config)
+  json_load "$(get_wifi_local_config)"
   json_get_var _local_ssid_24 local_ssid_24
   json_get_var _local_password_24 local_password_24
   json_get_var _local_channel_24 local_channel_24
