@@ -84,6 +84,13 @@ then
   uci set network.wan.username="$_pppoe_user"
   uci set network.wan.password="$_pppoe_pass"
 fi
+# Check if IPv6 enabled
+if [ "$FLM_WAN_IPV6_ENABLED" == "y" ]
+then
+  uci set network.wan.ipv6="auto"
+else
+  uci set network.wan.ipv6="0"
+fi
 
 # Remove IPv6 ULA prefix to avoid phone issues
 uci -q delete network.globals
