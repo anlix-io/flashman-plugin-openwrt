@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=flasman-plugin
-PKG_VERSION:=0.13.2
+PKG_VERSION:=0.13.3
 PKG_RELEASE:=1
 
 PKG_LICENSE:=GPL
@@ -163,6 +163,7 @@ define Package/flashman-plugin/install
 	echo 'NTP_SVADDR_4=$(CONFIG_NTP_SERVER_ADDR_4)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_WAN_PROTO=$(WAN_PROTO)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_WAN_MTU=$(CONFIG_FLASHMAN_WAN_MTU)' >>$(1)/usr/share/flashman_init.conf
+	echo 'FLM_WAN_IPV6_ENABLED=$(CONFIG_FLASHMAN_WAN_IPV6_ENABLED)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_LAN_SUBNET=$(CONFIG_FLASHMAN_LAN_SUBNET)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_LAN_NETMASK=$(CONFIG_FLASHMAN_LAN_NETMASK)' >>$(1)/usr/share/flashman_init.conf
 	echo 'MQTT_PORT=$(CONFIG_MQTT_PORT)' >>$(1)/usr/share/flashman_init.conf

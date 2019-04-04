@@ -56,14 +56,6 @@ config FLASHMAN_CLIENT_ORG
 	string "FlashMan image client organization identification"
 	default "MyCompany"
 
-config ZABBIX_SEND_DATA
-	bool "Enable Zabbix agent by default"
-	default y
-
-config ZABBIX_SERVER_ADDR
-	string "Zabbix server IP or FQDN"
-	default ""
-
 config NTP_SERVER_ADDR
 	string "First NTP server IP or FQDN"
 	default "a.st1.ntp.br"
@@ -108,6 +100,10 @@ endif
 config FLASHMAN_WAN_MTU
 	string "WAN MTU"
 	default "1500"
+
+config FLASHMAN_WAN_IPV6_ENABLED
+	bool "Enable IPv6 on WAN"
+	default y
 
 config FLASHMAN_LAN_SUBNET
 	string "LAN subnet gateway"
