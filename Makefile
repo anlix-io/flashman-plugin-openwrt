@@ -118,6 +118,8 @@ CUSTOM_FILE_DIR=
 		CUSTOM_FILE_DIR="custom-files/tl-wr849n-v5"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v6), y)
 		CUSTOM_FILE_DIR="custom-files/tl-wr849n-v6"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v62), y)
+		CUSTOM_FILE_DIR="custom-files/tl-wr849n-v62"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr940n-v6), y)
 		CUSTOM_FILE_DIR="custom-files/tl-wr940n-v6"
 	else
