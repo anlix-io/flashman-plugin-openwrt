@@ -10,7 +10,7 @@ is_5ghz_capable() {
   echo "0"
 }
 
-led_on() {
+led_power_off() {
   if [ -f "$1"/brightness ]
   then
     if [ -f "$1"/max_brightness ]
@@ -37,8 +37,6 @@ reset_leds() {
   done
 
   /etc/init.d/led restart > /dev/null
-
-  led_on /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:power
 }
 
 blink_leds() {
@@ -46,7 +44,8 @@ blink_leds() {
 
   if [ $_do_restart -eq 0 ]
   then
-    ledsoff=$(ls -d /sys/class/leds/*)
+    led_power_off /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:orange\:power
+    ledsoff=$(ls -d /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:*)
 
     for trigger_path in $ledsoff
     do
