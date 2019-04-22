@@ -9,6 +9,73 @@ is_5ghz_capable() {
   echo "0"
 }
 
+get_wifi_device_stats() {
+  local _dev_mac="$1"
+  local _dev_info
+  local _wifi_stats
+  local _retstatus
+  local _cmd_res
+
+  _cmd_res=$(command -v iw)
+  _retstatus=$?
+
+  if [ $_retstatus -eq 0 ]
+  then
+    _dev_info="$(iw dev wlan0 station get $_dev_mac)"
+    _retstatus=$?
+
+    if [ $_retstatus -eq 0 ]
+    then
+      _wifi_stats="$(echo $_dev_info | grep 'tx bitrate' | awk '{ print $3 }')"
+      # TODO Check this data!
+      _wifi_stats="$_wifi_stats \
+                   $(echo $_dev_info | grep 'rx bitrate' | awk '{ print $3 }')"
+      # TODO Check this data!
+      _wifi_stats="$_wifi_stats \
+                   $(echo $_dev_info | grep 'rssi' | awk '{ print $3 }')"
+      # TODO Check this data!
+      _wifi_stats="$_wifi_stats \
+                   $(echo $_dev_info | grep 'snr' | awk '{ print $3 }')"
+      # TODO Check this data!
+      _wifi_stats="$_wifi_stats \
+                   $(echo $_dev_info | grep 'freq' | awk '{ print $3 }')"
+      # TODO Check this data!
+      _wifi_stats="$_wifi_stats \
+                   $(echo $_dev_info | grep 'mode' | awk '{ print $3 }')"
+      echo "$_wifi_stats"
+    else
+      echo "0.0 0.0 0.0 0.0 0 Z"
+    fi
+  else
+    echo "0.0 0.0 0.0 0.0 0 Z"
+  fi
+}
+
+is_device_wireless() {
+  local _dev_mac="$1"
+  local _dev_info
+  local _retstatus
+  local _cmd_res
+
+  _cmd_res=$(command -v iw)
+  _retstatus=$?
+
+  if [ $_retstatus -eq 0 ]
+  then
+    _dev_info=$(iw dev wlan0 station get "$_dev_mac")
+    _retstatus=$?
+
+    if [ $_retstatus -eq 0 ]
+    then
+      return 0
+    else
+      return 1
+    fi
+  else
+    return 1
+  fi
+}
+
 led_on() {
   if [ -f "$1"/brightness ]
   then
@@ -111,4 +178,8 @@ get_wan_negotiated_speed() {
 # Possible values: half or full
 get_wan_negotiated_duplex() {
   cat /sys/class/net/eth0/duplex
+}
+
+get_lan_negotiated_speed() {
+  cat /sys/class/net/eth1/speed
 }
