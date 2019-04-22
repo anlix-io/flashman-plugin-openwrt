@@ -17,7 +17,7 @@ get_device_conn_type() {
     # Wireless
     echo "1"
   else
-    local _state=$(arp -n | grep "$_mac" | awk '{ print $3 }')
+    local _state=$(arp -n | grep "$_mac" | awk '{print $3}')
     if [ "$_state" == "0x2" ]
     then
       # Wired
