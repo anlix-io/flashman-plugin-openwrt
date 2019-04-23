@@ -206,6 +206,14 @@ get_wan_negotiated_duplex() {
   cat /sys/class/net/eth0/duplex
 }
 
-get_lan_negotiated_speed() {
-  cat /sys/class/net/eth1/speed
+get_lan_dev_negotiated_speed() {
+  local _mac="$1"
+  local _swport
+  local _speed
+
+  _swport="$(swconfig dev switch0 show | grep $_mac | \
+             awk -F: '{print $1}' | awk '{print $2}')"
+  _speed="$(swconfig dev switch0 port $_swport get link | \
+            awk -F: '{print $4}' | awk -F 'baseT' '{print $1}')"
+  echo "$_speed"
 }
