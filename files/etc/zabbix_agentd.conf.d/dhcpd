@@ -1,2 +1,2 @@
 UserParameter=dhcpd.hosts.discovery,. /usr/share/functions/dhcp_functions.sh && get_active_device_leases
-UserParameter=dhcpd.hosts.tx[*],. /usr/share/functions/wireless_functions.sh && get_wifi_host_txbitrate "$1" 
+UserParameter=dhcpd.hosts.tx[*],. /usr/share/functions/device_functions.sh && get_wifi_device_stats "$1" | awk '{print $1}'
