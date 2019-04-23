@@ -10,6 +10,16 @@ is_5ghz_capable() {
   echo "0"
 }
 
+get_wifi_device_stats() {
+  # TODO Implement this function
+  echo "0.0 0.0 0.0 0.0 0 Z"
+}
+
+is_device_wireless() {
+  # TODO Implement this function
+  return 1
+}
+
 led_power_off() {
   if [ -f "$1"/brightness ]
   then
@@ -75,4 +85,10 @@ get_wan_negotiated_speed() {
 get_wan_negotiated_duplex() {
   swconfig dev switch0 port 0 get link | \
   awk '{print $4}' | awk -F- '{print $1}'
+}
+
+get_lan_dev_negotiated_speed() {
+  local _mac="$1"
+  # TODO Implement this function
+  echo "0"
 }

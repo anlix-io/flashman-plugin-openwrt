@@ -19,6 +19,99 @@ is_5ghz_capable() {
   echo "1"
 }
 
+get_wifi_device_stats() {
+  local _dev_mac="$1"
+  local _dev_info
+  local _wifi_stats=""
+  local _retstatus
+  local _cmd_res
+  local _wifi_itf="wlan0"
+  local _ap_freq="2.4"
+
+  _cmd_res=$(command -v iw)
+  _retstatus=$?
+
+  if [ $_retstatus -eq 0 ]
+  then
+    _dev_info="$(iw dev $_wifi_itf station get $_dev_mac 2> /dev/null)"
+    _retstatus=$?
+
+    if [ $_retstatus -ne 0 ]
+    then
+      _wifi_itf="wlan1"
+      _ap_freq="5.0"
+      _dev_info="$(iw dev $_wifi_itf station get $_dev_mac 2> /dev/null)"
+      _retstatus=$?
+    fi
+
+    if [ $_retstatus -eq 0 ]
+    then
+      local _dev_txbitrate="$(echo "$_dev_info" | grep 'tx bitrate:' | \
+                              awk '{print $3}')"
+      local _dev_rxbitrate="$(echo "$_dev_info" | grep 'rx bitrate:' | \
+                              awk '{print $3}')"
+      local _dev_mcs="$(echo "$_dev_info" | grep 'tx bitrate:' | \
+                        awk '{print $5}')"
+      local _dev_signal="$(echo "$_dev_info" | grep 'signal:' | \
+                           awk '{print $2}' | awk -F. '{print $1}')"
+      local _ap_noise="$(iwinfo $_wifi_itf info | grep 'Noise:' | \
+                         awk '{print $5}' | awk -F. '{print $1}')"
+      # Calculate SNR
+      local _dev_snr="$(($_dev_signal - $_ap_noise))"
+
+      _wifi_stats="$_dev_txbitrate $_dev_rxbitrate $_dev_signal"
+      _wifi_stats="$_wifi_stats $_dev_snr $_ap_freq"
+
+      if [ "$_dev_mcs" == "MCS" ]
+      then
+        # N or AC
+        _wifi_stats="$_wifi_stats N"
+      else
+        # G Mode
+        _wifi_stats="$_wifi_stats G"
+      fi
+      echo "$_wifi_stats"
+    else
+      echo "0.0 0.0 0.0 0.0 0 Z"
+    fi
+  else
+    echo "0.0 0.0 0.0 0.0 0 Z"
+  fi
+}
+
+is_device_wireless() {
+  local _dev_mac="$1"
+  local _dev_info
+  local _retstatus
+  local _cmd_res
+  local _wifi_itf="wlan0"
+
+  _cmd_res=$(command -v iw)
+  _retstatus=$?
+
+  if [ $_retstatus -eq 0 ]
+  then
+    _dev_info="$(iw dev $_wifi_itf station get $_dev_mac 2> /dev/null)"
+    _retstatus=$?
+
+    if [ $_retstatus -ne 0 ]
+    then
+      _wifi_itf="wlan1"
+      _dev_info="$(iw dev $_wifi_itf station get $_dev_mac 2> /dev/null)"
+      _retstatus=$?
+    fi
+
+    if [ $_retstatus -eq 0 ]
+    then
+      return 0
+    else
+      return 1
+    fi
+  else
+    return 1
+  fi
+}
+
 led_on() {
   if [ -f "$1"/brightness ]
   then
@@ -119,4 +212,16 @@ get_wan_negotiated_speed() {
 get_wan_negotiated_duplex() {
   swconfig dev switch0 port 1 get link | \
   awk '{print $4}' | awk -F- '{print $1}'
+}
+
+get_lan_dev_negotiated_speed() {
+  local _mac="$1"
+  local _swport
+  local _speed
+
+  _swport="$(swconfig dev switch0 show | grep $_mac | \
+             awk -F: '{print $1}' | awk '{print $2}')"
+  _speed="$(swconfig dev switch0 port $_swport get link | \
+            awk -F: '{print $4}' | awk -F 'baseT' '{print $1}')"
+  echo "$_speed"
 }
