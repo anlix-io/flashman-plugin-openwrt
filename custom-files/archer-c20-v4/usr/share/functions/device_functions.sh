@@ -17,8 +17,59 @@ get_wifi_device_stats() {
 }
 
 is_device_wireless() {
-  # TODO Implement this function
-  return 1
+  local _dev_mac="$1"
+  local _dev_num
+  local _idx
+  local _dev_info
+  local _retstatus
+  local _cmd_res
+  local _wifi_itf="ra0"
+
+  _cmd_res=$(command -v iwpriv)
+  _retstatus=$?
+
+  if [ $_retstatus -eq 0 ]
+  then
+    _dev_info="$(iwpriv $_wifi_itf assoclist_num 2> /dev/null)"
+    _retstatus=$?
+    if [ $_retstatus -eq 0 ]
+    then
+      # Interface returned successfully
+      _dev_num="$(echo $_dev_info | awk -F: '{print $2}')"
+      for _idx in $(seq 1 $_dev_num)
+      do
+        _dev_info="$(iwpriv $_wifi_itf assoclist $_idx | grep $_dev_mac)"
+        _retstatus=$?
+        if [ $_retstatus -eq 0 ]
+        then
+          return 0
+        fi
+      done
+    fi
+
+    # 5 GHz search
+    _wifi_itf="rai0"
+    _dev_info="$(iwpriv $_wifi_itf assoclist_num 2> /dev/null)"
+    if [ $_retstatus -eq 0 ]
+    then
+      # Interface returned successfully
+      _dev_num="$(echo $_dev_info | awk -F: '{print $2}')"
+      for _idx in $(seq 1 $_dev_num)
+      do
+        _dev_info="$(iwpriv $_wifi_itf assoclist $_idx | grep $_dev_mac)"
+        _retstatus=$?
+        if [ $_retstatus -eq 0 ]
+        then
+          return 0
+        fi
+      done
+    fi
+
+    # Not found
+    return 1
+  else
+    return 1
+  fi
 }
 
 led_on() {
