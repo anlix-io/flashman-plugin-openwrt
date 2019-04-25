@@ -132,6 +132,7 @@ upgfirm=$_has_upgraded_version"
     json_get_var _wifi_hwmode_50 wifi_mode_5ghz
     json_get_var _app_password app_password
     json_get_var _forward_index forward_index
+    json_get_var _blocked_devices_index blocked_devices_index
     json_get_var _zabbix_psk zabbix_psk
     json_get_var _zabbix_fqdn zabbix_fqdn
     json_get_var _zabbix_active zabbix_active
@@ -230,25 +231,20 @@ upgfirm=$_has_upgraded_version"
     log "FLASHMAN UPDATER" "Writing named devices file..."
     echo -n "$_named_devices" > /tmp/named_devices
 
-    # Blocked devices firewall update - always do this to avoid file diff logic
-    log "FLASHMAN UPDATER" "Rewriting user firewall rules ..."
-    rm /etc/firewall.user
-    touch /etc/firewall.user
-    echo -n "$_blocked_devices" > /tmp/blacklist_mac
-    for mac in $_blocked_macs
-    do
-      echo "iptables -I FORWARD -m mac --mac-source $mac -j DROP" >> \
-           /etc/firewall.user
-    done
-    /etc/init.d/firewall restart
-    /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
+    # Check for updates in blocked devices
+    _local_dindex=$(get_forward_indexes "blocked_devices_index")
+    if [ "$_local_dindex" != "$_blocked_devices_index" ]
+    then
+      update_blocked_devices "$_blocked_devices" "$_blocked_macs" \
+                             "$_blocked_devices_index"
+    fi
 
     # Update zabbix parameters as necessary
     set_zabbix_params "$_zabbix_psk" "$_zabbix_fqdn" "$_zabbix_active"
 
     # Check for updates in port forward mapping 
-    A=$(get_forward_indexes "forward_index")
-    [ "$A" != "$_forward_index" ] && update_port_forward
+    _local_findex=$(get_forward_indexes "forward_index")
+    [ "$_local_findex" != "$_forward_index" ] && update_port_forward
 
     # Store completed command hash if one was provided
     if [ "$COMMANDHASH" != "" ]
