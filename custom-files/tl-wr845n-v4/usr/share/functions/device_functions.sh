@@ -176,7 +176,36 @@ get_wan_negotiated_duplex() {
 }
 
 get_lan_dev_negotiated_speed() {
-  local _mac="$1"
-  # TODO Implement this function
-  echo "0"
+  local _speed="0"
+  local _switch="switch0"
+  local _vlan="1"
+  local _retstatus
+
+  for _port in $(swconfig dev $_switch vlan $_vlan get ports)
+  do
+    # Check if it's not a bridge port
+    echo "$_port" | grep -q "t"
+    _retstatus=$?
+    if [ $_retstatus -eq 1 ]
+    then
+      local _speed_tmp="$(swconfig dev $_switch port $_port get link | \
+                          awk -F: '{print $4}' | awk -F 'baseT' '{print $1}')"
+      if [ "$_speed_tmp" != "" ]
+      then
+        if [ "$_speed" != "0" ]
+        then
+          if [ "$_speed" != "$_speed_tmp" ]
+          then
+            # Different values. Return 0 since we cannot know the correct value
+            _speed="0"
+          fi
+        else
+          # First assignment
+          _speed="$_speed_tmp"
+        fi
+      fi
+    fi
+  done
+
+  echo "$_speed"
 }
