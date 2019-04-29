@@ -5,7 +5,6 @@
 
 get_device_conn_type() {
   local _mac=$1
-  local _ip=$2
   local _retstatus
 
   is_device_wireless "$_mac"
@@ -15,9 +14,6 @@ get_device_conn_type() {
     # Wireless
     echo "1"
   else
-    # Force entry refresh
-    ping -q -c 1 -w 1 "$_ip" > /dev/null 2>&1
-
     local _state=$(cat /proc/net/arp | grep "$_mac" | awk '{print $3}')
     if [ "$_state" == "0x2" ]
     then
@@ -44,8 +40,19 @@ get_online_devices() {
   for _mac in $_dhcp_macs
   do
     local _ip="$(echo $_dhcp_ips | awk -v N=$_idx '{ print $N }')"
+
+    # Force ARP entry refresh
+    ping -q -c 1 -w 1 "$_ip" > /dev/null 2>&1
+    # After refresh check if device is connected
+    local _status=$(cat /proc/net/arp | grep "$_mac" | awk '{print $3}')
+    if [ "$_status" != "0x2" ]
+    then
+      # Not connected get next device
+      continue
+    fi
+
     local _hostname="$(echo $_dhcp_names | awk -v N=$_idx '{ print $N }')"
-    local _conn_type="$(get_device_conn_type $_mac $_ip)"
+    local _conn_type="$(get_device_conn_type $_mac)"
     local _conn_speed=""
     local _dev_signal=""
     local _dev_snr=""
