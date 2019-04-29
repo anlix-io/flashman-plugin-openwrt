@@ -36,6 +36,14 @@ get_wifi_device_stats() {
                         awk '{print $5}')"
       local _dev_signal="$(echo "$_dev_info" | grep 'signal:' | \
                            awk '{print $2}' | awk -F. '{print $1}')"
+      local _dev_txbytes="$(echo "$_dev_info" | grep 'tx bytes:' | \
+                            awk '{print $3}')"
+      local _dev_rxbytes="$(echo "$_dev_info" | grep 'rx bytes:' | \
+                            awk '{print $3}')"
+      local _dev_txpackets="$(echo "$_dev_info" | grep 'tx packets:' | \
+                              awk '{print $3}')"
+      local _dev_rxpackets="$(echo "$_dev_info" | grep 'rx packets:' | \
+                              awk '{print $3}')"
 
       # Calculate SNR
       local _dev_snr="$(($_dev_signal + 93))"
@@ -51,12 +59,16 @@ get_wifi_device_stats() {
         # G Mode
         _wifi_stats="$_wifi_stats G"
       fi
+      # Traffic data
+      _wifi_stats="$_wifi_stats $_dev_txbytes $_dev_rxbytes"
+      _wifi_stats="$_wifi_stats $_dev_txpackets $_dev_rxpackets"
+
       echo "$_wifi_stats"
     else
-      echo "0.0 0.0 0.0 0.0 0 Z"
+      echo "0.0 0.0 0.0 0.0 0 Z 0 0 0 0"
     fi
   else
-    echo "0.0 0.0 0.0 0.0 0 Z"
+    echo "0.0 0.0 0.0 0.0 0 Z 0 0 0 0"
   fi
 }
 

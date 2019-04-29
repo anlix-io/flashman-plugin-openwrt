@@ -77,6 +77,14 @@ get_wifi_device_stats() {
                            awk '{print $2}')"
       local _dev_snr="$(echo "$_dev_info" | grep 'SNR:' | \
                         awk '{print $2}')"
+      local _dev_txbytes="$(echo "$_dev_info" | grep 'TxBytes:' | \
+                            awk '{print $2}')"
+      local _dev_rxbytes="$(echo "$_dev_info" | grep 'RxBytes:' | \
+                            awk '{print $2}')"
+      local _dev_txpackets="$(echo "$_dev_info" | grep 'TxPackets:' | \
+                              awk '{print $2}')"
+      local _dev_rxpackets="$(echo "$_dev_info" | grep 'RxPackets:' | \
+                              awk '{print $2}')"
 
       _wifi_stats="$_dev_txbitrate $_dev_rxbitrate $_dev_signal"
       _wifi_stats="$_wifi_stats $_dev_snr $_ap_freq"
@@ -93,12 +101,16 @@ get_wifi_device_stats() {
         # G
         _wifi_stats="$_wifi_stats G"
       fi
+      # Traffic data
+      _wifi_stats="$_wifi_stats $_dev_txbytes $_dev_rxbytes"
+      _wifi_stats="$_wifi_stats $_dev_txpackets $_dev_rxpackets"
+
       echo "$_wifi_stats"
     else
-      echo "0.0 0.0 0.0 0.0 0 Z"
+      echo "0.0 0.0 0.0 0.0 0 Z 0 0 0 0"
     fi
   else
-    echo "0.0 0.0 0.0 0.0 0 Z"
+    echo "0.0 0.0 0.0 0.0 0 Z 0 0 0 0"
   fi
 }
 
