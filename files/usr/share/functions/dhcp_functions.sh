@@ -48,6 +48,7 @@ get_online_devices() {
     if [ "$_status" != "0x2" ]
     then
       # Not connected get next device
+      _idx=$((_idx+1))
       continue
     fi
 
