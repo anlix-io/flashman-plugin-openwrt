@@ -329,6 +329,7 @@ add_static_ip() {
     then
       while read _fixed_ip
       do
+        _fixed_ip="$(echo "$_fixed_ip" | awk -F '{print $2}')"
         is_ip_in_lan "$_fixed_ip" "$_lan_subnet" "$_lan_netmask"
         if [ $? -eq 0 ]
         then

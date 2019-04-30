@@ -65,14 +65,45 @@ update_port_forward() {
       json_get_var _dmz dmz
       local _static_ip=$(add_static_ip "$_mac" "$_dmz")
 
+      local has_router_port=0
+      json_get_type _router_port_type router_port
+      if [ "$_router_port_type" == "array" ]
+      then
+        json_select router_port
+        local _router_port_idx=1
+        while json_get_type _router_port_type $_router_port_idx && [ "$_router_port_type" = int ]
+        do
+          has_router_port=1
+          json_get_var _router_port "$_router_port_idx"
+          eval _router_port_$_router_port_idx=$_router_port
+          _router_port_idx=$((_router_port_idx+1))
+        done
+        json_select ".."
+      fi
+
       json_select port
       local _port_idx=1
       while json_get_type _port_type $_port_idx && [ "$_port_type" = int ]
       do
-        json_get_var _port "$((_port_idx++))"
+        local _act_idx="$((_port_idx++))"
+        json_get_var _port $_act_idx
         uci add firewall redirect
         uci set firewall.@redirect[-1].src='wan'
-        uci set firewall.@redirect[-1].src_dport="$_port"
+
+        if [ $has_router_port -eq 1 ]
+        then
+          eval _src_port=\$_router_port_$_act_idx
+          if [ $_src_port -eq $_port ]
+          then
+             uci set firewall.@redirect[-1].src_dport="$_port"
+          else
+             uci set firewall.@redirect[-1].src_dport="$_src_port"
+             uci set firewall.@redirect[-1].dest_port="$_port"
+          fi
+        else
+          uci set firewall.@redirect[-1].src_dport="$_port"
+        fi
+
         uci set firewall.@redirect[-1].proto='tcpudp'
         if [ "$_dmz" = 1 ]
         then
@@ -95,4 +126,28 @@ update_port_forward() {
     # Save index
     json_update_index "$_flash_idx" "forward_index"
   fi
+}
+
+update_blocked_devices() {
+  local _blocked_devices="$1"
+  local _blocked_macs="$2"
+  local _blocked_devices_index="$3"
+
+  # Blocked devices firewall update - always do this to avoid file diff logic
+  log "FLASHMAN UPDATER" "Rewriting user firewall rules ..."
+  rm /etc/firewall.user
+  touch /etc/firewall.user
+  echo -n "$_blocked_devices" > /tmp/blacklist_mac
+  for mac in $_blocked_macs
+  do
+    echo "iptables -I FORWARD -m mac --mac-source $mac -j DROP" >> \
+         /etc/firewall.user
+    echo "ip6tables -I FORWARD -m mac --mac-source $mac -j DROP" >> \
+         /etc/firewall.user
+  done
+  /etc/init.d/firewall restart
+  /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
+
+  # Save index
+  json_update_index "$_blocked_devices_index" "blocked_devices_index"
 }

@@ -1,2 +1,11 @@
 UserParameter=dhcpd.hosts.discovery,. /usr/share/functions/dhcp_functions.sh && get_active_device_leases
-UserParameter=dhcpd.hosts.tx[*],. /usr/share/functions/wireless_functions.sh && get_wifi_host_txbitrate "$1" 
+UserParameter=dhcpd.hosts.tx[*],. /usr/share/functions/device_functions.sh && get_wifi_device_stats "$1" | awk '{print $$1}'
+UserParameter=dhcpd.hosts.rx[*],. /usr/share/functions/device_functions.sh && get_wifi_device_stats "$1" | awk '{print $$2}'
+UserParameter=dhcpd.hosts.signal[*],. /usr/share/functions/device_functions.sh && get_wifi_device_stats "$1" | awk '{print $$3}'
+UserParameter=dhcpd.hosts.snr[*],. /usr/share/functions/device_functions.sh && get_wifi_device_stats "$1" | awk '{print $$4}'
+UserParameter=dhcpd.hosts.freq[*],. /usr/share/functions/device_functions.sh && get_wifi_device_stats "$1" | awk '{print $$5}'
+UserParameter=dhcpd.hosts.mode[*],. /usr/share/functions/device_functions.sh && get_wifi_device_stats "$1" | awk '{print $$6}'
+UserParameter=dhcpd.hosts.txbytes[*],. /usr/share/functions/device_functions.sh && get_wifi_device_stats "$1" | awk '{print $$7}'
+UserParameter=dhcpd.hosts.rxbytes[*],. /usr/share/functions/device_functions.sh && get_wifi_device_stats "$1" | awk '{print $$8}'
+UserParameter=dhcpd.hosts.txpackets[*],. /usr/share/functions/device_functions.sh && get_wifi_device_stats "$1" | awk '{print $$9}'
+UserParameter=dhcpd.hosts.rxpackets[*],. /usr/share/functions/device_functions.sh && get_wifi_device_stats "$1" | awk '{print $$10}'
