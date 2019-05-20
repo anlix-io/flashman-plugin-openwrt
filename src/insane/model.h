@@ -8,6 +8,6 @@
 #define NUM_SAMPLES 5
 #define NUM_FEATURES 12
 
-int predict(float features[NUM_FEATURES]);
+int predict(double features[NUM_FEATURES]);
 
 #endif	// MODEL_H_

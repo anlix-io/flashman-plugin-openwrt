@@ -13,7 +13,7 @@ DEFINE_FFF_GLOBALS
 
 int tests_run = 0;
 
-FAKE_VALUE_FUNC(bool, read_samples, double*, double*, double*, double*);
+FAKE_VALUE_FUNC(bool, read_samples, double*, double*, double*, double*, size_t);
 
 static bool compare(double expected, double real) {
   double tol = 0.000001;
@@ -63,7 +63,7 @@ static char * test_compute_statistics_diff() {
 
 static char * test_read_features() {
   bool read_samples_custom_fake(double* up_bps_samples, double* up_pps_samples,
-      double* down_bps_samples, double* down_pps_samples) {
+      double* down_bps_samples, double* down_pps_samples, size_t num_samples) {
     up_bps_samples[0] = 40640.0;
     up_bps_samples[1] = 22057944.0;
     up_bps_samples[2] = 23402294.0;

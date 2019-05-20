@@ -6,7 +6,7 @@
 
 #include <stdio.h>
 #include <math.h>
-#include "owrtapi.h"
+#include "owrt.h"
 
 #define EPSILON 0.0001
 
@@ -45,8 +45,8 @@ bool read_features(double features[NUM_FEATURES]) {
   double down_bps_samples[NUM_SAMPLES];
   double down_pps_samples[NUM_SAMPLES];
 
-  if (read_samples(up_bps_samples, up_pps_samples,
-                   down_bps_samples, down_pps_samples)) {
+  if (read_samples(up_bps_samples, up_pps_samples, down_bps_samples,
+                   down_pps_samples, NUM_SAMPLES)) {
     double ratio_bps_samples[NUM_SAMPLES];
     double ratio_pps_samples[NUM_SAMPLES];
 
@@ -63,13 +63,13 @@ bool read_features(double features[NUM_FEATURES]) {
   return false;
 }
 
-// int main(int argc, char **argv) {
-//   double features[NUM_FEATURES];
+int main(int argc, char **argv) {
+  double features[NUM_FEATURES];
 
-//   if (read_features(features)) {
-//     printf("%d", predict(features));
-//     return 0;
-//   }
+  if (read_features(features)) {
+    // printf("%d", predict(features));
+    return 0;
+  }
 
-//   return -1;
-// }
+  return -1;
+}
