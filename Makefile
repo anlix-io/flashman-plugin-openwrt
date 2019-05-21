@@ -122,6 +122,8 @@ CUSTOM_FILE_DIR=
 		CUSTOM_FILE_DIR="custom-files/tl-wr849n-v62"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr940n-v6), y)
 		CUSTOM_FILE_DIR="custom-files/tl-wr940n-v6"
+	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr949n-v6), y)
+		CUSTOM_FILE_DIR="custom-files/tl-wr949n-v6"
 	else
 		CUSTOM_FILE_DIR="custom-files/default"
 	endif	
