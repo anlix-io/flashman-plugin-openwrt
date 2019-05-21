@@ -119,8 +119,8 @@ static bool collect_new_sample(size_t num_rows) {
   return false;
 }
 
-bool read_samples(double up_bps_samples[], double up_pps_samples[],
-                  double down_bps_samples[], double down_pps_samples[],
+bool read_samples(float up_bps_samples[], float up_pps_samples[],
+                  float down_bps_samples[], float down_pps_samples[],
                   size_t num_samples) {
 
   size_t num_rows = num_samples + 1;
@@ -147,7 +147,7 @@ bool read_samples(double up_bps_samples[], double up_pps_samples[],
       }
 
       for (int i = 0; i < num_rows - 1; i++) {
-        double time_delta = entries[i + 1]->time - entries[i]->time;
+        float time_delta = entries[i + 1]->time - entries[i]->time;
 
         up_bps_samples[i] = (entries[i + 1]->upb - entries[i]->upb) * 8;
         up_bps_samples[i] /= time_delta;

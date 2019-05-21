@@ -9,10 +9,10 @@
 #include <stdlib.h>
 #include "model.h"
 
-void compute_ratio(double up_samples[NUM_SAMPLES],
-                   double down_samples[NUM_SAMPLES],
-                   double ratio_samples[NUM_SAMPLES]);
-void compute_statistics(double samples[NUM_SAMPLES], double features[3]);
-bool read_features(double features[NUM_FEATURES]);
+void compute_ratio(float up_samples[NUM_SAMPLES],
+                   float down_samples[NUM_SAMPLES],
+                   float ratio_samples[NUM_SAMPLES]);
+void compute_statistics(float samples[NUM_SAMPLES], float features[3]);
+bool read_features(float features[NUM_FEATURES]);
 
 #endif	// DETECTDDOS_H_

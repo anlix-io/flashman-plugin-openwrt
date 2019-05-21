@@ -13,17 +13,17 @@ DEFINE_FFF_GLOBALS
 
 int tests_run = 0;
 
-FAKE_VALUE_FUNC(bool, read_samples, double*, double*, double*, double*, size_t);
+FAKE_VALUE_FUNC(bool, read_samples, float*, float*, float*, float*, size_t);
 
-static bool compare(double expected, double real) {
-  double tol = 0.000001;
+static bool compare(float expected, float real) {
+  float tol = 0.000001;
   return fabs(expected - real) < tol;
 }
 
 static char * test_compute_ratio() {
-  double up_samples[] = {1.0, 55.9, 99999.0, 0.0, 0.0};
-  double down_samples[] = {0.0, 55.9 * 2, 1.0, 1.0, 0.0};
-  double ratio[NUM_SAMPLES];
+  float up_samples[] = {1.0, 55.9, 99999.0, 0.0, 0.0};
+  float down_samples[] = {0.0, 55.9 * 2, 1.0, 1.0, 0.0};
+  float ratio[NUM_SAMPLES];
   compute_ratio(up_samples, down_samples, ratio);
 
   mu_assert("error, ratio[0] != 10001.0", compare(10001.0, ratio[0]));
@@ -36,8 +36,8 @@ static char * test_compute_ratio() {
 }
 
 static char * test_compute_statistics_equal() {
-  double samples[] = {1234.0, 1234.0, 1234.0, 1234.0, 1234.0};
-  double features[3];
+  float samples[] = {1234.0, 1234.0, 1234.0, 1234.0, 1234.0};
+  float features[3];
   compute_statistics(samples, features);
 
   mu_assert("error, stdev != 0.0    ", compare(0.0, features[0]));
@@ -47,9 +47,9 @@ static char * test_compute_statistics_equal() {
 }
 
 static char * test_compute_statistics_diff() {
-  double samples[] = {1515.72099417, 4295.57757286, 12790.35684839,
+  float samples[] = {1515.72099417, 4295.57757286, 12790.35684839,
                       14596.05837595, 13093.47472544};
-  double features[3];
+  float features[3];
   compute_statistics(samples, features);
 
   mu_assert("error, stdev != 5921.3976130",
@@ -62,8 +62,8 @@ static char * test_compute_statistics_diff() {
 }
 
 static char * test_read_features() {
-  bool read_samples_custom_fake(double* up_bps_samples, double* up_pps_samples,
-      double* down_bps_samples, double* down_pps_samples, size_t num_samples) {
+  bool read_samples_custom_fake(float* up_bps_samples, float* up_pps_samples,
+      float* down_bps_samples, float* down_pps_samples, size_t num_samples) {
     up_bps_samples[0] = 40640.0;
     up_bps_samples[1] = 22057944.0;
     up_bps_samples[2] = 23402294.0;
@@ -92,7 +92,7 @@ static char * test_read_features() {
   }
   read_samples_fake.custom_fake = read_samples_custom_fake;
 
-  double features[NUM_FEATURES];
+  float features[NUM_FEATURES];
 
   mu_assert("error, read_features returned false", read_features(features));
   mu_assert("error, feature[0] != 11456157.0629676",

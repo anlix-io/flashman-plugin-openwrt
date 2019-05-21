@@ -9,8 +9,8 @@
 #include <stdbool.h>
 #include "model.h"
 
-bool read_samples(double up_bps_samples[], double up_pps_samples[],
-                  double down_bps_samples[], double down_pps_samples[],
+bool read_samples(float up_bps_samples[], float up_pps_samples[],
+                  float down_bps_samples[], float down_pps_samples[],
                   size_t num_samples);
 
 #endif	// OWRTAPI_H_
