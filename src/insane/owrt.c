@@ -138,10 +138,10 @@ bool read_samples(double up_bps_samples[], double up_pps_samples[],
     map = mmap(NULL, size, PROT_READ, MAP_SHARED | MAP_LOCKED, fd, 0);
 
     if ((map != NULL) && (map != MAP_FAILED)) {
-      for (int i = 0; i < num_rows; i++) {
+      for (int i = num_rows - 1; i >= 0; i--) {
         entries[i] = (struct traffic_entry *) &map[i * esize];
         if (!entries[i]->time) {
-          fprintf(stderr, "Not enough samples: %d\n", i + 1);
+          fprintf(stderr, "Not enough samples: %d\n", (int) num_rows - i - 1);
           return false;
         }
       }
