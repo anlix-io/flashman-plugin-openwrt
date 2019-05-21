@@ -187,3 +187,17 @@ run_ping_ondemand_test() {
   fi
   return 0
 }
+
+flashbox_detect_ddos() {
+  local _out="$1"
+  local _result=$(/tmp/detectddos)
+
+  if [ "$_out" = "json" ]
+  then
+    json_add_object "ddos"
+    json_add_string "class" "$_result"
+    json_close_object
+  else
+    echo "$_result"
+  fi
+}

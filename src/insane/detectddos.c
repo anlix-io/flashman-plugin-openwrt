@@ -67,13 +67,10 @@ int main(int argc, char **argv) {
   double features[NUM_FEATURES];
 
   if (read_features(features)) {
-    for (int i = 0; i < NUM_FEATURES; i++) {
-      printf("%f\n", features[i]);
-    }
-    printf("\n");
-    // printf("%d", predict(features));
+    printf("%d", predict(features));
     return 0;
   }
 
+  printf("-1");
   return -1;
 }
