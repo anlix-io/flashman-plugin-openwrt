@@ -7,7 +7,7 @@ save_wifi_local_config() {
     uci set wireless.radio0.channel="6"
   fi
   uci commit wireless
-  /usr/bin/uci2dat -d radio0 -f /etc/Wireless/RT2860/RT2860AP.dat > /dev/null
+  /usr/bin/uci2dat -d radio0 -f /etc/Wireless/mt7620/mt7620.dat > /dev/null
   /usr/bin/uci2dat -d radio1 -f /etc/Wireless/iNIC/iNIC_ap.dat > /dev/null
 }
 

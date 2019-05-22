@@ -27,7 +27,7 @@ PKG_CONFIG_DEPENDS:= \
 
 include $(INCLUDE_DIR)/package.mk
 
-define Package/flashman-plugin'/Default
+define Package/flashman-plugin/Default
 	SECTION:=utils
 	CATEGORY:=Utilities
 	PKGARCH:=all
