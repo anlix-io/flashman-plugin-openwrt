@@ -27,19 +27,18 @@ get_device_conn_type() {
 }
 
 get_online_devices() {
-  local _dhcp_macs=$(awk '{ print $2 }' /tmp/dhcp.leases)
-  local _dhcp_ips=$(awk '{ print $3 }' /tmp/dhcp.leases)
-  local _dhcp_names=$(awk '{ if ($4=="*") print "!"; else print $4 }' \
-                      /tmp/dhcp.leases)
+  local _arp_macs=$(awk 'NR>1 { if($6 == "br-lan") print $4 }' /proc/net/arp)
+  local _arp_ips=$(awk 'NR>1 { if($6 == "br-lan") print $1 }' /proc/net/arp)
+
   # Flush ARP cache and wait to refresh
   ip neigh flush all > /dev/null
 
   json_init
   json_add_object "Devices"
   local _idx=1
-  for _mac in $_dhcp_macs
+  for _mac in $_arp_macs
   do
-    local _ip="$(echo $_dhcp_ips | awk -v N=$_idx '{ print $N }')"
+    local _ip="$(echo $_arp_ips | awk -v N=$_idx '{ print $N }')"
 
     # Force ARP entry refresh
     ping -q -c 1 -w 1 "$_ip" > /dev/null 2>&1
@@ -52,7 +51,8 @@ get_online_devices() {
       continue
     fi
 
-    local _hostname="$(echo $_dhcp_names | awk -v N=$_idx '{ print $N }')"
+    local _hostname="$(cat /tmp/dhcp.leases | grep $_mac | \
+                       awk '{ if ($4=="*") print "!"; else print $4 }')"
     local _conn_type="$(get_device_conn_type $_mac)"
     local _conn_speed=""
     local _dev_signal=""
