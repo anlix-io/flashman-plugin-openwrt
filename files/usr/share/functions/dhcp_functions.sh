@@ -14,37 +14,84 @@ get_device_conn_type() {
     # Wireless
     echo "1"
   else
-    local _state=$(cat /proc/net/arp | grep "$_mac" | awk '{print $3}')
-    if [ "$_state" == "0x2" ]
-    then
-      # Wired
-      echo "0"
-    else
-      # Not connected
-      echo "2"
-    fi
+    local _state=$(ip neigh | grep "$_mac" | awk '{print $NF}')
+    for i in $_state
+    do 
+      if [ "$i" = "STALE" ] || [ "$i" = "REACHABLE" ]
+      then 
+        # Wired
+        echo "0" 
+        return 
+      fi
+    done
+    # Not connected
+    echo "2"
   fi
 }
 
 get_online_devices() {
-  local _arp_macs=$(awk 'NR>1 { if($6 == "br-lan") print $4 }' /proc/net/arp)
-  local _arp_ips=$(awk 'NR>1 { if($6 == "br-lan") print $1 }' /proc/net/arp)
-
-  # Flush ARP cache and wait to refresh
-  ip neigh flush all > /dev/null
+  local _arp_neigh=$(ip neigh | grep lladdr | awk '{ if($3 == "br-lan") print $5, $1 }')
+  local _arp_macs=$(awk 'NR>1 { if($6 == "br-lan") print $4, $1 }' /proc/net/arp)
+  local _arp_macs_all=$(printf %s\\n%s "$_arp_neigh" "$_arp_macs" | sort | uniq)
+  local _arp_macs=$(echo "$_arp_macs_all" | awk '{ print $1 }' | uniq)
 
   json_init
   json_add_object "Devices"
   local _idx=1
   for _mac in $_arp_macs
   do
-    local _ip="$(echo $_arp_ips | awk -v N=$_idx '{ print $N }')"
+    local _ipv4="$(echo "$_arp_macs_all" | grep "$_mac" | awk '{ print $2 }' | grep \\.)"
+    local _ipv6="$(echo "$_arp_macs_all" | grep "$_mac" | awk '{ print $2 }' | grep :)"
 
-    # Force ARP entry refresh
-    ping -q -c 1 -w 1 "$_ip" > /dev/null 2>&1
-    # After refresh check if device is connected
-    local _status=$(cat /proc/net/arp | grep "$_mac" | awk '{print $3}')
-    if [ "$_status" != "0x2" ]
+    # check online in ipv4
+    local _online=0
+    for i in $_ipv4
+    do
+      ping -q -c 1 -w 1 "$i" > /dev/null 2>&1
+      if [ $? -eq 0 ]
+      then
+        _online=1
+      fi
+    done
+
+    # check online in ipv6
+    if [ $_online -eq 0 ]
+    then
+      for i in $_ipv6
+      do
+        ping6 -I br-lan -q -c 1 -w 1 "$i" > /dev/null 2>&1
+        if [ $? -eq 0 ]
+        then
+          _online=1
+        fi
+      done
+    fi
+
+    # if cant connect, check arp table
+    if [ $_online -eq 0 ]
+    then
+      local _count=0
+      local _state=$(ip neigh | grep "$_mac" | awk '{print $NF}')
+      local _ctrl=$($_state | grep DELAY)
+      while [ ! -z $_ctrl ] || [ $_count -eq 2 ]
+      do
+        sleep 2
+        _state=$(ip neigh | grep "$_mac" | awk '{print $NF}')
+        _ctrl=$($_state | grep DELAY)
+        _count=$((_count+1))
+      done
+
+      for s in $_state
+      do 
+        if [ "$s" = "STALE" ] || [ "$s" = "REACHABLE" ]
+        then 
+          _online=1
+        fi
+      done
+    fi
+
+    # if still offline, give up
+    if [ $_online -eq 0 ]
     then
       # Not connected get next device
       _idx=$((_idx+1))
@@ -76,7 +123,13 @@ get_online_devices() {
     fi
 
     json_add_object "$_mac"
-    json_add_string "ip" "$_ip"
+    json_add_string "ip" "$_ipv4"
+    json_add_array "ipv6"
+    for _i6 in $_ipv6
+    do
+      json_add_string "" "$_i6"
+    done
+    json_close_array 
     json_add_string "hostname" "$_hostname"
     json_add_string "conn_type" "$_conn_type"
     json_add_string "conn_speed" "$_conn_speed"
