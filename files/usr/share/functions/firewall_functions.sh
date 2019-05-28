@@ -64,6 +64,7 @@ update_port_forward() {
       json_get_var _mac mac
       json_get_var _dmz dmz
       local _static_ip=$(add_static_ip "$_mac" "$_dmz")
+      local _static_ipv6=$(add_static_ipv6 "$_mac")
 
       local has_router_port=0
       json_get_type _router_port_type router_port
@@ -87,6 +88,8 @@ update_port_forward() {
       do
         local _act_idx="$((_port_idx++))"
         json_get_var _port $_act_idx
+
+        #IPV4
         uci add firewall redirect
         uci set firewall.@redirect[-1].src='wan'
 
@@ -114,6 +117,21 @@ update_port_forward() {
         uci set firewall.@redirect[-1].dest_ip="$_static_ip"
         uci set firewall.@redirect[-1].target="DNAT"
         uci set firewall.@redirect[-1].name="anlix_forward_$((_forward_idx++))"
+
+        #IPV6
+        if [ ! -z "$_static_ipv6" ]
+        then
+          uci add firewall rule
+          uci set firewall.@rule[-1].src='wan'
+          uci set firewall.@rule[-1].proto='tcpudp'
+          uci set firewall.@rule[-1].dest='lan'
+          uci set firewall.@rule[-1].dest_ip="::$_static_ipv6/::ffff"
+          uci set firewall.@rule[-1].dest_port="$_port"
+          uci set firewall.@rule[-1].family='ipv6'
+          uci set firewall.@rule[-1].target='ACCEPT'
+          uci set firewall.@rule[-1].name="anlix_forward_$((_forward_idx++))"
+        fi
+
       done
       json_select ".."
       json_select ".."

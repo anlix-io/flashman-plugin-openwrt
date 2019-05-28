@@ -29,7 +29,45 @@ get_device_conn_type() {
   fi
 }
 
+# IPV6 dhcp are uid not mac
+# Send a probe to search for mac in ip neigh
+get_ipv6_dhcp() {
+  json_init
+  local DHCP=$(ubus -v call dhcp ipv6leases)
+  json_load "$DHCP"
+  json_select "device"
+  if json_get_type type "br-lan" && [ "$type" = object ]; then
+    json_select "br-lan"
+    if json_get_type type "leases" && [ "$type" = array ]; then
+      json_select "leases"
+      local Index="1"
+      while json_get_type type $Index && [ "$type" = object ]; do
+        json_select "$((Index++))"
+        json_get_var duid "duid"
+        json_select "ipv6-addr"
+        local Index_Addr="1"
+        while json_get_type type $Index_Addr && [ "$type" = object ]; do
+          json_select "$((Index_Addr++))"
+          json_get_var addrv6 "address"
+
+          #we need to "wake up" the ip to get the mac from ip neigh
+          ping6 -I br-lan -q -c 1 -w 1 "$addrv6" > /dev/null 2>&1
+          local _macaddr=$(ip -6 neigh | grep "$addrv6" | awk '{ if($4 == "lladdr") print $5 }')
+          if [ ! -z $_macaddr ]; then
+            echo $duid $_macaddr $addrv6
+          fi
+
+          json_select ".."
+        done
+        json_select ".."
+        json_select ".."
+      done
+    fi
+  fi
+}
+
 get_online_devices() {
+  local _dhcp_ipv6=$(get_ipv6_dhcp)
   local _arp_neigh=$(ip neigh | grep lladdr | awk '{ if($3 == "br-lan") print $5, $1 }')
   local _arp_macs=$(awk 'NR>1 { if($6 == "br-lan") print $4, $1 }' /proc/net/arp)
   local _arp_macs_all=$(printf %s\\n%s "$_arp_neigh" "$_arp_macs" | sort | uniq)
@@ -126,6 +164,12 @@ get_online_devices() {
     json_add_string "ip" "$_ipv4"
     json_add_array "ipv6"
     for _i6 in $_ipv6
+    do
+      json_add_string "" "$_i6"
+    done
+    json_close_array 
+    json_add_array "dhcpv6"
+    for _i6 in $(echo  "$_dhcp_ipv6" | grep $_mac | awk '{print $3}')
     do
       json_add_string "" "$_i6"
     done
