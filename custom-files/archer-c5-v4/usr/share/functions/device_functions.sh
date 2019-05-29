@@ -1,11 +1,6 @@
 #!/bin/sh
 
 save_wifi_local_config() {
-  # Current MT7620 driver has a bug with 2.4 "auto" channel mode
-  if [ "$(uci -q get wireless.radio0.channel)" = "auto" ]
-  then
-    uci set wireless.radio0.channel="6"
-  fi
   uci commit wireless
   /usr/bin/uci2dat -d radio0 -f /etc/Wireless/mt7620/mt7620.dat > /dev/null
   /usr/bin/uci2dat -d radio1 -f /etc/Wireless/mt7612/mt7612.dat > /dev/null
