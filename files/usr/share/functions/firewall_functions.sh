@@ -90,7 +90,7 @@ update_port_forward() {
         json_get_var _port $_act_idx
 
         #IPV4
-        uci add firewall redirect
+        uci add firewall redirect > /dev/null
         uci set firewall.@redirect[-1].src='wan'
 
         if [ $has_router_port -eq 1 ]
@@ -121,7 +121,7 @@ update_port_forward() {
         #IPV6
         if [ ! -z "$_static_ipv6" ]
         then
-          uci add firewall rule
+          uci add firewall rule > /dev/null
           uci set firewall.@rule[-1].src='wan'
           uci set firewall.@rule[-1].proto='tcpudp'
           uci set firewall.@rule[-1].dest='lan'

@@ -111,7 +111,7 @@ get_online_devices() {
       local _count=0
       local _state=$(ip neigh | grep "$_mac" | awk '{print $NF}')
       local _ctrl=$($_state | grep DELAY)
-      while [ ! -z $_ctrl ] || [ $_count -eq 2 ]
+      while [ ! -z "$_ctrl" ] || [ $_count -eq 2 ]
       do
         sleep 2
         _state=$(ip neigh | grep "$_mac" | awk '{print $NF}')

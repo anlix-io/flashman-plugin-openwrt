@@ -295,21 +295,24 @@ add_static_ipv6() {
 
   # no entry found, create new
   local _dhcp_ipv6=$(get_ipv6_dhcp | grep "$_mac")
-  for _i6 in "$_dhcp_ipv6"
-  do
-    local _duid=$(echo $_i6 | awk '{print $1}')
-    local _addr=$(echo $_i6 | awk '{print $3}')
+  if [ ! -z "$_dhcp_ipv6" ]
+  then
+    for _i6 in "$_dhcp_ipv6"
+    do
+      local _duid=$(echo $_i6 | awk '{print $1}')
+      local _addr=$(echo $_i6 | awk '{print $3}')
 
-    uci -q add dhcp host > /dev/null
-    uci -q set dhcp.@host[-1].mac="$_mac"
-    uci -q set dhcp.@host[-1].duid="$_duid"
-    uci -q set dhcp.@host[-1].hostid="${_addr#*::}"
-    uci -q commit dhcp
+      uci -q add dhcp host > /dev/null
+      uci -q set dhcp.@host[-1].mac="$_mac"
+      uci -q set dhcp.@host[-1].duid="$_duid"
+      uci -q set dhcp.@host[-1].hostid="${_addr#*::}"
+      uci -q commit dhcp
 
-    #return just the first
-    echo "${_addr#*::}"
-    return
-  done
+      #return just the first
+      echo "${_addr#*::}"
+      return
+    done
+  fi
 }
 
 add_static_ip() {
