@@ -92,19 +92,19 @@ then
   uci commit wireless
 fi
 
-/usr/bin/uci2dat -d radio0 -f /etc/Wireless/RT2860/RT2860AP.dat > /dev/null
-printf "MacAddress=$LOWERMAC\n\n" >> /etc/Wireless/RT2860/RT2860AP.dat
-insmod /lib/modules/`uname -r`/mt7620.ko mac=$LOWERMAC
-echo "mt7620 mac=$LOWERMAC" >> /etc/modules.d/50-mt7620
+#Dump firmware in /lib/firmware 
+dd if=/dev/mtd8ro of=/lib/firmware/MT7620_AP_2T2R-4L_V15.BIN bs=1 count=512
+dd if=/dev/mtd8ro of=/lib/firmware/MT7612E_EEPROM.bin bs=1k skip=32 count=32
 
-#Dump firmware in /lib/firmware for mt7612e
-dd if=/dev/mtd8ro of=/lib/firmware/mt7612e.eeprom.bin bs=1k skip=32 count=32
+/usr/bin/uci2dat -d radio0 -f /etc/Wireless/mt7620/mt7620.dat > /dev/null
+printf "MacAddress=$LOWERMAC\n\n" >> /etc/Wireless/mt7620/mt7620.dat
 
 # 5 GHz
-/usr/bin/uci2dat -d radio1 -f /etc/Wireless/mt76x2e/mt76x2e.dat > /dev/null
-printf "MacAddress=$LOWERMAC_5\n\n" >> /etc/Wireless/mt76x2e/mt76x2e.dat
-insmod /lib/modules/`uname -r`/mt76x2e.ko mac=$LOWERMAC_5
-echo "mt76x2e mac=$LOWERMAC_5" >> /etc/modules.d/51-mt7612e
+/usr/bin/uci2dat -d radio1 -f /etc/Wireless/mt7612/mt7612.dat > /dev/null
+printf "MacAddress=$LOWERMAC_5\n\n" >> /etc/Wireless/mt7612/mt7612.dat
+
+insmod /lib/modules/`uname -r`/mt76x2ap.ko
+echo "mt76x2ap" >> /etc/modules.d/50-mt76x2
 
 [ -e /sbin/wifi ] && mv /sbin/wifi /sbin/wifi_legacy
 cp /sbin/mtkwifi /sbin/wifi

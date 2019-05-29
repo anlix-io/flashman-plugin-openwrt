@@ -2,6 +2,7 @@
 
 . /usr/share/flashman_init.conf
 . /usr/share/functions/common_functions.sh
+. /usr/share/functions/dhcp_functions.sh
 . /usr/share/libubox/jshn.sh
 . /lib/functions/network.sh
 
@@ -269,6 +270,48 @@ is_ip_in_lan() {
   else
     # Error
     return 1
+  fi
+}
+
+add_static_ipv6() {
+  local _mac=$1
+
+  # do not create new entry
+  local i=0 
+  local _idtmp=$(uci -q get dhcp.@host[$i].mac)
+  while [ $? -eq 0 ]; do 
+    if [ "$_idtmp" = "$_mac" ]
+    then
+      local _addr=$(uci -q get dhcp.@host[$i].hostid)
+      if [ ! -z "$_addr" ]
+      then
+        echo "$_addr"
+        return
+      fi
+    fi
+    i=$((i+1)) 
+    _idtmp=$(uci -q get dhcp.@host[$i].mac)
+  done
+
+  # no entry found, create new
+  local _dhcp_ipv6=$(get_ipv6_dhcp | grep "$_mac")
+  if [ ! -z "$_dhcp_ipv6" ]
+  then
+    for _i6 in "$_dhcp_ipv6"
+    do
+      local _duid=$(echo $_i6 | awk '{print $1}')
+      local _addr=$(echo $_i6 | awk '{print $3}')
+
+      uci -q add dhcp host > /dev/null
+      uci -q set dhcp.@host[-1].mac="$_mac"
+      uci -q set dhcp.@host[-1].duid="$_duid"
+      uci -q set dhcp.@host[-1].hostid="${_addr#*::}"
+      uci -q commit dhcp
+
+      #return just the first
+      echo "${_addr#*::}"
+      return
+    done
   fi
 }
 
