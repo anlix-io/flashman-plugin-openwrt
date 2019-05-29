@@ -70,7 +70,7 @@ uci set network.dmz.proto='static'
 uci set network.dmz.netmask='24'
 uci set network.dmz.ifname='@lan'
 uci set network.dmz.ipaddr='192.168.43.1'
-uci set network.dmz.ip6assign="$_lan_ipv6prefix"
+uci set network.dmz.ipv6='0'
 
 # Check custom wan type
 if [ "$_wan_conn_type" = "pppoe" ] || [ "$_wan_conn_type" = "dhcp" ]
