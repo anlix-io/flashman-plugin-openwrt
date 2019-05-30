@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=flasman-plugin
-PKG_VERSION:=0.14.0
+PKG_VERSION:=0.15.0
 PKG_RELEASE:=1
 
 PKG_LICENSE:=GPL
@@ -27,7 +27,7 @@ PKG_CONFIG_DEPENDS:= \
 
 include $(INCLUDE_DIR)/package.mk
 
-define Package/flashman-plugin'/Default
+define Package/flashman-plugin/Default
 	SECTION:=utils
 	CATEGORY:=Utilities
 	PKGARCH:=all
@@ -104,6 +104,8 @@ CUSTOM_FILE_DIR=
 		CUSTOM_FILE_DIR="custom-files/tl-wr2543-v1"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v4), y)
 		CUSTOM_FILE_DIR="custom-files/tl-wr840n-v4"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v5preset), y)
+		CUSTOM_FILE_DIR="custom-files/tl-wr840n-v5preset"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v5), y)
 		CUSTOM_FILE_DIR="custom-files/tl-wr840n-v5"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v6), y)
@@ -122,6 +124,8 @@ CUSTOM_FILE_DIR=
 		CUSTOM_FILE_DIR="custom-files/tl-wr849n-v62"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr940n-v6), y)
 		CUSTOM_FILE_DIR="custom-files/tl-wr940n-v6"
+	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr949n-v6), y)
+		CUSTOM_FILE_DIR="custom-files/tl-wr949n-v6"
 	else
 		CUSTOM_FILE_DIR="custom-files/default"
 	endif	
@@ -168,6 +172,7 @@ define Package/flashman-plugin/install
 	echo 'FLM_WAN_IPV6_ENABLED=$(CONFIG_FLASHMAN_WAN_IPV6_ENABLED)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_LAN_SUBNET=$(CONFIG_FLASHMAN_LAN_SUBNET)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_LAN_NETMASK=$(CONFIG_FLASHMAN_LAN_NETMASK)' >>$(1)/usr/share/flashman_init.conf
+	echo 'FLM_LAN_IPV6_PREFIX=$(CONFIG_FLASHMAN_LAN_IPV6_PREFIX)' >>$(1)/usr/share/flashman_init.conf
 	echo 'MQTT_PORT=$(CONFIG_MQTT_PORT)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_CLIENT_ORG=$(CONFIG_FLASHMAN_CLIENT_ORG)' >>$(1)/usr/share/flashman_init.conf
 

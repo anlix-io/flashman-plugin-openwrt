@@ -92,10 +92,14 @@ then
   uci commit wireless
 fi
 
-/usr/bin/uci2dat -d radio0 -f /etc/Wireless/RT2860/RT2860AP.dat > /dev/null
-printf "MacAddress=$LOWERMAC\n\n" >> /etc/Wireless/RT2860/RT2860AP.dat
-insmod /lib/modules/`uname -r`/mt7620.ko mac=$LOWERMAC
-echo "mt7620 mac=$LOWERMAC" >> /etc/modules.d/50-mt7620
+#Dump firmware of MT7620
+dd if=/dev/mtd0ro of=/lib/firmware/MT7620_AP_2T2R-4L_V15.BIN bs=1 skip=66080 count=512
+
+/usr/bin/uci2dat -d radio0 -f /etc/Wireless/mt7620/mt7620.dat > /dev/null
+printf "MacAddress=$LOWERMAC\n\n" >> /etc/Wireless/mt7620/mt7620.dat
+insmod /lib/modules/`uname -r`/mt76x2ap.ko
+echo "mt76x2ap" >> /etc/modules.d/50-mt76x2
+
 # 5 GHz
 /usr/bin/uci2dat -d radio1 -f /etc/Wireless/iNIC/iNIC_ap.dat > /dev/null
 printf "MacAddress=$LOWERMAC_5\n\n" >> /etc/Wireless/iNIC/iNIC_ap.dat

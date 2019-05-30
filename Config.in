@@ -113,6 +113,10 @@ config FLASHMAN_LAN_NETMASK
 	string "LAN netmask"
 	default "24"
 
+config FLASHMAN_LAN_IPV6_PREFIX
+	string "LAN ÏPV6 Prefix for Prefix Delegation"
+	default "64"
+
 config MQTT_PORT
 	string "MQTT port"
 	default "1883"
