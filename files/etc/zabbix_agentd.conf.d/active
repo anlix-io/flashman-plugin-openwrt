@@ -1,2 +1,3 @@
 UserParameter=active.burst.ping.loss,. /usr/share/flashman_init.conf && . /usr/share/functions/api_functions.sh && flashbox_ping $FLM_SVADDR loss
 UserParameter=active.burst.ping.avg,. /usr/share/flashman_init.conf && . /usr/share/functions/api_functions.sh && flashbox_ping $FLM_SVADDR lat
+UserParameter=active.burst.ping.array,. /usr/share/flashman_init.conf && . /usr/share/functions/api_functions.sh && flashbox_ping $FLM_SVADDR latv
