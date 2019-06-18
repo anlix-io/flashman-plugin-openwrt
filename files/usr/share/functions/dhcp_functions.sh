@@ -3,6 +3,12 @@
 . /usr/share/libubox/jshn.sh
 . /usr/share/functions/device_functions.sh
 
+get_device_mac_from_ip() {
+  local _ip=$1
+  local _arp_mac=$(cat /proc/net/arp | grep "$_ip" | awk '{ print $4 }')
+  echo "$_arp_mac"
+}
+
 get_device_conn_type() {
   local _mac=$1
   local _retstatus

@@ -14,6 +14,12 @@ local function get_router_id()
   return result:sub(1,-2)
 end
 
+local function get_mac_from_ip(ip)
+  local result = run_process("sh -c \". /usr/share/functions/dhcp_functions.sh; get_device_mac_from_ip " .. ip .. "\"")
+  -- remove \n
+  return result:sub(1,-2)
+end
+
 local function is_authenticated()
   local result = run_process("sh -c \". /usr/share/functions/common_functions.sh; if is_authenticated; then echo 1; else echo 0; fi\"")
   -- remove \n
@@ -129,7 +135,7 @@ local function write_firewall_file(blacklist_path)
   end
 end
 
-local function flashman_update(app_id, app_secret)
+local function flashman_update(remote_addr, app_id, app_secret)
   local flashman_addr = get_flashman_server()
   -- Add App to the flashman base
   auth = {}
@@ -137,6 +143,7 @@ local function flashman_update(app_id, app_secret)
   auth["secret"]=get_router_secret()
   auth["app_id"]=app_id
   auth["app_secret"]=app_secret
+  auth["app_mac"]=get_mac_from_ip(remote_addr)
   post_data = json.encode(auth)
 
   post_data = post_data:gsub("\"","\\\"")
@@ -319,7 +326,7 @@ function handle_request(env)
         error_handle(2, "Error generating secret for app", nil)
         return
       end
-      if not flashman_update(app_id, secret) then
+      if not flashman_update(env.REMOTE_ADDR, app_id, secret) then
         error_handle(7, "Error updating flashman", nil)
         return
       end
