@@ -20,11 +20,13 @@ _addr_start=$(( _addr_end - _addr_limit ))
 
 uci set dhcp.lan.start="$_addr_start"
 uci set dhcp.lan.limit="$_addr_limit"
+uci set dhcp.lan.force='1'
 
 uci set dhcp.dmz=dhcp
 uci set dhcp.dmz.interface='dmz'
 uci set dhcp.dmz.dynamicdhcp='0'
 uci set dhcp.dmz.leasetime='1h'
+uci set dhcp.dmz.force='1'
 
 uci commit dhcp
 
