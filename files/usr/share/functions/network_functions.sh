@@ -353,6 +353,7 @@ add_static_ip() {
     then
       while read _fixed_ip
       do
+        _fixed_ip="$(echo "$_fixed_ip" | awk '{print $2}')"
         is_ip_in_lan "$_fixed_ip" "$_dmz_subnet" "$_dmz_netmask"
         if [ $? -eq 0 ]
         then
@@ -362,6 +363,12 @@ add_static_ip() {
                         awk -F= '{print $2}')"
         fi
       done < /etc/ethers
+      if [ "$_next_addr" = "" ]
+      then
+        # It must start at 130 to isolate routes
+        _ipcalc_res="$(/bin/ipcalc.sh $_dmz_subnet $_dmz_netmask 1 129)"
+        _next_addr="$(echo "$_ipcalc_res" | grep "END" | awk -F= '{print $2}')"
+      fi
     else
       # It must start at 130 to isolate routes
       _ipcalc_res="$(/bin/ipcalc.sh $_dmz_subnet $_dmz_netmask 1 129)"
@@ -372,7 +379,7 @@ add_static_ip() {
     then
       while read _fixed_ip
       do
-        _fixed_ip="$(echo "$_fixed_ip" | awk -F '{print $2}')"
+        _fixed_ip="$(echo "$_fixed_ip" | awk '{print $2}')"
         is_ip_in_lan "$_fixed_ip" "$_lan_subnet" "$_lan_netmask"
         if [ $? -eq 0 ]
         then
@@ -382,6 +389,11 @@ add_static_ip() {
                         awk -F= '{print $2}')"
         fi
       done < /etc/ethers
+      if [ "$_next_addr" = "" ]
+      then
+        _ipcalc_res="$(/bin/ipcalc.sh $_lan_subnet $_lan_netmask 1 1)"
+        _next_addr="$(echo "$_ipcalc_res" | grep "END" | awk -F= '{print $2}')"
+      fi
     else
       _ipcalc_res="$(/bin/ipcalc.sh $_lan_subnet $_lan_netmask 1 1)"
       _next_addr="$(echo "$_ipcalc_res" | grep "END" | awk -F= '{print $2}')"
