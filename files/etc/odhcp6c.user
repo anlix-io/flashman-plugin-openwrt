@@ -1,0 +1,13 @@
+#!/bin/sh
+[ -z "$2" ] && echo "Error: should be run by odhcpc6c" && exit 1
+
+. /usr/share/functions/common_functions.sh
+
+case "$2" in
+    bound|rebound|stopped|unbound)
+		log "ODHCP6C" "ODHCP6C $2: RESTART"
+    	/etc/init.d/odhcpd restart
+	;;
+esac
+
+exit 0
