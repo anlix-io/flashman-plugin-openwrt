@@ -21,6 +21,7 @@ PKG_CONFIG_DEPENDS:= \
 	CONFIG_FLASHMAN_WIFI_SSID \
 	CONFIG_FLASHMAN_WIFI_PASSWD \
 	CONFIG_FLASHMAN_WIFI_CHANNEL \
+	CONFIG_FLASHMAN_WIFI_BAND \
 	CONFIG_FLASHMAN_WIFI_5GHZ_CHANNEL \
 	CONFIG_FLASHMAN_RELEASE_ID \
 	CONFIG_FLASHMAN_CLIENT_ORG
@@ -160,6 +161,7 @@ define Package/flashman-plugin/install
 	echo 'FLM_SSID=$(CONFIG_FLASHMAN_WIFI_SSID)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_PASSWD=$(CONFIG_FLASHMAN_WIFI_PASSWD)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_24_CHANNEL=$(CONFIG_FLASHMAN_WIFI_CHANNEL)' >>$(1)/usr/share/flashman_init.conf
+	echo 'FLM_24_BAND=$(CONFIG_FLASHMAN_WIFI_BAND)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_50_CHANNEL=$(CONFIG_FLASHMAN_WIFI_5GHZ_CHANNEL)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_RELID=$(CONFIG_FLASHMAN_RELEASE_ID)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_SVADDR=$(CONFIG_FLASHMAN_SERVER_ADDR)' >>$(1)/usr/share/flashman_init.conf
