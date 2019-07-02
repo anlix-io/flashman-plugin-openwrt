@@ -5,6 +5,7 @@
 
 get_device_conn_type() {
   local _mac=$1
+  local _online=$2
   local _retstatus
 
   is_device_wireless "$_mac"
@@ -14,14 +15,20 @@ get_device_conn_type() {
     # Wireless
     echo "1"
   else
+    if [ $_online -eq 1 ]
+    then
+      # Wired
+      echo "0"
+      return
+    fi
     local _state=$(ip neigh | grep "$_mac" | awk '{print $NF}')
     for i in $_state
-    do 
+    do
       if [ "$i" = "STALE" ] || [ "$i" = "REACHABLE" ]
-      then 
+      then
         # Wired
-        echo "0" 
-        return 
+        echo "0"
+        return
       fi
     done
     # Not connected
@@ -110,19 +117,19 @@ get_online_devices() {
     then
       local _count=0
       local _state=$(ip neigh | grep "$_mac" | awk '{print $NF}')
-      local _ctrl=$($_state | grep DELAY)
+      local _ctrl=$(echo "$_state" | grep "DELAY")
       while [ ! -z "$_ctrl" ] || [ $_count -eq 2 ]
       do
         sleep 2
         _state=$(ip neigh | grep "$_mac" | awk '{print $NF}')
-        _ctrl=$($_state | grep DELAY)
+        _ctrl=$(echo "$_state" | grep "DELAY")
         _count=$((_count+1))
       done
 
       for s in $_state
-      do 
+      do
         if [ "$s" = "STALE" ] || [ "$s" = "REACHABLE" ]
-        then 
+        then
           _online=1
         fi
       done
@@ -138,7 +145,7 @@ get_online_devices() {
 
     local _hostname="$(cat /tmp/dhcp.leases | grep $_mac | \
                        awk '{ if ($4=="*") print "!"; else print $4 }')"
-    local _conn_type="$(get_device_conn_type $_mac)"
+    local _conn_type="$(get_device_conn_type $_mac $_online)"
     local _conn_speed=""
     local _dev_signal=""
     local _dev_snr=""
@@ -167,13 +174,13 @@ get_online_devices() {
     do
       json_add_string "" "$_i6"
     done
-    json_close_array 
+    json_close_array
     json_add_array "dhcpv6"
     for _i6 in $(echo  "$_dhcp_ipv6" | grep $_mac | awk '{print $3}')
     do
       json_add_string "" "$_i6"
     done
-    json_close_array 
+    json_close_array
     json_add_string "hostname" "$_hostname"
     json_add_string "conn_type" "$_conn_type"
     json_add_string "conn_speed" "$_conn_speed"
