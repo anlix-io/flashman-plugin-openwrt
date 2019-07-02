@@ -6,7 +6,7 @@
 case "$2" in
 	ra-updated)
 		[ -n "$ADDRESSES$RA_ADDRESSES$PREFIXES$USERPREFIX" ] && /etc/init.d/odhcpd reload
-		;; 
+		;;
 	bound|rebound|informed|updated|stopped|unbound)
 		log "ODHCP6C" "ODHCP6C $2: RESTART"
 		/etc/init.d/odhcpd restart
