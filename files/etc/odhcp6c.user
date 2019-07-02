@@ -4,10 +4,12 @@
 . /usr/share/functions/common_functions.sh
 
 case "$2" in
-    bound|rebound|stopped|unbound)
+	ra-updated)
+		[ -n "$ADDRESSES$RA_ADDRESSES$PREFIXES$USERPREFIX" ] && /etc/init.d/odhcpd reload
+		;;
+	bound|rebound|informed|updated|stopped|unbound)
 		log "ODHCP6C" "ODHCP6C $2: RESTART"
-    	/etc/init.d/odhcpd restart
-	;;
+		/etc/init.d/odhcpd restart
+		;;
 esac
-
 exit 0
