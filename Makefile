@@ -96,7 +96,7 @@ CUSTOM_FILE_DIR=
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr841-v8), y)
 		CUSTOM_FILE_DIR="custom-files/tl-wr841-v8"
 	else ifeq ($(CONFIG_TARGET_ar71xx_generic_DEVICE_tl-wr842n-v3), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wr842-v3"
+		CUSTOM_FILE_DIR="custom-files/tl-wr842n-v3"
 	else ifeq ($(CONFIG_TARGET_ar71xx_generic_DEVICE_tl-wdr3500-v1), y)
 		CUSTOM_FILE_DIR="custom-files/tl-wdr3500-v1"
 	else ifeq ($(CONFIG_TARGET_ar71xx_generic_DEVICE_tl-wdr3600-v1), y)
