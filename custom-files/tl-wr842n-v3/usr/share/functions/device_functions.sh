@@ -142,14 +142,11 @@ reset_leds() {
     fi
   done
 
-  # reset hardware wan port if any
-  for wan_led in /sys/class/leds/*wan*
-  do
-    if [ -f "$wan_led"/enable_hw_mode ]
-    then
-      echo 1 > "$wan_led"/enable_hw_mode
-    fi
-  done
+  # reset hardware wan port if any  
+  if [ -f /sys/class/leds/tp-link:green:wan/enable_hw_mode ]
+  then
+    echo 1 > /sys/class/leds/tp-link:green:wan/enable_hw_mode
+  fi
 
   if [ -f /sys/class/leds/ath9k-phy0/trigger ]
   then
@@ -166,6 +163,11 @@ blink_leds() {
     for trigger_path in $ledsoff
     do
       led_off "$trigger_path"
+      # Skip orange LED
+      if [ "$trigger_path" = "/sys/class/leds/tp-link:red:wan" ]
+      then
+        continue
+      fi
       echo "timer" > "$trigger_path"/trigger
     done
   fi
@@ -185,12 +187,12 @@ get_mac() {
 
 # Possible values: 10 or 100
 get_wan_negotiated_speed() {
-  cat /sys/class/net/eth0/speed
+  cat /sys/class/net/eth1/speed
 }
 
 # Possible values: half or full
 get_wan_negotiated_duplex() {
-  cat /sys/class/net/eth0/duplex
+  cat /sys/class/net/eth1/duplex
 }
 
 get_lan_dev_negotiated_speed() {
