@@ -190,7 +190,7 @@ run_ping_ondemand_test() {
 
 flashbox_detect_ddos() {
   local _out="$1"
-  local _result=$(/tmp/detectddos)
+  local _result=$(/tmp/detectddos 2>/dev/null)
 
   if [ "$_out" = "json" ]
   then

@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 #include <math.h>
+#include "model.h"
 #include "owrt.h"
 
 #define EPSILON 0.0001
