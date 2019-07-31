@@ -7,14 +7,21 @@ DO_RESTART=0
 
 check_connectivity_internet()
 {
-  if ping -q -c 2 -W 2 www.google.com  >/dev/null
-  then
-    # true
-    echo 0
-  else
-    # false
-    echo 1
-  fi
+  _addrs="www.google.com.br"$'\n'"www.facebook.com"$'\n'"www.globo.com"
+  for _addr in $_addrs
+  do
+    if ping -q -c 1 -w 2 "$_addr"  > /dev/null 2>&1
+    then
+      # true
+      echo 0
+      return
+    fi
+  done
+  # No successfull pings
+
+  # false
+  echo 1
+  return
 }
 
 reset_leds

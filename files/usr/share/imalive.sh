@@ -4,39 +4,17 @@
 . /usr/share/functions/common_functions.sh
 . /usr/share/functions/system_functions.sh
 . /usr/share/functions/device_functions.sh
+. /usr/share/functions/zabbix_functions.sh
 
 # Verify if connection is up.
 check_connectivity_flashman() {
-  if ping -q -c 2 -W 2 "$FLM_SVADDR"  >/dev/null
+  if ping -q -c 2 -w 2 "$FLM_SVADDR"  >/dev/null
   then
     # true
     echo 0
   else
     # false
     echo 1
-  fi
-}
-
-check_zabbix_startup() {
-  local _do_restart
-  _do_restart="$1"
-
-  sed -i "s%ZABBIX-SERVER-ADDR%$ZBX_SVADDR%" /etc/zabbix_agentd.conf
-  if [ "$ZBX_SEND_DATA" = "y" ]
-  then
-    # Enable Zabbix
-    /etc/init.d/zabbix_agentd enable
-    if [ "$_do_restart" = "true" ]
-    then
-      /etc/init.d/zabbix_agentd restart
-    else
-      /etc/init.d/zabbix_agentd start
-    fi
-    log "ZABBIX" "Zabbix Enabled"
-  else
-    # Disable Zabbix
-    /etc/init.d/zabbix_agentd stop
-    /etc/init.d/zabbix_agentd disable
   fi
 }
 
@@ -55,7 +33,7 @@ do
       _num_ntptests=$(( _num_ntptests + 1 ))
       if [ $_num_ntptests -gt 30 ]
       then
-        #More than 30 checks (>15 min), force a date update
+        #More than 30 checks (>150s), force a date update
         log "IMALIVE" "Try resync date with Flashman!"
         resync_ntp
       else

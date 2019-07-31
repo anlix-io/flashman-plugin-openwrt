@@ -1,5 +1,7 @@
 #!/bin/sh
 
+. /usr/share/libubox/jshn.sh
+
 # Reset blockscan rule
 A=$(uci -X show firewall | grep "path='/etc/firewall.blockscan'" | \
     awk -F '.' '{ print "firewall."$2 }')
@@ -72,8 +74,32 @@ then
 'pppoe_user': '$_tmp_pppoe_user',\
 'pppoe_pass': '$_tmp_pppoe_pass',\
 'flashapp_pass': '$_tmp_flashapp_pass',\
+'zabbix_send_data': 'n',\
 'has_upgraded_version': '$_tmp_has_upgraded_version',\
 'hard_reset_info': '$_tmp_hard_reset_info'}"
 
   echo "$_flashbox_config_json" > /root/flashbox_config.json
+
+  ## Migration below usefull for versions older than 0.13.0
+
+  # In this migration we can also update some fixed wifi parameters
+  # that improves performance and were not present on older Flashbox versions
+  # This will be replaced on z005 if it's the first boot after factory firmware
+  uci set wireless.@wifi-device[0].wifimode="9"
+  uci set wireless.@wifi-device[0].noscan="1"
+  uci set wireless.@wifi-device[0].ht_bsscoexist="0"
+  uci set wireless.@wifi-device[0].bw="1"
+  # 5GHz
+  if [ "$(uci -q get wireless.@wifi-iface[1])" ]
+  then
+    uci set wireless.@wifi-device[1].wifimode="15"
+    uci set wireless.@wifi-device[1].noscan="1"
+    uci set wireless.@wifi-device[1].ht_bsscoexist="0"
+    uci set wireless.@wifi-device[1].bw="2"
+    uci set wireless.@wifi-device[1].country="BR"
+  fi
+  uci commit wireless
 fi
+
+# Create temporary file to differentiate between a boot after a upgrade
+echo "0" > /tmp/clean_boot

@@ -41,20 +41,30 @@ then
   uci set wireless.@wifi-device[0].type="ralink"
   uci set wireless.@wifi-device[0].txpower="100"
   uci set wireless.@wifi-device[0].variant="mt7620"
-  # Current MT7620 driver has a bug with 2.4 "auto" channel mode
-  if [ "$FLM_24_CHANNEL" = "auto" ]
-  then
-    uci set wireless.@wifi-device[0].channel="6"
-  else
-    uci set wireless.@wifi-device[0].channel="$FLM_24_CHANNEL"
-  fi
+  uci set wireless.@wifi-device[0].channel="$FLM_24_CHANNEL"
   uci set wireless.@wifi-device[0].hwmode="11n"
   uci set wireless.@wifi-device[0].wifimode="9"
   uci set wireless.@wifi-device[0].country="BR"
-  uci set wireless.@wifi-device[0].htmode="HT40"
-  uci set wireless.@wifi-device[0].noscan="1"
-  uci set wireless.@wifi-device[0].ht_bsscoexist="0"
-  uci set wireless.@wifi-device[0].bw="1"
+
+  if [ "$FLM_24_BAND" = "HT40" ]
+  then
+    uci set wireless.@wifi-device[0].htmode="$FLM_24_BAND"
+    uci set wireless.@wifi-device[0].noscan="1"
+    uci set wireless.@wifi-device[0].ht_bsscoexist="0"
+    uci set wireless.@wifi-device[0].bw="1"
+  elif [ "$_remote_htmode_24" = "HT20" ]
+  then
+    uci set wireless.@wifi-device[0].htmode="$FLM_24_BAND"
+    uci set wireless.@wifi-device[0].noscan="0"
+    uci set wireless.@wifi-device[0].ht_bsscoexist="1"
+    uci set wireless.@wifi-device[0].bw="0"
+  else
+    uci set wireless.@wifi-device[0].htmode="HT20"
+    uci set wireless.@wifi-device[0].noscan="0"
+    uci set wireless.@wifi-device[0].ht_bsscoexist="1"
+    uci set wireless.@wifi-device[0].bw="0"
+  fi
+
   uci set wireless.@wifi-device[0].disabled="1"
   uci set wireless.default_radio0=wifi-iface
   uci set wireless.@wifi-iface[0].ifname="ra0"
@@ -92,10 +102,14 @@ then
   uci commit wireless
 fi
 
-/usr/bin/uci2dat -d radio0 -f /etc/Wireless/RT2860/RT2860AP.dat > /dev/null
-printf "MacAddress=$LOWERMAC\n\n" >> /etc/Wireless/RT2860/RT2860AP.dat
-insmod /lib/modules/`uname -r`/mt7620.ko mac=$LOWERMAC
-echo "mt7620 mac=$LOWERMAC" >> /etc/modules.d/50-mt7620
+#Dump firmware of MT7620
+dd if=/dev/mtd0ro of=/lib/firmware/MT7620_AP_2T2R-4L_V15.BIN bs=1 skip=66080 count=512
+
+/usr/bin/uci2dat -d radio0 -f /etc/Wireless/mt7620/mt7620.dat > /dev/null
+printf "MacAddress=$LOWERMAC\n\n" >> /etc/Wireless/mt7620/mt7620.dat
+insmod /lib/modules/`uname -r`/mt76x2ap.ko
+echo "mt76x2ap" >> /etc/modules.d/50-mt76x2
+
 # 5 GHz
 /usr/bin/uci2dat -d radio1 -f /etc/Wireless/iNIC/iNIC_ap.dat > /dev/null
 printf "MacAddress=$LOWERMAC_5\n\n" >> /etc/Wireless/iNIC/iNIC_ap.dat

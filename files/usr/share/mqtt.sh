@@ -4,6 +4,7 @@
 . /usr/share/functions/common_functions.sh
 . /usr/share/functions/dhcp_functions.sh
 . /usr/share/functions/api_functions.sh
+. /usr/share/functions/zabbix_functions.sh
 
 case "$1" in
 1)
@@ -33,6 +34,10 @@ onlinedev)
 ping)
   log "MQTTMSG" "Running ping test"
   run_ping_ondemand_test
+  ;;
+measure)
+  log "MQTTMSG" "Changing Zabbix PSK settings"
+  update_zabbix_params "$2"
   ;;
 *)
   log "MQTTMSG" "Cant recognize message: $1"

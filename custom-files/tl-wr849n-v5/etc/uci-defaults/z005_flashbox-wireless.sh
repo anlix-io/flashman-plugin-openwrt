@@ -38,10 +38,26 @@ then
   uci set wireless.@wifi-device[0].hwmode="11n"
   uci set wireless.@wifi-device[0].wifimode="9"
   uci set wireless.@wifi-device[0].country="BR"
-  uci set wireless.@wifi-device[0].htmode="HT40"
-  uci set wireless.@wifi-device[0].noscan="1"
-  uci set wireless.@wifi-device[0].ht_bsscoexist="0"
-  uci set wireless.@wifi-device[0].bw="1"
+
+  if [ "$FLM_24_BAND" = "HT40" ]
+  then
+    uci set wireless.@wifi-device[0].htmode="$FLM_24_BAND"
+    uci set wireless.@wifi-device[0].noscan="1"
+    uci set wireless.@wifi-device[0].ht_bsscoexist="0"
+    uci set wireless.@wifi-device[0].bw="1"
+  elif [ "$_remote_htmode_24" = "HT20" ]
+  then
+    uci set wireless.@wifi-device[0].htmode="$FLM_24_BAND"
+    uci set wireless.@wifi-device[0].noscan="0"
+    uci set wireless.@wifi-device[0].ht_bsscoexist="1"
+    uci set wireless.@wifi-device[0].bw="0"
+  else
+    uci set wireless.@wifi-device[0].htmode="HT20"
+    uci set wireless.@wifi-device[0].noscan="0"
+    uci set wireless.@wifi-device[0].ht_bsscoexist="1"
+    uci set wireless.@wifi-device[0].bw="0"
+  fi
+
   uci set wireless.@wifi-device[0].disabled="1"
   uci set wireless.default_radio0=wifi-iface
   uci set wireless.@wifi-iface[0].ifname="ra0"

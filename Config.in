@@ -44,6 +44,10 @@ config FLASHMAN_WIFI_CHANNEL
 	string "WiFi router AP 2.4GHz channel."
 	default "auto"
 
+config FLASHMAN_WIFI_BAND
+	string "WiFi router AP 2.4GHz bandwidth."
+	default "HT40"
+
 config FLASHMAN_WIFI_5GHZ_CHANNEL
 	string "WiFi router AP 5.0GHz channel."
 	default "auto"
@@ -56,17 +60,21 @@ config FLASHMAN_CLIENT_ORG
 	string "FlashMan image client organization identification"
 	default "MyCompany"
 
-config ZABBIX_SEND_DATA
-	bool "Enable Zabbix agent by default"
-	default y
-
-config ZABBIX_SERVER_ADDR
-	string "Zabbix server IP or FQDN"
-	default ""
-
 config NTP_SERVER_ADDR
-	string "NTP server IP or FQDN"
+	string "First NTP server IP or FQDN"
 	default "a.st1.ntp.br"
+
+config NTP_SERVER_ADDR_2
+	string "Second NTP server IP or FQDN"
+	default "b.st1.ntp.br"
+
+config NTP_SERVER_ADDR_3
+	string "Third NTP server IP or FQDN"
+	default "c.st1.ntp.br"
+
+config NTP_SERVER_ADDR_4
+	string "Fourth NTP server IP or FQDN"
+	default "d.st1.ntp.br"
 
 choice
 	prompt "WAN connection protocol"
@@ -96,6 +104,22 @@ endif
 config FLASHMAN_WAN_MTU
 	string "WAN MTU"
 	default "1500"
+
+config FLASHMAN_WAN_IPV6_ENABLED
+	bool "Enable IPv6 on WAN"
+	default y
+
+config FLASHMAN_LAN_SUBNET
+	string "LAN subnet gateway"
+	default "10.0.10.0"
+
+config FLASHMAN_LAN_NETMASK
+	string "LAN netmask"
+	default "24"
+
+config FLASHMAN_LAN_IPV6_PREFIX
+	string "LAN ÏPV6 Prefix for Prefix Delegation"
+	default "64"
 
 config MQTT_PORT
 	string "MQTT port"

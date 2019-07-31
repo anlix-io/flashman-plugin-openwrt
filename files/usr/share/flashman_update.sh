@@ -10,6 +10,7 @@
 . /usr/share/functions/network_functions.sh
 . /usr/share/functions/firewall_functions.sh
 . /usr/share/functions/api_functions.sh
+. /usr/share/functions/zabbix_functions.sh
 
 # If a command hash is provided, check if it should still be done
 COMMANDHASH=""
@@ -41,18 +42,20 @@ then
 
   # Get WiFi data
   json_cleanup
-  json_load $(get_wifi_local_config)
+  json_load "$(get_wifi_local_config)"
   json_get_var _local_ssid_24 local_ssid_24
   json_get_var _local_password_24 local_password_24
   json_get_var _local_channel_24 local_channel_24
   json_get_var _local_hwmode_24 local_hwmode_24
   json_get_var _local_htmode_24 local_htmode_24
+  json_get_var _local_5ghz_capable local_5ghz_capable
   json_get_var _local_ssid_50 local_ssid_50
   json_get_var _local_password_50 local_password_50
   json_get_var _local_channel_50 local_channel_50
   json_get_var _local_hwmode_50 local_hwmode_50
   json_get_var _local_htmode_50 local_htmode_50
   json_close_object
+  # Get config data
   json_cleanup
   json_load_file /root/flashbox_config.json
   json_get_var _has_upgraded_version has_upgraded_version
@@ -81,9 +84,21 @@ release_id=$FLM_RELID&\
 pppoe_user=$(uci -q get network.wan.username)&\
 pppoe_password=$(uci -q get network.wan.password)&\
 wan_ip=$(get_wan_ip)&\
+wan_negociated_speed=$(get_wan_negotiated_speed)&\
+wan_negociated_duplex=$(get_wan_negotiated_duplex)&\
+lan_addr=$(get_lan_subnet)&\
+lan_netmask=$(get_lan_netmask)&\
 wifi_ssid=$_local_ssid_24&\
 wifi_password=$_local_password_24&\
 wifi_channel=$_local_channel_24&\
+wifi_band=$_local_htmode_24&\
+wifi_mode=$_local_hwmode_24&\
+wifi_5ghz_capable=$_local_5ghz_capable&\
+wifi_ssid_5ghz=$_local_ssid_50&\
+wifi_password_5ghz=$_local_password_50&\
+wifi_channel_5ghz=$_local_channel_50&\
+wifi_band_5ghz=$_local_htmode_50&\
+wifi_mode_5ghz=$_local_hwmode_50&\
 connection_type=$(get_wan_type)&\
 ntp=$(ntp_anlix)&\
 hardreset=$_hard_reset_info&\
@@ -103,11 +118,24 @@ upgfirm=$_has_upgraded_version"
     json_get_var _connection_type connection_type
     json_get_var _pppoe_user pppoe_user
     json_get_var _pppoe_password pppoe_password
-    json_get_var _wifi_ssid wifi_ssid
-    json_get_var _wifi_password wifi_password
-    json_get_var _wifi_channel wifi_channel
+    json_get_var _lan_addr lan_addr
+    json_get_var _lan_netmask lan_netmask
+    json_get_var _wifi_ssid_24 wifi_ssid
+    json_get_var _wifi_password_24 wifi_password
+    json_get_var _wifi_channel_24 wifi_channel
+    json_get_var _wifi_htmode_24 wifi_band
+    json_get_var _wifi_hwmode_24 wifi_mode
+    json_get_var _wifi_ssid_50 wifi_ssid_5ghz
+    json_get_var _wifi_password_50 wifi_password_5ghz
+    json_get_var _wifi_channel_50 wifi_channel_5ghz
+    json_get_var _wifi_htmode_50 wifi_band_5ghz
+    json_get_var _wifi_hwmode_50 wifi_mode_5ghz
     json_get_var _app_password app_password
     json_get_var _forward_index forward_index
+    json_get_var _blocked_devices_index blocked_devices_index
+    json_get_var _zabbix_psk zabbix_psk
+    json_get_var _zabbix_fqdn zabbix_fqdn
+    json_get_var _zabbix_active zabbix_active
 
     _blocked_macs=""
     _blocked_devices=""
@@ -172,12 +200,22 @@ upgfirm=$_has_upgraded_version"
     # PPPoE update
     set_pppoe_credentials "$_pppoe_user" "$_pppoe_password"
 
+    # LAN connection subnet update
+    set_lan_subnet "$_lan_addr" "$_lan_netmask"
+    # If LAN has changed then reload port forward mapping
+    if [ $? -eq 0 ]
+    then
+      update_port_forward
+    fi
+
     # WiFi update
     log "FLASHMAN UPDATER" "Updating Wireless ..."
-    set_wifi_local_config "$_wifi_ssid" "$_wifi_password" "$_wifi_channel" \
-                          "" "" \
-                          "$_wifi_ssid" "$_wifi_password" "$_wifi_channel" \
-                          "" ""
+    set_wifi_local_config "$_wifi_ssid_24" "$_wifi_password_24" \
+                          "$_wifi_channel_24" "$_wifi_hwmode_24" \
+                          "$_wifi_htmode_24" \
+                          "$_wifi_ssid_50" "$_wifi_password_50" \
+                          "$_wifi_channel_50" "$_wifi_hwmode_50" \
+                          "$_wifi_htmode_50"
     # Flash App password update
     if [ "$_app_password" == "" ]
     then
@@ -193,21 +231,20 @@ upgfirm=$_has_upgraded_version"
     log "FLASHMAN UPDATER" "Writing named devices file..."
     echo -n "$_named_devices" > /tmp/named_devices
 
-    # Blocked devices firewall update - always do this to avoid file diff logic
-    log "FLASHMAN UPDATER" "Rewriting user firewall rules ..."
-    rm /etc/firewall.user
-    touch /etc/firewall.user
-    echo -n "$_blocked_devices" > /tmp/blacklist_mac
-    for mac in $_blocked_macs
-    do
-      echo "iptables -I FORWARD -m mac --mac-source $mac -j DROP" >> \
-           /etc/firewall.user
-    done
-    /etc/init.d/firewall restart
-    /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
+    # Check for updates in blocked devices
+    _local_dindex=$(get_forward_indexes "blocked_devices_index")
+    if [ "$_local_dindex" != "$_blocked_devices_index" ]
+    then
+      update_blocked_devices "$_blocked_devices" "$_blocked_macs" \
+                             "$_blocked_devices_index"
+    fi
 
-    A=$(get_forward_indexes "forward_index")
-    [ "$A" != "$_forward_index" ] && update_port_forward
+    # Update zabbix parameters as necessary
+    set_zabbix_params "$_zabbix_psk" "$_zabbix_fqdn" "$_zabbix_active"
+
+    # Check for updates in port forward mapping 
+    _local_findex=$(get_forward_indexes "forward_index")
+    [ "$_local_findex" != "$_forward_index" ] && update_port_forward
 
     # Store completed command hash if one was provided
     if [ "$COMMANDHASH" != "" ]

@@ -1,0 +1,9 @@
+#!/bin/sh
+
+[ "$ACTION" = ifup ] || exit 0
+
+# Fix dnsmasq and iface race condition
+/etc/init.d/dnsmasq enabled && /etc/init.d/dnsmasq restart
+
+# Fix dhcp and iface wan6 race condition
+[ "$INTERFACE" = "wan6" ] && /etc/init.d/odhcpd enabled && /etc/init.d/odhcpd restart
