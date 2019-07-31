@@ -130,7 +130,7 @@ is_device_wireless() {
   fi
 }
 
-led_power_off() {
+led_on() {
   if [ -f "$1"/brightness ]
   then
     if [ -f "$1"/max_brightness ]
@@ -157,6 +157,8 @@ reset_leds() {
   done
 
   /etc/init.d/led restart > /dev/null
+
+  led_on /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:power
 }
 
 blink_leds() {
@@ -164,8 +166,9 @@ blink_leds() {
 
   if [ $_do_restart -eq 0 ]
   then
-    led_power_off /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:orange\:power
-    ledsoff=$(ls -d /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:*)
+    # Need to turn power off to avoid out-of-sync blink
+    led_off /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:power
+    ledsoff=$(ls -d /sys/class/leds/*)
 
     for trigger_path in $ledsoff
     do
