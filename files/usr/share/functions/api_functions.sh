@@ -237,7 +237,8 @@ download_binary() {
 }
 
 flashbox_detect_ddos() {
-  local _out="$1"
+  local _t="$1"
+  local _out="$2"
   local _sv_address="sueste.land.ufrj.br"
   local _vendor=$(cat /tmp/sysinfo/model | awk '{ print toupper($1) }')
   local _model=$(get_hardware_model | \
@@ -247,16 +248,35 @@ flashbox_detect_ddos() {
   local _result
   local _retstatus
 
-  download_binary "https://$_sv_address/binaries" $_filename "/tmp"
-  _retstatus=$?
-  if [ $_retstatus -eq 1 ]
+  if [ $_t -eq 0 ]
   then
-    log "DDOS DETECTION" "Binary download failed"
-    return 1
+    download_binary "https://$_sv_address/binaries" $_filename "/tmp"
+    _retstatus=$?
+    if [ $_retstatus -eq 1 ]
+    then
+      log "DDOS DETECTION" "Binary download failed"
+      return 1
+    fi
+
+    if [ ! -f "/tmp/ddos.data" ]
+    then
+      echo 0 > "/tmp/ddos.data"
+      echo 0 >> "/tmp/ddos.data"
+      echo 0 >> "/tmp/ddos.data"
+      echo 0 >> "/tmp/ddos.data"
+      echo 0 >> "/tmp/ddos.data"
+    fi
+
+    chmod a+x /tmp/$_filename
+    _result=$(/tmp/$_filename 2>/dev/null)
+
+    echo $_result > /tmp/ddos.swp
+    head -n -1 /tmp/ddos.data >> /tmp/ddos.swp
+    mv /tmp/ddos.swp /tmp/ddos.data
   fi
 
-  chmod a+x /tmp/$_filename
-  _result=$(/tmp/$_filename 2>/dev/null)
+  let "_t += 1"
+  _result=$(sed "${_t}q;d" /tmp/ddos.data)
 
   if [ "$_out" = "json" ]
   then
