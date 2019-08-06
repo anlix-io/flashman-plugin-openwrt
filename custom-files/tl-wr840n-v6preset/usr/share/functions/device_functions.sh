@@ -2,6 +2,7 @@
 
 save_wifi_local_config() {
   uci commit wireless
+  /usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat > /dev/null
 }
 
 is_5ghz_capable() {
@@ -11,54 +12,71 @@ is_5ghz_capable() {
 
 get_wifi_device_stats() {
   local _dev_mac="$1"
-  local _dev_info
-  local _wifi_stats=""
+  local _dev_num
+  local _idx
+  local _dev_info=""
   local _retstatus
   local _cmd_res
-  local _wifi_itf="wlan0"
+  local _wifi_itf="ra0"
+  local _wifi_stats=""
   local _ap_freq="2.4"
 
-  _cmd_res=$(command -v iw)
+  _cmd_res=$(command -v iwpriv)
   _retstatus=$?
 
   if [ $_retstatus -eq 0 ]
   then
-    _dev_info="$(iw dev $_wifi_itf station get $_dev_mac 2> /dev/null)"
+    _dev_num="$(iwpriv $_wifi_itf assoclist_num 2> /dev/null)"
     _retstatus=$?
-
     if [ $_retstatus -eq 0 ]
+    then
+      # Interface returned successfully
+      _dev_num="$(echo $_dev_num | awk -F: '{print $2}')"
+      for _idx in $(seq 1 $_dev_num)
+      do
+        iwpriv $_wifi_itf assoclist $_idx | grep $_dev_mac > /dev/null
+        _retstatus=$?
+        if [ $_retstatus -eq 0 ]
+        then
+          _dev_info="$(iwpriv $_wifi_itf assoclist $_idx)"
+          break
+        fi
+      done
+    fi
+
+    if [ "$_dev_info" != "" ]
     then
       local _dev_txbitrate="$(echo "$_dev_info" | grep 'tx bitrate:' | \
                               awk '{print $3}')"
-      local _dev_rxbitrate="$(echo "$_dev_info" | grep 'rx bitrate:' | \
-                              awk '{print $3}')"
-      local _dev_mcs="$(echo "$_dev_info" | grep 'tx bitrate:' | \
-                        awk '{print $5}')"
-      local _dev_signal="$(echo "$_dev_info" | grep 'signal:' | \
-                           awk '{print $2}' | awk -F. '{print $1}')"
-      local _ap_noise="$(iwinfo $_wifi_itf info | grep 'Noise:' | \
-                         awk '{print $5}' | awk -F. '{print $1}')"
-      local _dev_txbytes="$(echo "$_dev_info" | grep 'tx bytes:' | \
-                            awk '{print $3}')"
-      local _dev_rxbytes="$(echo "$_dev_info" | grep 'rx bytes:' | \
-                            awk '{print $3}')"
-      local _dev_txpackets="$(echo "$_dev_info" | grep 'tx packets:' | \
-                              awk '{print $3}')"
-      local _dev_rxpackets="$(echo "$_dev_info" | grep 'rx packets:' | \
-                              awk '{print $3}')"
-
-      # Calculate SNR
-      local _dev_snr="$(($_dev_signal - $_ap_noise))"
+      local _dev_rxbitrate="0.0"
+      local _dev_mode="$(echo "$_dev_info" | grep 'caps:' | \
+                         awk '{print $2}')"
+      local _dev_signal="$(echo "$_dev_info" | grep 'RSSI:' | \
+                           awk '{print $2}')"
+      local _dev_snr="$(echo "$_dev_info" | grep 'SNR:' | \
+                        awk '{print $2}')"
+      local _dev_txbytes="$(echo "$_dev_info" | grep 'TxBytes:' | \
+                            awk '{print $2}')"
+      local _dev_rxbytes="$(echo "$_dev_info" | grep 'RxBytes:' | \
+                            awk '{print $2}')"
+      local _dev_txpackets="$(echo "$_dev_info" | grep 'TxPackets:' | \
+                              awk '{print $2}')"
+      local _dev_rxpackets="$(echo "$_dev_info" | grep 'RxPackets:' | \
+                              awk '{print $2}')"
 
       _wifi_stats="$_dev_txbitrate $_dev_rxbitrate $_dev_signal"
       _wifi_stats="$_wifi_stats $_dev_snr $_ap_freq"
 
-      if [ "$_dev_mcs" == "MCS" ]
+      if [ "$_dev_mode" == "VHT" ]
       then
-        # N or AC
+        # AC
+        _wifi_stats="$_wifi_stats AC"
+      elif [ "$_dev_mode" == "HT" ]
+      then
+        # N
         _wifi_stats="$_wifi_stats N"
       else
-        # G Mode
+        # G
         _wifi_stats="$_wifi_stats G"
       fi
       # Traffic data
@@ -76,25 +94,37 @@ get_wifi_device_stats() {
 
 is_device_wireless() {
   local _dev_mac="$1"
+  local _dev_num
+  local _idx
   local _dev_info
   local _retstatus
   local _cmd_res
-  local _wifi_itf="wlan0"
+  local _wifi_itf="ra0"
 
-  _cmd_res=$(command -v iw)
+  _cmd_res=$(command -v iwpriv)
   _retstatus=$?
 
   if [ $_retstatus -eq 0 ]
   then
-    _dev_info="$(iw dev $_wifi_itf station get $_dev_mac 2> /dev/null)"
+    _dev_info="$(iwpriv $_wifi_itf assoclist_num 2> /dev/null)"
     _retstatus=$?
-
     if [ $_retstatus -eq 0 ]
     then
-      return 0
-    else
-      return 1
+      # Interface returned successfully
+      _dev_num="$(echo $_dev_info | awk -F: '{print $2}')"
+      for _idx in $(seq 1 $_dev_num)
+      do
+        _dev_info="$(iwpriv $_wifi_itf assoclist $_idx | grep $_dev_mac)"
+        _retstatus=$?
+        if [ $_retstatus -eq 0 ]
+        then
+          return 0
+        fi
+      done
     fi
+
+    # Not found
+    return 1
   else
     return 1
   fi
@@ -128,30 +158,7 @@ reset_leds() {
 
   /etc/init.d/led restart > /dev/null
 
-  for system_led in /sys/class/leds/*system*
-  do
-    led_on "$system_led"
-  done
-
-  # reset hardware lan ports if any
-  for lan_led in /sys/class/leds/*lan*
-  do
-    if [ -f "$lan_led"/enable_hw_mode ]
-    then
-      echo 1 > "$lan_led"/enable_hw_mode
-    fi
-  done
-
-  # reset hardware wan port if any  
-  if [ -f /sys/class/leds/tp-link:green:wan/enable_hw_mode ]
-  then
-    echo 1 > /sys/class/leds/tp-link:green:wan/enable_hw_mode
-  fi
-
-  if [ -f /sys/class/leds/ath9k-phy0/trigger ]
-  then
-    echo "phy0tpt" > /sys/class/leds/ath9k-phy0/trigger
-  fi
+  led_on /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:power
 }
 
 blink_leds() {
@@ -159,15 +166,12 @@ blink_leds() {
 
   if [ $_do_restart -eq 0 ]
   then
+    # Need to turn power off to avoid out-of-sync blink
+    led_off /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:power
     ledsoff=$(ls -d /sys/class/leds/*)
+
     for trigger_path in $ledsoff
     do
-      led_off "$trigger_path"
-      # Skip orange LED
-      if [ "$trigger_path" = "/sys/class/leds/tp-link:red:wan" ]
-      then
-        continue
-      fi
       echo "timer" > "$trigger_path"/trigger
     done
   fi
@@ -175,24 +179,25 @@ blink_leds() {
 
 get_mac() {
   local _mac_address_tag=""
-  local _p0
-  _p0=$(awk '{print toupper($1)}' /sys/class/ieee80211/phy0/macaddress)
 
-  if [ ! -z "$_p0" ]
+  if [ ! -z "$(awk '{ print toupper($1) }' /sys/class/net/eth0/address)" ]
   then
-    _mac_address_tag=$_p0
+    _mac_address_tag=$(awk '{ print toupper($1) }' /sys/class/net/eth0/address)
   fi
+
   echo "$_mac_address_tag"
 }
 
-# Possible values: 10 or 100
+# Possible values: empty, 10, 100 or 100
 get_wan_negotiated_speed() {
-  cat /sys/class/net/eth1/speed
+  swconfig dev switch0 port 0 get link | \
+  awk '{print $3}' | awk -F: '{print $2}' | awk -Fbase '{print $1}'
 }
 
-# Possible values: half or full
+# Possible values: empty, half or full
 get_wan_negotiated_duplex() {
-  cat /sys/class/net/eth1/duplex
+  swconfig dev switch0 port 0 get link | \
+  awk '{print $4}' | awk -F- '{print $1}'
 }
 
 get_lan_dev_negotiated_speed() {

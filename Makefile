@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=flasman-plugin
-PKG_VERSION:=0.15.2
+PKG_VERSION:=0.17.1
 PKG_RELEASE:=1
 
 PKG_LICENSE:=GPL
@@ -113,6 +113,8 @@ CUSTOM_FILE_DIR=
 		CUSTOM_FILE_DIR="custom-files/tl-wr840n-v5"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v6), y)
 		CUSTOM_FILE_DIR="custom-files/tl-wr840n-v6"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v6preset), y)
+		CUSTOM_FILE_DIR="custom-files/tl-wr840n-v6preset"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr845n-v3), y)
 		CUSTOM_FILE_DIR="custom-files/tl-wr845n-v3"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr845n-v4), y)
