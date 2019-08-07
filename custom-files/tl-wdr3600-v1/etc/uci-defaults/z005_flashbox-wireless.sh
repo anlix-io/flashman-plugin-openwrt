@@ -54,6 +54,7 @@ then
   uci set wireless.@wifi-iface[0].ssid="$setssid"
   uci set wireless.@wifi-iface[0].encryption="psk2"
   uci set wireless.@wifi-iface[0].key="$FLM_PASSWD"
+  uci set wireless.@wifi-iface[0].max_inactivity="3000"
 
   # 5GHz 802.11 a/n mode
   if [ "$(uci -q get wireless.@wifi-iface[1])" ]
@@ -69,6 +70,7 @@ then
     uci set wireless.@wifi-iface[1].ssid="$setssid$SUFFIX_5"
     uci set wireless.@wifi-iface[1].encryption="psk2"
     uci set wireless.@wifi-iface[1].key="$FLM_PASSWD"
+    uci set wireless.@wifi-iface[1].max_inactivity="3000"
   fi
   uci commit wireless
 fi
