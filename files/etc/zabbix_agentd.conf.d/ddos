@@ -1,0 +1,5 @@
+UserParameter=ddos.t0,. /usr/share/flashman_init.conf && . /usr/share/functions/api_functions.sh && flashbox_detect_ddos 0
+UserParameter=ddos.t1,. /usr/share/flashman_init.conf && . /usr/share/functions/api_functions.sh && flashbox_detect_ddos 1
+UserParameter=ddos.t2,. /usr/share/flashman_init.conf && . /usr/share/functions/api_functions.sh && flashbox_detect_ddos 2
+UserParameter=ddos.t3,. /usr/share/flashman_init.conf && . /usr/share/functions/api_functions.sh && flashbox_detect_ddos 3
+UserParameter=ddos.t4,. /usr/share/flashman_init.conf && . /usr/share/functions/api_functions.sh && flashbox_detect_ddos 4
