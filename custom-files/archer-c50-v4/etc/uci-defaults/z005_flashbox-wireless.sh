@@ -102,13 +102,16 @@ then
   uci commit wireless
 fi
 
+#Dump firmware in /lib/firmware 
+dd if=/dev/mtd8ro of=/lib/firmware/MT7612E_EEPROM.bin bs=1k skip=32 count=32
+
 /usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat > /dev/null
 printf "MacAddress=$LOWERMAC\n\n" >> /etc/wireless/mt7628/mt7628.dat
 insmod /lib/modules/`uname -r`/mt7628.ko mac=$LOWERMAC
 echo "mt7628 mac=$LOWERMAC" >> /etc/modules.d/50-mt7628
 # 5 GHz
-/usr/bin/uci2dat -d radio1 -f /etc/Wireless/iNIC/iNIC_ap.dat > /dev/null
-printf "MacAddress=$LOWERMAC_5\n\n" >> /etc/Wireless/iNIC/iNIC_ap.dat
+/usr/bin/uci2dat -d radio1 -f /etc/Wireless/mt7612/mt7612.dat > /dev/null
+printf "MacAddress=$LOWERMAC_5\n\n" >> /etc/Wireless/mt7612/mt7612.dat
 insmod /lib/modules/`uname -r`/mt76x2ap.ko
 echo "mt76x2ap" >> /etc/modules.d/50-mt76x2
 
