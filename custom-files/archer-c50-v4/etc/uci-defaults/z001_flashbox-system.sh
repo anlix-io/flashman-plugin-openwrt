@@ -18,7 +18,11 @@ uci add_list system.ntp.server="$NTP_SVADDR_4"
 
 # LEDs
 uci set system.led_wlan2g.dev='ra0'
+uci set system.led_wlan2g.trigger='netdev'
+uci set system.led_wlan2g.mode='link tx rx'
 uci set system.led_wlan5g.dev='rai0'
+uci set system.led_wlan5g.trigger='netdev'
+uci set system.led_wlan5g.mode='link tx rx'
 
 uci commit system
 
