@@ -74,7 +74,7 @@ then
   uci set wireless.@wifi-iface[0].ssid="$setssid"
   uci set wireless.@wifi-iface[0].encryption="psk2"
   uci set wireless.@wifi-iface[0].key="$FLM_PASSWD"
-  # 5GHz - MT7610e
+  # 5GHz - MT7612
   uci set wireless.radio1=wifi-device
   # Disable the interface!
   # MT7610e use a dat file, we only get the parameters from here
@@ -102,8 +102,9 @@ then
   uci commit wireless
 fi
 
-#Dump firmware in /lib/firmware 
-dd if=/dev/mtd8ro of=/lib/firmware/MT7612E_EEPROM.bin bs=1k skip=32 count=32
+#Dump firmware in /lib/firmware
+dd if=/dev/mtd9ro of=/lib/firmware/MT7628_EEPROM.bin bs=1 count=512
+dd if=/dev/mtd9ro of=/lib/firmware/MT7612E_EEPROM.bin bs=1k skip=32 count=32
 
 /usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat > /dev/null
 printf "MacAddress=$LOWERMAC\n\n" >> /etc/wireless/mt7628/mt7628.dat
