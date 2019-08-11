@@ -7,6 +7,8 @@
 . /usr/share/flashman_init.conf
 . /usr/share/functions/device_functions.sh
 
+LOWERMAC=$(get_mac | awk '{ print tolower($1) }')
+MAC_WIFI=$(macaddr_add "$LOWERMAC" 2)
 MAC_LAST_CHARS=$(get_mac | awk -F: '{ print $5$6 }')
 SSID_VALUE=$(uci -q get wireless.@wifi-iface[0].ssid)
 ENCRYPTION_VALUE=$(uci -q get wireless.@wifi-iface[0].encryption)
@@ -41,7 +43,7 @@ then
   then
     uci set wireless.@wifi-device[0].htmode="$FLM_24_BAND"
     uci set wireless.@wifi-device[0].noscan="1"
-  elif [ "$FLM_24_BAND" = "HT20" ]
+  elif [ "$_remote_htmode_24" = "HT20" ]
   then
     uci set wireless.@wifi-device[0].htmode="$FLM_24_BAND"
     uci set wireless.@wifi-device[0].noscan="0"
@@ -54,8 +56,9 @@ then
   uci set wireless.@wifi-iface[0].ssid="$setssid"
   uci set wireless.@wifi-iface[0].encryption="psk2"
   uci set wireless.@wifi-iface[0].key="$FLM_PASSWD"
+  uci set wireless.@wifi-iface[0].macaddr="$MAC_WIFI"
 
-  # 5GHz
+  # 5GHz 802.11 a/n mode
   if [ "$(uci -q get wireless.@wifi-iface[1])" ]
   then
     uci set wireless.@wifi-device[1].type="mac80211"
@@ -63,12 +66,13 @@ then
     uci set wireless.@wifi-device[1].channel="$FLM_50_CHANNEL"
     uci set wireless.@wifi-device[1].hwmode="11na"
     uci set wireless.@wifi-device[1].country="BR"
-    uci set wireless.@wifi-device[1].htmode="HT40"
+    uci set wireless.@wifi-device[1].htmode="VHT40"
     uci set wireless.@wifi-device[1].noscan="1"
     uci set wireless.@wifi-device[1].disabled="0"
     uci set wireless.@wifi-iface[1].ssid="$setssid$SUFFIX_5"
     uci set wireless.@wifi-iface[1].encryption="psk2"
     uci set wireless.@wifi-iface[1].key="$FLM_PASSWD"
+    uci set wireless.@wifi-iface[1].macaddr="$MAC_WIFI"
   fi
   uci commit wireless
 fi

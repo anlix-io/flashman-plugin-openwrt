@@ -37,10 +37,10 @@ then
 
   uci set wireless.radio0=wifi-device
   # Disable the interface!
-  # MT7620 use a dat file, we only get the parameters from here
+  # MT7628 use a dat file, we only get the parameters from here
   uci set wireless.@wifi-device[0].type="ralink"
   uci set wireless.@wifi-device[0].txpower="100"
-  uci set wireless.@wifi-device[0].variant="mt7620"
+  uci set wireless.@wifi-device[0].variant="mt7628"
   uci set wireless.@wifi-device[0].channel="$FLM_24_CHANNEL"
   uci set wireless.@wifi-device[0].hwmode="11n"
   uci set wireless.@wifi-device[0].wifimode="9"
@@ -74,10 +74,10 @@ then
   uci set wireless.@wifi-iface[0].ssid="$setssid"
   uci set wireless.@wifi-iface[0].encryption="psk2"
   uci set wireless.@wifi-iface[0].key="$FLM_PASSWD"
-  # 5GHz - MT7612e
+  # 5GHz - MT7612
   uci set wireless.radio1=wifi-device
   # Disable the interface!
-  # MT7612e use a dat file, we only get the parameters from here
+  # MT7610e use a dat file, we only get the parameters from here
   uci set wireless.@wifi-device[1].type="ralink"
   uci set wireless.@wifi-device[1].txpower="100"
   uci set wireless.@wifi-device[1].variant="mt7612e"
@@ -102,23 +102,23 @@ then
   uci commit wireless
 fi
 
-#Dump firmware in /lib/firmware 
-dd if=/dev/mtd8ro of=/lib/firmware/MT7620_AP_2T2R-4L_V15.BIN bs=1 count=512
-dd if=/dev/mtd8ro of=/lib/firmware/MT7612E_EEPROM.bin bs=1k skip=32 count=32
+#Dump firmware in /lib/firmware
+dd if=/dev/mtd9ro of=/lib/firmware/MT7628_EEPROM.bin bs=1 count=512
+dd if=/dev/mtd9ro of=/lib/firmware/MT7612E_EEPROM.bin bs=1k skip=32 count=32
 
-/usr/bin/uci2dat -d radio0 -f /etc/Wireless/mt7620/mt7620.dat > /dev/null
-printf "MacAddress=$LOWERMAC\n\n" >> /etc/Wireless/mt7620/mt7620.dat
-
+/usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat > /dev/null
+printf "MacAddress=$LOWERMAC\n\n" >> /etc/wireless/mt7628/mt7628.dat
+insmod /lib/modules/`uname -r`/mt7628.ko mac=$LOWERMAC
+echo "mt7628 mac=$LOWERMAC" >> /etc/modules.d/50-mt7628
 # 5 GHz
 /usr/bin/uci2dat -d radio1 -f /etc/Wireless/mt7612/mt7612.dat > /dev/null
 printf "MacAddress=$LOWERMAC_5\n\n" >> /etc/Wireless/mt7612/mt7612.dat
-
 insmod /lib/modules/`uname -r`/mt76x2ap.ko
 echo "mt76x2ap" >> /etc/modules.d/50-mt76x2
 
 [ -e /sbin/wifi ] && mv /sbin/wifi /sbin/wifi_legacy
 cp /sbin/mtkwifi /sbin/wifi
-# MT7620 driver needs to reload the first time it loads
+# MT7628 driver needs to reload the first time it loads
 /sbin/wifi reload
 
 exit 0
