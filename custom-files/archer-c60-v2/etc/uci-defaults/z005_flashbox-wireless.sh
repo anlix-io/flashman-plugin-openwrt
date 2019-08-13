@@ -73,16 +73,16 @@ then
   uci set wireless.@wifi-iface[0].encryption="psk2"
   uci set wireless.@wifi-iface[0].key="$FLM_PASSWD"
 
-  # 5GHz 802.11 a/n mode
+  # 5GHz 802.11 ac mode
   if [ "$(uci -q get wireless.@wifi-iface[1])" ]
   then
     uci set wireless.@wifi-device[1].type="mac80211"
     uci set wireless.@wifi-device[1].txpower="17"
     uci set wireless.@wifi-device[1].channel="$FLM_50_CHANNEL"
-    uci set wireless.@wifi-device[1].hwmode="11na"
+    uci set wireless.@wifi-device[1].hwmode="11a"
     uci set wireless.@wifi-device[1].country="BR"
-    uci set wireless.@wifi-device[1].htmode="HT40"
-    uci set wireless.@wifi-device[1].noscan="1"
+    uci set wireless.@wifi-device[1].htmode="VHT80"
+    uci set wireless.@wifi-device[1].noscan="0"
     uci set wireless.@wifi-device[1].disabled="0"
     uci set wireless.@wifi-iface[1].ssid="$setssid$SUFFIX_5"
     uci set wireless.@wifi-iface[1].encryption="psk2"
