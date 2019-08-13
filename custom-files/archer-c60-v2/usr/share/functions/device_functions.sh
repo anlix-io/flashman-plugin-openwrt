@@ -147,50 +147,20 @@ reset_leds() {
 
   /etc/init.d/led restart > /dev/null
 
-  for system_led in /sys/class/leds/*system*
-  do
-    led_on "$system_led"
-  done
-
-  # reset hardware lan ports if any
-  for lan_led in /sys/class/leds/*lan*
-  do
-    if [ -f "$lan_led"/enable_hw_mode ]
-    then
-      echo 1 > "$lan_led"/enable_hw_mode
-    fi
-  done
-
-  # reset hardware wan port if any
-  for wan_led in /sys/class/leds/*wan*
-  do
-    if [ -f "$wan_led"/enable_hw_mode ]
-    then
-      echo 1 > "$wan_led"/enable_hw_mode
-    fi
-  done
-
-  # reset atheros 2.4G led
-  if [ -f /sys/class/leds/ath9k-phy0/trigger ]
-  then
-    echo "phy0tpt" > /sys/class/leds/ath9k-phy0/trigger
-  fi
-  # reset atheros 5G led
-  if [ -f /sys/class/leds/ath9k-phy1/trigger ]
-  then
-    echo "phy1tpt" > /sys/class/leds/ath9k-phy1/trigger
-  fi
+  led_on /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:power
 }
 
 blink_leds() {
-	local _do_restart=$1
+  local _do_restart=$1
 
   if [ $_do_restart -eq 0 ]
   then
-    ledsoff=$(ls -d /sys/class/leds/*)
+    led_off /sys/class/leds/$(cat /tmp/sysinfo/board_name)\:green\:power
+    # we cant turn on orange and blue at same time in this model
+    ledsoff=$(ls -d /sys/class/leds/*green*)
+
     for trigger_path in $ledsoff
     do
-      led_off "$trigger_path"
       echo "timer" > "$trigger_path"/trigger
     done
   fi

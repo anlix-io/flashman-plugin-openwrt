@@ -42,6 +42,11 @@ then
   uci set wireless.default_radio1.device='radio1'
   uci set wireless.default_radio0.ifname='wlan0'
   uci set wireless.default_radio1.ifname='wlan1'
+  uci reorder wireless.radio0=0
+  uci reorder wireless.default_radio0=1
+  uci reorder wireless.radio1=2
+  uci reorder wireless.default_radio1=3
+  uci commit wireless
   # Ended renaming section
 
   uci set wireless.@wifi-device[0].type="mac80211"
