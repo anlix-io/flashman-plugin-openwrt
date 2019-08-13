@@ -8,10 +8,12 @@ uci set firewall.@defaults[-1].forward="REJECT"
 uci set firewall.@zone[0].input="ACCEPT"
 uci set firewall.@zone[0].output="ACCEPT"
 uci set firewall.@zone[0].forward="REJECT"
+uci set firewall.@zone[0].mtu_fix="1"
 # Wan
 uci set firewall.@zone[1].input="ACCEPT"
 uci set firewall.@zone[1].output="ACCEPT"
 uci set firewall.@zone[1].forward="REJECT"
+uci set firewall.@zone[1].mtu_fix="1"
 # Block port scan (stealth mode)
 if [ -f /etc/firewall.blockscan ]
 then
