@@ -32,9 +32,9 @@ then
   fi
 
   # This model needs to reorder sections
-  uci rename wireless.radio0=default_radiotmp
-  uci rename wireless.radio1=default_radio0
-  uci rename wireless.radiotmp=default_radio1
+  uci rename wireless.radio0=radiotmp
+  uci rename wireless.radio1=radio0
+  uci rename wireless.radiotmp=radio1
   uci rename wireless.default_radio0=default_radiotmp
   uci rename wireless.default_radio1=default_radio0
   uci rename wireless.default_radiotmp=default_radio1
