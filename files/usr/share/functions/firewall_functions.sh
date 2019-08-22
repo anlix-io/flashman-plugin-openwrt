@@ -46,6 +46,7 @@ update_port_forward() {
     json_get_var _flash_idx forward_index
 
     [ -f /etc/ethers ] && rm /etc/ethers
+    [ -f /etc/ethers_port_forward ] && rm /etc/ethers_port_forward
 
     # Remove old forward rules
     local _old_rules=$(uci -X show firewall | grep ".name='anlix_forward_.*'")
@@ -63,7 +64,18 @@ update_port_forward() {
       json_select "$((_rule_idx++))"
       json_get_var _mac mac
       json_get_var _dmz dmz
-      local _static_ip=$(add_static_ip "$_mac" "$_dmz")
+      local _static_ip
+      # Check if device has already a fixed ip due to upnp
+      grep -q -i "$_mac" /etc/ethers_upnp_devices
+      _retstatus=$?
+      if [ $_retstatus -eq 1 ]
+      then
+        _static_ip=$(add_static_ip "$_mac" "$_dmz" "ethers_port_forward")
+      else
+        local _line=$(grep -i "$_mac" /etc/ethers_upnp_devices)
+        _static_ip=$(echo "$_line" | awk '{print $2}')
+        echo "$_line" >> /etc/ethers_port_forward
+      fi
       local _static_ipv6=$(add_static_ipv6 "$_mac")
 
       local has_router_port=0
@@ -137,6 +149,26 @@ update_port_forward() {
       json_select ".."
     done
     json_close_object
+
+    # Restore ethers file
+    if [ -f /etc/ethers_port_forward ]
+    then
+      cat /etc/ethers_port_forward >> /etc/ethers
+    fi
+    if [ -f /etc/ethers_upnp_devices ]
+    then
+      while read _fixed_line
+      do
+        _fixed_mac="$(echo "$_fixed_line" | awk '{print $1}')"
+        grep -q -i "$_fixed_mac" /etc/ethers
+        _retstatus=$?
+        if [ $_retstatus -eq 1 ]
+        then
+          echo "$_fixed_line" >> /etc/ethers
+        fi
+      done < /etc/ethers_upnp_devices
+    fi
+
     uci commit firewall
     /etc/init.d/dnsmasq reload
     /etc/init.d/firewall reload
@@ -168,4 +200,91 @@ update_blocked_devices() {
 
   # Save index
   json_update_index "$_blocked_devices_index" "blocked_devices_index"
+}
+
+update_upnp_devices() {
+  log "UPNP SERVICE" "Requesting Flashman ..."
+  local _data="id=$(get_mac)"
+  local _url="deviceinfo/get/upnpdevices/"
+  local _res
+  local _retstatus
+  _res=$(rest_flashman "$_url" "$_data")
+  _retstatus=$?
+
+  if [ $_retstatus -eq 0 ]
+  then
+    json_cleanup
+    json_load "$_res"
+    json_get_var _upnp_idx upnp_devices_index
+
+    [ -f /etc/ethers ] && rm /etc/ethers
+    [ -f /etc/ethers_upnp_devices ] && rm /etc/ethers_upnp_devices
+    [ -f /etc/enabled_upnp_devices ] && rm /etc/enabled_upnp_devices
+    # Reset IGP and NAT-PMP permissions
+    cp /rom/etc/config/upnp /etc/config/upnp
+
+    json_select upnp_devices
+    local _rule_idx="1"
+    while json_get_type _rule_type $_rule_idx && [ "$_rule_type" = object ]
+    do
+      json_select "$((_rule_idx++))"
+      json_get_var _mac mac
+      json_get_var _dmz dmz
+      json_get_var _upnp upnp
+      if [ "$_upnp" = "1" ]
+      then
+        local _static_ip
+        # Check if device has already a fixed ip due to port forward
+        grep -q -i "$_mac" /etc/ethers_port_forward
+        _retstatus=$?
+        if [ $_retstatus -eq 1 ]
+        then
+          _static_ip=$(add_static_ip "$_mac" "$_dmz" "ethers_upnp_devices")
+        else
+          local _line=$(grep -i "$_mac" /etc/ethers_port_forward)
+          _static_ip=$(echo "$_line" | awk '{print $2}')
+          echo "$_line" >> /etc/ethers_upnp_devices
+        fi
+        # Include upnp condition of selected device
+        echo "$_mac $_static_ip" >> /etc/enabled_upnp_devices
+        # Allow IGP for device
+        uci add upnp perm_rule > /dev/null
+        uci set upnp.@perm_rule[-1].action='allow'
+        uci set upnp.@perm_rule[-1].ext_ports='0-65535'
+        uci set upnp.@perm_rule[-1].int_ports='0-65535'
+        uci set upnp.@perm_rule[-1].int_addr="$_static_ip/32"
+        uci reorder upnp.@perm_rule[-1]=1
+        uci commit upnp
+      fi
+
+      json_select ".."
+    done
+    json_close_object
+
+    # Restore ethers file
+    if [ -f /etc/ethers_upnp_devices ]
+    then
+      cat /etc/ethers_upnp_devices >> /etc/ethers
+    fi
+    if [ -f /etc/ethers_port_forward ]
+    then
+      while read _fixed_line
+      do
+        _fixed_mac="$(echo "$_fixed_line" | awk '{print $1}')"
+        grep -q -i "$_fixed_mac" /etc/ethers
+        _retstatus=$?
+        if [ $_retstatus -eq 1 ]
+        then
+          echo "$_fixed_line" >> /etc/ethers
+        fi
+      done < /etc/ethers_port_forward
+    fi
+
+    /etc/init.d/dnsmasq reload
+    /etc/init.d/minissdpd stop
+    /etc/init.d/minissdpd start
+
+    # Save index
+    json_update_index "$_upnp_idx" "upnp_devices_index"
+  fi
 }
