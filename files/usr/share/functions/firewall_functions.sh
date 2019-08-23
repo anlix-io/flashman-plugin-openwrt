@@ -248,13 +248,13 @@ update_upnp_devices() {
         # Include upnp condition of selected device
         echo "$_mac $_static_ip" >> /etc/enabled_upnp_devices
         # Allow IGP for device
-        uci add upnp perm_rule > /dev/null
-        uci set upnp.@perm_rule[-1].action='allow'
-        uci set upnp.@perm_rule[-1].ext_ports='0-65535'
-        uci set upnp.@perm_rule[-1].int_ports='0-65535'
-        uci set upnp.@perm_rule[-1].int_addr="$_static_ip/32"
-        uci reorder upnp.@perm_rule[-1]=1
-        uci commit upnp
+        uci add upnpd perm_rule > /dev/null
+        uci set upnpd.@perm_rule[-1].action='allow'
+        uci set upnpd.@perm_rule[-1].ext_ports='0-65535'
+        uci set upnpd.@perm_rule[-1].int_ports='0-65535'
+        uci set upnpd.@perm_rule[-1].int_addr="$_static_ip/32"
+        uci reorder upnpd.@perm_rule[-1]=1
+        uci commit upnpd
       fi
 
       json_select ".."
