@@ -246,7 +246,7 @@ update_upnp_devices() {
           echo "$_line" >> /etc/ethers_upnp_devices
         fi
         # Include upnp condition of selected device
-        echo "$_mac $_static_ip" >> /etc/enabled_upnp_devices
+        echo "$_mac,$_static_ip" >> /etc/enabled_upnp_devices
         # Allow IGP for device
         uci add upnpd perm_rule > /dev/null
         uci set upnpd.@perm_rule[-1].action='allow'
