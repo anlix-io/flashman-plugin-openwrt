@@ -231,7 +231,7 @@ update_upnp_devices() {
       json_get_var _mac mac
       json_get_var _dmz dmz
       json_get_var _upnp upnp
-      if [ "$_upnp" = "1" ]
+      if [ "$_upnp" = "accept" ]
       then
         local _static_ip
         # Check if device has already a fixed ip due to port forward
