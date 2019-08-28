@@ -68,7 +68,7 @@ update_port_forward() {
       # Check if device has already a fixed ip due to upnp
       grep -q -i "$_mac" /etc/ethers_upnp_devices
       _retstatus=$?
-      if [ $_retstatus -eq 1 ]
+      if [ ! $_retstatus -eq 0 ]
       then
         _static_ip=$(add_static_ip "$_mac" "$_dmz" "ethers_port_forward")
       else
@@ -162,7 +162,7 @@ update_port_forward() {
         _fixed_mac="$(echo "$_fixed_line" | awk '{print $1}')"
         grep -q -i "$_fixed_mac" /etc/ethers
         _retstatus=$?
-        if [ $_retstatus -eq 1 ]
+        if [ ! $_retstatus -eq 0 ]
         then
           echo "$_fixed_line" >> /etc/ethers
         fi
@@ -221,7 +221,7 @@ update_upnp_devices() {
     [ -f /etc/ethers_upnp_devices ] && rm /etc/ethers_upnp_devices
     [ -f /etc/enabled_upnp_devices ] && rm /etc/enabled_upnp_devices
     # Reset IGP and NAT-PMP permissions
-    cp /rom/etc/config/upnp /etc/config/upnp
+    cp /rom/etc/config/upnpd /etc/config/upnpd
 
     json_select upnp_devices
     local _rule_idx="1"
@@ -235,9 +235,9 @@ update_upnp_devices() {
       then
         local _static_ip
         # Check if device has already a fixed ip due to port forward
-        grep -q -i "$_mac" /etc/ethers_port_forward
+        grep -q -i "$_mac" /etc/ethers_port_forward > /dev/null 2>&1
         _retstatus=$?
-        if [ $_retstatus -eq 1 ]
+        if [ ! $_retstatus -eq 0 ]
         then
           _static_ip=$(add_static_ip "$_mac" "$_dmz" "ethers_upnp_devices")
         else
@@ -273,7 +273,7 @@ update_upnp_devices() {
         _fixed_mac="$(echo "$_fixed_line" | awk '{print $1}')"
         grep -q -i "$_fixed_mac" /etc/ethers
         _retstatus=$?
-        if [ $_retstatus -eq 1 ]
+        if [ ! $_retstatus -eq 0 ]
         then
           echo "$_fixed_line" >> /etc/ethers
         fi
