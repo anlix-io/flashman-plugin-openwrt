@@ -281,9 +281,7 @@ update_upnp_devices() {
     fi
 
     /etc/init.d/dnsmasq reload
-    /etc/init.d/miniupnpd stop
-    /etc/init.d/minissdpd restart
-    /etc/init.d/miniupnpd start
+    /etc/init.d/miniupnpd restart
 
     # Save index
     json_update_index "$_upnp_idx" "upnp_devices_index"
