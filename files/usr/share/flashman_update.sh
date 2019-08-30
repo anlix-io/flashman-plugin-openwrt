@@ -133,6 +133,7 @@ upgfirm=$_has_upgraded_version"
     json_get_var _app_password app_password
     json_get_var _forward_index forward_index
     json_get_var _blocked_devices_index blocked_devices_index
+    json_get_var _upnp_devices_index upnp_devices_index
     json_get_var _zabbix_psk zabbix_psk
     json_get_var _zabbix_fqdn zabbix_fqdn
     json_get_var _zabbix_active zabbix_active
@@ -245,6 +246,10 @@ upgfirm=$_has_upgraded_version"
     # Check for updates in port forward mapping 
     _local_findex=$(get_forward_indexes "forward_index")
     [ "$_local_findex" != "$_forward_index" ] && update_port_forward
+
+    # Check for updates in upnp allowed devices mapping 
+    _local_uindex=$(get_forward_indexes "upnp_devices_index")
+    [ "$_local_uindex" != "$_upnp_devices_index" ] && update_upnp_devices
 
     # Store completed command hash if one was provided
     if [ "$COMMANDHASH" != "" ]
