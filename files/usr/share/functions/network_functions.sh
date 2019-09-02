@@ -318,6 +318,7 @@ add_static_ipv6() {
 add_static_ip() {
   local _mac=$1
   local _dmz=$2
+  local _ethers_file="$3"
   local _device_ip=$(grep "$_mac" /tmp/dhcp.leases | awk '{print $3}')
   local _lan_subnet=$(get_lan_subnet)
   local _lan_netmask=$(get_lan_netmask)
@@ -340,7 +341,7 @@ add_static_ip() {
     if { [ "$_dmz" = "1" ] && [ $_device_on_dmz -eq 0 ]; } || \
        { [ "$_dmz" = "0" ] && [ $_device_on_lan -eq 0 ]; }
     then
-      echo "$_mac $_device_ip" >> /etc/ethers
+      echo "$_mac $_device_ip" >> /etc/$_ethers_file
       echo "$_device_ip"
       return
     fi
@@ -349,7 +350,7 @@ add_static_ip() {
   # Device is offline. Choose an ip address 
   if [ "$_dmz" = "1" ]
   then
-    if [ -f /etc/ethers ]
+    if [ -f /etc/$_ethers_file ]
     then
       while read _fixed_ip
       do
@@ -362,7 +363,7 @@ add_static_ip() {
           _next_addr="$(echo "$_ipcalc_res" | grep "END" | \
                         awk -F= '{print $2}')"
         fi
-      done < /etc/ethers
+      done < /etc/$_ethers_file
       if [ "$_next_addr" = "" ]
       then
         # It must start at 130 to isolate routes
@@ -375,7 +376,7 @@ add_static_ip() {
       _next_addr="$(echo "$_ipcalc_res" | grep "END" | awk -F= '{print $2}')"
     fi
   else
-    if [ -f /etc/ethers ]
+    if [ -f /etc/$_ethers_file ]
     then
       while read _fixed_ip
       do
@@ -388,7 +389,7 @@ add_static_ip() {
           _next_addr="$(echo "$_ipcalc_res" | grep "END" | \
                         awk -F= '{print $2}')"
         fi
-      done < /etc/ethers
+      done < /etc/$_ethers_file
       if [ "$_next_addr" = "" ]
       then
         _ipcalc_res="$(/bin/ipcalc.sh $_lan_subnet $_lan_netmask 1 1)"
@@ -399,6 +400,6 @@ add_static_ip() {
       _next_addr="$(echo "$_ipcalc_res" | grep "END" | awk -F= '{print $2}')"
     fi
   fi
-  echo "$_mac $_next_addr" >> /etc/ethers
+  echo "$_mac $_next_addr" >> /etc/$_ethers_file
   echo "$_next_addr"
 }

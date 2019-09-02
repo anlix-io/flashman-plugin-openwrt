@@ -1,18 +1,12 @@
 #!/bin/sh
 
-#
-# WARNING! This file may be replaced depending on the selected target!
-#
-
 . /usr/share/flashman_init.conf
 . /usr/share/functions/device_functions.sh
 
-LOWERMAC=$(get_mac | awk '{ print tolower($1) }')
-MAC_WIFI=$(macaddr_add "$LOWERMAC" 2)
 MAC_LAST_CHARS=$(get_mac | awk -F: '{ print $5$6 }')
 SSID_VALUE=$(uci -q get wireless.@wifi-iface[0].ssid)
 ENCRYPTION_VALUE=$(uci -q get wireless.@wifi-iface[0].encryption)
-SUFFIX_5="-5GHz"
+LOWERMAC=$(get_mac | awk '{ print tolower($1) }')
 
 # Wireless password cannot be empty or have less than 8 chars
 if [ "$FLM_PASSWD" == "" ] || [ $(echo "$FLM_PASSWD" | wc -m) -lt 9 ]
@@ -32,49 +26,59 @@ then
     #lastmac
     setssid="$FLM_SSID$MAC_LAST_CHARS"
   fi
+  touch /etc/config/wireless
 
-  uci set wireless.@wifi-device[0].type="mac80211"
-  uci set wireless.@wifi-device[0].txpower="17"
+  uci set wireless.radio0=wifi-device
+  # Disable the interface!
+  # MT7628 use a dat file, we only get the parameters from here
+  uci set wireless.@wifi-device[0].type="ralink"
+  uci set wireless.@wifi-device[0].txpower="100"
+  uci set wireless.@wifi-device[0].variant="mt7628"
   uci set wireless.@wifi-device[0].channel="$FLM_24_CHANNEL"
   uci set wireless.@wifi-device[0].hwmode="11n"
+  uci set wireless.@wifi-device[0].wifimode="9"
   uci set wireless.@wifi-device[0].country="BR"
 
   if [ "$FLM_24_BAND" = "HT40" ]
   then
     uci set wireless.@wifi-device[0].htmode="$FLM_24_BAND"
     uci set wireless.@wifi-device[0].noscan="1"
-  elif [ "$_remote_htmode_24" = "HT20" ]
+    uci set wireless.@wifi-device[0].ht_bsscoexist="0"
+    uci set wireless.@wifi-device[0].bw="1"
+  elif [ "$FLM_24_BAND" = "HT20" ]
   then
     uci set wireless.@wifi-device[0].htmode="$FLM_24_BAND"
     uci set wireless.@wifi-device[0].noscan="0"
+    uci set wireless.@wifi-device[0].ht_bsscoexist="1"
+    uci set wireless.@wifi-device[0].bw="0"
   else
     uci set wireless.@wifi-device[0].htmode="HT20"
     uci set wireless.@wifi-device[0].noscan="0"
+    uci set wireless.@wifi-device[0].ht_bsscoexist="1"
+    uci set wireless.@wifi-device[0].bw="0"
   fi
 
-  uci set wireless.@wifi-device[0].disabled="0"
+  uci set wireless.@wifi-device[0].disabled="1"
+  uci set wireless.default_radio0=wifi-iface
+  uci set wireless.@wifi-iface[0].ifname="ra0"
+  uci set wireless.@wifi-iface[0].mode="ap"
+  uci set wireless.@wifi-iface[0].network="lan"
+  uci set wireless.@wifi-iface[0].device="radio0"
   uci set wireless.@wifi-iface[0].ssid="$setssid"
   uci set wireless.@wifi-iface[0].encryption="psk2"
   uci set wireless.@wifi-iface[0].key="$FLM_PASSWD"
-  uci set wireless.@wifi-iface[0].macaddr="$MAC_WIFI"
 
-  # 5GHz 802.11 ac mode
-  if [ "$(uci -q get wireless.@wifi-iface[1])" ]
-  then
-    uci set wireless.@wifi-device[1].type="mac80211"
-    uci set wireless.@wifi-device[1].txpower="17"
-    uci set wireless.@wifi-device[1].channel="$FLM_50_CHANNEL"
-    uci set wireless.@wifi-device[1].hwmode="11a"
-    uci set wireless.@wifi-device[1].country="BR"
-    uci set wireless.@wifi-device[1].htmode="VHT80"
-    uci set wireless.@wifi-device[1].noscan="0"
-    uci set wireless.@wifi-device[1].disabled="0"
-    uci set wireless.@wifi-iface[1].ssid="$setssid$SUFFIX_5"
-    uci set wireless.@wifi-iface[1].encryption="psk2"
-    uci set wireless.@wifi-iface[1].key="$FLM_PASSWD"
-    uci set wireless.@wifi-iface[1].macaddr="$MAC_WIFI"
-  fi
   uci commit wireless
 fi
+
+/usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat > /dev/null
+printf "MacAddress=$LOWERMAC\n\n" >> /etc/wireless/mt7628/mt7628.dat
+insmod /lib/modules/`uname -r`/mt7628.ko mac=$LOWERMAC
+echo "mt7628 mac=$LOWERMAC" >> /etc/modules.d/50-mt7628
+
+[ -e /sbin/wifi ] && mv /sbin/wifi /sbin/wifi_legacy
+cp /sbin/mtkwifi /sbin/wifi
+# MT7628 driver needs to reload the first time it loads
+/sbin/wifi reload
 
 exit 0
