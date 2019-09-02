@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=flasman-plugin
-PKG_VERSION:=0.20.0
+PKG_VERSION:=0.20.1
 PKG_RELEASE:=1
 
 PKG_LICENSE:=GPL
@@ -205,6 +205,8 @@ ifeq ($(CONFIG_FLASHMAN_USE_AUTH_SERVER), y)
 	echo 'FLM_AUTH_SVADDR=$(CONFIG_FLASHMAN_AUTH_SERVER_ADDR)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_CLIENT_SECRET=$(CONFIG_FLASHMAN_CLIENT_SECRET)' >>$(1)/usr/share/flashman_init.conf
 endif
+
+	echo 'ZBX_SUPPORT=$(CONFIG_ZABBIX_SUPPORT)' >>$(1)/usr/share/flashman_init.conf
 
 	echo $(PKG_VERSION) > $(1)/etc/anlix_version
 

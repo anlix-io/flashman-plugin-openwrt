@@ -241,7 +241,10 @@ upgfirm=$_has_upgraded_version"
     fi
 
     # Update zabbix parameters as necessary
-    set_zabbix_params "$_zabbix_psk" "$_zabbix_fqdn" "$_zabbix_active"
+    if [ "$ZBX_SUPPORT" == "y" ]
+    then
+      set_zabbix_params "$_zabbix_psk" "$_zabbix_fqdn" "$_zabbix_active"
+    fi
 
     # Check for updates in port forward mapping 
     _local_findex=$(get_forward_indexes "forward_index")

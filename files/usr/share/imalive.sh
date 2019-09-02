@@ -42,7 +42,10 @@ do
     else
       log "IMALIVE" "Connected!"
       log "IMALIVE" "Checking zabbix..."
-      check_zabbix_startup "false"
+      if [ "$ZBX_SUPPORT" == "y" ]
+      then
+        check_zabbix_startup "false"
+      fi
       log "IMALIVE" "Running update..."
       sh /usr/share/flashman_update.sh
       connected=true
@@ -91,7 +94,10 @@ do
       then
         log "IMALIVE" "Reconnected!"
         log "IMALIVE" "Checking zabbix..."
-        check_zabbix_startup "true"
+        if [ "$ZBX_SUPPORT" == "y" ]
+        then
+          check_zabbix_startup "true"
+        fi
         log "IMALIVE" "Running update..."
         sh /usr/share/flashman_update.sh
         connected=true
