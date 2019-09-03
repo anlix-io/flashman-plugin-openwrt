@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=flasman-plugin
-PKG_VERSION:=0.19.0
+PKG_VERSION:=0.20.1
 PKG_RELEASE:=1
 
 PKG_LICENSE:=GPL
@@ -58,7 +58,8 @@ define Package/flashman-plugin
 			+libuci-lua \
 			+libubus-lua \
 			+libmbedtls \
-			+iptables-mod-conntrack-extra
+			+iptables-mod-conntrack-extra \
+			+anlix-miniupnpd
 	MENU:=1
 endef
 
@@ -119,6 +120,8 @@ CUSTOM_FILE_DIR=
 		CUSTOM_FILE_DIR="custom-files/tl-wr840n-v5"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v6), y)
 		CUSTOM_FILE_DIR="custom-files/tl-wr840n-v6"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v62), y)
+		CUSTOM_FILE_DIR="custom-files/tl-wr840n-v62"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v6preset), y)
 		CUSTOM_FILE_DIR="custom-files/tl-wr840n-v6preset"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr845n-v3), y)
@@ -204,6 +207,8 @@ ifeq ($(CONFIG_FLASHMAN_USE_AUTH_SERVER), y)
 	echo 'FLM_AUTH_SVADDR=$(CONFIG_FLASHMAN_AUTH_SERVER_ADDR)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_CLIENT_SECRET=$(CONFIG_FLASHMAN_CLIENT_SECRET)' >>$(1)/usr/share/flashman_init.conf
 endif
+
+	echo 'ZBX_SUPPORT=$(CONFIG_ZABBIX_SUPPORT)' >>$(1)/usr/share/flashman_init.conf
 
 	echo $(PKG_VERSION) > $(1)/etc/anlix_version
 

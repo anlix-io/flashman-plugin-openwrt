@@ -10,7 +10,7 @@ uci set firewall.@zone[0].output="ACCEPT"
 uci set firewall.@zone[0].forward="REJECT"
 uci set firewall.@zone[0].mtu_fix="1"
 # Wan
-uci set firewall.@zone[1].input="ACCEPT"
+uci set firewall.@zone[1].input="REJECT"
 uci set firewall.@zone[1].output="ACCEPT"
 uci set firewall.@zone[1].forward="REJECT"
 uci set firewall.@zone[1].mtu_fix="1"

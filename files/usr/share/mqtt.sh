@@ -37,7 +37,10 @@ ping)
   ;;
 measure)
   log "MQTTMSG" "Changing Zabbix PSK settings"
-  update_zabbix_params "$2"
+  if [ "$ZBX_SUPPORT" == "y" ]
+  then
+    update_zabbix_params "$2"
+  fi
   ;;
 *)
   log "MQTTMSG" "Cant recognize message: $1"
