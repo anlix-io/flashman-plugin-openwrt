@@ -136,7 +136,7 @@ get_online_devices() {
   local _arp_neigh=$(ip neigh | grep lladdr | awk '{ if($3 == "br-lan") print $5, $1 }')
   local _arp_macs=$(awk 'NR>1 { if($6 == "br-lan") print $4, $1 }' /proc/net/arp)
   local _arp_macs_all=$(printf %s\\n%s "$_arp_neigh" "$_arp_macs" | sort | uniq)
-  _arp_macs=$(echo "$_arp_macs_all" | awk '{ print $1 }' | uniq)
+  _arp_macs=$(echo "$_arp_macs_all" | awk '{ print $1 }' | sort | uniq)
 
   # Create control dir with device status
   [ -d /tmp/onlinedevscheck ] && rm -rf /tmp/onlinedevscheck
