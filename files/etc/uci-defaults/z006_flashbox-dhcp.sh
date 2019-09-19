@@ -1,5 +1,6 @@
 #!/bin/sh
 
+. /usr/share/flashman_init.conf
 . /usr/share/functions/network_functions.sh
 
 A=$(uci get dhcp.@dnsmasq[0].interface)
@@ -27,6 +28,13 @@ uci set dhcp.dmz.interface='dmz'
 uci set dhcp.dmz.dynamicdhcp='0'
 uci set dhcp.dmz.leasetime='1h'
 uci set dhcp.dmz.force='1'
+
+if [ "$FLM_DHCP_NOPROXY" == "1" ]
+then
+  uci set dhcp.@dnsmasq[0].noproxy='1'
+else
+  uci set dhcp.@dnsmasq[0].noproxy='0'
+fi
 
 uci commit dhcp
 

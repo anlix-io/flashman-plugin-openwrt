@@ -2,6 +2,40 @@
 
 [ "$ACTION" = ifup ] || exit 0
 
+set_dns_proxy_config() {
+  local _dns_sv_list
+
+  if [ "$(uci get dhcp.@dnsmasq[0].noproxy)" == "1" ]
+  then
+    local _sv_list_opt="6"
+    # Check resolv conf
+    cat /tmp/resolv.conf.auto | grep -q "nameserver"
+    if [ $? -eq 0 ]
+    then
+      if [ "$(uci get dhcp.lan.dhcp_option)" ]
+      then
+        uci delete dhcp.lan.dhcp_option
+      fi
+      # Create DNS list
+      _dns_sv_list=$(cat /tmp/resolv.conf.auto | grep "nameserver" | awk '{print $2}')
+      for _dns_sv in $_dns_sv_list
+      do
+        _sv_list_opt="$_sv_list_opt,$_dns_sv"
+      done
+      uci add_list dhcp.lan.dhcp_option="$_sv_list_opt"
+      uci commit dhcp
+    fi
+  else
+    if [ "$(uci get dhcp.lan.dhcp_option)" ]
+    then
+      uci delete dhcp.lan.dhcp_option
+      uci commit dhcp
+    fi
+  fi
+}
+# Use proxy or give DNS addresses directly
+set_dns_proxy_config
+
 # Fix dnsmasq and iface race condition
 /etc/init.d/dnsmasq enabled && /etc/init.d/dnsmasq restart
 
