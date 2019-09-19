@@ -12,23 +12,40 @@ set_dns_proxy_config() {
     cat /tmp/resolv.conf.auto | grep -q "nameserver"
     if [ $? -eq 0 ]
     then
-      if [ "$(uci get dhcp.lan.dhcp_option)" ]
+      if [ "$(uci get dhcp.lan.dhcp_option > /dev/null 2>&1)" ]
       then
         uci delete dhcp.lan.dhcp_option
       fi
-      # Create DNS list
-      _dns_sv_list=$(cat /tmp/resolv.conf.auto | grep "nameserver" | awk '{print $2}')
+      # Create DNS list. Only IPv4
+      _dns_sv_list=$(cat /tmp/resolv.conf.auto | grep "nameserver" | grep "\." | awk '{print $2}')
       for _dns_sv in $_dns_sv_list
       do
         _sv_list_opt="$_sv_list_opt,$_dns_sv"
       done
       uci add_list dhcp.lan.dhcp_option="$_sv_list_opt"
+
+      if [ "$(uci get dhcp.lan.dns > /dev/null 2>&1)" ]
+      then
+        uci delete dhcp.lan.dns
+      fi
+      # Create DNS list. Only IPv6
+      _dns_sv_list=$(cat /tmp/resolv.conf.auto | grep "nameserver" | grep "\:" | awk '{print $2}')
+      for _dns_sv in $_dns_sv_list
+      do
+        uci add_list dhcp.lan.dns="$_dns_sv"
+      done
+
       uci commit dhcp
     fi
   else
-    if [ "$(uci get dhcp.lan.dhcp_option)" ]
+    if [ "$(uci get dhcp.lan.dhcp_option > /dev/null 2>&1)" ]
     then
       uci delete dhcp.lan.dhcp_option
+      uci commit dhcp
+    fi
+    if [ "$(uci get dhcp.lan.dns > /dev/null 2>&1)" ]
+    then
+      uci delete dhcp.lan.dns
       uci commit dhcp
     fi
   fi
