@@ -71,11 +71,13 @@ flashbox_ping() {
   local _host="$1"
   local _type="$2"
   local _out="$3"
-  local _result=$(ping -q -i 0.01 -c 100 "$_host")
-  local _latval=$(echo "$_result" | awk -F= 'NR==5 { print $2 }' | \
+  local _result=$(ping -i 0.01 -c 100 "$_host")
+  local _latval=$(echo "$_result" | awk -F= 'END { print $2 }' | \
                   awk -F/ '{ print $2 }')
-  local _lossval=$(echo "$_result" | awk -F, 'NR==4 { print $3 }' | \
+  local _lossval=$(echo "$_result" | tail -2 | head -1 | \
+                   awk -F, '{ print $3 }' | \
                    awk '{ print $1 }' | awk -F% '{ print $1 }')
+  local _latvector=$(echo "$_result" | awk -F= '{print $2, $4}' | awk '{print $1, $3} ' | sed '$d')
 
   if [ "$_type" = "lat" ]
   then
@@ -97,12 +99,23 @@ flashbox_ping() {
     else
       echo "$_lossval"
     fi
+  elif [ "$_type" = "latv" ]
+  then
+    if [ "$_out" = "json" ]
+    then
+      json_add_object "$_host"
+      json_add_string "latv" $_latv
+      json_close_object
+    else
+      echo $_latvector
+    fi
   else
     if [ "$_out" = "json" ]
     then
       json_add_object "$_host"
       json_add_string "lat" "$_latval"
       json_add_string "loss" "$_lossval"
+      json_add_string "latv" "$_latvector"
       json_close_object
     else
       echo "$_latval $_lossval"
