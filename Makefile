@@ -144,6 +144,8 @@ CUSTOM_FILE_DIR=
 		CUSTOM_FILE_DIR="custom-files/dir-815-d1"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8196e_DEVICE_GWR300N), y)
 		CUSTOM_FILE_DIR="custom-files/gwr-300-v1"
+	else ifeq ($(CONFIG_TARGET_realtek_rtl8196e_DEVICE_RE172), y)
+		CUSTOM_FILE_DIR="custom-files/re172-v1"
 	else
 		CUSTOM_FILE_DIR="custom-files/default"
 	endif	
