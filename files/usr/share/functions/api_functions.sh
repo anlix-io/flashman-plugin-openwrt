@@ -288,3 +288,43 @@ flashbox_detect_ddos() {
   fi
   return 0
 }
+
+flashbox_get_lan_data() {
+  local _metric="$1"
+  local _t="$2"
+  local _dbfile="/tmp/lan-${_metric}.data"
+  local _iface="br-lan"
+  local _i
+  local _result
+
+  if [ $_t -eq 0 ]
+  then
+    if [ ! -f "${_dbfile}" ]
+    then
+      echo 0 > $_dbfile
+      echo 0 >> $_dbfile
+      echo 0 >> $_dbfile
+      echo 0 >> $_dbfile
+      echo 0 >> $_dbfile
+    fi
+
+    case "$_metric" in
+      "bytes-in") _i=2 ;;
+      "packets-in") _i=3 ;;
+      "bytes-out") _i=10 ;;
+      "packets-out") _i=11 ;;
+    esac
+
+    _result=$(cat /proc/net/dev | grep $_iface | awk -v N=$_i '{ print $N }')
+
+    echo $_result > "${_metric}.swp"
+    head -n -1 $_dbfile >> "${_metric}.swp"
+    mv "${_metric}.swp" $_dbfile
+  fi
+
+  let "_t += 1"
+  _result=$(sed "${_t}q;d" ${_dbfile})
+
+  echo "$_result"
+  return 0
+}
