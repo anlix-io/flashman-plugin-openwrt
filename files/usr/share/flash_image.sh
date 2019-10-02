@@ -126,6 +126,7 @@ run_reflash() {
              "https://$_sv_address/deviceinfo/ack/"
         /etc/init.d/uhttpd stop
         /etc/init.d/miniupnpd stop
+        wifi down
         clean_memory
         sysupgrade -f /tmp/config.tar.gz \
                       "/tmp/"$_vendor"_"$_model"_"$_ver"_"$_release_id".bin"
