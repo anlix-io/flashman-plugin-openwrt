@@ -22,7 +22,7 @@ fi
 
 # Configure WiFi default SSID and password
 if { [ "$SSID_VALUE" = "OpenWrt" ] || [ "$SSID_VALUE" = "LEDE" ] || \
-     [ "$SSID_VALUE" = "" ]; } && [ "$ENCRYPTION_VALUE" != "psk2" ]
+     [ "$SSID_VALUE" = "" ]; } && [ "$ENCRYPTION_VALUE" != "psk2+tkip+ccmp" ]
 then
   if [ "$FLM_SSID_SUFFIX" == "none" ]
   then
@@ -54,7 +54,7 @@ then
 
   uci set wireless.@wifi-device[0].disabled="0"
   uci set wireless.@wifi-iface[0].ssid="$setssid"
-  uci set wireless.@wifi-iface[0].encryption="psk2"
+  uci set wireless.@wifi-iface[0].encryption="psk2+tkip+ccmp"
   uci set wireless.@wifi-iface[0].key="$FLM_PASSWD"
   uci set wireless.@wifi-iface[0].macaddr="$MAC_WIFI"
 
@@ -70,7 +70,7 @@ then
     uci set wireless.@wifi-device[1].noscan="0"
     uci set wireless.@wifi-device[1].disabled="0"
     uci set wireless.@wifi-iface[1].ssid="$setssid$SUFFIX_5"
-    uci set wireless.@wifi-iface[1].encryption="psk2"
+    uci set wireless.@wifi-iface[1].encryption="psk2+tkip+ccmp"
     uci set wireless.@wifi-iface[1].key="$FLM_PASSWD"
     uci set wireless.@wifi-iface[1].macaddr="$MAC_WIFI"
   fi
