@@ -8,11 +8,10 @@
 . /usr/share/functions/device_functions.sh
 
 LOWERMAC=$(get_mac | awk '{ print tolower($1) }')
-MAC_WIFI=$(macaddr_add "$LOWERMAC" 2)
+MAC_WIFI=$(macaddr_add "$LOWERMAC" -1)
 MAC_LAST_CHARS=$(get_mac | awk -F: '{ print $5$6 }')
 SSID_VALUE=$(uci -q get wireless.@wifi-iface[0].ssid)
 ENCRYPTION_VALUE=$(uci -q get wireless.@wifi-iface[0].encryption)
-SUFFIX_5="-5GHz"
 
 # Wireless password cannot be empty or have less than 8 chars
 if [ "$FLM_PASSWD" == "" ] || [ $(echo "$FLM_PASSWD" | wc -m) -lt 9 ]
@@ -58,22 +57,6 @@ then
   uci set wireless.@wifi-iface[0].key="$FLM_PASSWD"
   uci set wireless.@wifi-iface[0].macaddr="$MAC_WIFI"
 
-  # 5GHz 802.11 ac mode
-  if [ "$(uci -q get wireless.@wifi-iface[1])" ]
-  then
-    uci set wireless.@wifi-device[1].type="mac80211"
-    uci set wireless.@wifi-device[1].txpower="17"
-    uci set wireless.@wifi-device[1].channel="$FLM_50_CHANNEL"
-    uci set wireless.@wifi-device[1].hwmode="11a"
-    uci set wireless.@wifi-device[1].country="BR"
-    uci set wireless.@wifi-device[1].htmode="VHT80"
-    uci set wireless.@wifi-device[1].noscan="0"
-    uci set wireless.@wifi-device[1].disabled="0"
-    uci set wireless.@wifi-iface[1].ssid="$setssid$SUFFIX_5"
-    uci set wireless.@wifi-iface[1].encryption="psk2+tkip+ccmp"
-    uci set wireless.@wifi-iface[1].key="$FLM_PASSWD"
-    uci set wireless.@wifi-iface[1].macaddr="$MAC_WIFI"
-  fi
   uci commit wireless
 fi
 

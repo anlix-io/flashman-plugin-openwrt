@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=flasman-plugin
-PKG_VERSION:=0.20.1
+PKG_VERSION:=0.21.0
 PKG_RELEASE:=1
 
 PKG_LICENSE:=GPL
@@ -142,6 +142,10 @@ CUSTOM_FILE_DIR=
 		CUSTOM_FILE_DIR="custom-files/tl-wr949n-v6"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8197d_DEVICE_DIR815D1), y)
 		CUSTOM_FILE_DIR="custom-files/dir-815-d1"
+	else ifeq ($(CONFIG_TARGET_realtek_rtl8196e_DEVICE_GWR300N), y)
+		CUSTOM_FILE_DIR="custom-files/gwr-300-v1"
+	else ifeq ($(CONFIG_TARGET_realtek_rtl8196e_DEVICE_RE172), y)
+		CUSTOM_FILE_DIR="custom-files/re172-v1"
 	else
 		CUSTOM_FILE_DIR="custom-files/default"
 	endif	
@@ -190,6 +194,7 @@ define Package/flashman-plugin/install
 	echo 'FLM_LAN_SUBNET=$(CONFIG_FLASHMAN_LAN_SUBNET)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_LAN_NETMASK=$(CONFIG_FLASHMAN_LAN_NETMASK)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_LAN_IPV6_PREFIX=$(CONFIG_FLASHMAN_LAN_IPV6_PREFIX)' >>$(1)/usr/share/flashman_init.conf
+	echo 'FLM_DHCP_NOPROXY=$(CONFIG_FLASHMAN_DHCP_NOPROXY)' >>$(1)/usr/share/flashman_init.conf
 	echo 'MQTT_PORT=$(CONFIG_MQTT_PORT)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_CLIENT_ORG=$(CONFIG_FLASHMAN_CLIENT_ORG)' >>$(1)/usr/share/flashman_init.conf
 

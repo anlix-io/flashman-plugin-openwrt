@@ -403,3 +403,47 @@ add_static_ip() {
   echo "$_mac $_next_addr" >> /etc/$_ethers_file
   echo "$_next_addr"
 }
+
+get_use_dns_proxy() {
+  local _current_dnsproxy
+
+  _current_dnsproxy="$(uci get dhcp.@dnsmasq[0].noproxy)"
+  if [ $? -eq 0 ]
+  then
+    echo "$_current_dnsproxy"
+  else
+    # If not set than use default
+    echo "$FLM_DHCP_NOPROXY"
+  fi
+}
+
+set_use_dns_proxy() {
+  local _no_dnsproxy
+  local _current_dnsproxy
+
+  _no_dnsproxy=$1
+  if [ "$_no_dnsproxy" != "1" ] && [ "$_no_dnsproxy" != "0" ]
+  then
+    # Invalid value
+    return
+  fi
+
+  _current_dnsproxy="$(uci get dhcp.@dnsmasq[0].noproxy)"
+  if [ $? -eq 0 ]
+  then
+    if [ "$_current_dnsproxy" != "$_no_dnsproxy" ]
+    then
+      if [ "$_no_dnsproxy" == "1" ]
+      then
+        uci set dhcp.@dnsmasq[0].noproxy='1'
+      else
+        uci set dhcp.@dnsmasq[0].noproxy='0'
+      fi
+      uci commit dhcp
+      /etc/init.d/dnsmasq reload
+      /etc/init.d/odhcpd reload
+    fi
+  fi
+
+  return
+}

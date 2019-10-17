@@ -88,6 +88,7 @@ wan_negociated_speed=$(get_wan_negotiated_speed)&\
 wan_negociated_duplex=$(get_wan_negotiated_duplex)&\
 lan_addr=$(get_lan_subnet)&\
 lan_netmask=$(get_lan_netmask)&\
+lan_no_dns_proxy=$(get_use_dns_proxy)&\
 wifi_ssid=$_local_ssid_24&\
 wifi_password=$_local_password_24&\
 wifi_channel=$_local_channel_24&\
@@ -120,6 +121,7 @@ upgfirm=$_has_upgraded_version"
     json_get_var _pppoe_password pppoe_password
     json_get_var _lan_addr lan_addr
     json_get_var _lan_netmask lan_netmask
+    json_get_var _lan_no_dns_proxy lan_no_dns_proxy
     json_get_var _wifi_ssid_24 wifi_ssid
     json_get_var _wifi_password_24 wifi_password
     json_get_var _wifi_channel_24 wifi_channel
@@ -208,6 +210,9 @@ upgfirm=$_has_upgraded_version"
     then
       update_port_forward
     fi
+
+    # Change use of local router DNS proxy
+    set_use_dns_proxy "$_lan_no_dns_proxy"
 
     # WiFi update
     log "FLASHMAN UPDATER" "Updating Wireless ..."

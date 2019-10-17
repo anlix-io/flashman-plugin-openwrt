@@ -21,7 +21,7 @@ get_device_conn_type() {
     # Wireless
     echo "1"
   else
-    if [ $_online -eq 1 ]
+    if [ "$_online" == "1" ]
     then
       # Wired
       echo "0"
@@ -30,7 +30,7 @@ get_device_conn_type() {
     local _state=$(ip neigh | grep "$_mac" | awk '{print $NF}')
     for i in $_state
     do
-      if [ "$i" = "STALE" ] || [ "$i" = "REACHABLE" ]
+      if [ "$i" == "STALE" ] || [ "$i" == "REACHABLE" ]
       then
         # Wired
         echo "0"
@@ -63,7 +63,7 @@ get_ipv6_dhcp() {
           json_select "$((Index_Addr++))"
           json_get_var addrv6 "address"
 
-          #we need to "wake up" the ip to get the mac from ip neigh
+          # We need to "wake up" the ip to get the mac from ip neigh
           ping6 -I br-lan -q -c 1 -w 1 "$addrv6" > /dev/null 2>&1
           local _macaddr=$(ip -6 neigh | grep "$addrv6" | awk '{ if($4 == "lladdr") print $5 }')
           if [ ! -z $_macaddr ]; then
@@ -79,75 +79,97 @@ get_ipv6_dhcp() {
   fi
 }
 
+check_dev_online_status() {
+  local _mac="$1"
+  local _ipv4_neigh="$2"
+  local _ipv6_neigh="$3"
+  local _ipv4="$(echo "$_ipv4_neigh" | grep "$_mac" | awk '{ print $2 }')"
+  local _ipv6="$(echo "$_ipv6_neigh" | grep "$_mac" | awk '{ print $2 }')"
+
+  # check online in ipv4
+  ping -q -c 1 -w 1 "$i" > /dev/null 2>&1
+  if [ $? -eq 0 ]
+  then
+    mv "/tmp/onlinedevscheck/$_mac.wait" "/tmp/onlinedevscheck/$_mac.on"
+    return
+  fi
+
+  for i in $_ipv6
+  do
+    ping6 -I br-lan -q -c 1 -w 1 "$i" > /dev/null 2>&1
+    if [ $? -eq 0 ]
+    then
+      mv "/tmp/onlinedevscheck/$_mac.wait" "/tmp/onlinedevscheck/$_mac.on"
+      return
+    fi
+  done
+
+  # if cant connect, check arp table
+  local _count=0
+  local _state=$(ip neigh | grep "$_mac" | awk '{print $NF}')
+  local _ctrl=$(echo "$_state" | grep "DELAY")
+  while [ ! -z "$_ctrl" ] || [ $_count -eq 2 ]
+  do
+    sleep 2
+    _state=$(ip neigh | grep "$_mac" | awk '{print $NF}')
+    _ctrl=$(echo "$_state" | grep "DELAY")
+    _count=$((_count+1))
+  done
+
+  for s in $_state
+  do
+    if [ "$s" == "STALE" ] || [ "$s" == "REACHABLE" ]
+    then
+      mv "/tmp/onlinedevscheck/$_mac.wait" "/tmp/onlinedevscheck/$_mac.on"
+      return
+    fi
+  done
+
+  mv "/tmp/onlinedevscheck/$_mac.wait" "/tmp/onlinedevscheck/$_mac.off"
+  return
+}
+
 get_online_devices() {
   local _dhcp_ipv6=$(get_ipv6_dhcp)
-  local _arp_neigh=$(ip neigh | grep lladdr | awk '{ if($3 == "br-lan") print $5, $1 }')
-  local _arp_macs=$(awk 'NR>1 { if($6 == "br-lan") print $4, $1 }' /proc/net/arp)
-  local _arp_macs_all=$(printf %s\\n%s "$_arp_neigh" "$_arp_macs" | sort | uniq)
-  local _arp_macs=$(echo "$_arp_macs_all" | awk '{ print $1 }' | uniq)
+  local _ipv4_neigh="$(ip -4 neigh | grep lladdr | awk '{ if($3 == "br-lan") print $5, $1}')"
+  local _ipv6_neigh="$(ip -6 neigh | grep lladdr | awk '{ if($3 == "br-lan") print $5, $1}')"
+  local _macs_v4="$(echo "$_ipv4_neigh" | awk '{ print $1 }')"
+  local _macs_v6="$(echo "$_ipv6_neigh" | awk '{ print $1 }')"
+  local _macs="$(printf %s\\n%s "$_macs_v4" "$_macs_v6" | sort | uniq)"
 
+  # Create control dir with device status
+  [ -d /tmp/onlinedevscheck ] && rm -rf /tmp/onlinedevscheck
+  mkdir /tmp/onlinedevscheck
+  for _mac in $_macs
+  do
+    touch "/tmp/onlinedevscheck/$_mac.wait"
+  done
+  # Dispatch pings and arp checks for each device
+  for _mac in $_macs
+  do
+    (check_dev_online_status "$_mac" "$_ipv4_neigh" "$_ipv6_neigh" & )
+  done
+  # Wait pings and arp checks completion
+  local _wait_complete=1
+  while [ $_wait_complete -eq 1 ]
+  do
+    ls /tmp/onlinedevscheck | grep -q "wait"
+    if [ $? -eq 0 ]
+    then
+      sleep 1
+    else
+      break
+    fi
+  done
+  # Filter only online devs
+  _macs=$(ls /tmp/onlinedevscheck | grep ".on" | awk -F. '{print $1}')
+  # Create JSON with online devices
   json_init
   json_add_object "Devices"
-  local _idx=1
-  for _mac in $_arp_macs
+  for _mac in $_macs
   do
-    local _ipv4="$(echo "$_arp_macs_all" | grep "$_mac" | awk '{ print $2 }' | grep \\.)"
-    local _ipv6="$(echo "$_arp_macs_all" | grep "$_mac" | awk '{ print $2 }' | grep :)"
-
-    # check online in ipv4
-    local _online=0
-    for i in $_ipv4
-    do
-      ping -q -c 1 -w 1 "$i" > /dev/null 2>&1
-      if [ $? -eq 0 ]
-      then
-        _online=1
-      fi
-    done
-
-    # check online in ipv6
-    if [ $_online -eq 0 ]
-    then
-      for i in $_ipv6
-      do
-        ping6 -I br-lan -q -c 1 -w 1 "$i" > /dev/null 2>&1
-        if [ $? -eq 0 ]
-        then
-          _online=1
-        fi
-      done
-    fi
-
-    # if cant connect, check arp table
-    if [ $_online -eq 0 ]
-    then
-      local _count=0
-      local _state=$(ip neigh | grep "$_mac" | awk '{print $NF}')
-      local _ctrl=$(echo "$_state" | grep "DELAY")
-      while [ ! -z "$_ctrl" ] || [ $_count -eq 2 ]
-      do
-        sleep 2
-        _state=$(ip neigh | grep "$_mac" | awk '{print $NF}')
-        _ctrl=$(echo "$_state" | grep "DELAY")
-        _count=$((_count+1))
-      done
-
-      for s in $_state
-      do
-        if [ "$s" = "STALE" ] || [ "$s" = "REACHABLE" ]
-        then
-          _online=1
-        fi
-      done
-    fi
-
-    # if still offline, give up
-    if [ $_online -eq 0 ]
-    then
-      # Not connected get next device
-      _idx=$((_idx+1))
-      continue
-    fi
+    local _ipv4="$(echo "$_ipv4_neigh" | grep "$_mac" | awk '{ print $2 }')"
+    local _ipv6="$(echo "$_ipv6_neigh" | grep "$_mac" | awk '{ print $2 }')"
 
     local _hostname="$(cat /tmp/dhcp.leases | grep $_mac | \
                        awk '{ if ($4=="*") print "!"; else print $4 }')"
@@ -195,7 +217,6 @@ get_online_devices() {
     json_add_string "wifi_freq" "$_dev_freq"
     json_add_string "wifi_mode" "$_dev_mode"
     json_close_object
-    _idx=$((_idx+1))
   done
   json_close_object
   json_dump
