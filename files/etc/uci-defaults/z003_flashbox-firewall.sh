@@ -4,6 +4,7 @@
 uci set firewall.@defaults[-1].input="ACCEPT"
 uci set firewall.@defaults[-1].output="ACCEPT"
 uci set firewall.@defaults[-1].forward="REJECT"
+uci set firewall.@defaults[-1].flow_offloading="1"
 # Lan
 uci set firewall.@zone[0].input="ACCEPT"
 uci set firewall.@zone[0].output="ACCEPT"
