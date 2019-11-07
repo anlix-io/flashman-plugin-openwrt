@@ -103,7 +103,8 @@ then
 fi
 
 #Dump firmware of MT7620
-dd if=/dev/mtd0ro of=/lib/firmware/MT7620_AP_2T2R-4L_V15.BIN bs=1 skip=66080 count=512
+dd if=/dev/mtd0ro of=/lib/firmware/MT7620_AP_2T2R-4L_V15.BIN bs=1 skip=65552 count=512
+dd if=/dev/mtd0ro of=/etc_ro/Wireless/MT7610E-V10-FEM.bin bs=1 skip=66080 count=512
 
 /usr/bin/uci2dat -d radio0 -f /etc/Wireless/mt7620/mt7620.dat > /dev/null
 printf "MacAddress=$LOWERMAC\n\n" >> /etc/Wireless/mt7620/mt7620.dat
