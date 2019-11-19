@@ -319,7 +319,8 @@ add_static_ip() {
   local _mac=$1
   local _dmz=$2
   local _ethers_file="$3"
-  local _device_ip=$(grep "$_mac" /tmp/dhcp.leases | awk '{print $3}')
+  local _ipv4_neigh="$(ip -4 neigh | grep lladdr | awk '{ if($3 == "br-lan") print $5, $1}')"
+  local _device_ip="$(echo "$_ipv4_neigh" | grep "$_mac" | awk '{ print $2 }')"
   local _lan_subnet=$(get_lan_subnet)
   local _lan_netmask=$(get_lan_netmask)
   local _dmz_subnet="192.168.43.0"
