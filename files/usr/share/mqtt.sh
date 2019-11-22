@@ -42,6 +42,10 @@ measure)
     update_zabbix_params "$2"
   fi
   ;;
+status)
+  log "MQTTMSG" "Collecting status information"
+  router_status
+  ;;
 *)
   log "MQTTMSG" "Cant recognize message: $1"
   ;;
