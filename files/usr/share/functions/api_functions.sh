@@ -187,3 +187,42 @@ run_ping_ondemand_test() {
   fi
   return 0
 }
+
+router_status() {
+  local _res
+  local _processed
+  local _sys_uptime
+  local _wan_uptime
+  local _out_file="/tmp/router_status.json"
+
+  json_load "$(ifstatus wan)"
+  json_get_var _wan_uptime uptime
+  json_close_object
+
+  _sys_uptime="$(awk -F. '{print $1}' /proc/uptime)"
+
+  json_init
+  json_add_string "sysuptime" "$_sys_uptime"
+  json_add_string "wanuptime" "$_wan_uptime"
+  json_dump > "$_out_file"
+  json_cleanup
+
+  if [ -f "$_out_file" ]
+  then
+    _res=""
+    _res=$(cat "$_out_file" | curl -s --tlsv1.2 --connect-timeout 5 \
+           --retry 1 -H "Content-Type: application/json" \
+           -H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
+           --data @- "https://$FLM_SVADDR/deviceinfo/receive/routerstatus")
+
+    json_load "$_res"
+    json_get_var _processed processed
+    json_close_object
+
+    rm "$_out_file"
+
+    return $_processed
+  else
+    return 0
+  fi
+}
