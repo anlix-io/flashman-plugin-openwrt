@@ -200,7 +200,7 @@ wan_uptime() {
   json_load "$(ifstatus wan)"
   json_get_var _wan_up up
 
-  if [ "$_wan_up" = "true" ]
+  if [ $_wan_up -eq 1 ]
   then
     json_get_var _wan_uptime uptime
   else
