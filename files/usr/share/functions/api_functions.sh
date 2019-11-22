@@ -188,6 +188,30 @@ run_ping_ondemand_test() {
   return 0
 }
 
+sys_uptime() {
+  echo "$(awk -F. '{print $1}' /proc/uptime)"
+}
+
+wan_uptime() {
+  local _wan_uptime
+  local _wan_up
+
+  json_cleanup
+  json_load "$(ifstatus wan)"
+  json_get_var _wan_up up
+
+  if [ "$_wan_up" = "true" ]
+  then
+    json_get_var _wan_uptime uptime
+  else
+    _wan_uptime="0"
+  fi
+
+  json_close_object
+
+  echo "$_wan_uptime"
+}
+
 router_status() {
   local _res
   local _processed
@@ -195,11 +219,8 @@ router_status() {
   local _wan_uptime
   local _out_file="/tmp/router_status.json"
 
-  json_load "$(ifstatus wan)"
-  json_get_var _wan_uptime uptime
-  json_close_object
-
-  _sys_uptime="$(awk -F. '{print $1}' /proc/uptime)"
+  _sys_uptime="$(sys_uptime)"
+  _wan_uptime="$(wan_uptime)"
 
   json_init
   json_add_string "sysuptime" "$_sys_uptime"

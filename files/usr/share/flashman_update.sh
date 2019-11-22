@@ -103,7 +103,9 @@ wifi_mode_5ghz=$_local_hwmode_50&\
 connection_type=$(get_wan_type)&\
 ntp=$(ntp_anlix)&\
 hardreset=$_hard_reset_info&\
-upgfirm=$_has_upgraded_version"
+upgfirm=$_has_upgraded_version&\
+sysuptime=$(sys_uptime)&\
+wanuptime=$(wan_uptime)"
   _url="deviceinfo/syn/"
   _res=$(rest_flashman "$_url" "$_data")
 

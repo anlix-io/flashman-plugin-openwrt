@@ -7,6 +7,7 @@
 . /usr/share/functions/device_functions.sh
 . /usr/share/functions/wireless_functions.sh
 . /usr/share/functions/network_functions.sh
+. /usr/share/functions/api_functions.sh
 
 _need_update=0
 _cert_error=0
@@ -64,7 +65,9 @@ wifi_channel_5ghz=$_local_channel_50&\
 wifi_band_5ghz=$_local_htmode_50&\
 wifi_mode_5ghz=$_local_hwmode_50&\
 connection_type=$(get_wan_type)&\
-ntp=$(ntp_anlix)"
+ntp=$(ntp_anlix)&\
+sysuptime=$(sys_uptime)&\
+wanuptime=$(wan_uptime)"
     _url="deviceinfo/syn/"
     _res=$(rest_flashman "$_url" "$_data")
 
