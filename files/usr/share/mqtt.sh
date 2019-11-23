@@ -49,7 +49,7 @@ status)
   ;;
 wifistate)
   log "MQTTMSG" "Changing wireless radio state"
-  change_wifi_state "$2"
+  change_wifi_state "$2" "$3"
   ;;
 *)
   log "MQTTMSG" "Cant recognize message: $1"
