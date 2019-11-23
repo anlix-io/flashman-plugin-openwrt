@@ -196,3 +196,32 @@ set_wifi_local_config() {
     wifi reload
   fi
 }
+
+change_wifi_state() {
+  local _state
+
+  _state=$1
+
+  if [ "_$_state" = "0" ]
+  then
+    uci set wireless.@wifi-iface[0].disabled="1"
+    # 5GHz
+    if [ "$(uci -q get wireless.@wifi-iface[1])" ]
+    then
+      uci set wireless.@wifi-iface[1].disabled="1"
+    fi
+
+    save_wifi_local_config
+    wifi down
+  else
+    uci set wireless.@wifi-iface[0].disabled="0"
+    # 5GHz
+    if [ "$(uci -q get wireless.@wifi-iface[1])" ]
+    then
+      uci set wireless.@wifi-iface[1].disabled="0"
+    fi
+
+    save_wifi_local_config
+    wifi up
+  fi
+}
