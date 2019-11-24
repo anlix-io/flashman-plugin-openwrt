@@ -301,3 +301,57 @@ get_lan_dev_negotiated_speed() {
 
   echo "$_speed"
 }
+
+store_enable_wifi() {
+  local _itf_num
+  local _lowermac
+  local _lowermac_5
+  # 0: 2.4GHz 1: 5.0GHz 2: Both
+  _itf_num=$1
+  _lowermac=$(get_mac | awk '{ print tolower($1) }')
+  _lowermac_5=$(macaddr_add "$_lowermac" 2)
+
+  wifi down
+
+  if [ "$_itf_num" = "0" ]
+  then
+    insmod /lib/modules/`uname -r`/mt76x2ap.ko
+    echo "mt76x2ap" > /etc/modules.d/50-mt76x2
+  elif [ "$_itf_num" = "1" ]
+  then
+    insmod /lib/modules/`uname -r`/mt7610e.ko mac=$_lowermac_5
+    echo "mt7610e mac=$_lowermac_5" > /etc/modules.d/51-mt7610e
+  else
+    insmod /lib/modules/`uname -r`/mt76x2ap.ko
+    insmod /lib/modules/`uname -r`/mt7610e.ko mac=$_lowermac_5
+    echo "mt76x2ap" > /etc/modules.d/50-mt76x2
+    echo "mt7610e mac=$_lowermac_5" > /etc/modules.d/51-mt7610e
+  fi
+
+  wifi up
+}
+
+store_disable_wifi() {
+  local _itf_num
+  # 0: 2.4GHz 1: 5.0GHz 2: Both
+  _itf_num=$1
+
+  wifi down
+
+  if [ "$_itf_num" = "0" ]
+  then
+    rmmod /lib/modules/`uname -r`/mt76x2ap.ko
+    rm /etc/modules.d/50-mt76x2
+  elif [ "$_itf_num" = "1" ]
+  then
+    rmmod /lib/modules/`uname -r`/mt7610e.ko
+    rm /etc/modules.d/51-mt7610e
+  else
+    rmmod /lib/modules/`uname -r`/mt76x2ap.ko
+    rmmod /lib/modules/`uname -r`/mt7610e.ko
+    rm /etc/modules.d/50-mt76x2
+    rm /etc/modules.d/51-mt7610e
+  fi
+
+  wifi up
+}

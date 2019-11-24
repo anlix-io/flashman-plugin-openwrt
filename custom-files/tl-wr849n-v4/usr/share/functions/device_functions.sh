@@ -232,3 +232,24 @@ get_lan_dev_negotiated_speed() {
 
   echo "$_speed"
 }
+
+store_enable_wifi() {
+  local _lowermac
+  _lowermac=$(get_mac | awk '{ print tolower($1) }')
+
+  wifi down
+
+  insmod /lib/modules/`uname -r`/mt7628.ko mac=$_lowermac
+  echo "mt7628 mac=$_lowermac" > /etc/modules.d/50-mt7628
+
+  wifi up
+}
+
+store_disable_wifi() {
+  wifi down
+
+  rmmod /lib/modules/`uname -r`/mt7628.ko
+  rm /etc/modules.d/50-mt7628
+
+  wifi up
+}
