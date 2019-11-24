@@ -279,3 +279,29 @@ get_lan_dev_negotiated_speed() {
 
   echo "$_speed"
 }
+
+store_enable_wifi() {
+  local _itf_num
+  # 0: 2.4GHz 1: 5.0GHz 2: Both
+  _itf_num=$1
+
+  wifi down
+
+  insmod /lib/modules/`uname -r`/mt76x2ap.ko
+  echo "mt76x2ap" > /etc/modules.d/50-mt76x2
+
+  wifi up
+}
+
+store_disable_wifi() {
+  local _itf_num
+  # 0: 2.4GHz 1: 5.0GHz 2: Both
+  _itf_num=$1
+
+  wifi down
+
+  rmmod /lib/modules/`uname -r`/mt76x2ap.ko
+  rm /etc/modules.d/50-mt76x2
+
+  wifi up
+}
