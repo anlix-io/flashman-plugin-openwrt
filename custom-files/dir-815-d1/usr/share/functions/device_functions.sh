@@ -249,3 +249,51 @@ get_lan_dev_negotiated_speed() {
 
   echo "$_speed"
 }
+
+store_enable_wifi() {
+  local _itf_num
+  # 0: 2.4GHz 1: 5.0GHz 2: Both
+  _itf_num=$1
+
+  wifi down
+
+  if [ "$_itf_num" = "0" ]
+  then
+    uci set wireless.@wifi-iface[0].disabled="0"
+  else
+    uci set wireless.@wifi-iface[0].disabled="0"
+  fi
+  save_wifi_local_config
+  wifi up
+}
+
+store_disable_wifi() {
+  local _itf_num
+  # 0: 2.4GHz 1: 5.0GHz 2: Both
+  _itf_num=$1
+
+  wifi down
+
+  if [ "$_itf_num" = "0" ]
+  then
+    uci set wireless.@wifi-iface[0].disabled="1"
+  else
+    uci set wireless.@wifi-iface[0].disabled="1"
+  fi
+  save_wifi_local_config
+  wifi up
+}
+
+get_wifi_state() {
+  local _itf_num
+  # 0: 2.4GHz 1: 5.0GHz
+  _itf_num=$1
+
+  if [ "$_itf_num" = "0" ]
+  then
+    uci get wireless.@wifi-iface[0].disabled
+  elif [ "$_itf_num" = "1" ]
+  then
+    uci get wireless.@wifi-iface[1].disabled
+  fi
+}

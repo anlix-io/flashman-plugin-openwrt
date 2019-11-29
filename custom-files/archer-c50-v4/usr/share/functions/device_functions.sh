@@ -334,3 +334,29 @@ store_disable_wifi() {
 
   wifi up
 }
+
+get_wifi_state() {
+  local _itf_num
+  # 0: 2.4GHz 1: 5.0GHz
+  _itf_num=$1
+
+  if [ "$_itf_num" = "0" ]
+  then
+    lsmod | grep -q "mt7628"
+    if [ $? -eq 0 ]
+    then
+      echo "1"
+    else
+      echo "0"
+    fi
+  elif [ "$_itf_num" = "1" ]
+  then
+    lsmod | grep -q "mt76x2ap"
+    if [ $? -eq 0 ]
+    then
+      echo "1"
+    else
+      echo "0"
+    fi
+  fi
+}

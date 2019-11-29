@@ -293,3 +293,17 @@ store_disable_wifi() {
   save_wifi_local_config
   wifi up
 }
+
+get_wifi_state() {
+  local _itf_num
+  # 0: 2.4GHz 1: 5.0GHz
+  _itf_num=$1
+
+  if [ "$_itf_num" = "0" ]
+  then
+    uci get wireless.@wifi-iface[0].disabled
+  elif [ "$_itf_num" = "1" ]
+  then
+    uci get wireless.@wifi-iface[1].disabled
+  fi
+}
