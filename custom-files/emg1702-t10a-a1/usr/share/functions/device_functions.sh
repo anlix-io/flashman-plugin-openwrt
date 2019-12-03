@@ -1,5 +1,7 @@
 #!/bin/sh
 
+. /lib/functions/system.sh
+
 save_wifi_local_config() {
   uci commit wireless
   /usr/bin/uci2dat -d radio0 -f /etc/Wireless/mt7620/mt7620.dat > /dev/null
