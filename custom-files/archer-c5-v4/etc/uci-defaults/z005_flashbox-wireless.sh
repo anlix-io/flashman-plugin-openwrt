@@ -105,7 +105,7 @@ else
   uci commit wireless
 fi
 
-# Dump firmware in /lib/firmware 
+# Dump firmware in /lib/firmware
 dd if=/dev/mtd8ro of=/lib/firmware/MT7620_AP_2T2R-4L_V15.BIN bs=1 count=512
 dd if=/dev/mtd8ro of=/lib/firmware/MT7612E_EEPROM.bin bs=1k skip=32 count=32
 
@@ -121,6 +121,7 @@ echo "mt76x2ap" >> /etc/modules.d/50-mt76x2
 
 [ -e /sbin/wifi ] && mv /sbin/wifi /sbin/wifi_legacy
 cp /sbin/mtkcustomwifi /sbin/wifi
+chmod 755 /sbin/wifi
 # MT7620 driver needs to reload the first time it loads
 /sbin/wifi reload
 
