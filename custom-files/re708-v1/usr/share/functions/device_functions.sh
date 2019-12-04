@@ -1,7 +1,11 @@
 #!/bin/sh
 
 save_wifi_local_config() {
-  # Current MT7620 driver has a bug with 2.4 "auto" channel mode
+  # Bug in auto mode
+  if [ "$(uci -q get wireless.radio0.channel)" == "auto" ]
+  then
+    uci set wireless.radio0.channel="6"
+  fi
   if [ "$(uci -q get wireless.radio1.channel)" == "auto" ] || ([ "$(uci -q get wireless.radio1.channel)" -gt 50 ] && [ "$(uci -q get wireless.radio1.channel)" -lt 142 ])
   then
     uci set wireless.radio1.channel="36"
@@ -152,29 +156,6 @@ reset_leds() {
   done
 
   /etc/init.d/led restart > /dev/null
-
-  for system_led in /sys/class/leds/*system*
-  do
-    led_on "$system_led"
-  done
-
-  # reset hardware lan ports if any
-  for lan_led in /sys/class/leds/*lan*
-  do
-    if [ -f "$lan_led"/enable_hw_mode ]
-    then
-      echo 1 > "$lan_led"/enable_hw_mode
-    fi
-  done
-
-  # reset hardware wan port if any
-  for wan_led in /sys/class/leds/*wan*
-  do
-    if [ -f "$wan_led"/enable_hw_mode ]
-    then
-      echo 1 > "$wan_led"/enable_hw_mode
-    fi
-  done
 }
 
 blink_leds() {
@@ -182,8 +163,7 @@ blink_leds() {
 
   if [ $_do_restart -eq 0 ]
   then
-    ledsoff=$(ls -d /sys/class/leds/*)
-    for trigger_path in $ledsoff
+    for trigger_path in $(ls -d /sys/class/leds/*)
     do
       echo "timer" > "$trigger_path"/trigger
     done

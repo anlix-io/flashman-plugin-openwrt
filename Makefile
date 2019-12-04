@@ -148,9 +148,11 @@ CUSTOM_FILE_DIR=
 		CUSTOM_FILE_DIR="custom-files/gwr-300-v1"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8196e_DEVICE_RE172), y)
 		CUSTOM_FILE_DIR="custom-files/re172-v1"
+	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_RE708), y)
+		CUSTOM_FILE_DIR="custom-files/re708-v1"
 	else
 		CUSTOM_FILE_DIR="custom-files/default"
-	endif	
+	endif
 
 WAN_PROTO=
 	ifeq ($(CONFIG_FLASHMAN_WAN_PROTO_DHCP), y)
@@ -173,7 +175,7 @@ SSID_SUFFIX=
 define Package/flashman-plugin/install
 	$(CP) ./$(FILE_DIR)/* $(1)/
 	$(CP) ./$(CUSTOM_FILE_DIR)/* $(1)/
-	
+
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/anlix-mqtt $(1)/usr/bin/
 
