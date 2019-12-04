@@ -36,7 +36,6 @@ then
   touch /etc/config/wireless
 
   uci set wireless.radio0=wifi-device
-  # Disable the interface!
   # MT7620 use a dat file, we only get the parameters from here
   uci set wireless.@wifi-device[0].type="ralink"
   uci set wireless.@wifi-device[0].txpower="100"
@@ -65,8 +64,8 @@ then
     uci set wireless.@wifi-device[0].bw="0"
   fi
 
-  uci set wireless.@wifi-device[0].disabled="1"
   uci set wireless.default_radio0=wifi-iface
+  uci set wireless.@wifi-iface[0].disabled="0"
   uci set wireless.@wifi-iface[0].ifname="ra0"
   uci set wireless.@wifi-iface[0].mode="ap"
   uci set wireless.@wifi-iface[0].network="lan"
@@ -76,7 +75,6 @@ then
   uci set wireless.@wifi-iface[0].key="$FLM_PASSWD"
   # 5GHz - MT7612e
   uci set wireless.radio1=wifi-device
-  # Disable the interface!
   # MT7612e use a dat file, we only get the parameters from here
   uci set wireless.@wifi-device[1].type="ralink"
   uci set wireless.@wifi-device[1].txpower="100"
@@ -89,8 +87,8 @@ then
   uci set wireless.@wifi-device[1].noscan="1"
   uci set wireless.@wifi-device[1].ht_bsscoexist="0"
   uci set wireless.@wifi-device[1].bw="2"
-  uci set wireless.@wifi-device[1].disabled="1"
   uci set wireless.default_radio1=wifi-iface
+  uci set wireless.@wifi-iface[1].disabled="0"
   uci set wireless.@wifi-iface[1].ifname="rai0"
   uci set wireless.@wifi-iface[1].mode="ap"
   uci set wireless.@wifi-iface[1].network="lan"
@@ -100,9 +98,14 @@ then
   uci set wireless.@wifi-iface[1].key="$FLM_PASSWD"
 
   uci commit wireless
+else
+  uci set wireless.@wifi-iface[0].disabled="0"
+  uci set wireless.@wifi-iface[1].disabled="0"
+
+  uci commit wireless
 fi
 
-#Dump firmware in /lib/firmware 
+# Dump firmware in /lib/firmware
 dd if=/dev/mtd8ro of=/lib/firmware/MT7620_AP_2T2R-4L_V15.BIN bs=1 count=512
 dd if=/dev/mtd8ro of=/lib/firmware/MT7612E_EEPROM.bin bs=1k skip=32 count=32
 
@@ -117,7 +120,8 @@ insmod /lib/modules/`uname -r`/mt76x2ap.ko
 echo "mt76x2ap" >> /etc/modules.d/50-mt76x2
 
 [ -e /sbin/wifi ] && mv /sbin/wifi /sbin/wifi_legacy
-cp /sbin/mtkwifi /sbin/wifi
+cp /sbin/mtkcustomwifi /sbin/wifi
+chmod 755 /sbin/wifi
 # MT7620 driver needs to reload the first time it loads
 /sbin/wifi reload
 

@@ -260,3 +260,44 @@ get_lan_dev_negotiated_speed() {
 
   echo "$_speed"
 }
+
+store_enable_wifi() {
+  local _lowermac
+  _lowermac=$(get_mac | awk '{ print tolower($1) }')
+
+  wifi down
+
+  insmod /lib/modules/`uname -r`/mt7628.ko mac=$_lowermac
+  echo "mt7628 mac=$_lowermac" > /etc/modules.d/50-mt7628
+
+  wifi up
+}
+
+store_disable_wifi() {
+  wifi down
+
+  rmmod /lib/modules/`uname -r`/mt7628.ko
+  rm /etc/modules.d/50-mt7628
+
+  wifi up
+}
+
+get_wifi_state() {
+  local _itf_num
+  # 0: 2.4GHz 1: 5.0GHz
+  _itf_num=$1
+
+  if [ "$_itf_num" = "0" ]
+  then
+    lsmod | grep -q "mt7628"
+    if [ $? -eq 0 ]
+    then
+      echo "1"
+    else
+      echo "0"
+    fi
+  elif [ "$_itf_num" = "1" ]
+  then
+    echo "0"
+  fi
+}
