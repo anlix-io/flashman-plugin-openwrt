@@ -1,5 +1,6 @@
 #!/bin/sh
 
+. /lib/functions.sh
 . /lib/functions/system.sh
 
 save_wifi_local_config() {
