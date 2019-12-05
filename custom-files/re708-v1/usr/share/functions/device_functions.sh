@@ -1,5 +1,7 @@
 #!/bin/sh
 
+. /lib/functions/system.sh
+
 save_wifi_local_config() {
   # Bug in auto mode
   if [ "$(uci -q get wireless.radio0.channel)" == "auto" ]
@@ -174,7 +176,7 @@ get_mac() {
   local _mac_address_tag=""
   local _p1
 
-  _p1=$(awk '{print toupper($1)}' /sys/class/net/eth1/address)
+  _p1=$(mtd_get_mac_binary boot 131079 | awk '{print toupper($1)}')
   if [ ! -z "$_p1" ]
   then
     _mac_address_tag=$_p1
