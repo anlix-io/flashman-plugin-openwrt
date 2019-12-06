@@ -3,6 +3,7 @@
 . /usr/share/flashman_init.conf
 . /usr/share/libubox/jshn.sh
 . /usr/share/functions/device_functions.sh
+. /usr/share/functions/firewall_functions.sh
 
 send_boot_log() {
   local _res
@@ -246,4 +247,29 @@ router_status() {
   else
     return 0
   fi
+}
+
+run_speed_ondemand_test() {
+  local _sv_ip_addr="$1"
+  local _username="$2"
+  local _url="http://$_sv_ip_addr/measure"
+  local _result
+  local _retstatus
+  local _reply
+  drop_all_forward_traffic
+  _result="$(flash-measure 3 \
+             "$_url/file1.bin" \
+             "$_url/file2.bin" \
+             "$_url/file3.bin")"
+  _retstatus=$?
+  restart_firewall
+  if [ _retstatus -ne 0 ]
+  then
+    _result="Error"
+  fi
+  _reply='{"downSpeed":"'"$_result"'","user":"'"$_username"'"}'
+  curl -s --tlsv1.2 --connect-timeout 5 --retry 1 -H "Content-Type: application/json" \
+  -H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" --data "$_reply" \
+  "https://$FLM_SVADDR/deviceinfo/receive/speedtestresult"
+  return 0
 }
