@@ -263,7 +263,7 @@ run_speed_ondemand_test() {
              "$_url/file3.bin")"
   _retstatus=$?
   restart_firewall
-  if [ _retstatus -ne 0 ]
+  if [ $_retstatus -ne 0 ]
   then
     _result="Error"
   fi
