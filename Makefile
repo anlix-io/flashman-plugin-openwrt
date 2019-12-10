@@ -94,6 +94,8 @@ CUSTOM_FILE_DIR=
 		CUSTOM_FILE_DIR="custom-files/dl-dwr116-a3"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_itlb-ncloud-v1), y)
 		CUSTOM_FILE_DIR="custom-files/itlb-ncloud-v1"
+	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_ACTIONRG1200), y)
+		CUSTOM_FILE_DIR="custom-files/actionrg1200-v1"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_dir-819-a1), y)
 		CUSTOM_FILE_DIR="custom-files/dir-819-a1"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_emg1702-t10a-a1), y)
