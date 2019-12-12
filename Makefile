@@ -48,8 +48,8 @@ define Package/flashman-plugin
 			+iputils-ping \
 			+iputils-ping6 \
 			+wireless-tools \
-			+uhttpd \
-			+uhttpd-mod-lua \
+			uhttpd \
+			uhttpd-mod-lua \
 			+px5g-mbedtls \
 			+libustream-mbedtls \
 			+libuuid \
@@ -58,8 +58,8 @@ define Package/flashman-plugin
 			+libuci-lua \
 			+libubus-lua \
 			+libmbedtls \
-			+iptables-mod-conntrack-extra \
-			+anlix-miniupnpd
+			iptables-mod-conntrack-extra \
+			anlix-miniupnpd
 	MENU:=1
 endef
 
