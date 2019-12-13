@@ -178,13 +178,13 @@ get_mac() {
 
 # Possible values: empty, 10, 100 or 100
 get_wan_negotiated_speed() {
-  swconfig dev switch0 port 4 get link | \
+  swconfig dev switch0 port 0 get link | \
   awk '{print $3}' | awk -F: '{print $2}' | awk -Fbase '{print $1}'
 }
 
 # Possible values: empty, half or full
 get_wan_negotiated_duplex() {
-  swconfig dev switch0 port 4 get link | \
+  swconfig dev switch0 port 0 get link | \
   awk '{print $4}' | awk -F- '{print $1}'
 }
 
