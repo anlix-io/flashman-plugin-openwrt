@@ -1,12 +1,9 @@
 #!/bin/sh
 
-save_wifi_local_config() {
-  # Current MT7620 driver has a bug with 2.4 "auto" channel mode
-  if [ "$(uci -q get wireless.radio1.channel)" == "auto" ] || ([ "$(uci -q get wireless.radio1.channel)" -gt 50 ] && [ "$(uci -q get wireless.radio1.channel)" -lt 142 ])
-  then
-    uci set wireless.radio1.channel="36"
-  fi
+. /lib/functions.sh
+. /lib/functions/system.sh
 
+save_wifi_local_config() {
   if [ "$(uci -q get wireless.radio1.hwmode)" = "11ac" ]
   then
     uci set wireless.radio1.hwmode="11a"
@@ -152,29 +149,6 @@ reset_leds() {
   done
 
   /etc/init.d/led restart > /dev/null
-
-  for system_led in /sys/class/leds/*system*
-  do
-    led_on "$system_led"
-  done
-
-  # reset hardware lan ports if any
-  for lan_led in /sys/class/leds/*lan*
-  do
-    if [ -f "$lan_led"/enable_hw_mode ]
-    then
-      echo 1 > "$lan_led"/enable_hw_mode
-    fi
-  done
-
-  # reset hardware wan port if any
-  for wan_led in /sys/class/leds/*wan*
-  do
-    if [ -f "$wan_led"/enable_hw_mode ]
-    then
-      echo 1 > "$wan_led"/enable_hw_mode
-    fi
-  done
 }
 
 blink_leds() {
@@ -182,8 +156,7 @@ blink_leds() {
 
   if [ $_do_restart -eq 0 ]
   then
-    ledsoff=$(ls -d /sys/class/leds/*)
-    for trigger_path in $ledsoff
+    for trigger_path in $(ls -d /sys/class/leds/*)
     do
       echo "timer" > "$trigger_path"/trigger
     done
@@ -194,7 +167,7 @@ get_mac() {
   local _mac_address_tag=""
   local _p1
 
-  _p1=$(awk '{print toupper($1)}' /sys/class/net/eth1/address)
+  _p1=$(mtd_get_mac_binary boot 131091 | awk '{print toupper($1)}')
   if [ ! -z "$_p1" ]
   then
     _mac_address_tag=$_p1
@@ -205,13 +178,13 @@ get_mac() {
 
 # Possible values: empty, 10, 100 or 100
 get_wan_negotiated_speed() {
-  swconfig dev switch0 port 4 get link | \
+  swconfig dev switch0 port 0 get link | \
   awk '{print $3}' | awk -F: '{print $2}' | awk -Fbase '{print $1}'
 }
 
 # Possible values: empty, half or full
 get_wan_negotiated_duplex() {
-  swconfig dev switch0 port 4 get link | \
+  swconfig dev switch0 port 0 get link | \
   awk '{print $4}' | awk -F- '{print $1}'
 }
 
