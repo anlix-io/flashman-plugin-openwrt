@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=flasman-plugin
-PKG_VERSION:=0.21.1
+PKG_VERSION:=0.22.0
 PKG_RELEASE:=1
 
 PKG_LICENSE:=GPL
@@ -94,8 +94,14 @@ CUSTOM_FILE_DIR=
 		CUSTOM_FILE_DIR="custom-files/dl-dwr116-a3"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_itlb-ncloud-v1), y)
 		CUSTOM_FILE_DIR="custom-files/itlb-ncloud-v1"
+	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_ACTIONRF1200), y)
+		CUSTOM_FILE_DIR="custom-files/actionrf1200-v1"
+	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_ACTIONRG1200), y)
+		CUSTOM_FILE_DIR="custom-files/actionrg1200-v1"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_dir-819-a1), y)
 		CUSTOM_FILE_DIR="custom-files/dir-819-a1"
+	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_emg1702-t10a-a1), y)
+		CUSTOM_FILE_DIR="custom-files/emg1702-t10a-a1"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr741nd-v4), y)
 		CUSTOM_FILE_DIR="custom-files/tl-wr741nd-v4"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr841-v7), y)
@@ -144,11 +150,15 @@ CUSTOM_FILE_DIR=
 		CUSTOM_FILE_DIR="custom-files/dir-815-d1"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8196e_DEVICE_GWR300N), y)
 		CUSTOM_FILE_DIR="custom-files/gwr-300-v1"
+	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_GWR1200AC), y)
+		CUSTOM_FILE_DIR="custom-files/gwr-1200-v1"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8196e_DEVICE_RE172), y)
 		CUSTOM_FILE_DIR="custom-files/re172-v1"
+	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_RE708), y)
+		CUSTOM_FILE_DIR="custom-files/re708-v1"
 	else
 		CUSTOM_FILE_DIR="custom-files/default"
-	endif	
+	endif
 
 WAN_PROTO=
 	ifeq ($(CONFIG_FLASHMAN_WAN_PROTO_DHCP), y)
@@ -171,7 +181,7 @@ SSID_SUFFIX=
 define Package/flashman-plugin/install
 	$(CP) ./$(FILE_DIR)/* $(1)/
 	$(CP) ./$(CUSTOM_FILE_DIR)/* $(1)/
-	
+
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/anlix-mqtt $(1)/usr/bin/
 

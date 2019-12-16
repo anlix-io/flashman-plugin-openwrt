@@ -1,0 +1,110 @@
+#!/bin/sh
+
+function add_vif_into_lan()
+{
+    A=$(uci get network.lan.ifname)
+    if [ ! -z "${A##* $1*}" ]
+    then
+      iflan=$(uci get network.lan.ifname)
+      brifs="$iflan $1"
+      uci set network.lan.ifname="$brifs"
+      uci commit
+      ubus call network.interface.lan add_device "{\"name\":\"$1\"}"
+    fi
+}
+
+function mtk_up()
+{
+    #2.4GHz
+    if [ -e "/sys/class/net/ra0" ]
+    then
+        _q=$(uci -q get wireless.@wifi-iface[0].disabled)
+        if [ "$_q" ]
+        then
+            if [ "$(uci get wireless.@wifi-iface[0].disabled)" = "0" ]
+            then
+                ifconfig ra0 up
+                add_vif_into_lan "ra0"
+                for i in /sys/class/net/apcli*
+                do
+                    ifconfig $(echo $i| cut -d '/' -f 5-) up
+                done
+            fi
+        else
+            ifconfig ra0 up
+            add_vif_into_lan "ra0"
+            for i in /sys/class/net/apcli*
+            do
+                ifconfig $(echo $i| cut -d '/' -f 5-) up
+            done
+        fi
+    fi
+
+    #5GHz
+    if [ -e "/sys/class/net/rai0" ]
+    then
+        _q=$(uci -q get wireless.@wifi-iface[1].disabled)
+        if [ "$_q" ]
+        then
+            if [ "$(uci get wireless.@wifi-iface[1].disabled)" = "0" ]
+            then
+                ifconfig rai0 up
+                add_vif_into_lan "rai0"
+            fi
+        else
+            ifconfig rai0 up
+            add_vif_into_lan "rai0"
+        fi
+    fi
+}
+
+function mtk_down()
+{
+    #2.4GHz
+    if [ -e "/sys/class/net/ra0" ]
+    then
+        for i in /sys/class/net/apcli*
+        do
+           ifconfig $(echo $i| cut -d '/' -f 5-) down
+        done
+        ifconfig ra0 down
+    fi
+
+    #5GHz
+    if [ -e "/sys/class/net/rai0" ]
+    then
+        ifconfig rai0 down
+    fi
+}
+
+function mtk_reload()
+{
+    mtk_down
+    mtk_up
+}
+
+if [ -e "/sys/class/net/wlan0" ]
+then
+    /sbin/wifi_legacy $1
+fi
+
+case $1 in
+    up)
+        mtk_up
+        ;;
+    reload_legacy)
+        mtk_up
+        ;;
+    down)
+        mtk_down
+        ;;
+    reload)
+        mtk_reload
+        ;;
+    restart)
+        mtk_reload
+        ;;
+    *)
+        logger -t "mtkwifi" "Command $1 not implemented!"
+        ;;
+esac

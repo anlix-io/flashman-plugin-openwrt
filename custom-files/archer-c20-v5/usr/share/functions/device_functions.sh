@@ -1,5 +1,7 @@
 #!/bin/sh
 
+. /lib/functions/system.sh
+
 save_wifi_local_config() {
   uci commit wireless
   /usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat > /dev/null
@@ -279,4 +281,84 @@ get_lan_dev_negotiated_speed() {
   done
 
   echo "$_speed"
+}
+
+store_enable_wifi() {
+  local _itf_num
+  local _lowermac
+  local _lowermac_5
+  # 0: 2.4GHz 1: 5.0GHz 2: Both
+  _itf_num=$1
+  _lowermac=$(get_mac | awk '{ print tolower($1) }')
+  _lowermac_5=$(macaddr_add "$_lowermac" 2)
+
+  wifi down
+
+  if [ "$_itf_num" = "0" ]
+  then
+    insmod /lib/modules/`uname -r`/mt7628.ko mac=$_lowermac
+    echo "mt7628 mac=$_lowermac" > /etc/modules.d/50-mt7628
+  elif [ "$_itf_num" = "1" ]
+  then
+    insmod /lib/modules/`uname -r`/mt7610e.ko mac=$_lowermac_5
+    echo "mt7610e mac=$_lowermac_5" > /etc/modules.d/51-mt7610e
+  else
+    insmod /lib/modules/`uname -r`/mt7628.ko mac=$_lowermac
+    insmod /lib/modules/`uname -r`/mt7610e.ko mac=$_lowermac_5
+    echo "mt7628 mac=$_lowermac" > /etc/modules.d/50-mt7628
+    echo "mt7610e mac=$_lowermac_5" > /etc/modules.d/51-mt7610e
+  fi
+
+  wifi up
+}
+
+store_disable_wifi() {
+  local _itf_num
+  # 0: 2.4GHz 1: 5.0GHz 2: Both
+  _itf_num=$1
+
+  wifi down
+
+  if [ "$_itf_num" = "0" ]
+  then
+    rmmod /lib/modules/`uname -r`/mt7628.ko
+    rm /etc/modules.d/50-mt7628
+  elif [ "$_itf_num" = "1" ]
+  then
+    rmmod /lib/modules/`uname -r`/mt7610e.ko
+    rm /etc/modules.d/51-mt7610e
+  else
+    rmmod /lib/modules/`uname -r`/mt7628.ko
+    rmmod /lib/modules/`uname -r`/mt7610e.ko
+    rm /etc/modules.d/50-mt7628
+    rm /etc/modules.d/51-mt7610e
+  fi
+
+  wifi up
+}
+
+get_wifi_state() {
+  local _itf_num
+  # 0: 2.4GHz 1: 5.0GHz
+  _itf_num=$1
+
+  if [ "$_itf_num" = "0" ]
+  then
+    lsmod | grep -q "mt7628"
+    if [ $? -eq 0 ]
+    then
+      echo "1"
+    else
+      echo "0"
+    fi
+  elif [ "$_itf_num" = "1" ]
+  then
+    lsmod | grep -q "mt7610e"
+    if [ $? -eq 0 ]
+    then
+      echo "1"
+    else
+      echo "0"
+    fi
+  fi
 }

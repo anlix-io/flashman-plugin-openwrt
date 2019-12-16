@@ -26,19 +26,12 @@ while [ "$connected" != true ]
 do
   if [ "$(check_connectivity_flashman)" -eq 0 ]
   then
+    log "IMALIVE" "Sync date with Flashman!"
+    resync_ntp
     ntpinfo=$(ntp_anlix)
     if [ $ntpinfo = "unsync" ]
     then
-      log "IMALIVE" "Waiting for NTP to sync! ..."
-      _num_ntptests=$(( _num_ntptests + 1 ))
-      if [ $_num_ntptests -gt 30 ]
-      then
-        #More than 30 checks (>150s), force a date update
-        log "IMALIVE" "Try resync date with Flashman!"
-        resync_ntp
-      else
-        sleep 5
-      fi
+      sleep 5
     else
       log "IMALIVE" "Connected!"
       log "IMALIVE" "Checking zabbix..."

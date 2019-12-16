@@ -146,6 +146,12 @@ get_lan_subnet() {
   echo "$_lan_addr"
 }
 
+get_lan_ipaddr() {
+  local _uci_lan_ipaddr
+  _uci_lan_ipaddr=$(uci get network.lan.ipaddr)
+  echo "$_uci_lan_ipaddr"
+}
+
 get_lan_netmask() {
   local _ipcalc_res
   local _uci_lan_ipaddr
@@ -167,7 +173,7 @@ set_lan_subnet() {
   local _ipcalc_res
   local _ipcalc_netmask
   local _ipcalc_addr
-  local _current_lan_net=$(get_lan_subnet)
+  local _current_lan_ipaddr=$(get_lan_ipaddr)
   _lan_addr=$1
   _lan_netmask=$2
 
@@ -186,9 +192,15 @@ set_lan_subnet() {
       # Valid netmask
       _lan_netmask="$_ipcalc_netmask"
       # Use first address available returned by ipcalc
-      _ipcalc_addr=$(echo "$_ipcalc_res" | grep "START" | awk -F= '{print $2}')
-      _lan_addr="$_ipcalc_addr"
+      _ipcalc_addr=$(echo "$_ipcalc_res" | grep "IP" | awk -F= '{print $2}')
       _lan_net=$(echo "$_ipcalc_res" | grep "NETWORK" | awk -F= '{print $2}')
+      # Avoid placing subnet IP by mistake
+      if [ "$_lan_net" = "$_ipcalc_addr" ]
+      then
+        _ipcalc_addr=$(echo "$_ipcalc_res" | grep "START" | awk -F= '{print $2}')
+      fi
+      # Assign LAN router ip
+      _lan_addr="$_ipcalc_addr"
       # Calculate DHCP start and limit
       _addr_net=$(echo "$_ipcalc_res" | grep "NETWORK" | awk -F. '{print $4}')
       _addr_end=$(echo "$_ipcalc_res" | grep "END" | awk -F. '{print $4}')
@@ -204,7 +216,7 @@ set_lan_subnet() {
       fi
 
       # Only change LAN if its not the same
-      if [ "$_lan_net" != "$_current_lan_net" ]
+      if [ "$_lan_addr" != "$_current_lan_ipaddr" ]
       then
         uci set network.lan.ipaddr="$_lan_addr"
         uci set network.lan.netmask="$_lan_netmask"
@@ -319,7 +331,8 @@ add_static_ip() {
   local _mac=$1
   local _dmz=$2
   local _ethers_file="$3"
-  local _device_ip=$(grep "$_mac" /tmp/dhcp.leases | awk '{print $3}')
+  local _ipv4_neigh="$(ip -4 neigh | grep lladdr | awk '{ if($3 == "br-lan") print $5, $1}')"
+  local _device_ip="$(echo "$_ipv4_neigh" | grep "$_mac" | awk '{ print $2 }')"
   local _lan_subnet=$(get_lan_subnet)
   local _lan_netmask=$(get_lan_netmask)
   local _dmz_subnet="192.168.43.0"

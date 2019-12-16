@@ -102,6 +102,10 @@ then
   uci commit wireless
 fi
 
+# Dump firmware in /lib/firmware 
+dd if=/dev/mtd6ro of=/lib/firmware/MT7628_EEPROM.bin bs=1 skip=128k count=512
+dd if=/dev/mtd6ro of=/lib/firmware/MT7610_EEPROM.bin bs=1 skip=150k count=32k
+
 /usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat > /dev/null
 printf "MacAddress=$LOWERMAC\n\n" >> /etc/wireless/mt7628/mt7628.dat
 insmod /lib/modules/`uname -r`/mt7628.ko mac=$LOWERMAC

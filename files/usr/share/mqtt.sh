@@ -5,6 +5,7 @@
 . /usr/share/functions/dhcp_functions.sh
 . /usr/share/functions/api_functions.sh
 . /usr/share/functions/zabbix_functions.sh
+. /usr/share/functions/wireless_functions.sh
 
 case "$1" in
 1)
@@ -41,6 +42,14 @@ measure)
   then
     update_zabbix_params "$2"
   fi
+  ;;
+status)
+  log "MQTTMSG" "Collecting status information"
+  router_status
+  ;;
+wifistate)
+  log "MQTTMSG" "Changing wireless radio state"
+  change_wifi_state "$2" "$3"
   ;;
 *)
   log "MQTTMSG" "Cant recognize message: $1"
