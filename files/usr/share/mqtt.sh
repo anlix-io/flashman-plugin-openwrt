@@ -53,7 +53,7 @@ wifistate)
   ;;
 speedtest)
   log "MQTTMSG" "Starting speed test..."
-  run_speed_ondemand_test "$2" "$3"
+  run_speed_ondemand_test "$2" "$3" "$4" "$5"
   ;;
 *)
   log "MQTTMSG" "Cant recognize message: $1"
