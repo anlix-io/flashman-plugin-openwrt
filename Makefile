@@ -59,7 +59,8 @@ define Package/flashman-plugin
 			+libubus-lua \
 			+libmbedtls \
 			+iptables-mod-conntrack-extra \
-			+anlix-miniupnpd
+			+anlix-miniupnpd \
+			+flash-measure
 	MENU:=1
 endef
 
