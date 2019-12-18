@@ -264,7 +264,7 @@ run_speed_ondemand_test() {
     _urllist="$_urllist $_url/file$i.bin"
   done
   drop_all_forward_traffic
-  _result="$(flash-measure "$_timeout" "$_connections" "$_urllist")"
+  _result="$(flash-measure "$_timeout" "$_connections" $_urllist)"
   _retstatus=$?
   restart_firewall
   if [ $_retstatus -ne 0 ]
