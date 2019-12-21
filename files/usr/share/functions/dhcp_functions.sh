@@ -30,7 +30,7 @@ get_device_conn_type() {
     local _state=$(ip neigh | grep "$_mac" | awk '{print $NF}')
     for i in $_state
     do
-      if [ "$i" == "STALE" ] || [ "$i" == "REACHABLE" ]
+      if [ "$i" == "REACHABLE" ]
       then
         # Wired
         echo "0"
@@ -118,7 +118,7 @@ check_dev_online_status() {
 
   for s in $_state
   do
-    if [ "$s" == "STALE" ] || [ "$s" == "REACHABLE" ]
+    if [ "$s" == "REACHABLE" ]
     then
       mv "/tmp/onlinedevscheck/$_mac.wait" "/tmp/onlinedevscheck/$_mac.on"
       return
