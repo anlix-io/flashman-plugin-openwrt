@@ -103,8 +103,8 @@ then
 fi
 
 # Dump firmware in /lib/firmware
-dd if=/dev/mtd6ro of=/lib/firmware/MT7628_EEPROM.bin bs=1 skip=128k count=512
-dd if=/dev/mtd6ro of=/lib/firmware/MT7610_EEPROM.bin bs=1 skip=160k count=32k
+dd if=/dev/mtd9ro of=/lib/firmware/MT7628_EEPROM.bin bs=1 count=512
+dd if=/dev/mtd9ro of=/lib/firmware/MT7610_EEPROM.bin bs=1k skip=32 count=32
 
 /usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat > /dev/null
 printf "MacAddress=$LOWERMAC\n\n" >> /etc/wireless/mt7628/mt7628.dat
