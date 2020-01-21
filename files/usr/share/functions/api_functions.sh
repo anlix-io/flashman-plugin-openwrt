@@ -267,10 +267,6 @@ run_speed_ondemand_test() {
   _result="$(flash-measure "$_timeout" "$_connections" $_urllist)"
   _retstatus=$?
   restart_firewall
-  if [ $_retstatus -ne 0 ]
-  then
-    _result="Error"
-  fi
   _reply='{"downSpeed":"'"$_result"'","user":"'"$_username"'"}'
   curl -s --tlsv1.2 --connect-timeout 5 --retry 1 -H "Content-Type: application/json" \
   -H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" --data "$_reply" \
