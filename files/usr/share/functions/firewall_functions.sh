@@ -292,7 +292,6 @@ drop_all_forward_traffic() {
   iptables -I FORWARD -j DROP
 }
 
-restart_firewall() {
-  /etc/init.d/firewall restart
-  /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
+undrop_all_forward_traffic() {
+  iptables -D FORWARD -j DROP
 }

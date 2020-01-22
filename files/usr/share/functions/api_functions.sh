@@ -263,10 +263,12 @@ run_speed_ondemand_test() {
   do
     _urllist="$_urllist $_url/file$i.bin"
   done
+  log "SPEEDTEST" "Dropping traffic on firewall..."
   drop_all_forward_traffic
   _result="$(flash-measure "$_timeout" "$_connections" $_urllist)"
   _retstatus=$?
-  restart_firewall
+  log "SPEEDTEST" "Restoring firewall to normal..."
+  undrop_all_forward_traffic
   _reply='{"downSpeed":"'"$_result"'","user":"'"$_username"'"}'
   curl -s --tlsv1.2 --connect-timeout 5 --retry 1 -H "Content-Type: application/json" \
   -H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" --data "$_reply" \
