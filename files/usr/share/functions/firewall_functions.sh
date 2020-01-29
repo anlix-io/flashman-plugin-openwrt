@@ -287,3 +287,11 @@ update_upnp_devices() {
     json_update_index "$_upnp_idx" "upnp_devices_index"
   fi
 }
+
+drop_all_forward_traffic() {
+  iptables -I FORWARD -j DROP
+}
+
+undrop_all_forward_traffic() {
+  iptables -D FORWARD -j DROP
+}
