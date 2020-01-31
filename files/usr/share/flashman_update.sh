@@ -48,12 +48,14 @@ then
   json_get_var _local_channel_24 local_channel_24
   json_get_var _local_hwmode_24 local_hwmode_24
   json_get_var _local_htmode_24 local_htmode_24
+  json_get_var _local_state_24 local_state_24
   json_get_var _local_5ghz_capable local_5ghz_capable
   json_get_var _local_ssid_50 local_ssid_50
   json_get_var _local_password_50 local_password_50
   json_get_var _local_channel_50 local_channel_50
   json_get_var _local_hwmode_50 local_hwmode_50
   json_get_var _local_htmode_50 local_htmode_50
+  json_get_var _local_state_50 local_state_50
   json_close_object
   # Get config data
   json_cleanup
@@ -86,23 +88,28 @@ pppoe_password=$(uci -q get network.wan.password)&\
 wan_ip=$(get_wan_ip)&\
 wan_negociated_speed=$(get_wan_negotiated_speed)&\
 wan_negociated_duplex=$(get_wan_negotiated_duplex)&\
-lan_addr=$(get_lan_subnet)&\
+lan_addr=$(get_lan_ipaddr)&\
 lan_netmask=$(get_lan_netmask)&\
+lan_no_dns_proxy=$(get_use_dns_proxy)&\
 wifi_ssid=$_local_ssid_24&\
 wifi_password=$_local_password_24&\
 wifi_channel=$_local_channel_24&\
 wifi_band=$_local_htmode_24&\
 wifi_mode=$_local_hwmode_24&\
+wifi_state=$_local_state_24&\
 wifi_5ghz_capable=$_local_5ghz_capable&\
 wifi_ssid_5ghz=$_local_ssid_50&\
 wifi_password_5ghz=$_local_password_50&\
 wifi_channel_5ghz=$_local_channel_50&\
 wifi_band_5ghz=$_local_htmode_50&\
 wifi_mode_5ghz=$_local_hwmode_50&\
+wifi_state_5ghz=$_local_state_50&\
 connection_type=$(get_wan_type)&\
 ntp=$(ntp_anlix)&\
 hardreset=$_hard_reset_info&\
-upgfirm=$_has_upgraded_version"
+upgfirm=$_has_upgraded_version&\
+sysuptime=$(sys_uptime)&\
+wanuptime=$(wan_uptime)"
   _url="deviceinfo/syn/"
   _res=$(rest_flashman "$_url" "$_data")
 
@@ -120,19 +127,23 @@ upgfirm=$_has_upgraded_version"
     json_get_var _pppoe_password pppoe_password
     json_get_var _lan_addr lan_addr
     json_get_var _lan_netmask lan_netmask
+    json_get_var _lan_no_dns_proxy lan_no_dns_proxy
     json_get_var _wifi_ssid_24 wifi_ssid
     json_get_var _wifi_password_24 wifi_password
     json_get_var _wifi_channel_24 wifi_channel
     json_get_var _wifi_htmode_24 wifi_band
     json_get_var _wifi_hwmode_24 wifi_mode
+    json_get_var _wifi_state wifi_state
     json_get_var _wifi_ssid_50 wifi_ssid_5ghz
     json_get_var _wifi_password_50 wifi_password_5ghz
     json_get_var _wifi_channel_50 wifi_channel_5ghz
     json_get_var _wifi_htmode_50 wifi_band_5ghz
     json_get_var _wifi_hwmode_50 wifi_mode_5ghz
+    json_get_var _wifi_state_50 wifi_state_5ghz
     json_get_var _app_password app_password
     json_get_var _forward_index forward_index
     json_get_var _blocked_devices_index blocked_devices_index
+    json_get_var _upnp_devices_index upnp_devices_index
     json_get_var _zabbix_psk zabbix_psk
     json_get_var _zabbix_fqdn zabbix_fqdn
     json_get_var _zabbix_active zabbix_active
@@ -208,14 +219,17 @@ upgfirm=$_has_upgraded_version"
       update_port_forward
     fi
 
+    # Change use of local router DNS proxy
+    set_use_dns_proxy "$_lan_no_dns_proxy"
+
     # WiFi update
     log "FLASHMAN UPDATER" "Updating Wireless ..."
     set_wifi_local_config "$_wifi_ssid_24" "$_wifi_password_24" \
                           "$_wifi_channel_24" "$_wifi_hwmode_24" \
-                          "$_wifi_htmode_24" \
+                          "$_wifi_htmode_24" "$_wifi_state" \
                           "$_wifi_ssid_50" "$_wifi_password_50" \
                           "$_wifi_channel_50" "$_wifi_hwmode_50" \
-                          "$_wifi_htmode_50"
+                          "$_wifi_htmode_50" "$_wifi_state_50"
     # Flash App password update
     if [ "$_app_password" == "" ]
     then
@@ -240,11 +254,18 @@ upgfirm=$_has_upgraded_version"
     fi
 
     # Update zabbix parameters as necessary
-    set_zabbix_params "$_zabbix_psk" "$_zabbix_fqdn" "$_zabbix_active"
+    if [ "$ZBX_SUPPORT" == "y" ]
+    then
+      set_zabbix_params "$_zabbix_psk" "$_zabbix_fqdn" "$_zabbix_active"
+    fi
 
     # Check for updates in port forward mapping 
     _local_findex=$(get_forward_indexes "forward_index")
     [ "$_local_findex" != "$_forward_index" ] && update_port_forward
+
+    # Check for updates in upnp allowed devices mapping 
+    _local_uindex=$(get_forward_indexes "upnp_devices_index")
+    [ "$_local_uindex" != "$_upnp_devices_index" ] && update_upnp_devices
 
     # Store completed command hash if one was provided
     if [ "$COMMANDHASH" != "" ]

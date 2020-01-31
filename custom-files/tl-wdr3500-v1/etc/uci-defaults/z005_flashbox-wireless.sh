@@ -41,7 +41,7 @@ then
   then
     uci set wireless.@wifi-device[0].htmode="$FLM_24_BAND"
     uci set wireless.@wifi-device[0].noscan="1"
-  elif [ "$_remote_htmode_24" = "HT20" ]
+  elif [ "$FLM_24_BAND" = "HT20" ]
   then
     uci set wireless.@wifi-device[0].htmode="$FLM_24_BAND"
     uci set wireless.@wifi-device[0].noscan="0"

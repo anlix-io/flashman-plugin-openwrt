@@ -45,7 +45,7 @@ then
     uci set wireless.@wifi-device[0].noscan="1"
     uci set wireless.@wifi-device[0].ht_bsscoexist="0"
     uci set wireless.@wifi-device[0].bw="1"
-  elif [ "$_remote_htmode_24" = "HT20" ]
+  elif [ "$FLM_24_BAND" = "HT20" ]
   then
     uci set wireless.@wifi-device[0].htmode="$FLM_24_BAND"
     uci set wireless.@wifi-device[0].noscan="0"
@@ -70,6 +70,9 @@ then
 
   uci commit wireless
 fi
+
+# Dump firmware in /lib/firmware 
+dd if=/dev/mtd6ro of=/lib/firmware/MT7628_EEPROM.bin bs=1 skip=128k count=512
 
 /usr/bin/uci2dat -d radio0 -f /etc/wireless/mt7628/mt7628.dat > /dev/null
 printf "MacAddress=$LOWERMAC\n\n" >> /etc/wireless/mt7628/mt7628.dat

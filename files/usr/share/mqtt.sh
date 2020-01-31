@@ -5,6 +5,7 @@
 . /usr/share/functions/dhcp_functions.sh
 . /usr/share/functions/api_functions.sh
 . /usr/share/functions/zabbix_functions.sh
+. /usr/share/functions/wireless_functions.sh
 
 case "$1" in
 1)
@@ -37,7 +38,22 @@ ping)
   ;;
 measure)
   log "MQTTMSG" "Changing Zabbix PSK settings"
-  update_zabbix_params "$2"
+  if [ "$ZBX_SUPPORT" == "y" ]
+  then
+    update_zabbix_params "$2"
+  fi
+  ;;
+status)
+  log "MQTTMSG" "Collecting status information"
+  router_status
+  ;;
+wifistate)
+  log "MQTTMSG" "Changing wireless radio state"
+  change_wifi_state "$2" "$3"
+  ;;
+speedtest)
+  log "MQTTMSG" "Starting speed test..."
+  run_speed_ondemand_test "$2" "$3" "$4" "$5"
   ;;
 *)
   log "MQTTMSG" "Cant recognize message: $1"

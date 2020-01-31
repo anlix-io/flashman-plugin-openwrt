@@ -4,6 +4,7 @@
 . /usr/share/libubox/jshn.sh
 . /usr/share/functions/device_functions.sh
 . /usr/share/functions/common_functions.sh
+. /usr/share/functions/firewall_functions.sh
 
 send_boot_log() {
   local _res
@@ -186,6 +187,93 @@ run_ping_ondemand_test() {
       return 0
     fi
   fi
+  return 0
+}
+
+sys_uptime() {
+  echo "$(awk -F. '{print $1}' /proc/uptime)"
+}
+
+wan_uptime() {
+  local _wan_uptime
+  local _wan_up
+
+  json_cleanup
+  json_load "$(ifstatus wan)"
+  json_get_var _wan_up up
+
+  if [ $_wan_up -eq 1 ]
+  then
+    json_get_var _wan_uptime uptime
+  else
+    _wan_uptime="0"
+  fi
+
+  json_close_object
+
+  echo "$_wan_uptime"
+}
+
+router_status() {
+  local _res
+  local _processed
+  local _sys_uptime
+  local _wan_uptime
+  local _out_file="/tmp/router_status.json"
+
+  _sys_uptime="$(sys_uptime)"
+  _wan_uptime="$(wan_uptime)"
+
+  json_init
+  json_add_string "sysuptime" "$_sys_uptime"
+  json_add_string "wanuptime" "$_wan_uptime"
+  json_dump > "$_out_file"
+  json_cleanup
+
+  if [ -f "$_out_file" ]
+  then
+    _res=""
+    _res=$(cat "$_out_file" | curl -s --tlsv1.2 --connect-timeout 5 \
+           --retry 1 -H "Content-Type: application/json" \
+           -H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
+           --data @- "https://$FLM_SVADDR/deviceinfo/receive/routerstatus")
+
+    json_load "$_res"
+    json_get_var _processed processed
+    json_close_object
+
+    rm "$_out_file"
+
+    return $_processed
+  else
+    return 0
+  fi
+}
+
+run_speed_ondemand_test() {
+  local _sv_ip_addr="$1"
+  local _username="$2"
+  local _connections="$3"
+  local _timeout="$4"
+  local _url="http://$_sv_ip_addr/measure"
+  local _urllist=""
+  local _result
+  local _retstatus
+  local _reply
+  for i in $(seq 1 "$_connections")
+  do
+    _urllist="$_urllist $_url/file$i.bin"
+  done
+  log "SPEEDTEST" "Dropping traffic on firewall..."
+  drop_all_forward_traffic
+  _result="$(flash-measure "$_timeout" "$_connections" $_urllist)"
+  _retstatus=$?
+  log "SPEEDTEST" "Restoring firewall to normal..."
+  undrop_all_forward_traffic
+  _reply='{"downSpeed":"'"$_result"'","user":"'"$_username"'"}'
+  curl -s --tlsv1.2 --connect-timeout 5 --retry 1 -H "Content-Type: application/json" \
+  -H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" --data "$_reply" \
+  "https://$FLM_SVADDR/deviceinfo/receive/speedtestresult"
   return 0
 }
 

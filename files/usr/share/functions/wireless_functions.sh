@@ -9,6 +9,7 @@ get_wifi_local_config() {
   local _channel_24="$(uci -q get wireless.radio0.channel)"
   local _hwmode_24="$(uci -q get wireless.radio0.hwmode)"
   local _htmode_24="$(uci -q get wireless.radio0.htmode)"
+  local _state_24="$(get_wifi_state '0')"
 
   local _is_5ghz_capable="$(is_5ghz_capable)"
   local _ssid_50="$(uci -q get wireless.@wifi-iface[1].ssid)"
@@ -16,6 +17,7 @@ get_wifi_local_config() {
   local _channel_50="$(uci -q get wireless.radio1.channel)"
   local _hwmode_50="$(uci -q get wireless.radio1.hwmode)"
   local _htmode_50="$(uci -q get wireless.radio1.htmode)"
+  local _state_50="$(get_wifi_state '1')"
 
   #
   # WARNING! No spaces or tabs inside the following string!
@@ -26,12 +28,14 @@ get_wifi_local_config() {
 'local_channel_24':'$_channel_24',\
 'local_hwmode_24':'$_hwmode_24',\
 'local_htmode_24':'$_htmode_24',\
+'local_state_24':'$_state_24',\
 'local_5ghz_capable':'$_is_5ghz_capable',\
 'local_ssid_50':'$_ssid_50',\
 'local_password_50':'$_password_50',\
 'local_channel_50':'$_channel_50',\
 'local_hwmode_50':'$_hwmode_50',\
-'local_htmode_50':'$_htmode_50'}"
+'local_htmode_50':'$_htmode_50',\
+'local_state_50':'$_state_50'}"
 
   echo "$_wifi_json"
 }
@@ -44,12 +48,14 @@ set_wifi_local_config() {
   local _remote_channel_24="$3"
   local _remote_hwmode_24="$4"
   local _remote_htmode_24="$5"
+  local _remote_state_24="$6"
 
-  local _remote_ssid_50="$6"
-  local _remote_password_50="$7"
-  local _remote_channel_50="$8"
-  local _remote_hwmode_50="$9"
-  local _remote_htmode_50="$10"
+  local _remote_ssid_50="$7"
+  local _remote_password_50="$8"
+  local _remote_channel_50="$9"
+  local _remote_hwmode_50="$10"
+  local _remote_htmode_50="$11"
+  local _remote_state_50="$12"
 
   json_cleanup
   json_load "$(get_wifi_local_config)"
@@ -58,12 +64,14 @@ set_wifi_local_config() {
   json_get_var _local_channel_24 local_channel_24
   json_get_var _local_hwmode_24 local_hwmode_24
   json_get_var _local_htmode_24 local_htmode_24
+  json_get_var _local_state_24 local_state_24
 
   json_get_var _local_ssid_50 local_ssid_50
   json_get_var _local_password_50 local_password_50
   json_get_var _local_channel_50 local_channel_50
   json_get_var _local_hwmode_50 local_hwmode_50
   json_get_var _local_htmode_50 local_htmode_50
+  json_get_var _local_state_50 local_state_50
   json_close_object
 
   if [ "$_remote_ssid_24" != "" ] && \
@@ -115,6 +123,22 @@ set_wifi_local_config() {
       uci set wireless.radio0.bw="0"
     fi
     _do_reload=1
+  fi
+
+  if [ "$_remote_state_24" != "" ] && \
+     [ "$_remote_state_24" = "0" ] && \
+     [ "$_local_state_24" = "1" ]
+  then
+    save_wifi_local_config
+    store_disable_wifi "0"
+    _do_reload=0
+  elif [ "$_remote_state_24" != "" ] && \
+       [ "$_remote_state_24" = "1" ] && \
+       [ "$_local_state_24" = "0" ]
+  then
+    save_wifi_local_config
+    store_enable_wifi "0"
+    _do_reload=0
   fi
 
   # 5GHz
@@ -188,11 +212,42 @@ set_wifi_local_config() {
       fi
       _do_reload=1
     fi
+
+    if [ "$_remote_state_50" != "" ] && \
+       [ "$_remote_state_50" = "0" ] && \
+       [ "$_local_state_50" = "1" ]
+    then
+      save_wifi_local_config
+      store_disable_wifi "1"
+      _do_reload=0
+    elif [ "$_remote_state_50" != "" ] && \
+         [ "$_remote_state_50" = "1" ] && \
+         [ "$_local_state_50" = "0" ]
+    then
+      save_wifi_local_config
+      store_enable_wifi "1"
+      _do_reload=0
+    fi
   fi
 
   if [ $_do_reload -eq 1 ]
   then
     save_wifi_local_config
     wifi reload
+  fi
+}
+
+change_wifi_state() {
+  local _state
+  local _itf_num
+
+  _state=$1
+  _itf_num=$2
+
+  if [ "_$_state" = "0" ]
+  then
+    store_disable_wifi "$_itf_num"
+  else
+    store_enable_wifi "$_itf_num"
   fi
 }

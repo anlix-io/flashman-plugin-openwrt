@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=flasman-plugin
-PKG_VERSION:=0.16.0
+PKG_VERSION:=0.24.0
 PKG_RELEASE:=1
 
 PKG_LICENSE:=GPL
@@ -58,7 +58,9 @@ define Package/flashman-plugin
 			+libuci-lua \
 			+libubus-lua \
 			+libmbedtls \
-			+iptables-mod-conntrack-extra
+			+iptables-mod-conntrack-extra \
+			+anlix-miniupnpd \
+			+flash-measure
 	MENU:=1
 endef
 
@@ -81,14 +83,30 @@ FILE_DIR=
 CUSTOM_FILE_DIR=
 	ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_archer-c20-v4), y)
 		CUSTOM_FILE_DIR="custom-files/archer-c20-v4"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_archer-c20-v5), y)
+		CUSTOM_FILE_DIR="custom-files/archer-c20-v5"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_archer-c20-v5preset), y)
+		CUSTOM_FILE_DIR="custom-files/archer-c20-v5preset"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_ArcherC5v4), y)
 		CUSTOM_FILE_DIR="custom-files/archer-c5-v4"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_archer-c50-v3), y)
+		CUSTOM_FILE_DIR="custom-files/archer-c50-v3"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_archer-c50-v4), y)
+		CUSTOM_FILE_DIR="custom-files/archer-c50-v4"
+	else ifeq ($(CONFIG_TARGET_ar71xx_generic_DEVICE_archer-c60-v2), y)
+		CUSTOM_FILE_DIR="custom-files/archer-c60-v2"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_dl-dwr116-a3), y)
 		CUSTOM_FILE_DIR="custom-files/dl-dwr116-a3"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_itlb-ncloud-v1), y)
 		CUSTOM_FILE_DIR="custom-files/itlb-ncloud-v1"
+	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_ACTIONRF1200), y)
+		CUSTOM_FILE_DIR="custom-files/actionrf1200-v1"
+	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_ACTIONRG1200), y)
+		CUSTOM_FILE_DIR="custom-files/actionrg1200-v1"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_dir-819-a1), y)
 		CUSTOM_FILE_DIR="custom-files/dir-819-a1"
+	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_emg1702-t10a-a1), y)
+		CUSTOM_FILE_DIR="custom-files/emg1702-t10a-a1"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr741nd-v4), y)
 		CUSTOM_FILE_DIR="custom-files/tl-wr741nd-v4"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr841-v7), y)
@@ -113,6 +131,8 @@ CUSTOM_FILE_DIR=
 		CUSTOM_FILE_DIR="custom-files/tl-wr840n-v5"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v6), y)
 		CUSTOM_FILE_DIR="custom-files/tl-wr840n-v6"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v62), y)
+		CUSTOM_FILE_DIR="custom-files/tl-wr840n-v62"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v6preset), y)
 		CUSTOM_FILE_DIR="custom-files/tl-wr840n-v6preset"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr845n-v3), y)
@@ -131,9 +151,19 @@ CUSTOM_FILE_DIR=
 		CUSTOM_FILE_DIR="custom-files/tl-wr940n-v6"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr949n-v6), y)
 		CUSTOM_FILE_DIR="custom-files/tl-wr949n-v6"
+	else ifeq ($(CONFIG_TARGET_realtek_rtl8197d_DEVICE_DIR815D1), y)
+		CUSTOM_FILE_DIR="custom-files/dir-815-d1"
+	else ifeq ($(CONFIG_TARGET_realtek_rtl8196e_DEVICE_GWR300N), y)
+		CUSTOM_FILE_DIR="custom-files/gwr-300-v1"
+	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_GWR1200AC), y)
+		CUSTOM_FILE_DIR="custom-files/gwr-1200-v1"
+	else ifeq ($(CONFIG_TARGET_realtek_rtl8196e_DEVICE_RE172), y)
+		CUSTOM_FILE_DIR="custom-files/re172-v1"
+	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_RE708), y)
+		CUSTOM_FILE_DIR="custom-files/re708-v1"
 	else
 		CUSTOM_FILE_DIR="custom-files/default"
-	endif	
+	endif
 
 WAN_PROTO=
 	ifeq ($(CONFIG_FLASHMAN_WAN_PROTO_DHCP), y)
@@ -156,7 +186,7 @@ SSID_SUFFIX=
 define Package/flashman-plugin/install
 	$(CP) ./$(FILE_DIR)/* $(1)/
 	$(CP) ./$(CUSTOM_FILE_DIR)/* $(1)/
-	
+
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/anlix-mqtt $(1)/usr/bin/
 
@@ -179,6 +209,7 @@ define Package/flashman-plugin/install
 	echo 'FLM_LAN_SUBNET=$(CONFIG_FLASHMAN_LAN_SUBNET)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_LAN_NETMASK=$(CONFIG_FLASHMAN_LAN_NETMASK)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_LAN_IPV6_PREFIX=$(CONFIG_FLASHMAN_LAN_IPV6_PREFIX)' >>$(1)/usr/share/flashman_init.conf
+	echo 'FLM_DHCP_NOPROXY=$(CONFIG_FLASHMAN_DHCP_NOPROXY)' >>$(1)/usr/share/flashman_init.conf
 	echo 'MQTT_PORT=$(CONFIG_MQTT_PORT)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_CLIENT_ORG=$(CONFIG_FLASHMAN_CLIENT_ORG)' >>$(1)/usr/share/flashman_init.conf
 
@@ -194,6 +225,8 @@ ifeq ($(CONFIG_FLASHMAN_USE_AUTH_SERVER), y)
 	echo 'FLM_AUTH_SVADDR=$(CONFIG_FLASHMAN_AUTH_SERVER_ADDR)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_CLIENT_SECRET=$(CONFIG_FLASHMAN_CLIENT_SECRET)' >>$(1)/usr/share/flashman_init.conf
 endif
+
+	echo 'ZBX_SUPPORT=$(CONFIG_ZABBIX_SUPPORT)' >>$(1)/usr/share/flashman_init.conf
 
 	echo $(PKG_VERSION) > $(1)/etc/anlix_version
 

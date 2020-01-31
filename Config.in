@@ -60,6 +60,9 @@ config FLASHMAN_CLIENT_ORG
 	string "FlashMan image client organization identification"
 	default "MyCompany"
 
+config ZABBIX_SUPPORT
+	bool "Install custom zabbix agent"
+
 config NTP_SERVER_ADDR
 	string "First NTP server IP or FQDN"
 	default "a.st1.ntp.br"
@@ -120,6 +123,10 @@ config FLASHMAN_LAN_NETMASK
 config FLASHMAN_LAN_IPV6_PREFIX
 	string "LAN ÏPV6 Prefix for Prefix Delegation"
 	default "64"
+
+config FLASHMAN_DHCP_NOPROXY
+	string "Do not use router as a DNS proxy"
+	default "0"
 
 config MQTT_PORT
 	string "MQTT port"

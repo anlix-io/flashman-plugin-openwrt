@@ -146,6 +146,12 @@ get_lan_subnet() {
   echo "$_lan_addr"
 }
 
+get_lan_ipaddr() {
+  local _uci_lan_ipaddr
+  _uci_lan_ipaddr=$(uci get network.lan.ipaddr)
+  echo "$_uci_lan_ipaddr"
+}
+
 get_lan_netmask() {
   local _ipcalc_res
   local _uci_lan_ipaddr
@@ -167,7 +173,7 @@ set_lan_subnet() {
   local _ipcalc_res
   local _ipcalc_netmask
   local _ipcalc_addr
-  local _current_lan_net=$(get_lan_subnet)
+  local _current_lan_ipaddr=$(get_lan_ipaddr)
   _lan_addr=$1
   _lan_netmask=$2
 
@@ -186,9 +192,15 @@ set_lan_subnet() {
       # Valid netmask
       _lan_netmask="$_ipcalc_netmask"
       # Use first address available returned by ipcalc
-      _ipcalc_addr=$(echo "$_ipcalc_res" | grep "START" | awk -F= '{print $2}')
-      _lan_addr="$_ipcalc_addr"
+      _ipcalc_addr=$(echo "$_ipcalc_res" | grep "IP" | awk -F= '{print $2}')
       _lan_net=$(echo "$_ipcalc_res" | grep "NETWORK" | awk -F= '{print $2}')
+      # Avoid placing subnet IP by mistake
+      if [ "$_lan_net" = "$_ipcalc_addr" ]
+      then
+        _ipcalc_addr=$(echo "$_ipcalc_res" | grep "START" | awk -F= '{print $2}')
+      fi
+      # Assign LAN router ip
+      _lan_addr="$_ipcalc_addr"
       # Calculate DHCP start and limit
       _addr_net=$(echo "$_ipcalc_res" | grep "NETWORK" | awk -F. '{print $4}')
       _addr_end=$(echo "$_ipcalc_res" | grep "END" | awk -F. '{print $4}')
@@ -204,7 +216,7 @@ set_lan_subnet() {
       fi
 
       # Only change LAN if its not the same
-      if [ "$_lan_net" != "$_current_lan_net" ]
+      if [ "$_lan_addr" != "$_current_lan_ipaddr" ]
       then
         uci set network.lan.ipaddr="$_lan_addr"
         uci set network.lan.netmask="$_lan_netmask"
@@ -318,7 +330,9 @@ add_static_ipv6() {
 add_static_ip() {
   local _mac=$1
   local _dmz=$2
-  local _device_ip=$(grep "$_mac" /tmp/dhcp.leases | awk '{print $3}')
+  local _ethers_file="$3"
+  local _ipv4_neigh="$(ip -4 neigh | grep lladdr | awk '{ if($3 == "br-lan") print $5, $1}')"
+  local _device_ip="$(echo "$_ipv4_neigh" | grep "$_mac" | awk '{ print $2 }')"
   local _lan_subnet=$(get_lan_subnet)
   local _lan_netmask=$(get_lan_netmask)
   local _dmz_subnet="192.168.43.0"
@@ -340,7 +354,7 @@ add_static_ip() {
     if { [ "$_dmz" = "1" ] && [ $_device_on_dmz -eq 0 ]; } || \
        { [ "$_dmz" = "0" ] && [ $_device_on_lan -eq 0 ]; }
     then
-      echo "$_mac $_device_ip" >> /etc/ethers
+      echo "$_mac $_device_ip" >> /etc/$_ethers_file
       echo "$_device_ip"
       return
     fi
@@ -349,7 +363,7 @@ add_static_ip() {
   # Device is offline. Choose an ip address 
   if [ "$_dmz" = "1" ]
   then
-    if [ -f /etc/ethers ]
+    if [ -f /etc/$_ethers_file ]
     then
       while read _fixed_ip
       do
@@ -362,7 +376,7 @@ add_static_ip() {
           _next_addr="$(echo "$_ipcalc_res" | grep "END" | \
                         awk -F= '{print $2}')"
         fi
-      done < /etc/ethers
+      done < /etc/$_ethers_file
       if [ "$_next_addr" = "" ]
       then
         # It must start at 130 to isolate routes
@@ -375,7 +389,7 @@ add_static_ip() {
       _next_addr="$(echo "$_ipcalc_res" | grep "END" | awk -F= '{print $2}')"
     fi
   else
-    if [ -f /etc/ethers ]
+    if [ -f /etc/$_ethers_file ]
     then
       while read _fixed_ip
       do
@@ -388,7 +402,7 @@ add_static_ip() {
           _next_addr="$(echo "$_ipcalc_res" | grep "END" | \
                         awk -F= '{print $2}')"
         fi
-      done < /etc/ethers
+      done < /etc/$_ethers_file
       if [ "$_next_addr" = "" ]
       then
         _ipcalc_res="$(/bin/ipcalc.sh $_lan_subnet $_lan_netmask 1 1)"
@@ -399,6 +413,50 @@ add_static_ip() {
       _next_addr="$(echo "$_ipcalc_res" | grep "END" | awk -F= '{print $2}')"
     fi
   fi
-  echo "$_mac $_next_addr" >> /etc/ethers
+  echo "$_mac $_next_addr" >> /etc/$_ethers_file
   echo "$_next_addr"
+}
+
+get_use_dns_proxy() {
+  local _current_dnsproxy
+
+  _current_dnsproxy="$(uci get dhcp.@dnsmasq[0].noproxy)"
+  if [ $? -eq 0 ]
+  then
+    echo "$_current_dnsproxy"
+  else
+    # If not set than use default
+    echo "$FLM_DHCP_NOPROXY"
+  fi
+}
+
+set_use_dns_proxy() {
+  local _no_dnsproxy
+  local _current_dnsproxy
+
+  _no_dnsproxy=$1
+  if [ "$_no_dnsproxy" != "1" ] && [ "$_no_dnsproxy" != "0" ]
+  then
+    # Invalid value
+    return
+  fi
+
+  _current_dnsproxy="$(uci get dhcp.@dnsmasq[0].noproxy)"
+  if [ $? -eq 0 ]
+  then
+    if [ "$_current_dnsproxy" != "$_no_dnsproxy" ]
+    then
+      if [ "$_no_dnsproxy" == "1" ]
+      then
+        uci set dhcp.@dnsmasq[0].noproxy='1'
+      else
+        uci set dhcp.@dnsmasq[0].noproxy='0'
+      fi
+      uci commit dhcp
+      /etc/init.d/dnsmasq reload
+      /etc/init.d/odhcpd reload
+    fi
+  fi
+
+  return
 }
