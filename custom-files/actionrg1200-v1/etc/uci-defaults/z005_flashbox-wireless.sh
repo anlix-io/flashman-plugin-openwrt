@@ -34,7 +34,7 @@ then
   fi
 
   uci set wireless.@wifi-device[0].type="mac80211"
-  uci set wireless.@wifi-device[0].txpower="17"
+  uci set wireless.@wifi-device[0].txpower="20"
   uci set wireless.@wifi-device[0].channel="$FLM_24_CHANNEL"
   uci set wireless.@wifi-device[0].hwmode="11n"
   uci set wireless.@wifi-device[0].country="BR"
@@ -62,7 +62,7 @@ then
   if [ "$(uci -q get wireless.@wifi-iface[1])" ]
   then
     uci set wireless.@wifi-device[1].type="mac80211"
-    uci set wireless.@wifi-device[1].txpower="17"
+    uci set wireless.@wifi-device[1].txpower="20"
     uci set wireless.@wifi-device[1].channel="$FLM_50_CHANNEL"
     uci set wireless.@wifi-device[1].hwmode="11a"
     uci set wireless.@wifi-device[1].country="BR"
