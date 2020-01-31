@@ -34,7 +34,7 @@ then
   fi
 
   uci set wireless.@wifi-device[0].type="mac80211"
-  uci set wireless.@wifi-device[0].txpower="22"
+  uci set wireless.@wifi-device[0].txpower="20"
   uci set wireless.@wifi-device[0].channel="$FLM_24_CHANNEL"
   uci set wireless.@wifi-device[0].hwmode="11n"
   uci set wireless.@wifi-device[0].country="BR"
