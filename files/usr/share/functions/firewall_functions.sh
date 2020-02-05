@@ -290,8 +290,10 @@ update_upnp_devices() {
 
 drop_all_forward_traffic() {
   iptables -I FORWARD -j DROP
+  ip6tables -I FORWARD -j DROP
 }
 
 undrop_all_forward_traffic() {
   iptables -D FORWARD -j DROP
+  ip6tables -D FORWARD -j DROP
 }
