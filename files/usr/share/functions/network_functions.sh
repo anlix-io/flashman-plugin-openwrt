@@ -460,3 +460,72 @@ set_use_dns_proxy() {
 
   return
 }
+
+enable_bridge_mode() {
+  log "FLASHMAN UPDATER" "Enabling bridge mode..."
+  # Get ifnames to bridge them together
+  local _disable_switch=$1
+  local _lan_ifnames="$(uci get network.lan.ifname)"
+  local _wan_ifnames="$(uci get network.wan.ifname)"
+  # Separate non-wifi interfaces to back them up
+  _lan_ifnames_wifi=""
+  for iface in $_lan_ifnames
+  do
+    if [ "$(echo $iface | grep ra)" != "" ]
+    then
+      _lan_ifnames_wifi="$iface $_lan_ifnames_wifi"
+    fi
+  done
+  # Write bridge mode to config.json so it persists between flashes
+  json_cleanup
+  json_load_file /root/flashbox_config.json
+  json_add_string bridge_mode "y"
+  json_add_string bridge_lan_backup "$_lan_ifnames"
+  json_dump > /root/flashbox_config.json
+  json_close_object
+  # Disable wan and bridge interfaces in lan
+  uci set network.wan.proto="none"
+  uci set network.wan6.proto="none"
+  uci set network.lan.proto="dhcp"
+  if [ "$_disable_switch" = "y" ]
+  then
+    uci set network.lan.ifname="$_wan_ifnames $_lan_ifnames_wifi"
+  else
+    uci set network.lan.ifname="$_wan_ifnames $_lan_ifnames"
+  fi
+  # Disable dns, dhcp and dhcp6
+  /etc/init.d/dnsmasq disable
+  /etc/init.d/dnsmasq stop
+  /etc/init.d/odhcpd disable
+  /etc/init.d/odhcpd stop
+  # Save changes and reboot network
+  uci commit network
+  /etc/init.d/network restart
+}
+
+disable_bridge_mode() {
+  log "FLASHMAN UPDATER" "Disabling bridge mode..."
+  local _wan_conn_type=""
+  local _lan_ifnames=""
+  # Clear bridge mode from config.json so it doesn't persist between flashes
+  json_cleanup
+  json_load_file /root/flashbox_config.json
+  json_get_var _wan_conn_type wan_conn_type
+  json_get_var _lan_ifnames bridge_lan_backup
+  json_add_string bridge_mode "n"
+  json_dump > /root/flashbox_config.json
+  json_close_object
+  # Get ifname to remove from the bridge
+  uci set network.lan.ifname="$_lan_ifnames"
+  # Set wan and lan back to proper values
+  uci set network.wan.proto="$_wan_conn_type"
+  uci set network.wan6.proto="dhcpv6"
+  uci set network.lan.proto="static"
+  /etc/init.d/dnsmasq enable
+  /etc/init.d/dnsmasq start
+  /etc/init.d/odhcpd enable
+  /etc/init.d/odhcpd start
+  uci commit network
+  /etc/init.d/network restart
+  /etc/init.d/odhcpd restart
+}
