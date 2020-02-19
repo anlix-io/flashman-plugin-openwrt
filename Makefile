@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=flasman-plugin
-PKG_VERSION:=0.24.1
+PKG_VERSION:=0.25.0
 PKG_RELEASE:=1
 
 PKG_LICENSE:=GPL
@@ -107,6 +107,8 @@ CUSTOM_FILE_DIR=
 		CUSTOM_FILE_DIR="custom-files/dir-819-a1"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_emg1702-t10a-a1), y)
 		CUSTOM_FILE_DIR="custom-files/emg1702-t10a-a1"
+	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr740n-v4), y)
+		CUSTOM_FILE_DIR="custom-files/tl-wr740n-v4"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr741nd-v4), y)
 		CUSTOM_FILE_DIR="custom-files/tl-wr741nd-v4"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr841-v7), y)
