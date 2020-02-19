@@ -461,10 +461,22 @@ set_use_dns_proxy() {
   return
 }
 
+get_bridge_mode_status() {
+  local _status=""
+  json_cleanup
+  json_load_file /root/flashbox_config.json
+  json_get_var _status bridge_mode
+  json_close_object
+  echo "$_status"
+}
+
 enable_bridge_mode() {
-  log "FLASHMAN UPDATER" "Enabling bridge mode..."
   # Get ifnames to bridge them together
   local _disable_switch=$1
+  local _fixed_ip=$2
+  local _fixed_gateway=$3
+  local _fixed_dns=$4
+  local _lan_ip="$(uci get network.lan.ipaddr)"
   local _lan_ifnames="$(uci get network.lan.ifname)"
   local _wan_ifnames="$(uci get network.wan.ifname)"
   # Separate non-wifi interfaces to back them up
@@ -481,12 +493,24 @@ enable_bridge_mode() {
   json_load_file /root/flashbox_config.json
   json_add_string bridge_mode "y"
   json_add_string bridge_lan_backup "$_lan_ifnames"
+  json_add_string bridge_lan_ip_backup "$_lan_ip"
+  json_add_string bridge_disable_switch "$_disable_switch"
+  json_add_string bridge_fix_ip "$_fixed_ip"
+  json_add_string bridge_fix_gateway "$_fixed_gateway"
+  json_add_string bridge_fix_dns "$_fixed_dns"
   json_dump > /root/flashbox_config.json
   json_close_object
   # Disable wan and bridge interfaces in lan
   uci set network.wan.proto="none"
   uci set network.wan6.proto="none"
-  uci set network.lan.proto="dhcp"
+  if [ "$_fixed_ip" != "" ]
+  then
+    uci set network.lan.ipaddr="$_fixed_ip"
+    uci set network.lan.gateway="$_fixed_gateway"
+    uci set network.lan.dns="$_fixed_dns"
+  else
+    uci set network.lan.proto="dhcp"
+  fi
   if [ "$_disable_switch" = "y" ]
   then
     uci set network.lan.ifname="$_wan_ifnames $_lan_ifnames_wifi"
@@ -494,6 +518,10 @@ enable_bridge_mode() {
     uci set network.lan.ifname="$_wan_ifnames $_lan_ifnames"
   fi
   # Disable dns, dhcp and dhcp6
+  /etc/init.d/miniupnpd disable
+  /etc/init.d/miniupnpd stop
+  /etc/init.d/firewall disable
+  /etc/init.d/firewall stop
   /etc/init.d/dnsmasq disable
   /etc/init.d/dnsmasq stop
   /etc/init.d/odhcpd disable
@@ -504,23 +532,32 @@ enable_bridge_mode() {
 }
 
 disable_bridge_mode() {
-  log "FLASHMAN UPDATER" "Disabling bridge mode..."
   local _wan_conn_type=""
   local _lan_ifnames=""
+  local _lan_ip=""
   # Clear bridge mode from config.json so it doesn't persist between flashes
   json_cleanup
   json_load_file /root/flashbox_config.json
   json_get_var _wan_conn_type wan_conn_type
   json_get_var _lan_ifnames bridge_lan_backup
+  json_get_var _lan_ip bridge_lan_ip_backup
   json_add_string bridge_mode "n"
   json_dump > /root/flashbox_config.json
   json_close_object
   # Get ifname to remove from the bridge
   uci set network.lan.ifname="$_lan_ifnames"
+  uci set network.lan.proto="static"
+  uci set network.lan.ipaddr="$_lan_ip"
   # Set wan and lan back to proper values
   uci set network.wan.proto="$_wan_conn_type"
   uci set network.wan6.proto="dhcpv6"
   uci set network.lan.proto="static"
+  uci delete network.lan.gateway
+  uci delete network.lan.dns
+  /etc/init.d/miniupnpd enable
+  /etc/init.d/miniupnpd start
+  /etc/init.d/firewall enable
+  /etc/init.d/firewall start
   /etc/init.d/dnsmasq enable
   /etc/init.d/dnsmasq start
   /etc/init.d/odhcpd enable
