@@ -471,11 +471,11 @@ get_bridge_mode_status() {
 }
 
 enable_bridge_mode() {
-  # Get ifnames to bridge them together
   local _disable_switch=$1
   local _fixed_ip=$2
   local _fixed_gateway=$3
   local _fixed_dns=$4
+  # Get ifnames to bridge them together
   local _lan_ip="$(uci get network.lan.ipaddr)"
   local _lan_ifnames="$(uci get network.lan.ifname)"
   local _wan_ifnames="$(uci get network.wan.ifname)"
@@ -527,6 +527,67 @@ enable_bridge_mode() {
   /etc/init.d/odhcpd disable
   /etc/init.d/odhcpd stop
   # Save changes and reboot network
+  uci commit network
+  /etc/init.d/network restart
+}
+
+update_bridge_mode() {
+  local _disable_switch=$1
+  local _fixed_ip=$2
+  local _fixed_gateway=$3
+  local _fixed_dns=$4
+  local _current_switch=""
+  local _current_ip=""
+  local _current_gateway=""
+  local _current_dns=""
+  local _lan_ifnames=""
+  local _wan_ifnames=""
+  local _lan_ifnames_wifi=""
+  json_cleanup
+  json_load_file /root/flashbox_config.json
+  json_get_var _current_switch bridge_disable_switch
+  json_get_var _current_ip bridge_fix_ip
+  json_get_var _current_gateway bridge_fix_gateway
+  json_get_var _current_dns bridge_fix_dns
+  # Update ip, gateway, dns if needed
+  if [ "$_current_ip" != "$_fixed_ip" ]
+  then
+    uci set network.lan.ipaddr="$_fixed_ip"
+    json_add_string bridge_fix_ip "$_fixed_ip"
+  fi
+  if [ "$_current_gateway" != "$_fixed_gateway" ]
+  then
+    uci set network.lan.gateway="$_fixed_gateway"
+    json_add_string bridge_fix_gateway "$_fixed_gateway"
+  fi
+  if [ "$_current_dns" != "$_fixed_dns" ]
+  then
+    uci set network.lan.gateway="$_fixed_dns"
+    json_add_string bridge_fix_dns "$_fixed_dns"
+  fi
+  # Update switch disable flag if needed
+  if [ "$_current_switch" != "$_disable_switch" ]
+  then
+    json_add_string bridge_disable_switch "$_disable_switch"
+    json_get_var _lan_ifnames bridge_lan_backup
+    _wan_ifnames="$(uci get network.wan.ifname)"
+    if [ "$_current_switch" = "y" ]
+    then
+      _lan_ifnames_wifi=""
+      for iface in $_lan_ifnames
+      do
+        if [ "$(echo $iface | grep ra)" != "" ]
+        then
+          _lan_ifnames_wifi="$iface $_lan_ifnames_wifi"
+        fi
+      done
+      uci set network.lan.ifname="$_wan_ifnames $_lan_ifnames_wifi"
+    else
+      uci set network.lan.ifname="$_wan_ifnames $_lan_ifnames"
+    fi
+  fi
+  json_dump > /root/flashbox_config.json
+  json_close_object
   uci commit network
   /etc/init.d/network restart
 }

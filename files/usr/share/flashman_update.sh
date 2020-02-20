@@ -298,6 +298,11 @@ wanuptime=$(wan_uptime)"
       log "FLASHMAN UPDATER" "Enabling bridge mode..."
       enable_bridge_mode "$_bridge_mode_switch_disable" "$_bridge_mode_ip" \
                          "$_bridge_mode_gateway" "$_bridge_mode_dns"
+    elif [ "$_bridge_mode_enabled" = "y" ] && [ "$_local_bridge_enabled" = "y" ]
+    then
+      log "FLASHMAN UPDATER" "Updating bridge mode parameters..."
+      update_bridge_mode "$_bridge_mode_switch_disable" "$_bridge_mode_ip" \
+                         "$_bridge_mode_gateway" "$_bridge_mode_dns"
     elif [ "$_bridge_mode_enabled" = "n" ] && [ "$_local_bridge_enabled" = "y" ]
     then
       log "FLASHMAN UPDATER" "Disabling bridge mode..."
