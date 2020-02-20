@@ -2,6 +2,7 @@
 
 . /usr/share/functions/common_functions.sh
 . /usr/share/functions/device_functions.sh
+. /usr/share/functions/network_functions.sh
 
 DO_RESTART=0
 
@@ -22,6 +23,15 @@ check_connectivity_internet()
   # false
   echo 1
   return
+}
+
+restart_bridge_wan() {
+  is_bridge_enabled=$(get_bridge_mode_status)
+  if [ "$is_bridge_enabled" = "y" ]
+  then
+    ifdown wan
+    ifup wan
+  fi
 }
 
 reset_leds
@@ -51,6 +61,7 @@ do
           log "CHECK_WAN" "External access restored..."
           reset_leds
           DO_RESTART=0
+          restart_bridge_wan
         fi
       fi
     else
