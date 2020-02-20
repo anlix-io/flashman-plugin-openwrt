@@ -543,6 +543,7 @@ update_bridge_mode() {
   local _lan_ifnames=""
   local _wan_ifnames=""
   local _lan_ifnames_wifi=""
+  local _reset_network="n"
   json_cleanup
   json_load_file /root/flashbox_config.json
   json_get_var _current_switch bridge_disable_switch
@@ -552,18 +553,27 @@ update_bridge_mode() {
   # Update ip, gateway, dns if needed
   if [ "$_current_ip" != "$_fixed_ip" ]
   then
-    uci set network.lan.ipaddr="$_fixed_ip"
-    json_add_string bridge_fix_ip "$_fixed_ip"
+    _reset_network="y"
+    if [ "$_fixed_ip" != "" ]
+    then
+      uci set network.lan.proto="static"
+      uci set network.lan.ipaddr="$_fixed_ip"
+      json_add_string bridge_fix_ip "$_fixed_ip"
+    else
+      uci set network.lan.proto="dhcp"
+    fi
   fi
   if [ "$_current_gateway" != "$_fixed_gateway" ]
   then
     uci set network.lan.gateway="$_fixed_gateway"
     json_add_string bridge_fix_gateway "$_fixed_gateway"
+    _reset_network="y"
   fi
   if [ "$_current_dns" != "$_fixed_dns" ]
   then
-    uci set network.lan.gateway="$_fixed_dns"
+    uci set network.lan.dns="$_fixed_dns"
     json_add_string bridge_fix_dns "$_fixed_dns"
+    _reset_network="y"
   fi
   # Update switch disable flag if needed
   if [ "$_current_switch" != "$_disable_switch" ]
@@ -571,7 +581,8 @@ update_bridge_mode() {
     json_add_string bridge_disable_switch "$_disable_switch"
     json_get_var _lan_ifnames bridge_lan_backup
     _wan_ifnames="$(uci get network.wan.ifname)"
-    if [ "$_current_switch" = "y" ]
+    _reset_network="y"
+    if [ "$_disable_switch" = "y" ]
     then
       _lan_ifnames_wifi=""
       for iface in $_lan_ifnames
@@ -588,8 +599,14 @@ update_bridge_mode() {
   fi
   json_dump > /root/flashbox_config.json
   json_close_object
-  uci commit network
-  /etc/init.d/network restart
+  if [ "$_reset_network" = "y" ]
+  then
+    log "FLASHMAN UPDATER" "Updated parameters, restarting network..."
+    uci commit network
+    /etc/init.d/network restart
+  else
+    log "FLASHMAN UPDATER" "No changes in bridge parameters..."
+  fi
 }
 
 disable_bridge_mode() {
