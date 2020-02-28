@@ -124,6 +124,9 @@ run_reflash() {
              --tlsv1.2 --connect-timeout 5 --retry 0 \
              --data "id=$(get_mac)&status=1" \
              "https://$_sv_address/deviceinfo/ack/"
+        /etc/init.d/check_cable_wan stop
+        /etc/init.d/keepalive stop
+        /etc/init.d/flashman stop
         /etc/init.d/uhttpd stop
         /etc/init.d/miniupnpd stop
         wifi down
