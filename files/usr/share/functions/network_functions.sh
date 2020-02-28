@@ -475,6 +475,7 @@ enable_bridge_mode() {
   local _fixed_ip=$2
   local _fixed_gateway=$3
   local _fixed_dns=$4
+  local _do_network_restart=$5
   # Get ifnames to bridge them together
   local _lan_ip="$(uci get network.lan.ipaddr)"
   local _lan_ifnames="$(uci get network.lan.ifname)"
@@ -528,7 +529,10 @@ enable_bridge_mode() {
   /etc/init.d/odhcpd stop
   # Save changes and reboot network
   uci commit network
-  /etc/init.d/network restart
+  if [ "$_do_network_restart" = "y" ]
+  then
+    /etc/init.d/network restart
+  fi
 }
 
 update_bridge_mode() {
