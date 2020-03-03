@@ -172,7 +172,7 @@ get_mac() {
   local _mac_address_tag=""
   local _p1
 
-  _p1=$(awk '{print toupper($1)}' /sys/class/net/eth0.2/address)
+  _p1=$(awk '{print toupper($1)}' /sys/class/net/eth0/address)
   if [ ! -z "$_p1" ]
   then
     _mac_address_tag=$_p1
