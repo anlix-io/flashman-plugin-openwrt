@@ -4,6 +4,7 @@
 . /usr/share/libubox/jshn.sh
 . /usr/share/functions/device_functions.sh
 . /usr/share/functions/firewall_functions.sh
+. /usr/share/functions/network_functions.sh
 
 send_boot_log() {
   local _res
@@ -224,6 +225,10 @@ router_status() {
   _wan_uptime="$(wan_uptime)"
 
   json_init
+  if [ -f /tmp/wanbytes.json ]
+  then
+    json_load_file /tmp/wanbytes.json
+  fi
   json_add_string "sysuptime" "$_sys_uptime"
   json_add_string "wanuptime" "$_wan_uptime"
   json_dump > "$_out_file"

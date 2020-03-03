@@ -289,9 +289,9 @@ add_static_ipv6() {
   local _mac=$1
 
   # do not create new entry
-  local i=0 
+  local i=0
   local _idtmp=$(uci -q get dhcp.@host[$i].mac)
-  while [ $? -eq 0 ]; do 
+  while [ $? -eq 0 ]; do
     if [ "$_idtmp" = "$_mac" ]
     then
       local _addr=$(uci -q get dhcp.@host[$i].hostid)
@@ -301,7 +301,7 @@ add_static_ipv6() {
         return
       fi
     fi
-    i=$((i+1)) 
+    i=$((i+1))
     _idtmp=$(uci -q get dhcp.@host[$i].mac)
   done
 
@@ -360,7 +360,7 @@ add_static_ip() {
     fi
   fi
 
-  # Device is offline. Choose an ip address 
+  # Device is offline. Choose an ip address
   if [ "$_dmz" = "1" ]
   then
     if [ -f /etc/$_ethers_file ]
@@ -459,4 +459,40 @@ set_use_dns_proxy() {
   fi
 
   return
+}
+
+store_wan_bytes() {
+  local _wan_itf
+  _wan_itf=$(uci get network.wan.ifname)
+
+  if [ $? -eq 0 ]
+  then
+    local _epoch=$(date +%s)
+    local _wan_rx=$(cat /sys/class/net/$_wan_itf/statistics/rx_bytes)
+    local _wan_tx=$(cat /sys/class/net/$_wan_itf/statistics/tx_bytes)
+
+    json_init
+
+    if [ -f /tmp/wanbytes.json ]
+    then
+      local _size=$(ls -l /tmp/wanbytes.json | awk '{print $5}')
+      if [ $_size -lt 8196 ]
+      then
+        json_load_file /tmp/wanbytes.json
+        json_select "wanbytes"
+      else
+        json_add_object "wanbytes"
+      fi
+    else
+      json_add_object "wanbytes"
+    fi
+
+    json_add_array "$_epoch"
+    json_add_int "" "$_wan_rx"
+    json_add_int "" "$_wan_tx"
+    json_close_array
+    json_close_object
+    json_dump > /tmp/wanbytes.json
+    json_cleanup
+  fi
 }
