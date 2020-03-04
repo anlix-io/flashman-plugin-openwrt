@@ -46,7 +46,7 @@ get_wifi_device_stats() {
                               awk '{print $3}')"
       local _dev_mcs="$(echo "$_dev_info" | grep 'tx bitrate:' | \
                         awk '{print $5}')"
-      local _dev_signal="$(echo "$_dev_info" | grep 'signal:' | \
+      local _dev_signal="$(echo "$_dev_info" | grep -m1 'signal:' | \
                            awk '{print $2}' | awk -F. '{print $1}')"
       local _ap_noise="$(iwinfo $_wifi_itf info | grep 'Noise:' | \
                          awk '{print $5}' | awk -F. '{print $1}')"
@@ -310,4 +310,17 @@ get_wifi_state() {
       echo "1"
     fi
   fi
+}
+
+get_wifi_device_signature() {
+  local _dev_mac="$1"
+  local _q=""
+
+  _q="$(ubus -S call hostapd.wlan0 get_clients | jsonfilter -e '@.clients["'"$_dev_mac"'"].signature')"
+  if [ -z "$_q" ]
+  then
+    _q="$(ubus -S call hostapd.wlan1 get_clients | jsonfilter -e '@.clients["'"$_dev_mac"'"].signature')"
+  fi
+
+  echo "$_q"
 }
