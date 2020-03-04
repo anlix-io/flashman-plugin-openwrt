@@ -145,10 +145,9 @@ reset_leds() {
     led_off "$trigger_path"
   done
 
-  for trigger_path in $(ls -d /sys/class/leds/*white*)
-  do
-    led_on "$trigger_path"
-  done
+  /etc/init.d/led restart > /dev/null
+
+  led_on /sys/class/leds/tp-link\:green\:power
 }
 
 blink_leds() {
@@ -156,12 +155,11 @@ blink_leds() {
 
   if [ $_do_restart -eq 0 ]
   then
-    for trigger_path in $(ls -d /sys/class/leds/*)
-    do
-      led_off "$trigger_path"
-    done
+    led_off /sys/class/leds/tp-link\:green\:power
+    # we cant turn on orange and blue at same time in this model
+    ledsoff=$(ls -d /sys/class/leds/*green*)
 
-    for trigger_path in $(ls -d /sys/class/leds/*yellow*)
+    for trigger_path in $ledsoff
     do
       echo "timer" > "$trigger_path"/trigger
     done

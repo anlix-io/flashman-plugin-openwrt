@@ -95,6 +95,8 @@ CUSTOM_FILE_DIR=
 		CUSTOM_FILE_DIR="custom-files/archer-c50-v4"
 	else ifeq ($(CONFIG_TARGET_ar71xx_generic_DEVICE_archer-c60-v2), y)
 		CUSTOM_FILE_DIR="custom-files/archer-c60-v2"
+	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_archer-c6-v2-us), y)
+		CUSTOM_FILE_DIR="custom-files/archer-c6-v2-us"
 	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_dlink_covr-c1200-a1), y)
 		CUSTOM_FILE_DIR="custom-files/covr-c1200-a1"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_dl-dwr116-a3), y)
