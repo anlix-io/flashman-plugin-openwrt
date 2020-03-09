@@ -291,7 +291,7 @@ function handle_request(env)
       if(system_model == nil) then system_model = "INVALID MODEL" end
       info = {}
       info["anlix_model"] = system_model
-      info["protocol_version"] = 2.0
+      info["protocol_version"] = 3.0
       if passwd ~= nil then
         info["router_has_passwd"] = 1
       else
@@ -463,6 +463,14 @@ function handle_request(env)
       local hash = data.command_hash
       local is_done = remove_from_file("/root/done_hashes", hash)
       resp["command_done"] = is_done
+      uhttpd.send("Status: 200 OK\r\n")
+      uhttpd.send("Content-Type: text/json\r\n\r\n")
+      uhttpd.send(json.encode(resp))
+    elseif command == "getMulticastCache" then
+      local cache = read_file("/tmp/sapo-cache.json")
+      if(cache ~= nil) then
+        resp["multicast_cache"] = json.decode(cache)
+      end
       uhttpd.send("Status: 200 OK\r\n")
       uhttpd.send("Content-Type: text/json\r\n\r\n")
       uhttpd.send(json.encode(resp))
