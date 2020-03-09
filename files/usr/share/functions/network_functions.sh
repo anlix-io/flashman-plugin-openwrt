@@ -513,7 +513,10 @@ enable_bridge_mode() {
     uci set network.lan.ipaddr="$_fixed_ip"
     uci set network.lan.gateway="$_fixed_gateway"
     uci set network.lan.dns="$_fixed_dns"
+    # Replace LAN IP so Flash App can find the router
+    sed -i 's/.*anlixrouter/'"$_fixed_ip"' anlixrouter/' /etc/hosts
   else
+    # LAN IP on etc/hosts will be replaced by hotplug
     uci set network.lan.proto="dhcp"
   fi
   if [ "$_disable_switch" = "y" ]

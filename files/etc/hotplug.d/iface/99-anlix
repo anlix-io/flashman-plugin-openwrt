@@ -27,6 +27,13 @@ valid_ip() {
   return $stat
 }
 
+update_lan_ip() {
+  _lan_addr="$(ifstatus lan | jsonfilter -e '@["ipv4-address"][0]["address"]')"
+  # Replace LAN IP so Flash App can find the router
+  sed -i 's/.*anlixrouter/'"$_lan_addr"' anlixrouter/' /etc/hosts
+}
+[ "$INTERFACE" = "wan" ] && update_lan_ip
+
 set_dns_proxy_config() {
   local _dns_sv_list
 
