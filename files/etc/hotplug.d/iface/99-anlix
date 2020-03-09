@@ -31,6 +31,8 @@ update_lan_ip() {
   _lan_addr="$(ifstatus lan | jsonfilter -e '@["ipv4-address"][0]["address"]')"
   # Replace LAN IP so Flash App can find the router
   sed -i 's/.*anlixrouter/'"$_lan_addr"' anlixrouter/' /etc/hosts
+  /etc/init.d/uhttpd restart
+  /etc/init.d/minisapo restart
 }
 [ "$INTERFACE" = "wan" ] && update_lan_ip
 

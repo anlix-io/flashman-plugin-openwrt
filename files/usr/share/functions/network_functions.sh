@@ -236,6 +236,7 @@ set_lan_subnet() {
         /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
         /etc/init.d/dnsmasq reload
         /etc/init.d/uhttpd restart # Must restart to update Flash App API
+        /etc/init.d/minisapo restart
 
         # Save LAN config
         json_cleanup
@@ -539,6 +540,11 @@ enable_bridge_mode() {
   if [ "$_do_network_restart" = "y" ]
   then
     /etc/init.d/network restart
+    if [ "$_fixed_ip" != "" ]
+    then
+      /etc/init.d/uhttpd restart
+      /etc/init.d/minisapo restart
+    fi
   fi
 }
 
