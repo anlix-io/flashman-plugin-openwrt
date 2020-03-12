@@ -14,6 +14,12 @@ local function get_router_id()
   return result:sub(1,-2)
 end
 
+local function get_router_ssid()
+  local result = run_process("sh -c \". /usr/share/functions/wireless_functions.sh; get_wifi_local_config | jsonfilter -e '@[\\\"local_ssid_24\\\"]'\"")
+  -- remove \n
+  return result:sub(1,-2)
+end
+
 local function get_mac_from_ip(ip)
   local result = run_process("sh -c \". /usr/share/functions/dhcp_functions.sh; get_device_mac_from_ip " .. ip .. "\"")
   -- remove \n
@@ -347,6 +353,28 @@ function handle_request(env)
     auth["app_secret"] = secret
     auth["flashman_addr"] = get_flashman_server()
 
+    if command == "getMulticastCache" then
+      resp["auth"] = auth
+      local cache = read_file("/tmp/sapo-cache.json")
+      if(cache ~= nil) then
+        resp["multicast_cache"] = json.decode(cache)
+      end
+      uhttpd.send("Status: 200 OK\r\n")
+      uhttpd.send("Content-Type: text/json\r\n\r\n")
+      uhttpd.send(json.encode(resp))
+      return
+    elseif command == "getLoginInfo" then
+      resp["auth"] = auth
+      local data = {}
+      data["mac"] = get_router_id()
+      data["ssid"] = get_router_ssid()
+      resp["data"] = data
+      uhttpd.send("Status: 200 OK\r\n")
+      uhttpd.send("Content-Type: text/json\r\n\r\n")
+      uhttpd.send(json.encode(resp))
+      return
+    end
+
     -- verify passwd
     local passwd = get_router_passwd()
     local router_passwd = data.router_passwd
@@ -463,14 +491,6 @@ function handle_request(env)
       local hash = data.command_hash
       local is_done = remove_from_file("/root/done_hashes", hash)
       resp["command_done"] = is_done
-      uhttpd.send("Status: 200 OK\r\n")
-      uhttpd.send("Content-Type: text/json\r\n\r\n")
-      uhttpd.send(json.encode(resp))
-    elseif command == "getMulticastCache" then
-      local cache = read_file("/tmp/sapo-cache.json")
-      if(cache ~= nil) then
-        resp["multicast_cache"] = json.decode(cache)
-      end
       uhttpd.send("Status: 200 OK\r\n")
       uhttpd.send("Content-Type: text/json\r\n\r\n")
       uhttpd.send(json.encode(resp))
