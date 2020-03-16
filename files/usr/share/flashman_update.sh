@@ -68,6 +68,14 @@ then
   json_get_var _local_bridge_fix_gateway bridge_fix_gateway
   json_get_var _local_bridge_fix_dns bridge_fix_dns
   json_close_object
+
+  # If bridge is active, we cannot use get_wan_type, use flashman_init.conf
+  _local_wan_type="$(get_wan_type)"
+  if [ "$_local_bridge_enabled" = "y" ]
+  then
+    _local_wan_type="$FLM_WAN_PROTO"
+  fi
+
   # Translate some variables from y/n to 1/0
   if [ "$_local_bridge_enabled" = "y" ]
   then
@@ -81,7 +89,6 @@ then
   else
     _local_bridge_switch_disable=0
   fi
-
 
   # Report if a hard reset has occured
   if [ "_hard_reset_info" = "1" ]
@@ -123,7 +130,7 @@ wifi_channel_5ghz=$_local_channel_50&\
 wifi_band_5ghz=$_local_htmode_50&\
 wifi_mode_5ghz=$_local_hwmode_50&\
 wifi_state_5ghz=$_local_state_50&\
-connection_type=$(get_wan_type)&\
+connection_type=$_local_wan_type&\
 ntp=$(ntp_anlix)&\
 hardreset=$_hard_reset_info&\
 upgfirm=$_has_upgraded_version&\
