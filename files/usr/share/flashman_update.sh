@@ -62,7 +62,26 @@ then
   json_load_file /root/flashbox_config.json
   json_get_var _has_upgraded_version has_upgraded_version
   json_get_var _hard_reset_info hard_reset_info
+  json_get_var _local_bridge_enabled bridge_mode
+  json_get_var _local_bridge_switch_disable bridge_disable_switch
+  json_get_var _local_bridge_fix_ip bridge_fix_ip
+  json_get_var _local_bridge_fix_gateway bridge_fix_gateway
+  json_get_var _local_bridge_fix_dns bridge_fix_dns
   json_close_object
+  # Translate some variables from y/n to 1/0
+  if [ "$_local_bridge_enabled" = "y" ]
+  then
+    _local_bridge_enabled=1
+  else
+    _local_bridge_enabled=0
+  fi
+  if [ "$_local_bridge_switch_disable" = "y" ]
+  then
+    _local_bridge_switch_disable=1
+  else
+    _local_bridge_switch_disable=0
+  fi
+
 
   # Report if a hard reset has occured
   if [ "_hard_reset_info" = "1" ]
@@ -109,7 +128,12 @@ ntp=$(ntp_anlix)&\
 hardreset=$_hard_reset_info&\
 upgfirm=$_has_upgraded_version&\
 sysuptime=$(sys_uptime)&\
-wanuptime=$(wan_uptime)"
+wanuptime=$(wan_uptime)&\
+bridge_enabled=$_local_bridge_enabled&\
+bridge_switch_disable=$_local_bridge_switch_disable&\
+bridge_fix_ip=$_local_bridge_fix_ip&\
+bridge_fix_gateway=$_local_bridge_fix_gateway&\
+bridge_fix_dns=$_local_bridge_fix_dns"
   _url="deviceinfo/syn/"
   _res=$(rest_flashman "$_url" "$_data")
 
