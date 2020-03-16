@@ -581,10 +581,10 @@ update_bridge_mode() {
     then
       uci set network.lan.proto="static"
       uci set network.lan.ipaddr="$_fixed_ip"
-      json_add_string bridge_fix_ip "$_fixed_ip"
     else
       uci set network.lan.proto="dhcp"
     fi
+    json_add_string bridge_fix_ip "$_fixed_ip"
   fi
   if [ "$_current_gateway" != "$_fixed_gateway" ]
   then
