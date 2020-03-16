@@ -28,7 +28,18 @@ valid_ip() {
 }
 
 update_lan_ip() {
-  _lan_addr="$(ifstatus lan | jsonfilter -e '@["ipv4-address"][0]["address"]')"
+  local _lan_addr=""
+  while true
+  do
+    _lan_addr="$(ifstatus lan | jsonfilter -e '@["ipv4-address"][0]["address"]')"
+    valid_ip "$_lan_addr"
+    _retstatus=$?
+    if [ $_retstatus -eq 0 ]
+    then
+      break
+    fi
+    sleep 3
+  done
   # Replace LAN IP so Flash App can find the router
   sed -i 's/.*anlixrouter/'"$_lan_addr"' anlixrouter/' /etc/hosts
   /etc/init.d/uhttpd restart
