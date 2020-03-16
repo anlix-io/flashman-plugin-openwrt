@@ -8,7 +8,13 @@
 
 get_wan_ip() {
   local _ip=""
-  network_get_ipaddr _ip wan
+  if [ "$(get_bridge_mode_status)" != "y" ]
+  then
+    network_get_ipaddr _ip wan
+  else
+    # Do not write "none" in case of bridge
+    _ip="$(get_lan_bridge_ipaddr)"
+  fi
   echo "$_ip"
 }
 
