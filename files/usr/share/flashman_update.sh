@@ -62,7 +62,33 @@ then
   json_load_file /root/flashbox_config.json
   json_get_var _has_upgraded_version has_upgraded_version
   json_get_var _hard_reset_info hard_reset_info
+  json_get_var _local_bridge_enabled bridge_mode
+  json_get_var _local_bridge_switch_disable bridge_disable_switch
+  json_get_var _local_bridge_fix_ip bridge_fix_ip
+  json_get_var _local_bridge_fix_gateway bridge_fix_gateway
+  json_get_var _local_bridge_fix_dns bridge_fix_dns
   json_close_object
+
+  # If bridge is active, we cannot use get_wan_type, use flashman_init.conf
+  _local_wan_type="$(get_wan_type)"
+  if [ "$_local_bridge_enabled" = "y" ]
+  then
+    _local_wan_type="$FLM_WAN_PROTO"
+  fi
+
+  # Translate some variables from y/n to 1/0
+  if [ "$_local_bridge_enabled" = "y" ]
+  then
+    _local_bridge_enabled=1
+  else
+    _local_bridge_enabled=0
+  fi
+  if [ "$_local_bridge_switch_disable" = "y" ]
+  then
+    _local_bridge_switch_disable=1
+  else
+    _local_bridge_switch_disable=0
+  fi
 
   # Report if a hard reset has occured
   if [ "_hard_reset_info" = "1" ]
@@ -104,12 +130,17 @@ wifi_channel_5ghz=$_local_channel_50&\
 wifi_band_5ghz=$_local_htmode_50&\
 wifi_mode_5ghz=$_local_hwmode_50&\
 wifi_state_5ghz=$_local_state_50&\
-connection_type=$(get_wan_type)&\
+connection_type=$_local_wan_type&\
 ntp=$(ntp_anlix)&\
 hardreset=$_hard_reset_info&\
 upgfirm=$_has_upgraded_version&\
 sysuptime=$(sys_uptime)&\
-wanuptime=$(wan_uptime)"
+wanuptime=$(wan_uptime)&\
+bridge_enabled=$_local_bridge_enabled&\
+bridge_switch_disable=$_local_bridge_switch_disable&\
+bridge_fix_ip=$_local_bridge_fix_ip&\
+bridge_fix_gateway=$_local_bridge_fix_gateway&\
+bridge_fix_dns=$_local_bridge_fix_dns"
   _url="deviceinfo/syn/"
   _res=$(rest_flashman "$_url" "$_data")
 
@@ -147,6 +178,13 @@ wanuptime=$(wan_uptime)"
     json_get_var _zabbix_psk zabbix_psk
     json_get_var _zabbix_fqdn zabbix_fqdn
     json_get_var _zabbix_active zabbix_active
+    json_get_var _bridge_mode_enabled bridge_mode_enabled
+    json_get_var _bridge_mode_switch_disable bridge_mode_switch_disable
+    json_get_var _bridge_mode_ip bridge_mode_ip
+    json_get_var _bridge_mode_gateway bridge_mode_gateway
+    json_get_var _bridge_mode_dns bridge_mode_dns
+
+    _local_bridge_enabled=$(get_bridge_mode_status)
 
     _blocked_macs=""
     _blocked_devices=""
@@ -205,22 +243,26 @@ wanuptime=$(wan_uptime)"
       echo "0" > /tmp/boot_completed
     fi
 
-    # WAN connection type update
-    set_wan_type "$_connection_type" "$_pppoe_user" "$_pppoe_password"
-
-    # PPPoE update
-    set_pppoe_credentials "$_pppoe_user" "$_pppoe_password"
-
-    # LAN connection subnet update
-    set_lan_subnet "$_lan_addr" "$_lan_netmask"
-    # If LAN has changed then reload port forward mapping
-    if [ $? -eq 0 ]
+    # Ignore changes if in bridge mode
+    if [ "$_local_bridge_enabled" != "y" ]
     then
-      update_port_forward
-    fi
+      # WAN connection type update
+      set_wan_type "$_connection_type" "$_pppoe_user" "$_pppoe_password"
 
-    # Change use of local router DNS proxy
-    set_use_dns_proxy "$_lan_no_dns_proxy"
+      # PPPoE update
+      set_pppoe_credentials "$_pppoe_user" "$_pppoe_password"
+
+      # LAN connection subnet update
+      set_lan_subnet "$_lan_addr" "$_lan_netmask"
+      # If LAN has changed then reload port forward mapping
+      if [ $? -eq 0 ]
+      then
+        update_port_forward
+      fi
+
+      # Change use of local router DNS proxy
+      set_use_dns_proxy "$_lan_no_dns_proxy"
+    fi
 
     # WiFi update
     log "FLASHMAN UPDATER" "Updating Wireless ..."
@@ -246,11 +288,15 @@ wanuptime=$(wan_uptime)"
     echo -n "$_named_devices" > /tmp/named_devices
 
     # Check for updates in blocked devices
-    _local_dindex=$(get_forward_indexes "blocked_devices_index")
-    if [ "$_local_dindex" != "$_blocked_devices_index" ]
+    # Ignore changes if in bridge mode
+    if [ "$_local_bridge_enabled" != "y" ]
     then
-      update_blocked_devices "$_blocked_devices" "$_blocked_macs" \
-                             "$_blocked_devices_index"
+      _local_dindex=$(get_forward_indexes "blocked_devices_index")
+      if [ "$_local_dindex" != "$_blocked_devices_index" ]
+      then
+        update_blocked_devices "$_blocked_devices" "$_blocked_macs" \
+                               "$_blocked_devices_index"
+      fi
     fi
 
     # Update zabbix parameters as necessary
@@ -259,18 +305,39 @@ wanuptime=$(wan_uptime)"
       set_zabbix_params "$_zabbix_psk" "$_zabbix_fqdn" "$_zabbix_active"
     fi
 
-    # Check for updates in port forward mapping 
-    _local_findex=$(get_forward_indexes "forward_index")
-    [ "$_local_findex" != "$_forward_index" ] && update_port_forward
+    # Check for updates in port forward mapping
+    # Ignore changes if in bridge mode
+    if [ "$_local_bridge_enabled" != "y" ]
+    then
+      _local_findex=$(get_forward_indexes "forward_index")
+      [ "$_local_findex" != "$_forward_index" ] && update_port_forward
 
-    # Check for updates in upnp allowed devices mapping 
-    _local_uindex=$(get_forward_indexes "upnp_devices_index")
-    [ "$_local_uindex" != "$_upnp_devices_index" ] && update_upnp_devices
+      # Check for updates in upnp allowed devices mapping
+      _local_uindex=$(get_forward_indexes "upnp_devices_index")
+      [ "$_local_uindex" != "$_upnp_devices_index" ] && update_upnp_devices
+    fi
 
     # Store completed command hash if one was provided
     if [ "$COMMANDHASH" != "" ]
     then
       echo "$COMMANDHASH" >> /root/done_hashes
+    fi
+
+    # Update bridge mode information
+    if [ "$_bridge_mode_enabled" = "y" ] && [ "$_local_bridge_enabled" != "y" ]
+    then
+      log "FLASHMAN UPDATER" "Enabling bridge mode..."
+      enable_bridge_mode "$_bridge_mode_switch_disable" "$_bridge_mode_ip" \
+                         "$_bridge_mode_gateway" "$_bridge_mode_dns" "y"
+    elif [ "$_bridge_mode_enabled" = "y" ] && [ "$_local_bridge_enabled" = "y" ]
+    then
+      log "FLASHMAN UPDATER" "Updating bridge mode parameters..."
+      update_bridge_mode "$_bridge_mode_switch_disable" "$_bridge_mode_ip" \
+                         "$_bridge_mode_gateway" "$_bridge_mode_dns"
+    elif [ "$_bridge_mode_enabled" = "n" ] && [ "$_local_bridge_enabled" = "y" ]
+    then
+      log "FLASHMAN UPDATER" "Disabling bridge mode..."
+      disable_bridge_mode
     fi
 
     if [ "$_do_update" == "1" ]

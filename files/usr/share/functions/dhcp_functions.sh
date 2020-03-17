@@ -179,6 +179,9 @@ get_online_devices() {
     local _dev_snr=""
     local _dev_freq=""
     local _dev_mode=""
+    local _dev_signature=""
+    local _dhcp_signature=""
+    local _dhcp_vendor_class=""
 
     if [ "$_conn_type" == "0" ]
     then
@@ -193,6 +196,16 @@ get_online_devices() {
       _dev_snr=$(echo $_wifi_stats | awk '{print $4}')
       _dev_freq=$(echo $_wifi_stats | awk '{print $5}')
       _dev_mode=$(echo $_wifi_stats | awk '{print $6}')
+      if [ "$(type -t get_wifi_device_signature)" ]
+      then
+        _dev_signature="$(get_wifi_device_signature $_mac)"
+      fi
+    fi
+
+    if [ -e "/tmp/dhcpinfo/$_mac" ]
+    then
+      _dhcp_signature="$(cat /tmp/dhcpinfo/"$_mac" | awk '{print $1}')"
+      _dhcp_vendor_class="$(cat /tmp/dhcpinfo/"$_mac" | awk '{print $2}')"
     fi
 
     json_add_object "$_mac"
@@ -216,6 +229,9 @@ get_online_devices() {
     json_add_string "wifi_snr" "$_dev_snr"
     json_add_string "wifi_freq" "$_dev_freq"
     json_add_string "wifi_mode" "$_dev_mode"
+    json_add_string "wifi_signature" "$_dev_signature"
+    json_add_string "dhcp_signature" "$_dhcp_signature"
+    json_add_string "dhcp_vendor_class" "$_dhcp_vendor_class"
     json_close_object
   done
   json_close_object

@@ -8,7 +8,13 @@
 
 get_wan_ip() {
   local _ip=""
-  network_get_ipaddr _ip wan
+  if [ "$(get_bridge_mode_status)" != "y" ]
+  then
+    network_get_ipaddr _ip wan
+  else
+    # Do not write "none" in case of bridge
+    _ip="$(get_lan_bridge_ipaddr)"
+  fi
   echo "$_ip"
 }
 
@@ -146,6 +152,10 @@ get_lan_subnet() {
   echo "$_lan_addr"
 }
 
+get_lan_bridge_ipaddr() {
+  echo "$(ifstatus lan | jsonfilter -e '@["ipv4-address"][0]["address"]')"
+}
+
 get_lan_ipaddr() {
   local _uci_lan_ipaddr
   _uci_lan_ipaddr=$(uci get network.lan.ipaddr)
@@ -232,6 +242,7 @@ set_lan_subnet() {
         /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
         /etc/init.d/dnsmasq reload
         /etc/init.d/uhttpd restart # Must restart to update Flash App API
+        /etc/init.d/minisapo restart
 
         # Save LAN config
         json_cleanup
@@ -289,9 +300,9 @@ add_static_ipv6() {
   local _mac=$1
 
   # do not create new entry
-  local i=0 
+  local i=0
   local _idtmp=$(uci -q get dhcp.@host[$i].mac)
-  while [ $? -eq 0 ]; do 
+  while [ $? -eq 0 ]; do
     if [ "$_idtmp" = "$_mac" ]
     then
       local _addr=$(uci -q get dhcp.@host[$i].hostid)
@@ -301,7 +312,7 @@ add_static_ipv6() {
         return
       fi
     fi
-    i=$((i+1)) 
+    i=$((i+1))
     _idtmp=$(uci -q get dhcp.@host[$i].mac)
   done
 
@@ -360,7 +371,7 @@ add_static_ip() {
     fi
   fi
 
-  # Device is offline. Choose an ip address 
+  # Device is offline. Choose an ip address
   if [ "$_dmz" = "1" ]
   then
     if [ -f /etc/$_ethers_file ]
@@ -459,4 +470,236 @@ set_use_dns_proxy() {
   fi
 
   return
+}
+
+store_wan_bytes() {
+  local _wan_itf
+  _wan_itf=$(uci get network.wan.ifname)
+
+  if [ $? -eq 0 ]
+  then
+    local _epoch=$(date +%s)
+    local _wan_rx=$(cat /sys/class/net/$_wan_itf/statistics/rx_bytes)
+    local _wan_tx=$(cat /sys/class/net/$_wan_itf/statistics/tx_bytes)
+
+    json_init
+
+    if [ -f /tmp/wanbytes.json ]
+    then
+      local _size=$(ls -l /tmp/wanbytes.json | awk '{print $5}')
+      if [ $_size -lt 8196 ]
+      then
+        json_load_file /tmp/wanbytes.json
+        json_select "wanbytes"
+      else
+        json_add_object "wanbytes"
+      fi
+    else
+      json_add_object "wanbytes"
+    fi
+
+    json_add_array "$_epoch"
+    json_add_int "" "$_wan_rx"
+    json_add_int "" "$_wan_tx"
+    json_close_array
+    json_close_object
+    json_dump > /tmp/wanbytes.json
+    json_cleanup
+  fi
+}
+
+get_bridge_mode_status() {
+  local _status=""
+  json_cleanup
+  json_load_file /root/flashbox_config.json
+  json_get_var _status bridge_mode
+  json_close_object
+  echo "$_status"
+}
+
+enable_bridge_mode() {
+  local _disable_switch=$1
+  local _fixed_ip=$2
+  local _fixed_gateway=$3
+  local _fixed_dns=$4
+  local _do_network_restart=$5
+  # Get ifnames to bridge them together
+  local _lan_ip="$(uci get network.lan.ipaddr)"
+  local _lan_ifnames="$(uci get network.lan.ifname)"
+  local _wan_ifnames="$(uci get network.wan.ifname)"
+  # Separate non-wifi interfaces to back them up
+  _lan_ifnames_wifi=""
+  for iface in $_lan_ifnames
+  do
+    if [ "$(echo $iface | grep ra)" != "" ]
+    then
+      _lan_ifnames_wifi="$iface $_lan_ifnames_wifi"
+    fi
+  done
+  # Write bridge mode to config.json so it persists between flashes
+  json_cleanup
+  json_load_file /root/flashbox_config.json
+  json_add_string bridge_mode "y"
+  json_add_string bridge_lan_backup "$_lan_ifnames"
+  json_add_string bridge_lan_ip_backup "$_lan_ip"
+  json_add_string bridge_disable_switch "$_disable_switch"
+  json_add_string bridge_fix_ip "$_fixed_ip"
+  json_add_string bridge_fix_gateway "$_fixed_gateway"
+  json_add_string bridge_fix_dns "$_fixed_dns"
+  json_dump > /root/flashbox_config.json
+  json_close_object
+  # Disable wan and bridge interfaces in lan
+  uci set network.wan.proto="none"
+  uci set network.wan6.proto="none"
+  if [ "$_fixed_ip" != "" ]
+  then
+    uci set network.lan.ipaddr="$_fixed_ip"
+    uci set network.lan.gateway="$_fixed_gateway"
+    uci set network.lan.dns="$_fixed_dns"
+    # Replace LAN IP so Flash App can find the router
+    sed -i 's/.*anlixrouter/'"$_fixed_ip"' anlixrouter/' /etc/hosts
+  else
+    # LAN IP on etc/hosts will be replaced by hotplug
+    uci set network.lan.proto="dhcp"
+  fi
+  if [ "$_disable_switch" = "y" ]
+  then
+    uci set network.lan.ifname="$_wan_ifnames $_lan_ifnames_wifi"
+  else
+    uci set network.lan.ifname="$_wan_ifnames $_lan_ifnames"
+  fi
+  # Disable dns, dhcp and dhcp6
+  /etc/init.d/miniupnpd disable
+  /etc/init.d/miniupnpd stop
+  /etc/init.d/firewall disable
+  /etc/init.d/firewall stop
+  /etc/init.d/dnsmasq disable
+  /etc/init.d/dnsmasq stop
+  /etc/init.d/odhcpd disable
+  /etc/init.d/odhcpd stop
+  # Save changes and reboot network
+  uci commit network
+  if [ "$_do_network_restart" = "y" ]
+  then
+    /etc/init.d/network restart
+    if [ "$_fixed_ip" != "" ]
+    then
+      /etc/init.d/uhttpd restart
+      /etc/init.d/minisapo restart
+    fi
+  fi
+}
+
+update_bridge_mode() {
+  local _disable_switch=$1
+  local _fixed_ip=$2
+  local _fixed_gateway=$3
+  local _fixed_dns=$4
+  local _current_switch=""
+  local _current_ip=""
+  local _current_gateway=""
+  local _current_dns=""
+  local _lan_ifnames=""
+  local _wan_ifnames=""
+  local _lan_ifnames_wifi=""
+  local _reset_network="n"
+  json_cleanup
+  json_load_file /root/flashbox_config.json
+  json_get_var _current_switch bridge_disable_switch
+  json_get_var _current_ip bridge_fix_ip
+  json_get_var _current_gateway bridge_fix_gateway
+  json_get_var _current_dns bridge_fix_dns
+  # Update ip, gateway, dns if needed
+  if [ "$_current_ip" != "$_fixed_ip" ]
+  then
+    _reset_network="y"
+    if [ "$_fixed_ip" != "" ]
+    then
+      uci set network.lan.proto="static"
+      uci set network.lan.ipaddr="$_fixed_ip"
+    else
+      uci set network.lan.proto="dhcp"
+    fi
+    json_add_string bridge_fix_ip "$_fixed_ip"
+  fi
+  if [ "$_current_gateway" != "$_fixed_gateway" ]
+  then
+    uci set network.lan.gateway="$_fixed_gateway"
+    json_add_string bridge_fix_gateway "$_fixed_gateway"
+    _reset_network="y"
+  fi
+  if [ "$_current_dns" != "$_fixed_dns" ]
+  then
+    uci set network.lan.dns="$_fixed_dns"
+    json_add_string bridge_fix_dns "$_fixed_dns"
+    _reset_network="y"
+  fi
+  # Update switch disable flag if needed
+  if [ "$_current_switch" != "$_disable_switch" ]
+  then
+    json_add_string bridge_disable_switch "$_disable_switch"
+    json_get_var _lan_ifnames bridge_lan_backup
+    _wan_ifnames="$(uci get network.wan.ifname)"
+    _reset_network="y"
+    if [ "$_disable_switch" = "y" ]
+    then
+      _lan_ifnames_wifi=""
+      for iface in $_lan_ifnames
+      do
+        if [ "$(echo $iface | grep ra)" != "" ]
+        then
+          _lan_ifnames_wifi="$iface $_lan_ifnames_wifi"
+        fi
+      done
+      uci set network.lan.ifname="$_wan_ifnames $_lan_ifnames_wifi"
+    else
+      uci set network.lan.ifname="$_wan_ifnames $_lan_ifnames"
+    fi
+  fi
+  json_dump > /root/flashbox_config.json
+  json_close_object
+  if [ "$_reset_network" = "y" ]
+  then
+    log "FLASHMAN UPDATER" "Updated parameters, restarting network..."
+    uci commit network
+    /etc/init.d/network restart
+  else
+    log "FLASHMAN UPDATER" "No changes in bridge parameters..."
+  fi
+}
+
+disable_bridge_mode() {
+  local _wan_conn_type=""
+  local _lan_ifnames=""
+  local _lan_ip=""
+  # Clear bridge mode from config.json so it doesn't persist between flashes
+  json_cleanup
+  json_load_file /root/flashbox_config.json
+  json_get_var _wan_conn_type wan_conn_type
+  json_get_var _lan_ifnames bridge_lan_backup
+  json_get_var _lan_ip bridge_lan_ip_backup
+  json_add_string bridge_mode "n"
+  json_dump > /root/flashbox_config.json
+  json_close_object
+  # Get ifname to remove from the bridge
+  uci set network.lan.ifname="$_lan_ifnames"
+  uci set network.lan.proto="static"
+  uci set network.lan.ipaddr="$_lan_ip"
+  # Set wan and lan back to proper values
+  uci set network.wan.proto="$_wan_conn_type"
+  uci set network.wan6.proto="dhcpv6"
+  uci set network.lan.proto="static"
+  uci delete network.lan.gateway
+  uci delete network.lan.dns
+  /etc/init.d/miniupnpd enable
+  /etc/init.d/miniupnpd start
+  /etc/init.d/firewall enable
+  /etc/init.d/firewall start
+  /etc/init.d/dnsmasq enable
+  /etc/init.d/dnsmasq start
+  /etc/init.d/odhcpd enable
+  /etc/init.d/odhcpd start
+  uci commit network
+  /etc/init.d/network restart
+  /etc/init.d/odhcpd restart
 }

@@ -14,6 +14,12 @@ local function get_router_id()
   return result:sub(1,-2)
 end
 
+local function get_router_ssid()
+  local result = run_process("sh -c \". /usr/share/functions/wireless_functions.sh; get_wifi_local_config | jsonfilter -e '@[\\\"local_ssid_24\\\"]'\"")
+  -- remove \n
+  return result:sub(1,-2)
+end
+
 local function get_mac_from_ip(ip)
   local result = run_process("sh -c \". /usr/share/functions/dhcp_functions.sh; get_device_mac_from_ip " .. ip .. "\"")
   -- remove \n
@@ -291,7 +297,7 @@ function handle_request(env)
       if(system_model == nil) then system_model = "INVALID MODEL" end
       info = {}
       info["anlix_model"] = system_model
-      info["protocol_version"] = 2.0
+      info["protocol_version"] = 3.0
       if passwd ~= nil then
         info["router_has_passwd"] = 1
       else
@@ -346,6 +352,28 @@ function handle_request(env)
     auth["id_router"] = get_router_id()
     auth["app_secret"] = secret
     auth["flashman_addr"] = get_flashman_server()
+
+    if command == "getMulticastCache" then
+      resp["auth"] = auth
+      local cache = read_file("/tmp/sapo-cache.json")
+      if(cache ~= nil) then
+        resp["multicast_cache"] = json.decode(cache)
+      end
+      uhttpd.send("Status: 200 OK\r\n")
+      uhttpd.send("Content-Type: text/json\r\n\r\n")
+      uhttpd.send(json.encode(resp))
+      return
+    elseif command == "getLoginInfo" then
+      resp["auth"] = auth
+      local data = {}
+      data["mac"] = get_router_id()
+      data["ssid"] = get_router_ssid()
+      resp["data"] = data
+      uhttpd.send("Status: 200 OK\r\n")
+      uhttpd.send("Content-Type: text/json\r\n\r\n")
+      uhttpd.send(json.encode(resp))
+      return
+    end
 
     -- verify passwd
     local passwd = get_router_passwd()

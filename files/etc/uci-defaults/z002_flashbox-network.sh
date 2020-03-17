@@ -8,6 +8,11 @@ _wan_proto_value=$(uci get network.wan.proto)
 
 json_cleanup
 json_load_file /root/flashbox_config.json
+json_get_var _bridge_mode bridge_mode
+json_get_var _bridge_disable_switch bridge_disable_switch
+json_get_var _bridge_fix_ip bridge_fix_ip
+json_get_var _bridge_fix_gateway bridge_fix_gateway
+json_get_var _bridge_fix_dns bridge_fix_dns
 json_get_var _wan_conn_type wan_conn_type
 json_get_var _pppoe_user pppoe_user
 json_get_var _pppoe_pass pppoe_pass
@@ -99,6 +104,7 @@ else
   uci set network.wan.ipv6="0"
 fi
 
+
 # Remove IPv6 ULA prefix to avoid phone issues
 uci -q delete network.globals
 
@@ -108,6 +114,13 @@ A=$(grep "$_lan_addr anlixrouter" /etc/hosts)
 if [ ! "$A" ]
 then
   echo "$_lan_addr anlixrouter" >> /etc/hosts
+fi
+
+# Check if bridge mode should be enabled
+if [ "$_bridge_mode" = "y" ]
+then
+  enable_bridge_mode "$_bridge_disable_switch" "$_bridge_fix_ip" \
+                     "$_bridge_fix_gateway" "$_bridge_fix_dns" "n"
 fi
 
 exit 0

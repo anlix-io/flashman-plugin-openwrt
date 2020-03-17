@@ -109,7 +109,11 @@ run_reflash() {
       json_cleanup
       json_load_file /root/flashbox_config.json
       json_add_string has_upgraded_version "1"
-      json_add_string wan_conn_type "$_connection_type"
+      if [ "$(get_bridge_mode_status)" != "y" ]
+      then
+        # Do not write "none" in case of bridge
+        json_add_string wan_conn_type "$_connection_type"
+      fi
       json_add_string pppoe_user "$_pppoe_user_local"
       json_add_string pppoe_pass "$_pppoe_password_local"
       json_dump > /root/flashbox_config.json
@@ -124,6 +128,10 @@ run_reflash() {
              --tlsv1.2 --connect-timeout 5 --retry 0 \
              --data "id=$(get_mac)&status=1" \
              "https://$_sv_address/deviceinfo/ack/"
+        /etc/init.d/check_cable_wan stop
+        /etc/init.d/keepalive stop
+        /etc/init.d/flashman stop
+        /etc/init.d/netstats stop
         /etc/init.d/uhttpd stop
         /etc/init.d/miniupnpd stop
         wifi down
