@@ -60,6 +60,7 @@ define Package/flashman-plugin
 			+libmbedtls \
 			+iptables-mod-conntrack-extra \
 			+anlix-miniupnpd \
+			+anlix-minisapo \
 			+flash-measure
 	MENU:=1
 endef
