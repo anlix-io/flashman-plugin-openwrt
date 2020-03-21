@@ -730,6 +730,11 @@ disable_bridge_mode() {
   json_add_string bridge_mode "n"
   json_dump > /root/flashbox_config.json
   json_close_object
+  # Test for empty wan_conn_type to avoid bugs after hard reset
+  if [ "$_wan_conn_type" = "" ]
+  then
+    _wan_conn_type="$FLM_WAN_PROTO"
+  fi
   # Get ifname to remove from the bridge
   uci set network.lan.ifname="$_lan_ifnames"
   uci set network.lan.proto="static"
