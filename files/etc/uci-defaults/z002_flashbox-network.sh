@@ -87,6 +87,7 @@ then
   json_cleanup
   json_load_file /root/flashbox_config.json
   json_add_string wan_conn_type "$FLM_WAN_PROTO"
+  json_dump > /root/flashbox_config.json
   json_close_object
 fi
 
