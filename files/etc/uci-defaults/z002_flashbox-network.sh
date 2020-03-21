@@ -81,6 +81,13 @@ uci set network.dmz.ipv6='0'
 if [ "$_wan_conn_type" = "pppoe" ] || [ "$_wan_conn_type" = "dhcp" ]
 then
   uci set network.wan.proto="$_wan_conn_type"
+elif [ "$_wan_conn_type" = "" ]
+then
+  # If coming from a hard reset with empty conn_type, write init.conf wan proto
+  json_cleanup
+  json_load_file /root/flashbox_config.json
+  json_add_string wan_conn_type "$FLM_WAN_PROTO"
+  json_close_object
 fi
 
 if [ "$FLM_WAN_PROTO" = "pppoe" ] && [ "$_wan_proto_value" != "pppoe" ] && \
