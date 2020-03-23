@@ -6,6 +6,24 @@
 . /usr/share/libubox/jshn.sh
 . /lib/functions/network.sh
 
+check_connectivity_internet() {
+  _addrs="www.google.com.br"$'\n'"www.facebook.com"$'\n'"www.globo.com"
+  for _addr in $_addrs
+  do
+    if ping -q -c 1 -w 2 "$_addr"  > /dev/null 2>&1
+    then
+      # true
+      echo 0
+      return
+    fi
+  done
+  # No successfull pings
+
+  # false
+  echo 1
+  return
+}
+
 get_wan_ip() {
   local _ip=""
   if [ "$(get_bridge_mode_status)" != "y" ]
@@ -586,6 +604,19 @@ enable_bridge_mode() {
     then
       /etc/init.d/uhttpd restart
       /etc/init.d/minisapo restart
+      # Wait for network to configure itself and check connectivity
+      sleep 5
+      _accessOK="$(check_connectivity_internet)"
+      if [ "$_accessOK" = "1" ]
+      then
+        # No connectivity - remove fixed ip config from bridge
+        json_cleanup
+        json_load_file /root/flashbox_config.json
+        json_add_string bridge_did_reset "y"
+        json_dump > /root/flashbox_config.json
+        json_close_object
+        update_bridge_mode "$1" "" "" ""
+      fi
     fi
   fi
 }
@@ -663,6 +694,24 @@ update_bridge_mode() {
     log "FLASHMAN UPDATER" "Updated parameters, restarting network..."
     uci commit network
     /etc/init.d/network restart
+    if [ "$_fixed_ip" != "" ]
+    then
+      /etc/init.d/uhttpd restart
+      /etc/init.d/minisapo restart
+      # Wait for network to configure itself and check connectivity
+      sleep 5
+      _accessOK="$(check_connectivity_internet)"
+      if [ "$_accessOK" = "1" ]
+      then
+        # No connectivity - remove fixed ip config from bridge
+        json_cleanup
+        json_load_file /root/flashbox_config.json
+        json_add_string bridge_did_reset "y"
+        json_dump > /root/flashbox_config.json
+        json_close_object
+        update_bridge_mode "$1" "" "" ""
+      fi
+    fi
   else
     log "FLASHMAN UPDATER" "No changes in bridge parameters..."
   fi
@@ -681,6 +730,11 @@ disable_bridge_mode() {
   json_add_string bridge_mode "n"
   json_dump > /root/flashbox_config.json
   json_close_object
+  # Test for empty wan_conn_type to avoid bugs after hard reset
+  if [ "$_wan_conn_type" = "" ]
+  then
+    _wan_conn_type="$FLM_WAN_PROTO"
+  fi
   # Get ifname to remove from the bridge
   uci set network.lan.ifname="$_lan_ifnames"
   uci set network.lan.proto="static"
