@@ -8,6 +8,7 @@ save_wifi_local_config() {
   then
     uci set wireless.radio1.hwmode="11a"
   fi
+  uci commit system
   uci commit wireless
 }
 
@@ -156,10 +157,7 @@ blink_leds() {
 
   if [ $_do_restart -eq 0 ]
   then
-    for trigger_path in $(ls -d /sys/class/leds/*)
-    do
-      echo "timer" > "$trigger_path"/trigger
-    done
+    echo "timer" > "/sys/class/leds/gwr1200ac:green:power/trigger"
   fi
 }
 
@@ -233,18 +231,22 @@ store_enable_wifi() {
   if [ "$_itf_num" = "0" ]
   then
     uci set wireless.@wifi-iface[0].disabled="0"
+    uci set system.led_wifi0.default='1'
   elif [ "$_itf_num" = "1" ]
   then
     uci set wireless.@wifi-iface[1].disabled="0"
+    uci set system.led_wifi1.default='1'
   else
     uci set wireless.@wifi-iface[0].disabled="0"
-
+    uci set system.led_wifi0.default='1'
     if [ "$(uci -q get wireless.@wifi-iface[1])" ]
     then
       uci set wireless.@wifi-iface[1].disabled="0"
+      uci set system.led_wifi1.default='1'
     fi
   fi
   save_wifi_local_config
+  /etc/init.d/led reload
   wifi up
 }
 
@@ -258,17 +260,22 @@ store_disable_wifi() {
   if [ "$_itf_num" = "0" ]
   then
     uci set wireless.@wifi-iface[0].disabled="1"
+    uci set system.led_wifi0.default='0'
   elif [ "$_itf_num" = "1" ]
   then
     uci set wireless.@wifi-iface[1].disabled="1"
+    uci set system.led_wifi1.default='0'
   else
     uci set wireless.@wifi-iface[0].disabled="1"
+    uci set system.led_wifi0.default='0'
     if [ "$(uci -q get wireless.@wifi-iface[1])" ]
     then
       uci set wireless.@wifi-iface[1].disabled="1"
+      uci set system.led_wifi1.default='0'
     fi
   fi
   save_wifi_local_config
+  /etc/init.d/led reload
   wifi up
 }
 
