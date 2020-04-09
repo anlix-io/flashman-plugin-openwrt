@@ -328,10 +328,7 @@ set_lan_ports_state_bridge_mode() {
   fi
 }
 
-# Bring back ports to default routing state
-reset_lan_ports_state() {
-  # eth0
-  swconfig dev switch0 vlan 9 set ports '0 1 2 6'
-  # eth1
-  swconfig dev switch0 vlan 8 set ports '3 4 6'
+# Needs reboot to validate switch config
+needs_reboot_bridge_mode() {
+  reboot
 }

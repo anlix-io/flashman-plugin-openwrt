@@ -589,9 +589,9 @@ enable_bridge_mode() {
   uci commit network
   if [ "$_do_network_restart" = "y" ]
   then
-    /etc/init.d/network restart
     if [ "$_fixed_ip" != "" ]
     then
+      /etc/init.d/network restart
       /etc/init.d/uhttpd restart
       /etc/init.d/minisapo restart
       # Wait for network to configure itself and check connectivity
@@ -603,10 +603,24 @@ enable_bridge_mode() {
         json_cleanup
         json_load_file /root/flashbox_config.json
         json_add_string bridge_did_reset "y"
+        json_add_string bridge_fix_ip ""
+        json_add_string bridge_fix_gateway ""
+        json_add_string bridge_fix_dns ""
         json_dump > /root/flashbox_config.json
         json_close_object
-        update_bridge_mode "$1" "" "" ""
+        uci set network.lan.proto="dhcp"
+        uci set network.lan.ipaddr=""
+        uci set network.lan.gateway=""
+        uci set network.lan.dns=""
+        uci commit network
       fi
+    fi
+    # Some targets need to reboot the whole router after changing mode
+    if [ "$(type -t needs_reboot_bridge_mode)" ]
+    then
+      needs_reboot_bridge_mode
+    else
+      /etc/init.d/network restart
     fi
   fi
 }
@@ -720,11 +734,6 @@ disable_bridge_mode() {
   uci set network.lan.proto="static"
   uci delete network.lan.gateway
   uci delete network.lan.dns
-  # Some targets need to reset switch ports configuration
-  if [ "$(type -t reset_lan_ports_state)" ]
-  then
-    reset_lan_ports_state
-  fi
   /etc/init.d/miniupnpd enable
   /etc/init.d/miniupnpd start
   /etc/init.d/firewall enable
@@ -734,6 +743,12 @@ disable_bridge_mode() {
   /etc/init.d/odhcpd enable
   /etc/init.d/odhcpd start
   uci commit network
-  /etc/init.d/network restart
-  /etc/init.d/odhcpd restart
+  # Some targets need to reboot the whole router after changing mode
+  if [ "$(type -t needs_reboot_bridge_mode)" ]
+  then
+    needs_reboot_bridge_mode
+  else
+    /etc/init.d/network restart
+    /etc/init.d/odhcpd restart
+  fi
 }
