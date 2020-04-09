@@ -6,6 +6,77 @@
 . /usr/share/libubox/jshn.sh
 . /lib/functions/network.sh
 
+diagnose_wan_connectivity() {
+  local _status=""
+  local _ip=""
+  local _gateway=""
+  local _hasconn=""
+  if [ "$(get_bridge_mode_status)" != "y" ]
+  then
+    # Not in bridge mode, WAN must be configured
+    _status="$(ifstatus wan)"
+    _ip="$(echo "$_status" | jsonfilter -e '@["ipv4-address"][0].address')"
+    _gateway="$(echo "$_status" | jsonfilter -e '@["route"][0].nexthop')"
+  else
+    # Bridge mode enabled, WAN is not configured, so we use the LAN as a base
+    _status="$(ifstatus lan)"
+  fi
+  if [ "$_ip" = "" ]
+  then
+    echo 1
+    return
+  fi
+  if [ "$_gateway" = "" ]
+  then
+    echo 2
+    return
+  fi
+  _hasconn="$(check_connectivity_ipv4 $_gateway)"
+  if [ "$_hasconn" != "0" ]
+  then
+    echo 3
+    return
+  fi
+  echo 0
+  return
+}
+
+check_connectivity_ipv4() {
+  local _ip="8.8.8.8"
+  if [ "$1" != "" ]
+  then
+    _ip="$1"
+  fi
+  if ping -q -c 1 -w 2 "$_ip" > /dev/null 2>&1
+  then
+    # true
+    echo 0
+    return
+  fi
+  # No successfull pings
+  # false
+  echo 1
+  return
+}
+
+check_connectivity_ipv6() {
+  local _ip="2001:4860:4860::8888"
+  if [ "$1" != "" ]
+  then
+    _ip="$1"
+  fi
+  if ping6 -q -c 1 -w 2 "$_ip" > /dev/null 2>&1
+  then
+    # true
+    echo 0
+    return
+  fi
+  # No successfull pings
+  # false
+  echo 1
+  return
+}
+
 check_connectivity_internet() {
   _addrs="www.google.com.br"$'\n'"www.facebook.com"$'\n'"www.globo.com"
   for _addr in $_addrs
