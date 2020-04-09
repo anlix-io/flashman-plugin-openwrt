@@ -2,6 +2,7 @@
 
 . /usr/share/flashman_init.conf
 . /usr/share/libubox/jshn.sh
+. /usr/share/functions/common_functions.sh
 . /usr/share/functions/device_functions.sh
 . /usr/share/functions/firewall_functions.sh
 . /usr/share/functions/network_functions.sh
@@ -279,4 +280,28 @@ run_speed_ondemand_test() {
   -H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" --data "$_reply" \
   "https://$FLM_SVADDR/deviceinfo/receive/speedtestresult"
   return 0
+}
+
+run_diagnostics_test() {
+  local _wan_status
+  local _ipv4_status
+  local _ipv6_status
+  local _dns_status
+  local _license_status
+  local _result
+  _wan_status="$(diagnose_wan_connectivity)"
+  _ipv4_status="$(check_connectivity_ipv4)"
+  _ipv6_status="$(check_connectivity_ipv6)"
+  _dns_status="$(check_connectivity_internet)"
+  is_authenticated
+  _license_status="$?"
+  json_cleanup
+  json_load "{}"
+  json_add_string "wan" "$_wan_status"
+  json_add_string "ipv4" "$_ipv4_status"
+  json_add_string "ipv6" "$_ipv6_status"
+  json_add_string "dns" "$_dns_status"
+  json_add_string "license" "$_license_status"
+  echo "$(json_dump)"
+  json_close_object
 }
