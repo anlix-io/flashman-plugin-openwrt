@@ -26,6 +26,12 @@ local function get_mac_from_ip(ip)
   return result:sub(1,-2)
 end
 
+local function run_diagnostic()
+  local result = run_process("sh -c \". /usr/share/functions/api_functions.sh; run_diagnostics_test\"")
+  -- remove \n
+  return result:sub(1,-2)
+end
+
 local function is_authenticated()
   local result = run_process("sh -c \". /usr/share/functions/common_functions.sh; if is_authenticated; then echo 1; else echo 0; fi\"")
   -- remove \n
@@ -369,6 +375,14 @@ function handle_request(env)
       data["mac"] = get_router_id()
       data["ssid"] = get_router_ssid()
       resp["data"] = data
+      uhttpd.send("Status: 200 OK\r\n")
+      uhttpd.send("Content-Type: text/json\r\n\r\n")
+      uhttpd.send(json.encode(resp))
+      return
+    elseif command == "runDiagnostic" then
+      resp["auth"] = auth
+      local data = run_diagnostic()
+      resp["data"] = json.decode(data)
       uhttpd.send("Status: 200 OK\r\n")
       uhttpd.send("Content-Type: text/json\r\n\r\n")
       uhttpd.send(json.encode(resp))
