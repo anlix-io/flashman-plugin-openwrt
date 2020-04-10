@@ -383,26 +383,3 @@ get_wifi_state() {
     fi
   fi
 }
-
-# Enable/disable ethernet connection on LAN physical ports when in bridge mode
-set_lan_ports_state_bridge_mode() {
-  local _disable_lan_ports="$1"
-  local _lan_ifnames="$2"
-  local _wan_ifnames="$(uci get network.wan.ifname)"
-  # Separate non-wifi interfaces to back them up
-  local _lan_ifnames_wifi=""
-  for iface in $_lan_ifnames
-  do
-    if [ "$(echo $iface | grep ra)" != "" ]
-    then
-      _lan_ifnames_wifi="$iface $_lan_ifnames_wifi"
-    fi
-  done
-
-  if [ "$_disable_lan_ports" = "y" ]
-  then
-    uci set network.lan.ifname="$_wan_ifnames $_lan_ifnames_wifi"
-  else
-    uci set network.lan.ifname="$_wan_ifnames $_lan_ifnames"
-  fi
-}

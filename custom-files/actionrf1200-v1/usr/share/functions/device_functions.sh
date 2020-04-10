@@ -311,7 +311,7 @@ get_wifi_state() {
 }
 
 # Enable/disable ethernet connection on LAN physical ports when in bridge mode
-set_lan_ports_state_bridge_mode() {
+set_switch_bridge_mode() {
   local _disable_lan_ports="$1"
 
   if [ "$_disable_lan_ports" = "y" ]

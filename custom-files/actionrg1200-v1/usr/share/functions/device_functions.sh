@@ -328,22 +328,6 @@ set_switch_bridge_mode() {
   fi
 }
 
-set_lan_ports_state_bridge_mode() {
-  local _disable_lan_ports="$1"
-  local _lan_ifnames="$2"
-  local _wan_ifnames="$(uci get network.wan.ifname)"
-
-  if [ "$_disable_lan_ports" = "y" ]
-  then
-    uci set network.lan.ifname="$_wan_ifnames"
-    set_switch_bridge_mode "$_disable_lan_ports"
-  else
-    # DO NOT PLACE WAN IFNAME BEFORE LAN IFNAME OR THE ROUTER WILL CRASH
-    uci set network.lan.ifname="$_lan_ifnames $_wan_ifnames"
-    set_switch_bridge_mode "$_disable_lan_ports"
-  fi
-}
-
 # Needs reboot to validate switch config
 needs_reboot_bridge_mode() {
   reboot
