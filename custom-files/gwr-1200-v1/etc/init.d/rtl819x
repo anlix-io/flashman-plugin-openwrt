@@ -1,0 +1,23 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2006-2011 OpenWrt.org
+
+. /usr/share/libubox/jshn.sh
+. /usr/share/functions/device_functions.sh
+
+START=17
+
+boot() {
+  local _bridge_mode=""
+  local _disable_lan_ports=""
+
+  json_cleanup
+  json_load_file /root/flashbox_config.json
+  json_get_var _bridge_mode bridge_mode
+  json_get_var _disable_lan_ports bridge_disable_switch
+  json_close_object
+
+  if [ "$_bridge_mode" = "y" ]
+  then
+    set_switch_bridge_mode "$_disable_lan_ports"
+  fi
+}
