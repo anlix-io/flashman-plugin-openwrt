@@ -248,3 +248,21 @@ get_wifi_state() {
     echo "0"
   fi
 }
+
+# Enable/disable ethernet connection on LAN physical ports when in bridge mode
+set_lan_ports_state_bridge_mode() {
+  local _disable_lan_ports="$1"
+
+  if [ "$_disable_lan_ports" = "y" ]
+  then
+    # eth0
+    swconfig dev switch0 vlan 9 set ports ''
+    # eth1
+    swconfig dev switch0 vlan 8 set ports '4 6'
+  else
+    # eth0
+    swconfig dev switch0 vlan 9 set ports ''
+    # eth1
+    swconfig dev switch0 vlan 8 set ports '0 1 2 3 4 6'
+  fi
+}
