@@ -311,7 +311,7 @@ get_wifi_state() {
 }
 
 # Enable/disable ethernet connection on LAN physical ports when in bridge mode
-set_lan_ports_state_bridge_mode() {
+set_switch_bridge_mode() {
   local _disable_lan_ports="$1"
 
   if [ "$_disable_lan_ports" = "y" ]
@@ -325,6 +325,22 @@ set_lan_ports_state_bridge_mode() {
     swconfig dev switch0 vlan 9 set ports ''
     # eth1
     swconfig dev switch0 vlan 8 set ports '0 1 2 3 4 6'
+  fi
+}
+
+set_lan_ports_state_bridge_mode() {
+  local _disable_lan_ports="$1"
+  local _lan_ifnames="$2"
+  local _wan_ifnames="$(uci get network.wan.ifname)"
+
+  if [ "$_disable_lan_ports" = "y" ]
+  then
+    uci set network.lan.ifname="$_wan_ifnames"
+    set_switch_bridge_mode "$_disable_lan_ports"
+  else
+    # DO NOT PLACE WAN IFNAME BEFORE LAN IFNAME OR THE ROUTER WILL CRASH
+    uci set network.lan.ifname="$_lan_ifnames $_wan_ifnames"
+    set_switch_bridge_mode "$_disable_lan_ports"
   fi
 }
 

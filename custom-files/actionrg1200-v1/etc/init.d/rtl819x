@@ -18,6 +18,6 @@ boot() {
 
   if [ "$_bridge_mode" = "y" ]
   then
-    set_lan_ports_state_bridge_mode "$_disable_lan_ports"
+    set_switch_bridge_mode "$_disable_lan_ports"
   fi
 }
