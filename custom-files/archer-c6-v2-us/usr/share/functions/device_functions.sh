@@ -1,5 +1,15 @@
 #!/bin/sh
 
+get_custom_hardware_model() {
+  # model file outputs "TP-Link Archer C6 v2 (US/TW)"
+  echo "$(cat /tmp/sysinfo/model | awk '{ print toupper($2)$3 }')"
+}
+
+get_custom_hardware_version() {
+  # model file outputs "TP-Link Archer C6 v2 (US/TW)"
+  echo "$(cat /tmp/sysinfo/model | awk '{ print toupper($4)"US" }')"
+}
+
 save_wifi_local_config() {
   if [ "$(uci -q get wireless.radio1.hwmode)" = "11ac" ]
   then
