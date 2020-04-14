@@ -1,26 +1,18 @@
 #!/bin/sh
 
 get_custom_hardware_model() {
-  # model file outputs "TP-Link Archer C6 v2 (US/TW)"
-  echo "$(cat /tmp/sysinfo/model | awk '{ print toupper($2)$3 }')"
-}
-
-get_custom_hardware_version() {
-  # model file outputs "TP-Link Archer C6 v2 (US/TW)"
-  echo "$(cat /tmp/sysinfo/model | awk '{ print toupper($4)"US" }')"
+  # model file outputs "TP-LINK TL-WR740N/ND v5"
+  echo "$(cat /tmp/sysinfo/model | awk '{ print toupper($2) }' | \
+          awk -F "/" '{ print $1"D" }')"
 }
 
 save_wifi_local_config() {
-  if [ "$(uci -q get wireless.radio1.hwmode)" = "11ac" ]
-  then
-    uci set wireless.radio1.hwmode="11a"
-  fi
   uci commit wireless
 }
 
 is_5ghz_capable() {
-  # true
-  echo "1"
+  # false
+  echo "0"
 }
 
 get_wifi_device_stats() {
@@ -40,14 +32,6 @@ get_wifi_device_stats() {
     _dev_info="$(iw dev $_wifi_itf station get $_dev_mac 2> /dev/null)"
     _retstatus=$?
 
-    if [ $_retstatus -ne 0 ]
-    then
-      _wifi_itf="wlan1"
-      _ap_freq="5.0"
-      _dev_info="$(iw dev $_wifi_itf station get $_dev_mac 2> /dev/null)"
-      _retstatus=$?
-    fi
-
     if [ $_retstatus -eq 0 ]
     then
       local _dev_txbitrate="$(echo "$_dev_info" | grep 'tx bitrate:' | \
@@ -56,7 +40,7 @@ get_wifi_device_stats() {
                               awk '{print $3}')"
       local _dev_mcs="$(echo "$_dev_info" | grep 'tx bitrate:' | \
                         awk '{print $5}')"
-      local _dev_signal="$(echo "$_dev_info" | grep -m1 'signal:' | \
+      local _dev_signal="$(echo "$_dev_info" | grep 'signal:' | \
                            awk '{print $2}' | awk -F. '{print $1}')"
       local _ap_noise="$(iwinfo $_wifi_itf info | grep 'Noise:' | \
                          awk '{print $5}' | awk -F. '{print $1}')"
@@ -75,13 +59,13 @@ get_wifi_device_stats() {
       _wifi_stats="$_dev_txbitrate $_dev_rxbitrate $_dev_signal"
       _wifi_stats="$_wifi_stats $_dev_snr $_ap_freq"
 
-      if [ "$_dev_mcs" == "VHT-MCS" ]
+      if [ "$_dev_mcs" == "MCS" ]
       then
-        # AC
-        _wifi_stats="$_wifi_stats AC"
-      else
-        # N Mode
+        # N or AC
         _wifi_stats="$_wifi_stats N"
+      else
+        # G Mode
+        _wifi_stats="$_wifi_stats G"
       fi
       # Traffic data
       _wifi_stats="$_wifi_stats $_dev_txbytes $_dev_rxbytes"
@@ -110,13 +94,6 @@ is_device_wireless() {
   then
     _dev_info="$(iw dev $_wifi_itf station get $_dev_mac 2> /dev/null)"
     _retstatus=$?
-
-    if [ $_retstatus -ne 0 ]
-    then
-      _wifi_itf="wlan1"
-      _dev_info="$(iw dev $_wifi_itf station get $_dev_mac 2> /dev/null)"
-      _retstatus=$?
-    fi
 
     if [ $_retstatus -eq 0 ]
     then
@@ -157,18 +134,43 @@ reset_leds() {
 
   /etc/init.d/led restart > /dev/null
 
-  led_on /sys/class/leds/tp-link\:green\:power
+  for system_led in /sys/class/leds/*system*
+  do
+    led_on "$system_led"
+  done
+
+  # reset hardware lan ports if any
+  for lan_led in /sys/class/leds/*lan*
+  do
+    if [ -f "$lan_led"/enable_hw_mode ]
+    then
+      echo 1 > "$lan_led"/enable_hw_mode
+    fi
+  done
+
+  # reset hardware wan port if any
+  for wan_led in /sys/class/leds/*wan*
+  do
+    if [ -f "$wan_led"/enable_hw_mode ]
+    then
+      echo 1 > "$wan_led"/enable_hw_mode
+    fi
+  done
+
+  # reset atheros 5G led
+  if [ -f /sys/class/leds/ath9k-phy1/trigger ]
+  then
+    echo "phy1tpt" > /sys/class/leds/ath9k-phy1/trigger
+  fi
 }
 
 blink_leds() {
-  local _do_restart=$1
+	local _do_restart=$1
 
   if [ $_do_restart -eq 0 ]
   then
-    led_off /sys/class/leds/tp-link\:green\:power
-    # we cant turn on orange and blue at same time in this model
-    ledsoff=$(ls -d /sys/class/leds/*green*)
-
+    led_off /sys/class/leds/tp-link\:green\:system
+    ledsoff=$(ls -d /sys/class/leds/*)
     for trigger_path in $ledsoff
     do
       echo "timer" > "$trigger_path"/trigger
@@ -178,12 +180,12 @@ blink_leds() {
 
 get_mac() {
   local _mac_address_tag=""
-  local _p1
+  local _p0
+  _p0=$(awk '{print toupper($1)}' /sys/class/ieee80211/phy0/macaddress)
 
-  _p1=$(awk '{print toupper($1)}' /sys/class/net/eth0/address)
-  if [ ! -z "$_p1" ]
+  if [ ! -z "$_p0" ]
   then
-    _mac_address_tag=$_p1
+    _mac_address_tag=$_p0
   fi
 
   echo "$_mac_address_tag"
@@ -191,12 +193,12 @@ get_mac() {
 
 # Possible values: 10 or 100
 get_wan_negotiated_speed() {
-  cat /sys/class/net/eth0.2/speed
+  cat /sys/class/net/eth1/speed
 }
 
 # Possible values: half or full
 get_wan_negotiated_duplex() {
-  cat /sys/class/net/eth0.2/duplex
+  cat /sys/class/net/eth1/duplex
 }
 
 get_lan_dev_negotiated_speed() {
@@ -240,21 +242,7 @@ store_enable_wifi() {
   _itf_num=$1
 
   wifi down
-
-  if [ "$_itf_num" = "0" ]
-  then
-    uci set wireless.@wifi-iface[0].disabled="0"
-  elif [ "$_itf_num" = "1" ]
-  then
-    uci set wireless.@wifi-iface[1].disabled="0"
-  else
-    uci set wireless.@wifi-iface[0].disabled="0"
-
-    if [ "$(uci -q get wireless.@wifi-iface[1])" ]
-    then
-      uci set wireless.@wifi-iface[1].disabled="0"
-    fi
-  fi
+  uci set wireless.@wifi-iface[0].disabled="0"
   save_wifi_local_config
   wifi up
 }
@@ -265,20 +253,7 @@ store_disable_wifi() {
   _itf_num=$1
 
   wifi down
-
-  if [ "$_itf_num" = "0" ]
-  then
-    uci set wireless.@wifi-iface[0].disabled="1"
-  elif [ "$_itf_num" = "1" ]
-  then
-    uci set wireless.@wifi-iface[1].disabled="1"
-  else
-    uci set wireless.@wifi-iface[0].disabled="1"
-    if [ "$(uci -q get wireless.@wifi-iface[1])" ]
-    then
-      uci set wireless.@wifi-iface[1].disabled="1"
-    fi
-  fi
+  uci set wireless.@wifi-iface[0].disabled="1"
   save_wifi_local_config
   wifi up
 }
@@ -305,30 +280,6 @@ get_wifi_state() {
     fi
   elif [ "$_itf_num" = "1" ]
   then
-    _q=$(uci -q get wireless.@wifi-iface[1].disabled)
-    if [ "$_q" ]
-    then
-      if [ "$(uci get wireless.@wifi-iface[1].disabled)" = "1" ]
-      then
-        echo "0"
-      else
-        echo "1"
-      fi
-    else
-      echo "1"
-    fi
+    echo "0"
   fi
-}
-
-get_wifi_device_signature() {
-  local _dev_mac="$1"
-  local _q=""
-
-  _q="$(ubus -S call hostapd.wlan0 get_clients | jsonfilter -e '@.clients["'"$_dev_mac"'"].signature')"
-  if [ -z "$_q" ]
-  then
-    _q="$(ubus -S call hostapd.wlan1 get_clients | jsonfilter -e '@.clients["'"$_dev_mac"'"].signature')"
-  fi
-
-  echo "$_q"
 }

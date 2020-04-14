@@ -142,7 +142,7 @@ reset_leds() {
     fi
   done
 
-  # reset hardware wan port if any  
+  # reset hardware wan port if any
   if [ -f /sys/class/leds/tp-link:green:wan/enable_hw_mode ]
   then
     echo 1 > /sys/class/leds/tp-link:green:wan/enable_hw_mode
