@@ -4,6 +4,7 @@ json = require("json")
 flashman = require("flashman") 
 web = require("webHandle")
 require("provider")
+require("config")
 
 local function write_firewall_file(blacklist_path)
 	local lines = read_lines(blacklist_path)
@@ -102,6 +103,9 @@ function handle_request(env)
 
 	if command == "provider" then
 		handle_provider(subcommand, data)
+		return
+	elseif command == "config" then
+		handle_config(subcommand, data)
 		return
 	end
 
