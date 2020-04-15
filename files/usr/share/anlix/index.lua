@@ -3,7 +3,8 @@ require("lib")
 json = require("json")
 flashman = require("flashman") 
 web = require("webHandle")
-require("provider")
+auth = require("auth")
+require("config")
 
 local function write_firewall_file(blacklist_path)
 	local lines = read_lines(blacklist_path)
@@ -100,24 +101,41 @@ function handle_request(env)
 		return
 	end
 
-	if command == "provider" then
-		handle_provider(subcommand, data)
-		return
-	end
-
 	local app_protocol_ver = data.version
 	local app_id = data.app_id
-	local blacklist_path = "/tmp/blacklist_mac"
 
 	if app_protocol_ver == nil or app_id == nil then 
 		web.error_handle(web.ERROR_DATA, nil)
 		return
 	end
 
-	if tonumber(app_protocol_ver) > 2 then
+	if tonumber(app_protocol_ver) > 3 then
 		web.error_handle(web.ERROR_PROT_VER, nil)
 		return
 	end
+
+	local auth_provider = data.auth_provider
+	local is_auth_provider = false
+	if not (auth_provider == nil) then
+		if auth.validade(auth_provider) then
+			is_auth_provider = true
+		else
+			web.error_handle(web.ERROR_AUTH_PROVIDER, nil)
+			return		
+		end
+	end
+		
+	if command == "config" then
+		if is_auth_provider then
+			handle_config(subcommand, data)
+			return
+		else
+			web.error_handle(web.ERROR_COMM_AUTH_PROVIDER, nil)
+			return				
+		end
+	end
+
+	local blacklist_path = "/tmp/blacklist_mac"
 
 	if command == "ping" then
 		local passwd = flashman.get_router_passwd()

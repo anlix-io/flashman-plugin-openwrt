@@ -19,6 +19,34 @@ function flashman.get_mac_from_ip(ip)
   return result:sub(1,-2)
 end
 
+function flashman.get_wan_type()
+  local result = run_process("sh -c \". /usr/share/functions/network_functions.sh; get_wan_type\"")
+  -- remove \n
+  return result:sub(1,-2)
+end
+
+function flashman.set_wan_type(conn_type, user, pass)
+  local result = run_process("sh-c \". /usr/share/functions/network_functions.sh; set_wan_type " .. conn_type .. " " .. user .. " " .. pass .. "\"")
+end
+
+function flashman.enable_bridge(switch, ip, gw, dns)
+  local result = run_process("sh-c \". /usr/share/functions/network_functions.sh; enable_bridge_mode " .. switch .. " " .. ip .. " " .. gw .. " " .. dns .. " y\"")
+end
+
+function flashman.update_bridge(switch, ip, gw, dns)
+  local result = run_process("sh-c \". /usr/share/functions/network_functions.sh; update_bridge_mode " .. switch .. " " .. ip .. " " .. gw .. " " .. dns .. "\"")
+end
+
+function flashman.disable_bridge()
+  local result = run_process("sh-c \". /usr/share/functions/network_functions.sh; disable_bridge_mode\"")
+end
+
+local function run_diagnostic()
+  local result = run_process("sh -c \". /usr/share/functions/api_functions.sh; run_diagnostics_test\"")
+  -- remove \n
+  return result:sub(1,-2)
+end
+
 function flashman.is_authenticated()
   local result = run_process("sh -c \". /usr/share/functions/common_functions.sh; if is_authenticated; then echo 1; else echo 0; fi\"")
   -- remove \n

@@ -1,13 +1,12 @@
+local auth={};
 
-function handle_provider(command, data)
+function auth.validate(auth_data)
 
-	local app_protocol_ver = data.version
-	local provider_json = data.provider
-	local provider_sign = data.sign
+	local provider_json = auth_data.provider
+	local provider_sign = auth_data.sign
 
 	if provider_json == nil or provider_sign == nil then
-		web.error_handle(web.ERROR_DATA, nil)
-		return
+		return false
 	end
 
 	-- check the provider information
@@ -18,5 +17,11 @@ function handle_provider(command, data)
 
 	local result = run_process("pk_verify /etc/provider.pubkey /tmp/provider.data")
 
-	web.send_plain(result)
+	if result == "OK" then
+		return true
+	else
+		return false
+	end
 end
+
+return auth

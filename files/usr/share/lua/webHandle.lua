@@ -12,6 +12,9 @@ web.ERROR_AUTH_FAIL = 10
 web.ERROR_READ_MAC = 11
 web.ERROR_URL = 20
 web.ERROR_DATA = 21
+web.ERROR_COMM_AUTH_PROVIDER = 22
+web.ERROR_AUTH_PROVIDER = 23
+web.ERROR_NO_CHANGE = 30
 
 function web.error_string(errid)
 	if errid == web.ERROR_PROT_VER then return "Invalid Protocol Version"
@@ -26,6 +29,9 @@ function web.error_string(errid)
 	elseif errid == web.ERROR_READ_MAC then return "Error reading mac address"
 	elseif errid == web.ERROR_URL then return "Invalid URL"
 	elseif errid == web.ERROR_DATA then return "Invalid DATA"
+	elseif errid == web.ERROR_COMM_AUTH_PROVIDER then return "Command need provider authorization"
+	elseif errid == web.ERROR_AUTH_PROVIDER then return "Provider Authorization Fail"
+	elseif errid == web.ERROR_NO_CHANGE then return "No changes to current configuration"
 	else return "Unknown Error"
 	end
 end
