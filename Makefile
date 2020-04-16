@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=flasman-plugin
-PKG_VERSION:=0.26.3
+PKG_VERSION:=0.26.4
 PKG_RELEASE:=1
 
 PKG_LICENSE:=GPL
@@ -82,7 +82,9 @@ FILE_DIR=
 	endif
 
 CUSTOM_FILE_DIR=
-	ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_archer-c20-v4), y)
+	ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_tplink_c20-v1), y)
+		CUSTOM_FILE_DIR="custom-files/archer-c20-v1"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_archer-c20-v4), y)
 		CUSTOM_FILE_DIR="custom-files/archer-c20-v4"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_archer-c20-v5), y)
 		CUSTOM_FILE_DIR="custom-files/archer-c20-v5"
@@ -114,6 +116,10 @@ CUSTOM_FILE_DIR=
 		CUSTOM_FILE_DIR="custom-files/emg1702-t10a-a1"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr740n-v4), y)
 		CUSTOM_FILE_DIR="custom-files/tl-wr740n-v4"
+	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr740n-v5), y)
+		CUSTOM_FILE_DIR="custom-files/tl-wr740n-v5"
+	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr740n-v6), y)
+		CUSTOM_FILE_DIR="custom-files/tl-wr740n-v6"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr741nd-v4), y)
 		CUSTOM_FILE_DIR="custom-files/tl-wr741nd-v4"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr841-v7), y)
