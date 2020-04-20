@@ -52,7 +52,7 @@ end
 function web.send_json(data)
 	uhttpd.send("Status: 200 OK\r\n")
 	uhttpd.send("Content-Type: text/json\r\n\r\n")
-	uhttpd.send(json.encode(resp))
+	uhttpd.send(json.encode(data))
 end
 
 function web.send_plain(data)

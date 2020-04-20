@@ -3,7 +3,7 @@ require("lib")
 json = require("json")
 flashman = require("flashman") 
 web = require("webHandle")
-auth = require("auth")
+auth_provider = require("auth")
 require("config")
 
 local function write_firewall_file(blacklist_path)
@@ -114,11 +114,10 @@ function handle_request(env)
 		return
 	end
 
-	local auth_provider = data.auth_provider
-	local is_auth_provider = false
-	if not (auth_provider == nil) then
-		if auth.validade(auth_provider) then
-			is_auth_provider = true
+	local auth_data = data.auth_provider
+	if not (auth_data == nil) then
+		if auth_provider.authenticate(auth_data) then
+			logger("Provider Authorized as " .. auth_provider.get_user())
 		else
 			web.error_handle(web.ERROR_AUTH_PROVIDER, nil)
 			return		
@@ -126,7 +125,7 @@ function handle_request(env)
 	end
 		
 	if command == "config" then
-		if is_auth_provider then
+		if auth_provider.is_authorized() then
 			handle_config(subcommand, data)
 			return
 		else
