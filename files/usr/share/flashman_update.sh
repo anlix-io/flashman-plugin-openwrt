@@ -152,6 +152,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
   if [ "$?" -eq 1 ]
   then
     log "FLASHMAN UPDATER" "Fail in Rest Flashman! Aborting..."
+    exit 0
   else
     json_cleanup
     json_load "$_res"
@@ -188,6 +189,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
     json_get_var _bridge_mode_ip bridge_mode_ip
     json_get_var _bridge_mode_gateway bridge_mode_gateway
     json_get_var _bridge_mode_dns bridge_mode_dns
+    json_get_var _mesh_mode mesh_mode
 
     _local_bridge_enabled=$(get_bridge_mode_status)
 
@@ -363,5 +365,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
   fi
 else
   log "FLASHMAN UPDATER" "Fail Authenticating device!"
+  exit 0
 fi
 log "FLASHMAN UPDATER" "Done"
+exit 1

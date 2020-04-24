@@ -46,20 +46,24 @@ set_mqtt_secret() {
     local _url="deviceinfo/mqtt/add"
     local _res=$(rest_flashman "$_url" "$_data")
 
-    json_cleanup
-    json_load "$_res"
-    json_get_var _is_registered is_registered
-    json_close_object
-
-    if [ "$_is_registered" = "1" ]
+    _retstatus=$?
+    if [ $_retstatus -eq 0 ]
     then
       json_cleanup
-      json_load_file /root/flashbox_config.json
-      json_add_string mqtt_secret $_mqttsec
-      json_dump > /root/flashbox_config.json
-      json_get_var _mqtt_secret mqtt_secret
+      json_load "$_res"
+      json_get_var _is_registered is_registered
       json_close_object
-      echo "$_mqtt_secret"
+
+      if [ "$_is_registered" = "1" ]
+      then
+        json_cleanup
+        json_load_file /root/flashbox_config.json
+        json_add_string mqtt_secret $_mqttsec
+        json_dump > /root/flashbox_config.json
+        json_get_var _mqtt_secret mqtt_secret
+        json_close_object
+        echo "$_mqtt_secret"
+      fi
     fi
   fi
 }
@@ -101,6 +105,7 @@ rest_flashman() {
     # curl code 51 is bad certificate
     return 2
   else
+    log "REST FLASHMAN" "Error connecting to server ($_curl_out)"
     # other curl errors
     return 1
   fi
@@ -128,10 +133,21 @@ model_ver=$(get_hardware_version)"
       --data "$_data" \
       "https://$FLM_AUTH_SVADDR/api/device/auth")
 
-    json_cleanup
-    json_load "$_res"
-    json_get_var _is_authenticated is_authenticated
-    json_close_object
+    local _curl_res=$?
+    if [ $_curl_res -eq 0 ]
+    then
+      json_cleanup
+      json_load "$_res" 2>/dev/null
+      if [ $? == 0 ]
+      then
+        json_get_var _is_authenticated is_authenticated
+        json_close_object
+      else
+        log "AUTHENTICATOR" "Invalid answer from controler"
+      fi
+    else
+      log "AUTHENTICATOR" "Error connecting to controler ($_curl_res)"
+    fi
   else
     _is_authenticated=0
   fi

@@ -8,7 +8,7 @@
 
 # Verify if connection is up.
 check_connectivity_flashman() {
-  if ping -q -c 2 -w 2 "$FLM_SVADDR"  >/dev/null
+  if ping -q -c 2 -w 2 "$FLM_SVADDR" 2>/dev/null >/dev/null
   then
     # true
     echo 0
@@ -26,25 +26,36 @@ while [ "$connected" != true ]
 do
   if [ "$(check_connectivity_flashman)" -eq 0 ]
   then
-    log "IMALIVE" "Sync date with Flashman!"
-    resync_ntp
     ntpinfo=$(ntp_anlix)
     if [ $ntpinfo = "unsync" ]
     then
-      sleep 5
+      log "IMALIVE" "Sync date with Flashman!"
+      resync_ntp
+      #give some time to sync (just in second attempt)
+      if [ $_num_ntptests -eq 0 ]
+      then
+        _num_ntptests=1
+      else
+        sleep 5
+      fi
     else
-      log "IMALIVE" "Connected!"
-      log "IMALIVE" "Checking zabbix..."
+      _num_ntptests=0
       if [ "$ZBX_SUPPORT" == "y" ]
       then
+        log "IMALIVE" "Checking zabbix..."
         check_zabbix_startup "false"
       fi
       log "IMALIVE" "Running update..."
       sh /usr/share/flashman_update.sh
-      connected=true
+      if [ $? == 1 ]
+      then
+        connected=true
+      else
+        sleep 5
+      fi
     fi
   else
-    log "IMALIVE" "No access to internet! Waiting to retry ..."
+    log "IMALIVE" "Cant reach Flashman server! Waiting to retry ..."
     sleep 5
   fi
 done
@@ -79,22 +90,26 @@ do
   # try again only when connection is restored
   if [ ! "$(check_connectivity_flashman)" -eq 0 ]
   then
-    log "IMALIVE" "Cant reach Flashman server!"
+    log "IMALIVE" "Cant reach Flashman server! Waiting to retry ..."
     connected=false
     while [ "$connected" != true ]
     do
       if [ "$(check_connectivity_flashman)" -eq 0 ]
       then
-        log "IMALIVE" "Reconnected!"
-        log "IMALIVE" "Checking zabbix..."
         if [ "$ZBX_SUPPORT" == "y" ]
         then
+          log "IMALIVE" "Checking zabbix..."
           check_zabbix_startup "true"
         fi
         log "IMALIVE" "Running update..."
         sh /usr/share/flashman_update.sh
-        connected=true
-        numbacks=1
+        if [ $? == 1 ]
+        then
+          connected=true
+          numbacks=1
+        else
+          sleep 5
+        fi
       else
         sleep 5
       fi
