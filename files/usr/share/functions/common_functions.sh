@@ -12,6 +12,10 @@ get_flashbox_version() {
   echo "$(cat /etc/anlix_version)"
 }
 
+get_flashbox_release() {
+  echo "$FLM_RELID"
+}
+
 get_hardware_model() {
   echo "$(cat /tmp/sysinfo/model | awk '{ print toupper($2) }')"
 }
