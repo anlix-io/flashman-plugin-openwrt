@@ -31,7 +31,7 @@ diagnose_wan_connectivity() {
     echo 2
     return
   fi
-  _hasconn="$(check_connectivity_ipv4 $_gateway)"
+  _hasconn="$(check_connectivity_internet $_gateway)"
   if [ "$_hasconn" != "0" ]
   then
     echo 3
@@ -42,29 +42,12 @@ diagnose_wan_connectivity() {
 }
 
 check_connectivity_ipv4() {
-  local _ip="8.8.8.8"
-  if [ "$1" != "" ]
-  then
-    _ip="$1"
-  fi
-  if ping -q -c 1 -w 2 "$_ip" > /dev/null 2>&1
-  then
-    # true
-    echo 0
-    return
-  fi
-  # No successfull pings
-  # false
-  echo 1
-  return
+  local _addrs="8.8.8.8"$'\n'"200.132.0.132"
+  check_connectivity_internet "$_addrs"
 }
 
 check_connectivity_ipv6() {
   local _ip="2001:4860:4860::8888"
-  if [ "$1" != "" ]
-  then
-    _ip="$1"
-  fi
   if ping6 -q -c 1 -w 2 "$_ip" > /dev/null 2>&1
   then
     # true
@@ -77,8 +60,17 @@ check_connectivity_ipv6() {
   return
 }
 
+check_connectivity_flashman() {
+  _addrs="$FLM_SVADDR"
+  check_connectivity_internet "$_addrs"
+}
+
 check_connectivity_internet() {
   _addrs="www.google.com.br"$'\n'"www.facebook.com"$'\n'"www.globo.com"
+  if [ "$1" != "" ]
+  then
+    _addrs="$1"
+  fi
   for _addr in $_addrs
   do
     if ping -q -c 1 -w 2 "$_addr"  > /dev/null 2>&1
@@ -116,6 +108,19 @@ set_wan_type() {
   local _wan_type_remote=$1
   local _pppoe_user_remote=$2
   local _pppoe_password_remote=$3
+  local _wait_uhttpd_reply=$4 # TODO: Find a better way to solve this
+
+  if [ "$_wait_uhttpd_reply" = "y" ]
+  then
+    sleep 3
+  fi
+
+  if [ "$_wan_type" = "none" ]
+  then
+    # Must disable bridge mode before changing wan configuration
+    log "FLASHMAN UPDATER" "Disabling bridge mode to change WAN config ..."
+    disable_bridge_mode "y"
+  fi
 
   if [ "$_wan_type_remote" != "$_wan_type" ]
   then
@@ -607,11 +612,20 @@ get_bridge_mode_status() {
 }
 
 enable_bridge_mode() {
-  local _disable_switch=$1
-  local _fixed_ip=$2
-  local _fixed_gateway=$3
-  local _fixed_dns=$4
-  local _do_network_restart=$5
+  local _do_network_restart=$1
+  local _wait_uhttpd_reply=$2 # TODO: Find a better way to solve this
+  local _disable_switch=$3
+  local _fixed_ip=$4
+  local _fixed_gateway=$5
+  local _fixed_dns=$6
+
+  log "TEMP PARAMS" "$1 $2 $3 $4 $5 $6"
+
+  if [ "$_wait_uhttpd_reply" = "y" ]
+  then
+    sleep 3
+  fi
+
   # Get ifnames to bridge them together
   local _lan_ip="$(uci get network.lan.ipaddr)"
   local _lan_ifnames="$(uci get network.lan.ifname)"
@@ -686,17 +700,24 @@ enable_bridge_mode() {
         json_add_string bridge_did_reset "y"
         json_dump > /root/flashbox_config.json
         json_close_object
-        update_bridge_mode "$1" "" "" ""
+        update_bridge_mode "n" "$3" "" "" ""
       fi
     fi
   fi
 }
 
 update_bridge_mode() {
-  local _disable_switch=$1
-  local _fixed_ip=$2
-  local _fixed_gateway=$3
-  local _fixed_dns=$4
+  local _wait_uhttpd_reply=$1 # TODO: Find a better way to solve this
+  local _disable_switch=$2
+  local _fixed_ip=$3
+  local _fixed_gateway=$4
+  local _fixed_dns=$5
+
+  if [ "$_wait_uhttpd_reply" = "y" ]
+  then
+    sleep 3
+  fi
+
   local _current_switch=""
   local _current_ip=""
   local _current_gateway=""
@@ -780,7 +801,7 @@ update_bridge_mode() {
         json_add_string bridge_did_reset "y"
         json_dump > /root/flashbox_config.json
         json_close_object
-        update_bridge_mode "$1" "" "" ""
+        update_bridge_mode "n" "$2" "" "" ""
       fi
     fi
   else
@@ -792,6 +813,14 @@ disable_bridge_mode() {
   local _wan_conn_type=""
   local _lan_ifnames=""
   local _lan_ip=""
+  local _skip_network_restart="$1"
+  local _wait_uhttpd_reply="$2" # TODO: Find a better way to solve this
+
+  if [ "$_wait_uhttpd_reply" = "y" ]
+  then
+    sleep 3
+  fi
+
   # Clear bridge mode from config.json so it doesn't persist between flashes
   json_cleanup
   json_load_file /root/flashbox_config.json
@@ -825,6 +854,9 @@ disable_bridge_mode() {
   /etc/init.d/odhcpd enable
   /etc/init.d/odhcpd start
   uci commit network
-  /etc/init.d/network restart
-  /etc/init.d/odhcpd restart
+  if [ "$_skip_network_restart" != "y" ]
+  then
+    /etc/init.d/network restart
+    /etc/init.d/odhcpd restart
+  fi
 }
