@@ -7,6 +7,24 @@ function flashman.get_router_id()
   return result:sub(1,-2)
 end
 
+function flashman.get_router_version()
+  local result = run_process("sh -c \". /usr/share/functions/common_functions.sh; get_flashbox_version\"")
+  -- remove \n
+  return result:sub(1,-2)
+end
+
+function flashman.get_router_release()
+  local result = run_process("sh -c \". /usr/share/functions/common_functions.sh; get_flashbox_release\"")
+  -- remove \n
+  return result:sub(1,-2)
+end
+
+function flashman.get_wifi_config()
+  local result = run_process("sh -c \". /usr/share/functions/wireless_functions.sh; get_wifi_local_config\"")
+  -- remove \n
+  return result:sub(1,-2)
+end
+
 function flashman.get_router_ssid()
   local result = run_process("sh -c \". /usr/share/functions/wireless_functions.sh; get_wifi_local_config | jsonfilter -e '@[\\\"local_ssid_24\\\"]'\"")
   -- remove \n
@@ -25,23 +43,35 @@ function flashman.get_wan_type()
   return result:sub(1,-2)
 end
 
+function flashman.get_pppoe_user()
+  local result = run_process("sh -c \"uci -q get network.wan.username\"")
+  -- remove \n
+  return result:sub(1,-2)
+end
+
+function flashman.get_pppoe_pass()
+  local result = run_process("sh -c \"uci -q get network.wan.password\"")
+  -- remove \n
+  return result:sub(1,-2)
+end
+
 function flashman.set_wan_type(conn_type, user, pass)
-  local result = run_process("sh-c \". /usr/share/functions/network_functions.sh; set_wan_type " .. conn_type .. " " .. user .. " " .. pass .. "\"")
+  local result = run_process("sh -c \". /usr/share/functions/network_functions.sh; set_wan_type " .. conn_type .. " " .. user .. " " .. pass .. " y &\"")
 end
 
 function flashman.enable_bridge(switch, ip, gw, dns)
-  local result = run_process("sh-c \". /usr/share/functions/network_functions.sh; enable_bridge_mode " .. switch .. " " .. ip .. " " .. gw .. " " .. dns .. " y\"")
+  local result = run_process("sh -c \". /usr/share/functions/network_functions.sh; enable_bridge_mode y y " .. switch .. " " .. ip .. " " .. gw .. " " .. dns .. " &\"")
 end
 
 function flashman.update_bridge(switch, ip, gw, dns)
-  local result = run_process("sh-c \". /usr/share/functions/network_functions.sh; update_bridge_mode " .. switch .. " " .. ip .. " " .. gw .. " " .. dns .. "\"")
+  local result = run_process("sh -c \". /usr/share/functions/network_functions.sh; update_bridge_mode y " .. switch .. " " .. ip .. " " .. gw .. " " .. dns .. " &\"")
 end
 
 function flashman.disable_bridge()
-  local result = run_process("sh-c \". /usr/share/functions/network_functions.sh; disable_bridge_mode\"")
+  local result = run_process("sh -c \". /usr/share/functions/network_functions.sh; disable_bridge_mode n y &\"")
 end
 
-local function run_diagnostic()
+function flashman.run_diagnostic()
   local result = run_process("sh -c \". /usr/share/functions/api_functions.sh; run_diagnostics_test\"")
   -- remove \n
   return result:sub(1,-2)
