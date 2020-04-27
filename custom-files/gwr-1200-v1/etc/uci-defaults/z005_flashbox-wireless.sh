@@ -9,6 +9,7 @@
 
 LOWERMAC=$(get_mac | awk '{ print tolower($1) }')
 MAC_WIFI=$(macaddr_add "$LOWERMAC" 2)
+MAC_WIFI_5=$(macaddr_add "$LOWERMAC" 3)
 MAC_LAST_CHARS=$(get_mac | awk -F: '{ print $5$6 }')
 SSID_VALUE=$(uci -q get wireless.@wifi-iface[0].ssid)
 ENCRYPTION_VALUE=$(uci -q get wireless.@wifi-iface[0].encryption)
@@ -72,7 +73,7 @@ then
     uci set wireless.@wifi-iface[1].ssid="$setssid$SUFFIX_5"
     uci set wireless.@wifi-iface[1].encryption="psk2+tkip+ccmp"
     uci set wireless.@wifi-iface[1].key="$FLM_PASSWD"
-    uci set wireless.@wifi-iface[1].macaddr="$MAC_WIFI"
+    uci set wireless.@wifi-iface[1].macaddr="$MAC_WIFI_5"
   fi
   uci commit wireless
 fi
