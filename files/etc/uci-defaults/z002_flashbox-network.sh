@@ -119,8 +119,8 @@ fi
 # Check if bridge mode should be enabled
 if [ "$_bridge_mode" = "y" ]
 then
-  enable_bridge_mode "$_bridge_disable_switch" "$_bridge_fix_ip" \
-                     "$_bridge_fix_gateway" "$_bridge_fix_dns" "n"
+  enable_bridge_mode "n" "n" "$_bridge_disable_switch" "$_bridge_fix_ip" \
+                     "$_bridge_fix_gateway" "$_bridge_fix_dns"
 fi
 
 exit 0

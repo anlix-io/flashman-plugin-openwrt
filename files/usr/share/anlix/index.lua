@@ -1,5 +1,4 @@
 require("uci")
-require("lib")
 json = require("json")
 flashman = require("flashman") 
 web = require("webHandle")
@@ -84,7 +83,7 @@ function handle_request(env)
 	if subcompos == nil then 
 		command = string.sub(env.PATH_INFO, 2)
 	else
-		command = string.sub(env.PATH_INFO, 2, subcompos)
+		command = string.sub(env.PATH_INFO, 2, subcompos-1)
 		subcommand = string.sub(env.PATH_INFO, subcompos+1)
 	end
 
@@ -144,12 +143,22 @@ function handle_request(env)
 		info = {}
 		info["anlix_model"] = system_model
 		info["protocol_version"] = 3.0
+		info["diag_protocol_version"] = 1.0
 		if passwd ~= nil then
 			info["router_has_passwd"] = 1
 		else
 			info["router_has_passwd"] = 0
 		end
 		web.send_json(info)
+		return
+	elseif command == "getMulticastCache" then
+		local cache = read_file("/tmp/sapo-cache.json")
+		local resp = {}
+		resp["ok"] = true
+		if(cache ~= nil) then
+			resp["multicast_cache"] = json.decode(cache)
+		end
+		web.send_json(resp)
 		return
 	end
 
@@ -198,15 +207,7 @@ function handle_request(env)
 	auth["app_secret"] = secret
 	auth["flashman_addr"] = flashman.get_server()
 
-	if command == "getMulticastCache" then
-		resp["auth"] = auth
-		local cache = read_file("/tmp/sapo-cache.json")
-		if(cache ~= nil) then
-			resp["multicast_cache"] = json.decode(cache)
-		end
-		web.send_json(resp)
-		return
-	elseif command == "getLoginInfo" then
+	if command == "getLoginInfo" then
 		resp["auth"] = auth
 		local data = {}
 		data["mac"] = flashman.get_router_id()

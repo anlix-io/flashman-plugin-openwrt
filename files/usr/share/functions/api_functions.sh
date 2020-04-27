@@ -293,6 +293,7 @@ run_diagnostics_test() {
   _ipv4_status="$(check_connectivity_ipv4)"
   _ipv6_status="$(check_connectivity_ipv6)"
   _dns_status="$(check_connectivity_internet)"
+  _flashman_status="$(check_connectivity_flashman)"
   is_authenticated
   _license_status="$?"
   json_cleanup
@@ -302,6 +303,7 @@ run_diagnostics_test() {
   json_add_string "ipv6" "$_ipv6_status"
   json_add_string "dns" "$_dns_status"
   json_add_string "license" "$_license_status"
+  json_add_string "flashman" "$_flashman_status"
   echo "$(json_dump)"
   json_close_object
 }
