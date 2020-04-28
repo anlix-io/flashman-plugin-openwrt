@@ -1,4 +1,3 @@
-require("lib")
 flashman = require("flashman")
 
 function handle_config(command, data)

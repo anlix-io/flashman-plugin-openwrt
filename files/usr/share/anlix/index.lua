@@ -1,4 +1,5 @@
 require("uci")
+require("lib")
 json = require("json")
 flashman = require("flashman") 
 web = require("webHandle")
