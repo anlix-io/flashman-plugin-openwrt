@@ -102,6 +102,7 @@ then
   uci set network.wan.ipv6="auto"
 else
   uci set network.wan.ipv6="0"
+  uci set network.lan.ipv6="0"
 fi
 
 
