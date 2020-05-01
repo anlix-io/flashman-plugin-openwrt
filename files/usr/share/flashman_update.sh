@@ -287,7 +287,8 @@ bridge_fix_dns=$_local_bridge_fix_dns"
                           "$_wifi_htmode_24" "$_wifi_state" \
                           "$_wifi_ssid_50" "$_wifi_password_50" \
                           "$_wifi_channel_50" "$_wifi_hwmode_50" \
-                          "$_wifi_htmode_50" "$_wifi_state_50"
+                          "$_wifi_htmode_50" "$_wifi_state_50" \
+                          "$_mesh_mode"
     # Flash App password update
     if [ "$_app_password" == "" ]
     then

@@ -10,6 +10,7 @@ get_wifi_local_config() {
   local _hwmode_24="$(uci -q get wireless.radio0.hwmode)"
   local _htmode_24="$(uci -q get wireless.radio0.htmode)"
   local _state_24="$(get_wifi_state '0')"
+  local _ft_24="$(uci -q get wireless.@wifi-iface[0].ieee80211r)"
 
   local _is_5ghz_capable="$(is_5ghz_capable)"
   local _ssid_50="$(uci -q get wireless.@wifi-iface[1].ssid)"
@@ -18,6 +19,7 @@ get_wifi_local_config() {
   local _hwmode_50="$(uci -q get wireless.radio1.hwmode)"
   local _htmode_50="$(uci -q get wireless.radio1.htmode)"
   local _state_50="$(get_wifi_state '1')"
+  local _ft_50="$(uci -q get wireless.@wifi-iface[1].ieee80211r)"
 
   #
   # WARNING! No spaces or tabs inside the following string!
@@ -28,6 +30,7 @@ get_wifi_local_config() {
 'local_channel_24':'$_channel_24',\
 'local_hwmode_24':'$_hwmode_24',\
 'local_htmode_24':'$_htmode_24',\
+'local_ft_24':'$_ft_24',\
 'local_state_24':'$_state_24',\
 'local_5ghz_capable':'$_is_5ghz_capable',\
 'local_ssid_50':'$_ssid_50',\
@@ -35,6 +38,7 @@ get_wifi_local_config() {
 'local_channel_50':'$_channel_50',\
 'local_hwmode_50':'$_hwmode_50',\
 'local_htmode_50':'$_htmode_50',\
+'local_ft_50':'$_ft_50',\
 'local_state_50':'$_state_50'}"
 
   echo "$_wifi_json"
@@ -57,6 +61,8 @@ set_wifi_local_config() {
   local _remote_htmode_50="$11"
   local _remote_state_50="$12"
 
+  local _mesh_mode="$13"
+
   json_cleanup
   json_load "$(get_wifi_local_config)"
   json_get_var _local_ssid_24 local_ssid_24
@@ -64,6 +70,7 @@ set_wifi_local_config() {
   json_get_var _local_channel_24 local_channel_24
   json_get_var _local_hwmode_24 local_hwmode_24
   json_get_var _local_htmode_24 local_htmode_24
+  json_get_var _local_ft_24 local_ft_24
   json_get_var _local_state_24 local_state_24
 
   json_get_var _local_ssid_50 local_ssid_50
@@ -71,6 +78,7 @@ set_wifi_local_config() {
   json_get_var _local_channel_50 local_channel_50
   json_get_var _local_hwmode_50 local_hwmode_50
   json_get_var _local_htmode_50 local_htmode_50
+  json_get_var _local_ft_50 local_ft_50
   json_get_var _local_state_50 local_state_50
   json_close_object
 
@@ -122,6 +130,15 @@ set_wifi_local_config() {
       uci set wireless.radio0.ht_bsscoexist="1"
       uci set wireless.radio0.bw="0"
     fi
+    _do_reload=1
+  fi
+
+  if [ "$_mesh_mode" != "0" ]
+  then
+    uci set wireless.@wifi-iface[0].ieee80211r="1"
+    uci set wireless.@wifi-iface[0].ieee80211v="1"
+    uci set wireless.@wifi-iface[0].bss_transition="1"
+    uci set wireless.@wifi-iface[0].ieee80211k="1"
     _do_reload=1
   fi
 
@@ -210,6 +227,15 @@ set_wifi_local_config() {
         uci set wireless.radio1.ht_bsscoexist="1"
         uci set wireless.radio1.bw="0"
       fi
+      _do_reload=1
+    fi
+
+    if [ "$_mesh_mode" != "0" ]
+    then
+      uci set wireless.@wifi-iface[1].ieee80211r="1"
+      uci set wireless.@wifi-iface[1].ieee80211v="1"
+      uci set wireless.@wifi-iface[1].bss_transition="1"
+      uci set wireless.@wifi-iface[1].ieee80211k="1"
       _do_reload=1
     fi
 
