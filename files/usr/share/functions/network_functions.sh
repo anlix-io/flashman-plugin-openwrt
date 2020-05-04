@@ -866,3 +866,42 @@ disable_bridge_mode() {
     /etc/init.d/odhcpd restart
   fi
 }
+
+set_mesh_master_mode() {
+  local _mesh_mode="$1"
+  local _need_update=1
+  local _need_restart=0
+  for i in $(uci -q get dhcp.lan.dhcp_option) 
+  do 
+    if [ "$i" != "${i#"vendor:ANLIX,43"}" ]
+    then 
+      if [ "${i:16}" != "$_mesh_mode" ]
+      then
+        uci del_list dhcp.lan.dhcp_option=$i
+        _need_restart=1
+      else
+        _need_update=0
+      fi
+    fi 
+  done
+
+  if [ "$_mesh_mode" != "0" ]
+  then
+    if [ $_need_update -eq 1 ]
+    then
+      log "MESH MODE" "Enabling mesh mode $_mesh_mode"
+      uci add_list dhcp.lan.dhcp_option="vendor:ANLIX,43,$_mesh_mode"
+      _need_restart=1
+    fi
+  else
+    log "MESH MODE" "Mesh mode disabled"
+  fi
+
+  if [ $_need_restart -eq 1 ]
+  then
+    uci commit dhcp
+    /etc/init.d/dnsmasq reload
+  fi
+}
+
+

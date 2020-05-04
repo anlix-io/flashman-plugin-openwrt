@@ -57,11 +57,14 @@ set_dns_proxy_config() {
     cat /tmp/resolv.conf.auto | grep -q "nameserver"
     if [ $? -eq 0 ]
     then
-      uci get dhcp.lan.dhcp_option > /dev/null 2>&1
-      if [ $? -eq 0 ]
-      then
-        uci delete dhcp.lan.dhcp_option
-      fi
+      # Remove only the dns options
+      for i in $(uci get dhcp.lan.dhcp_option)
+      do
+        if [ "$i" != "${i#$_sv_list_opt}" ]
+        then
+          uci del_list dhcp.lan.dhcp_option=$i
+        fi
+      done
       # Create DNS list. Only IPv4
       _dns_sv_list=$(cat /tmp/resolv.conf.auto | grep "nameserver" | grep "\." | awk '{print $2}')
       for _dns_sv in $_dns_sv_list
@@ -90,12 +93,15 @@ set_dns_proxy_config() {
       uci commit dhcp
     fi
   else
-    uci get dhcp.lan.dhcp_option > /dev/null 2>&1
-    if [ $? -eq 0 ]
-    then
-      uci delete dhcp.lan.dhcp_option
-      uci commit dhcp
-    fi
+    # Remove only the dns options
+    for i in $(uci get dhcp.lan.dhcp_option)
+    do
+      if [ "$i" != "${i#$_sv_list_opt}" ]
+      then
+        uci del_list dhcp.lan.dhcp_option=$i
+      fi
+    done
+    uci commit dhcp
     uci get dhcp.lan.dns > /dev/null 2>&1
     if [ $? -eq 0 ]
     then

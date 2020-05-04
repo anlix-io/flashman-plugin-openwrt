@@ -324,3 +324,9 @@ get_wifi_device_signature() {
 
   echo "$_q"
 }
+
+# Needs reboot to validate switch config
+needs_reboot_bridge_mode() {
+  reboot
+}
+

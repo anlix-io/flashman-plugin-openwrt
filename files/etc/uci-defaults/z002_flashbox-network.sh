@@ -65,6 +65,8 @@ uci set network.wan.proto="$FLM_WAN_PROTO"
 uci set network.wan.mtu="$FLM_WAN_MTU"
 uci set network.wan.service="$FLM_WAN_PPPOE_SERVICE"
 uci set network.wan.keepalive="60 3"
+uci set network.wan.vendorid="ANLIX"
+uci set network.wan.reqopts="43"
 # Configure LAN
 uci set network.lan.ipaddr="$_lan_addr"
 uci set network.lan.netmask="$_lan_netmask"

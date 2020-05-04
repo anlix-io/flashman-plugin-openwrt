@@ -280,6 +280,8 @@ bridge_fix_dns=$_local_bridge_fix_dns"
       set_use_dns_proxy "$_lan_no_dns_proxy"
     fi
 
+    [ -n "$_mesh_mode" ] && set_mesh_master_mode "$_mesh_mode"
+
     # WiFi update
     log "FLASHMAN UPDATER" "Updating Wireless ..."
     set_wifi_local_config "$_wifi_ssid_24" "$_wifi_password_24" \
