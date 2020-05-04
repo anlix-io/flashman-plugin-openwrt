@@ -17,6 +17,10 @@ config FLASHMAN_PUBKEY_FNAME
 	string "Public key file name. This key will be used for remote SSH access."
 	default "id_rsa.pub"
 
+config PROVIDER_PUBKEY_FNAME
+	string "Provider Public key file name. This key will be used to authorize lua access."
+	default "provider.pubkey"
+
 config FLASHMAN_SERVER_ADDR
 	string "Flashman server IP or FQDN"
 	default ""

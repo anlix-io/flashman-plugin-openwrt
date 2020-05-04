@@ -5,6 +5,7 @@
 . /usr/share/functions/dhcp_functions.sh
 . /usr/share/libubox/jshn.sh
 . /lib/functions/network.sh
+. /usr/share/functions/device_functions.sh
 
 diagnose_wan_connectivity() {
   local _status=""
@@ -614,12 +615,10 @@ get_bridge_mode_status() {
 enable_bridge_mode() {
   local _do_network_restart=$1
   local _wait_uhttpd_reply=$2 # TODO: Find a better way to solve this
-  local _disable_switch=$3
+  local _disable_lan_ports=$3
   local _fixed_ip=$4
   local _fixed_gateway=$5
   local _fixed_dns=$6
-
-  log "TEMP PARAMS" "$1 $2 $3 $4 $5 $6"
 
   if [ "$_wait_uhttpd_reply" = "y" ]
   then
@@ -630,22 +629,14 @@ enable_bridge_mode() {
   local _lan_ip="$(uci get network.lan.ipaddr)"
   local _lan_ifnames="$(uci get network.lan.ifname)"
   local _wan_ifnames="$(uci get network.wan.ifname)"
-  # Separate non-wifi interfaces to back them up
-  _lan_ifnames_wifi=""
-  for iface in $_lan_ifnames
-  do
-    if [ "$(echo $iface | grep ra)" != "" ]
-    then
-      _lan_ifnames_wifi="$iface $_lan_ifnames_wifi"
-    fi
-  done
+  local _lan_ifnames_wifi=""
   # Write bridge mode to config.json so it persists between flashes
   json_cleanup
   json_load_file /root/flashbox_config.json
   json_add_string bridge_mode "y"
   json_add_string bridge_lan_backup "$_lan_ifnames"
   json_add_string bridge_lan_ip_backup "$_lan_ip"
-  json_add_string bridge_disable_switch "$_disable_switch"
+  json_add_string bridge_disable_switch "$_disable_lan_ports"
   json_add_string bridge_fix_ip "$_fixed_ip"
   json_add_string bridge_fix_gateway "$_fixed_gateway"
   json_add_string bridge_fix_dns "$_fixed_dns"
@@ -654,6 +645,8 @@ enable_bridge_mode() {
   # Disable wan and bridge interfaces in lan
   uci set network.wan.proto="none"
   uci set network.wan6.proto="none"
+  # WAN ifname needs to be included by default
+  uci set network.lan.ifname="$_wan_ifnames"
   if [ "$_fixed_ip" != "" ]
   then
     uci set network.lan.ipaddr="$_fixed_ip"
@@ -665,12 +658,28 @@ enable_bridge_mode() {
     # LAN IP on etc/hosts will be replaced by hotplug
     uci set network.lan.proto="dhcp"
   fi
-  if [ "$_disable_switch" = "y" ]
+  # Separate non-wifi interfaces to back them up
+  for iface in $_lan_ifnames
+  do
+    if [ "$(echo $iface | grep ra)" != "" ]
+    then
+      _lan_ifnames_wifi="$iface $_lan_ifnames_wifi"
+    fi
+  done
+  # Enable/disable ethernet connection on LAN physical ports
+  if [ "$_disable_lan_ports" = "y" ]
   then
-    uci set network.lan.ifname="$_wan_ifnames $_lan_ifnames_wifi"
+    uci set network.lan.ifname="$_lan_ifnames_wifi $_wan_ifnames"
   else
-    uci set network.lan.ifname="$_wan_ifnames $_lan_ifnames"
+    # DO NOT PLACE WAN IFNAME BEFORE LAN IFNAME OR SOME ROUTERS WILL CRASH
+    uci set network.lan.ifname="$_lan_ifnames $_wan_ifnames"
   fi
+  # Some routers need to change port mapping on software switch
+  if [ "$(type -t set_switch_bridge_mode)" ]
+  then
+    set_switch_bridge_mode "$_disable_lan_ports"
+  fi
+
   # Disable dns, dhcp and dhcp6
   /etc/init.d/miniupnpd disable
   /etc/init.d/miniupnpd stop
@@ -684,9 +693,9 @@ enable_bridge_mode() {
   uci commit network
   if [ "$_do_network_restart" = "y" ]
   then
-    /etc/init.d/network restart
     if [ "$_fixed_ip" != "" ]
     then
+      /etc/init.d/network restart
       /etc/init.d/uhttpd restart
       /etc/init.d/minisapo restart
       # Wait for network to configure itself and check connectivity
@@ -698,10 +707,24 @@ enable_bridge_mode() {
         json_cleanup
         json_load_file /root/flashbox_config.json
         json_add_string bridge_did_reset "y"
+        json_add_string bridge_fix_ip ""
+        json_add_string bridge_fix_gateway ""
+        json_add_string bridge_fix_dns ""
         json_dump > /root/flashbox_config.json
         json_close_object
-        update_bridge_mode "n" "$3" "" "" ""
+        uci set network.lan.proto="dhcp"
+        uci set network.lan.ipaddr=""
+        uci set network.lan.gateway=""
+        uci set network.lan.dns=""
+        uci commit network
       fi
+    fi
+    # Some targets need to reboot the whole router after changing mode
+    if [ "$(type -t needs_reboot_bridge_mode)" ]
+    then
+      needs_reboot_bridge_mode
+    else
+      /etc/init.d/network restart
     fi
   fi
 }
@@ -723,8 +746,6 @@ update_bridge_mode() {
   local _current_gateway=""
   local _current_dns=""
   local _lan_ifnames=""
-  local _wan_ifnames=""
-  local _lan_ifnames_wifi=""
   local _reset_network="n"
   json_cleanup
   json_load_file /root/flashbox_config.json
@@ -762,22 +783,9 @@ update_bridge_mode() {
   then
     json_add_string bridge_disable_switch "$_disable_switch"
     json_get_var _lan_ifnames bridge_lan_backup
-    _wan_ifnames="$(uci get network.wan.ifname)"
     _reset_network="y"
-    if [ "$_disable_switch" = "y" ]
-    then
-      _lan_ifnames_wifi=""
-      for iface in $_lan_ifnames
-      do
-        if [ "$(echo $iface | grep ra)" != "" ]
-        then
-          _lan_ifnames_wifi="$iface $_lan_ifnames_wifi"
-        fi
-      done
-      uci set network.lan.ifname="$_wan_ifnames $_lan_ifnames_wifi"
-    else
-      uci set network.lan.ifname="$_wan_ifnames $_lan_ifnames"
-    fi
+    # Enable/disable ethernet connection on LAN physical ports
+    set_lan_ports_state_bridge_mode "$_disable_switch" "$_lan_ifnames"
   fi
   json_dump > /root/flashbox_config.json
   json_close_object
@@ -856,7 +864,13 @@ disable_bridge_mode() {
   uci commit network
   if [ "$_skip_network_restart" != "y" ]
   then
-    /etc/init.d/network restart
-    /etc/init.d/odhcpd restart
+    # Some targets need to reboot the whole router after changing mode
+    if [ "$(type -t needs_reboot_bridge_mode)" ]
+    then
+      needs_reboot_bridge_mode
+    else
+      /etc/init.d/network restart
+      /etc/init.d/odhcpd restart
+    fi
   fi
 }

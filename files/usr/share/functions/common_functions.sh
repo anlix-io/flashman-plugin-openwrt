@@ -17,11 +17,21 @@ get_flashbox_release() {
 }
 
 get_hardware_model() {
-  echo "$(cat /tmp/sysinfo/model | awk '{ print toupper($2) }')"
+  if [ "$(type -t get_custom_hardware_model)" ]
+  then
+    get_custom_hardware_model
+  else
+    echo "$(cat /tmp/sysinfo/model | awk '{ print toupper($2) }')"
+  fi
 }
 
 get_hardware_version() {
-  echo "$(cat /tmp/sysinfo/model | awk '{ print toupper($3) }')"
+  if [ "$(type -t get_custom_hardware_version)" ]
+  then
+    get_custom_hardware_version
+  else
+    echo "$(cat /tmp/sysinfo/model | awk '{ print toupper($3) }')"
+  fi
 }
 
 set_mqtt_secret() {

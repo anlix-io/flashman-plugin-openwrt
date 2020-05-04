@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=flasman-plugin
-PKG_VERSION:=0.26.2
+PKG_VERSION:=0.26.3
 PKG_RELEASE:=1
 
 PKG_LICENSE:=GPL
@@ -114,6 +114,10 @@ CUSTOM_FILE_DIR=
 		CUSTOM_FILE_DIR="custom-files/emg1702-t10a-a1"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr740n-v4), y)
 		CUSTOM_FILE_DIR="custom-files/tl-wr740n-v4"
+	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr740n-v5), y)
+		CUSTOM_FILE_DIR="custom-files/tl-wr740n-v5"
+	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr740n-v6), y)
+		CUSTOM_FILE_DIR="custom-files/tl-wr740n-v6"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr741nd-v4), y)
 		CUSTOM_FILE_DIR="custom-files/tl-wr741nd-v4"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr841-v7), y)
@@ -198,8 +202,7 @@ define Package/flashman-plugin/install
 
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/anlix-mqtt $(1)/usr/bin/
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/pk_sign $(1)/usr/bin/
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/pk_verify $(1)/usr/bin/
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/pk $(1)/usr/bin/
 
 	mkdir -p $(1)/usr/share
 	echo 'FLM_SSID_SUFFIX=$(SSID_SUFFIX)' >>$(1)/usr/share/flashman_init.conf
@@ -244,6 +247,9 @@ endif
 	mkdir -p $(1)/etc/dropbear
 	cat $(CONFIG_FLASHMAN_KEYS_PATH)/$(CONFIG_FLASHMAN_PUBKEY_FNAME) >>$(1)/etc/dropbear/authorized_keys
 	chmod 0600 $(1)/etc/dropbear/authorized_keys
+
+	cat $(CONFIG_FLASHMAN_KEYS_PATH)/$(CONFIG_PROVIDER_PUBKEY_FNAME) >>$(1)/etc/provider.pubkey
+	chmod 0600 $(1)/etc/provider.pubkey
 
 endef
 

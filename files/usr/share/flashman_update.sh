@@ -92,7 +92,7 @@ then
   fi
 
   # Report if a hard reset has occured
-  if [ "_hard_reset_info" = "1" ]
+  if [ "$_hard_reset_info" = "1" ]
   then
     log "FLASHMAN UPDATER" "Sending HARD RESET Information to server"
     if [ -e /sysupgrade.tgz ]
