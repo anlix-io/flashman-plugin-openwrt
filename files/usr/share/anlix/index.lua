@@ -108,7 +108,7 @@ function handle_request(env)
 		return
 	end
 
-	if tonumber(app_protocol_ver) > 3 then
+	if tonumber(app_protocol_ver) > 2 then
 		web.error_handle(web.ERROR_PROT_VER, nil)
 		return
 	end
