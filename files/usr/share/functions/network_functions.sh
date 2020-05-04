@@ -110,6 +110,7 @@ set_wan_type() {
   local _pppoe_user_remote=$2
   local _pppoe_password_remote=$3
   local _wait_uhttpd_reply=$4 # TODO: Find a better way to solve this
+  local _did_change_bridge="n"
 
   if [ "$_wait_uhttpd_reply" = "y" ]
   then
@@ -121,6 +122,7 @@ set_wan_type() {
     # Must disable bridge mode before changing wan configuration
     log "FLASHMAN UPDATER" "Disabling bridge mode to change WAN config ..."
     disable_bridge_mode "y"
+    _did_change_bridge="y"
   fi
 
   if [ "$_wan_type_remote" != "$_wan_type" ]
@@ -145,6 +147,13 @@ set_wan_type() {
       json_add_string pppoe_pass ""
       json_dump > /root/flashbox_config.json
       json_close_object
+
+      # If we changed bridge and router needs reboot, we do so here
+      if [ "$_did_change_bridge" = "y" ] && [ "$(type -t needs_reboot_bridge_mode)" ]
+      then
+        needs_reboot_bridge_mode
+      fi
+
     elif [ "$_wan_type_remote" = "pppoe" ]
     then
       if [ "$_pppoe_user_remote" != "" ] && [ "$_pppoe_password_remote" != "" ]
@@ -168,6 +177,13 @@ set_wan_type() {
         json_add_string pppoe_pass "$_pppoe_password_remote"
         json_dump > /root/flashbox_config.json
         json_close_object
+
+        # If we changed bridge and router needs reboot, we do so here
+        if [ "$_did_change_bridge" = "y" ] && [ "$(type -t needs_reboot_bridge_mode)" ]
+        then
+          needs_reboot_bridge_mode
+        fi
+
       fi
     fi
     # Don't put anything outside here. _content_type may be corrupted
