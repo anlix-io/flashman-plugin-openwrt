@@ -20,6 +20,14 @@ function check_file(path)
 	end
 end
 
+function write_file(path, content)
+	local file = io.open(path, "wb")
+	if not file then return false end
+	file:write(content)
+	file:close()
+	return true
+end
+
 function read_file(path)
 	local file = io.open(path, "rb")
 	if not file then return nil end

@@ -45,6 +45,8 @@ function handle_config(command, data)
 		return
 	elseif command == "wan" then
 		-- Change WAN type with given parameters
+		local config_file = json.decode(read_file("/root/flashbox_config.json"))
+		config_file["did_change_wan_local"] = "y"
 		local conn_type = data.conn_type
 		local local_conn_type = flashman.get_wan_type()
 		if conn_type == "dhcp" then
@@ -53,6 +55,7 @@ function handle_config(command, data)
 				web.send_json({success = true}) -- simply reply with success
 				return
 			end
+			write_file("/root/flashbox_config.json", json.encode(config_file))
 			web.send_json({success = true}) -- reply before changing network
 			flashman.set_wan_type("dhcp", "", "")
 		elseif conn_type == "pppoe" then
@@ -63,6 +66,7 @@ function handle_config(command, data)
 				web.error_handle(web.ERROR_PARAMETERS, nil)
 				return
 			end
+			write_file("/root/flashbox_config.json", json.encode(config_file))
 			web.send_json({success = true}) -- reply before changing network
 			flashman.set_wan_type("pppoe", user, pass)
 		elseif conn_type == "bridge" then
@@ -84,6 +88,7 @@ function handle_config(command, data)
 			end
 			local local_config = read_file("/root/flashbox_config.json")
 			local_config = json.decode(local_config)
+			write_file("/root/flashbox_config.json", json.encode(config_file))
 			web.send_json({success = true}) -- reply before changing network
 			if local_config.bridge_mode ~= "y" then
 				-- Enable bridge mode
