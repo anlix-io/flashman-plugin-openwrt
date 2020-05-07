@@ -220,11 +220,20 @@ bridge_fix_dns=$_local_bridge_fix_dns"
     _named_devices=${_named_devices::-1}
     json_close_object
 
+    # Reset the reset flags when we receive syn reply
     if [ "$_local_bridge_did_reset" = "y" ]
     then
       json_cleanup
       json_load_file /root/flashbox_config.json
       json_add_string bridge_did_reset "n"
+      json_dump > /root/flashbox_config.json
+      json_close_object
+    fi
+    if [ "$_local_did_change_wan" = "y" ]
+    then
+      json_cleanup
+      json_load_file /root/flashbox_config.json
+      json_add_string did_change_wan_local "n"
       json_dump > /root/flashbox_config.json
       json_close_object
     fi
