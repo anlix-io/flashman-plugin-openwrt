@@ -248,8 +248,8 @@ endif
 	cat $(CONFIG_FLASHMAN_KEYS_PATH)/$(CONFIG_FLASHMAN_PUBKEY_FNAME) >>$(1)/etc/dropbear/authorized_keys
 	chmod 0600 $(1)/etc/dropbear/authorized_keys
 
-	cat $(CONFIG_FLASHMAN_KEYS_PATH)/$(CONFIG_PROVIDER_PUBKEY_FNAME) >>$(1)/etc/provider.pubkey
-	chmod 0600 $(1)/etc/provider.pubkey
+	# cat $(CONFIG_FLASHMAN_KEYS_PATH)/$(CONFIG_PROVIDER_PUBKEY_FNAME) >>$(1)/etc/provider.pubkey
+	# chmod 0600 $(1)/etc/provider.pubkey
 
 endef
 
