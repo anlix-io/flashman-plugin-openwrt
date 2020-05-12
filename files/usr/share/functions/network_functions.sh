@@ -891,41 +891,119 @@ disable_bridge_mode() {
   fi
 }
 
+get_mesh_mode() {
+  local _mesh_mode=""
+  json_cleanup
+  json_load_file /root/flashbox_config.json
+  json_get_var _mesh_mode mesh_mode
+  json_close_object
+  if [ -z "$_mesh_mode" ]
+  then
+    echo "0"
+  else
+    echo "$_mesh_mode"
+  fi
+}
+
+get_mesh_master() {
+  local _mesh_master=""
+  json_cleanup
+  json_load_file /root/flashbox_config.json
+  json_get_var _mesh_master mesh_master
+  json_close_object
+  echo "$_mesh_master"
+}
+
+is_mesh_master() {
+  local _mesh_mode=""
+  local _mesh_master=""
+  json_cleanup
+  json_load_file /root/flashbox_config.json
+  json_get_var _mesh_mode mesh_mode
+  json_get_var _mesh_master mesh_master
+  json_close_object
+
+  if [ "$_mesh_mode" != "0" ] && [ -z "$_mesh_master" ]
+  then
+    echo "1"
+  else
+    echo "0"
+  fi
+}
+
 set_mesh_master_mode() {
   local _mesh_mode="$1"
-  local _need_update=1
-  local _need_restart=0
-  for i in $(uci -q get dhcp.lan.dhcp_option) 
-  do 
-    if [ "$i" != "${i#"vendor:ANLIX,43"}" ]
-    then 
-      if [ "${i:16}" != "$_mesh_mode" ]
+  local _local_mesh_mode=$(get_mesh_mode)
+
+  if [ "$_local_mesh_mode" != "$_mesh_mode" ]
+  then
+    for i in $(uci -q get dhcp.lan.dhcp_option)
+    do
+      if [ "$i" != "${i#"vendor:ANLIX,43"}" ]
       then
         uci del_list dhcp.lan.dhcp_option=$i
-        _need_restart=1
-      else
-        _need_update=0
       fi
-    fi 
-  done
+    done
 
-  if [ "$_mesh_mode" != "0" ]
-  then
-    if [ $_need_update -eq 1 ]
+    if [ "$_mesh_mode" != "0" ]
     then
       log "MESH MODE" "Enabling mesh mode $_mesh_mode"
       uci add_list dhcp.lan.dhcp_option="vendor:ANLIX,43,$_mesh_mode"
       _need_restart=1
+    else
+      log "MESH MODE" "Mesh mode disabled"
     fi
-  else
-    log "MESH MODE" "Mesh mode disabled"
-  fi
+    json_cleanup
+    json_load_file /root/flashbox_config.json
+    json_add_string mesh_mode "$_mesh_mode"
+    json_add_string mesh_master ""
+    json_dump > /root/flashbox_config.json
+    json_close_object
 
-  if [ $_need_restart -eq 1 ]
-  then
     uci commit dhcp
     /etc/init.d/dnsmasq reload
   fi
 }
 
+set_mesh_slave_mode() {
+  local _mesh_mode="$1"
+  local _mesh_master="$2"
 
+  json_cleanup
+  json_load_file /root/flashbox_config.json
+  json_add_string mesh_mode "$_mesh_mode"
+  json_add_string mesh_master "$_mesh_master"
+  json_dump > /root/flashbox_config.json
+  json_close_object
+}
+
+set_mesh_slaves() {
+  local _mesh_slave="$1"
+  if [ "$(is_mesh_master)" = "1" ]
+  then
+    local _retstatus
+    local _data="id=$(get_mac)&slave=$_mesh_slave"
+    local _url="deviceinfo/mesh/add"
+    local _res=$(rest_flashman "$_url" "$_data")
+
+    _retstatus=$?
+    if [ $_retstatus -eq 0 ]
+    then
+      json_cleanup
+      json_load "$_res"
+      json_get_var _is_registered is_registered
+      json_close_object
+      # value 2 is already registred. No need to do anything
+      if [ "$_is_registered" = "1" ]
+      then
+        log "MESH" "Slave router $_mesh_slave registered successfull"
+      fi
+      if [ "$_is_registered" = "0" ]
+      then
+        log "MESH" "Error registering slave router $_mesh_slave"
+      fi
+    else
+      log "MESH" "Error communicating with server for registration"
+    fi
+  fi
+}

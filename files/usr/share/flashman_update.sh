@@ -195,6 +195,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
     json_get_var _bridge_mode_gateway bridge_mode_gateway
     json_get_var _bridge_mode_dns bridge_mode_dns
     json_get_var _mesh_mode mesh_mode
+    json_get_var _mesh_master mesh_master
 
     _local_bridge_enabled=$(get_bridge_mode_status)
 
@@ -294,7 +295,15 @@ bridge_fix_dns=$_local_bridge_fix_dns"
       set_use_dns_proxy "$_lan_no_dns_proxy"
     fi
 
-    [ -n "$_mesh_mode" ] && set_mesh_master_mode "$_mesh_mode"
+    if [ -n "$_mesh_mode" ] 
+    then
+      if [ -z "$_mesh_master" ]
+      then
+        set_mesh_master_mode "$_mesh_mode"
+      else
+        set_mesh_slave_mode "$_mesh_mode" "$_mesh_master"
+      fi
+    fi
 
     # WiFi update
     log "FLASHMAN UPDATER" "Updating Wireless ..."
