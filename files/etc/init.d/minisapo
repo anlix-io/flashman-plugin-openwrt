@@ -22,13 +22,17 @@ start_service() {
     fi
     sleep 5
   done
-  CACHE_PATH="/tmp/sapo-cache.json"
-  MAC="$(get_mac)"
-  SSID="$(get_wifi_local_config | jsonfilter -e '@["local_ssid_24"]')"
-  SSID_5="$(get_wifi_local_config | jsonfilter -e '@["local_ssid_50"]')"
+  json_init
+  json_add_string "iface_ip" "$BRIDGE_IP_ADDR"
+  json_add_string "mac" "$(get_mac)"
+  json_add_string "ssid" "$(get_wifi_local_config | jsonfilter -e '@["local_ssid_24"]')"
+  json_add_string "ssid_5" "$(get_wifi_local_config | jsonfilter -e '@["local_ssid_50"]')"
+  PARAMS=`json_dump`
+  json_cleanup
 
   procd_open_instance
-  procd_set_param command minisapo "$CACHE_PATH" "$BRIDGE_IP_ADDR" "$MAC" "$SSID" "$SSID_5"
+  procd_set_param command minisapo 
+  procd_append_param command "${PARAMS}"
   procd_set_param respawn
   procd_set_param stdout 1 # forward stdout of the command to logd
   procd_set_param stderr 1 # same for stderr

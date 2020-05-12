@@ -153,7 +153,7 @@ function handle_request(env)
 		web.send_json(info)
 		return
 	elseif command == "getMulticastCache" then
-		local cache = read_file("/tmp/sapo-cache.json")
+		local cache = ubus("anlix_sapo", "get_cache")
 		local resp = {}
 		resp["ok"] = true
 		if(cache ~= nil) then
