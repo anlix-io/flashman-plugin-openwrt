@@ -14,6 +14,11 @@ then
 		#Enable bridge and let sapo do the rest
 		if [ "$(get_bridge_mode_status)" != "y" ]
 		then
+			json_cleanup
+			json_load_file /root/flashbox_config.json
+			json_add_string did_change_wan_local "y"
+			json_dump > /root/flashbox_config.json
+			json_close_object
 			enable_bridge_mode y n n "" "" ""
 		fi
 	fi
