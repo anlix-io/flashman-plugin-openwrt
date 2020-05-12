@@ -109,7 +109,7 @@ function handle_request(env)
 		return
 	end
 
-	if tonumber(app_protocol_ver) > 3 then
+	if tonumber(app_protocol_ver) > 2 then
 		web.error_handle(web.ERROR_PROT_VER, nil)
 		return
 	end
@@ -125,7 +125,9 @@ function handle_request(env)
 	end
 		
 	if command == "config" then
-		if auth_provider.is_authorized() then
+		-- if auth_provider.is_authorized() then
+		-- TODO: Properly authorize
+		if true then
 			handle_config(subcommand, data)
 			return
 		else
@@ -169,7 +171,7 @@ function handle_request(env)
 	end
 
 	if not check_file("/tmp/anlix_authorized") then
-		if is_authenticated then
+		if flashman.is_authenticated() then
 			touch_file("/tmp/anlix_authorized")
 		else
 			web.error_handle(web.ERROR_AUTH_FAIL, nil)
@@ -239,13 +241,13 @@ function handle_request(env)
 		end
 
 		if passwd == nil then
-			if not save_router_passwd_flashman(new_passwd, app_id, secret) then
+			if not flashman.save_router_passwd_flashman(new_passwd, app_id, secret) then
 				web.error_handle(web.ERROR_PASSWD_SAVE, auth)
 				return
 			end
 		end
 
-		if not save_router_passwd(new_passwd) then
+		if not flashman.save_router_passwd_local(new_passwd) then
 			web.error_handle(web.ERROR_PASSWD_SAVE, auth)
 			return
 		else

@@ -105,7 +105,7 @@ function flashman.save_router_passwd_local(pass)
 end
 
 function flashman.save_router_passwd_flashman(passwd, app_id, app_secret)
-  local flashman_addr = get_flashman_server()
+  local flashman_addr = flashman.get_server()
   auth = {}
   auth["id"]=flashman.get_router_id()
   auth["secret"]=flashman.get_router_secret()
@@ -143,7 +143,7 @@ function flashman.get_server()
 end
 
 function flashman.update(remote_addr, app_id, app_secret)
-  local flashman_addr = get_flashman_server()
+  local flashman_addr = flashman.get_server()
   -- Add App to the flashman base
   auth = {}
   auth["id"]=flashman.get_router_id()

@@ -68,6 +68,7 @@ then
   json_get_var _local_bridge_fix_gateway bridge_fix_gateway
   json_get_var _local_bridge_fix_dns bridge_fix_dns
   json_get_var _local_bridge_did_reset bridge_did_reset
+  json_get_var _local_did_change_wan did_change_wan_local
   json_close_object
 
   # If bridge is active, we cannot use get_wan_type, use flashman_init.conf
@@ -137,7 +138,7 @@ hardreset=$_hard_reset_info&\
 upgfirm=$_has_upgraded_version&\
 sysuptime=$(sys_uptime)&\
 wanuptime=$(wan_uptime)"
-  if [ "$_local_bridge_did_reset" = "y" ]
+  if [ "$_local_bridge_did_reset" = "y" ] || [ "$_local_did_change_wan" = "y" ]
   then
     _data="$_data&\
 bridge_enabled=$_local_bridge_enabled&\
@@ -145,6 +146,10 @@ bridge_switch_disable=$_local_bridge_switch_disable&\
 bridge_fix_ip=$_local_bridge_fix_ip&\
 bridge_fix_gateway=$_local_bridge_fix_gateway&\
 bridge_fix_dns=$_local_bridge_fix_dns"
+  fi
+  if [ "$_local_did_change_wan" = "y" ]
+  then
+    _data="$_data&local_change_wan=1"
   fi
   _url="deviceinfo/syn/"
   _res=$(rest_flashman "$_url" "$_data")
@@ -217,11 +222,20 @@ bridge_fix_dns=$_local_bridge_fix_dns"
     _named_devices=${_named_devices::-1}
     json_close_object
 
+    # Reset the reset flags when we receive syn reply
     if [ "$_local_bridge_did_reset" = "y" ]
     then
       json_cleanup
       json_load_file /root/flashbox_config.json
       json_add_string bridge_did_reset "n"
+      json_dump > /root/flashbox_config.json
+      json_close_object
+    fi
+    if [ "$_local_did_change_wan" = "y" ]
+    then
+      json_cleanup
+      json_load_file /root/flashbox_config.json
+      json_add_string did_change_wan_local "n"
       json_dump > /root/flashbox_config.json
       json_close_object
     fi
