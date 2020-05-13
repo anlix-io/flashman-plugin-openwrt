@@ -354,6 +354,7 @@ set_lan_subnet() {
         /etc/init.d/dnsmasq reload
         /etc/init.d/uhttpd restart # Must restart to update Flash App API
         /etc/init.d/minisapo restart
+        /etc/init.d/miniupnpd reload
 
         # Save LAN config
         json_cleanup
