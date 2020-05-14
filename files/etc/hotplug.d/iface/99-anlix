@@ -21,7 +21,6 @@ update_lan_ip() {
   sed -i 's/.*anlixrouter/'"$_lan_addr"' anlixrouter/' /etc/hosts
   /etc/init.d/uhttpd restart
   /etc/init.d/minisapo restart
-  /etc/init.d/miniupnpd reload
 }
 [ "$INTERFACE" = "wan" ] && update_lan_ip
 

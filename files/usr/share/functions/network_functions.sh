@@ -951,11 +951,11 @@ set_mesh_master_mode() {
 
     if [ "$_mesh_mode" != "0" ]
     then
-      log "MESH MODE" "Enabling mesh mode $_mesh_mode"
+      log "MESH" "Enabling mesh mode $_mesh_mode"
       uci add_list dhcp.lan.dhcp_option="vendor:ANLIX,43,$_mesh_mode"
       _need_restart=1
     else
-      log "MESH MODE" "Mesh mode disabled"
+      log "MESH" "Mesh mode disabled"
     fi
     json_cleanup
     json_load_file /root/flashbox_config.json
@@ -973,6 +973,7 @@ set_mesh_slave_mode() {
   local _mesh_mode="$1"
   local _mesh_master="$2"
 
+  log "MESH" "Enabling mesh slave mode $_mesh_mode from master $_mesh_master"
   json_cleanup
   json_load_file /root/flashbox_config.json
   json_add_string mesh_mode "$_mesh_mode"
