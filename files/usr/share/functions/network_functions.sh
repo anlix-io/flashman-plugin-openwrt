@@ -924,9 +924,12 @@ is_mesh_master() {
   json_get_var _mesh_master mesh_master
   json_close_object
 
-  if [ "$_mesh_mode" != "0" ] && [ -z "$_mesh_master" ]
+  if [ -n "$_mesh_mode" ]
   then
-    echo "1"
+    if [ "$_mesh_mode" != "0" ] && [ -z "$_mesh_master" ]
+    then
+      echo "1"
+    fi
   else
     echo "0"
   fi

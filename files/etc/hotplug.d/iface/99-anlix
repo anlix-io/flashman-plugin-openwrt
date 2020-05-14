@@ -6,7 +6,7 @@
 
 update_lan_ip() {
   local _lan_addr=""
-  while truetc/e
+  while true
   do
     _lan_addr="$(ifstatus lan | jsonfilter -e '@["ipv4-address"][0]["address"]')"
     valid_ip "$_lan_addr"
