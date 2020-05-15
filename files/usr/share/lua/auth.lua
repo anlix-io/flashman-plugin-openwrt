@@ -30,6 +30,16 @@ function auth.decode_provider()
 		return false
 	end
 
+	if auth.get_ntp_status() then
+		local cur_time = os.time(os.date("!*t"))
+		if data.expire < cur_time then
+			return false
+		end
+	else
+		-- we cant validate expire time (not in sync)
+		return false
+	end
+
 	auth.user = data.user
 	return true
 end
@@ -55,18 +65,9 @@ function auth.authenticate(auth_data)
 
 	local result = run_process("pk verify /etc/provider.pubkey /tmp/provider.data")
 
+	auth.is_auth = false
 	if string.sub(result, 1, 2) == "OK" then
-		if auth.decode_provider() then
-			if auth.get_ntp_status() then
-				local cur_time = os.time(os.date("!*t"))
-				if data.expire <= cur_time then
-					auth.is_auth = true
-				end
-			else
-				-- we cant validate expire time (not in sync)
-				auth.is_auth = true
-			end
-		end
+		auth.is_auth = auth.decode_provider() then
 	end
 
 	os.remove("/tmp/provider.data")
