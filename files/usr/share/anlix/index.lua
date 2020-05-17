@@ -159,7 +159,7 @@ function handle_request(env)
 		local resp = {}
 		resp["ok"] = true
 		if(cache ~= nil) then
-			resp["multicast_cache"] = json.decode(cache)
+			resp["multicast_cache"] = cache
 		end
 		web.send_json(resp)
 		return
