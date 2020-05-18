@@ -302,10 +302,11 @@ enable_mesh_routing() {
         if [ "$(is_mesh_routing_capable)" -eq "1" ] || [ "$(is_mesh_routing_capable)" -eq "3" ]
         then
           uci set wireless.mesh2=wifi-iface
-          uci set wireless.mesh2.device='radio0'                                                                                                                
-          uci set wireless.mesh2.network='lan'                                                                                                                 
-          uci set wireless.mesh2.mode='mesh'                                                                                                                    
-          uci set wireless.mesh2.mesh_id='anlix'                                                                                                               
+          uci set wireless.mesh2.device='radio0'
+          uci set wireless.mesh5.ifname='mesh0' 
+          uci set wireless.mesh2.network='lan'
+          uci set wireless.mesh2.mode='mesh'
+          uci set wireless.mesh2.mesh_id='anlix'
           uci set wireless.mesh2.encryption='psk2'
           uci set wireless.mesh2.key='tempkey1234'
           _do_save=1
@@ -316,10 +317,11 @@ enable_mesh_routing() {
         if [ "$(is_mesh_routing_capable)" -eq "2" ] || [ "$(is_mesh_routing_capable)" -eq "3" ]
         then
           uci set wireless.mesh5=wifi-iface
-          uci set wireless.mesh5.device='radio1'                                                                                                                
-          uci set wireless.mesh5.network='lan'                                                                                                                 
-          uci set wireless.mesh5.mode='mesh'                                                                                                                    
-          uci set wireless.mesh5.mesh_id='anlix'                                                                                                               
+          uci set wireless.mesh5.device='radio1'
+          uci set wireless.mesh5.ifname='mesh1'
+          uci set wireless.mesh5.network='lan'
+          uci set wireless.mesh5.mode='mesh'
+          uci set wireless.mesh5.mesh_id='anlix'
           uci set wireless.mesh5.encryption='psk2'
           uci set wireless.mesh5.key='tempkey1234'
           _do_save=1
