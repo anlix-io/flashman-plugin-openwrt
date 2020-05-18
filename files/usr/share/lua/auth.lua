@@ -67,7 +67,7 @@ function auth.authenticate(auth_data)
 
 	auth.is_auth = false
 	if string.sub(result, 1, 2) == "OK" then
-		auth.is_auth = auth.decode_provider() then
+		auth.is_auth = auth.decode_provider()
 	end
 
 	os.remove("/tmp/provider.data")
