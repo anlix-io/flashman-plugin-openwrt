@@ -327,7 +327,7 @@ enable_mesh_routing() {
       fi
     fi
 
-    if [ _do_save -eq 1 ]
+    if [ $_do_save -eq 1 ]
     then
       uci commit
       wifi reload
