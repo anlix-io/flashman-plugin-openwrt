@@ -289,6 +289,52 @@ set_wifi_local_config() {
   fi
 }
 
+enable_mesh_routing() {
+  local _mesh_mode=$1
+  local _do_save=0
+
+  if [ "$(type -t is_mesh_routing_capable)" ]
+  then
+    if [ "$_mesh_mode" -gt "1" ] && [ "$(is_mesh_routing_capable)" -gt "0" ]
+    then
+      if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
+      then
+        if [ "$(is_mesh_routing_capable)" -eq "1" ] || [ "$(is_mesh_routing_capable)" -eq "3" ]
+        then
+          uci set wireless.mesh2=wifi-iface
+          uci set wireless.mesh2.device='radio0'                                                                                                                
+          uci set wireless.mesh2.network='lan'                                                                                                                 
+          uci set wireless.mesh2.mode='mesh'                                                                                                                    
+          uci set wireless.mesh2.mesh_id='anlix'                                                                                                               
+          uci set wireless.mesh2.encryption='psk2'
+          uci set wireless.mesh2.key='tempkey1234'
+          _do_save=1
+        fi
+      fi
+      if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
+      then
+        if [ "$(is_mesh_routing_capable)" -eq "2" ] || [ "$(is_mesh_routing_capable)" -eq "3" ]
+        then
+          uci set wireless.mesh5=wifi-iface
+          uci set wireless.mesh5.device='radio1'                                                                                                                
+          uci set wireless.mesh5.network='lan'                                                                                                                 
+          uci set wireless.mesh5.mode='mesh'                                                                                                                    
+          uci set wireless.mesh5.mesh_id='anlix'                                                                                                               
+          uci set wireless.mesh5.encryption='psk2'
+          uci set wireless.mesh5.key='tempkey1234'
+          _do_save=1
+        fi
+      fi
+    fi
+
+    if [ _do_save -eq 1 ]
+    then
+      uci commit
+      wifi reload
+    fi
+  fi
+}
+
 change_wifi_state() {
   local _state
   local _itf_num

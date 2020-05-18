@@ -19,8 +19,8 @@ json_get_var _pppoe_pass pppoe_pass
 json_get_var _lan_addr lan_addr
 json_get_var _lan_netmask lan_netmask
 json_get_var _lan_ipv6prefix lan_ipv6prefix
+json_get_var _mesh_mode mesh_mode
 json_close_object
-
 
 if [ "$_lan_addr" = "" ] || [ "$_lan_netmask" = "" ]
 then
@@ -124,6 +124,11 @@ if [ "$_bridge_mode" = "y" ]
 then
   enable_bridge_mode "n" "n" "$_bridge_disable_switch" "$_bridge_fix_ip" \
                      "$_bridge_fix_gateway" "$_bridge_fix_dns"
+fi
+
+if [ "$_mesh_mode" -gt "1" ]
+then
+  enable_mesh_routing "$_mesh_mode"
 fi
 
 exit 0

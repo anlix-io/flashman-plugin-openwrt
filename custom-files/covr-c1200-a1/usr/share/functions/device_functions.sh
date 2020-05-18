@@ -13,6 +13,26 @@ is_5ghz_capable() {
   echo "1"
 }
 
+is_mesh_master_capable() {
+  # true
+  echo "1"
+}
+
+is_mesh_slave_capable() {
+  # true
+  echo "1"
+}
+
+is_mesh_routing_capable() {
+  #0:false 1:2.4G 2:5G 3:both
+  echo "3"
+}
+
+is_mesh_ft_capable() {
+  #0:false 1:2.4G 2:5G 3:both
+  echo "3"
+}
+
 get_wifi_device_stats() {
   local _dev_mac="$1"
   local _dev_info

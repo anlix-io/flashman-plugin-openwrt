@@ -69,6 +69,7 @@ then
   json_get_var _local_bridge_fix_dns bridge_fix_dns
   json_get_var _local_bridge_did_reset bridge_did_reset
   json_get_var _local_did_change_wan did_change_wan_local
+  json_get_var _local_mesh_mode mesh_mode
   json_close_object
 
   # If bridge is active, we cannot use get_wan_type, use flashman_init.conf
@@ -295,7 +296,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
       set_use_dns_proxy "$_lan_no_dns_proxy"
     fi
 
-    if [ -n "$_mesh_mode" ] 
+    if [ "$_mesh_mode" != "$_local_mesh_mode" ] 
     then
       if [ -z "$_mesh_master" ]
       then
@@ -303,6 +304,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
       else
         set_mesh_slave_mode "$_mesh_mode" "$_mesh_master"
       fi
+      enable_mesh_routing "$_mesh_mode"
     fi
 
     # WiFi update
