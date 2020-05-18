@@ -71,6 +71,7 @@ uci set network.wan.reqopts="43"
 uci set network.lan.ipaddr="$_lan_addr"
 uci set network.lan.netmask="$_lan_netmask"
 uci set network.lan.ip6assign="$_lan_ipv6prefix"
+uci set network.lan.igmp_snooping='1'
 
 uci set network.dmz=interface
 uci set network.dmz.proto='static'
