@@ -31,7 +31,7 @@ function auth.decode_provider()
 	end
 
 	if auth.get_ntp_status() then
-		local cur_time = os.time(os.date("!*t"))
+		local cur_time = os.time()
 		if data.expire < cur_time then
 			return false
 		end
