@@ -35,9 +35,6 @@ function auth.decode_provider()
 		if data.expire < cur_time then
 			return false
 		end
-	else
-		-- we cant validate expire time (not in sync)
-		return false
 	end
 
 	auth.user = data.user
@@ -59,7 +56,7 @@ function auth.authenticate(auth_data)
 
 	-- check the provider information
 	touch_file("/tmp/provider.data")
-	append_to_file("/tmp/provider.data", provider_json .. "\n")
+	append_to_file("/tmp/provider.data", provider_json)
 	touch_file("/tmp/provider.data.sig")
 	append_to_file("/tmp/provider.data.sig", provider_sign)
 
