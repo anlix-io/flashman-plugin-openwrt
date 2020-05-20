@@ -303,7 +303,7 @@ enable_mesh_routing() {
         then
           uci set wireless.mesh2=wifi-iface
           uci set wireless.mesh2.device='radio0'
-          uci set wireless.mesh5.ifname='mesh0' 
+          uci set wireless.mesh2.ifname='mesh0'
           uci set wireless.mesh2.network='lan'
           uci set wireless.mesh2.mode='mesh'
           uci set wireless.mesh2.mesh_id='anlix'
