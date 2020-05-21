@@ -194,8 +194,14 @@ set_pppoe_credentials() {
   local _wan_type=$(get_wan_type)
   local _pppoe_user_remote=$1
   local _pppoe_password_remote=$2
+  local _wait_uhttpd_reply=$3 # TODO: Find a better way to solve this
   local _pppoe_user_local=$(uci -q get network.wan.username)
   local _pppoe_password_local=$(uci -q get network.wan.password)
+
+  if [ "$_wait_uhttpd_reply" = "y" ]
+  then
+    sleep 3
+  fi
 
   if [ "$_wan_type" = "pppoe" ]
   then

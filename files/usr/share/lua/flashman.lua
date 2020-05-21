@@ -59,6 +59,10 @@ function flashman.set_wan_type(conn_type, user, pass)
   local result = run_process("sh -c \". /usr/share/functions/network_functions.sh; set_wan_type " .. conn_type .. " " .. user .. " " .. pass .. " y &\"")
 end
 
+function flashman.set_pppoe_credentials(user, pass)
+  local result = run_process("sh -c \". /usr/share/functions/network_functions.sh; set_pppoe_credentials " .. user .. " " .. pass .. " y &\"")
+end
+
 function flashman.enable_bridge(switch, ip, gw, dns)
   local result = run_process("sh -c \". /usr/share/functions/network_functions.sh; enable_bridge_mode y y " .. switch .. " " .. ip .. " " .. gw .. " " .. dns .. " &\"")
 end
