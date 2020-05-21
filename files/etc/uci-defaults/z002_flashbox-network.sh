@@ -83,8 +83,7 @@ then
   uci set network.wan.proto="$_wan_conn_type"
 fi
 
-if [ "$FLM_WAN_PROTO" = "pppoe" ] && [ "$_wan_proto_value" != "pppoe" ] && \
-   [ "$_wan_conn_type" != "dhcp" ]
+if [ "$_wan_conn_type" = "pppoe" ]
 then
   uci set network.wan.username="$FLM_WAN_PPPOE_USER"
   uci set network.wan.password="$FLM_WAN_PPPOE_PASSWD"
