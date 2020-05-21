@@ -226,12 +226,9 @@ define Package/flashman-plugin/install
 	echo 'FLM_DHCP_NOPROXY=$(CONFIG_FLASHMAN_DHCP_NOPROXY)' >>$(1)/usr/share/flashman_init.conf
 	echo 'MQTT_PORT=$(CONFIG_MQTT_PORT)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_CLIENT_ORG=$(CONFIG_FLASHMAN_CLIENT_ORG)' >>$(1)/usr/share/flashman_init.conf
-
-ifeq ($(WAN_PROTO), "pppoe")
 	echo 'FLM_WAN_PPPOE_USER=$(CONFIG_FLASHMAN_PPPOE_USER)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_WAN_PPPOE_PASSWD=$(CONFIG_FLASHMAN_PPPOE_PASSWD)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_WAN_PPPOE_SERVICE=$(CONFIG_FLASHMAN_PPPOE_SERVICE)' >>$(1)/usr/share/flashman_init.conf
-endif
 
 	echo 'FLM_USE_AUTH_SVADDR=$(CONFIG_FLASHMAN_USE_AUTH_SERVER)' >>$(1)/usr/share/flashman_init.conf
 
