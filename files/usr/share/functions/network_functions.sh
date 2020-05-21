@@ -16,12 +16,12 @@ diagnose_wan_connectivity() {
   then
     # Not in bridge mode, WAN must be configured
     _status="$(ifstatus wan)"
-    _ip="$(echo "$_status" | jsonfilter -e '@["ipv4-address"][0].address')"
-    _gateway="$(echo "$_status" | jsonfilter -e '@["route"][0].nexthop')"
   else
     # Bridge mode enabled, WAN is not configured, so we use the LAN as a base
     _status="$(ifstatus lan)"
   fi
+  _ip="$(echo "$_status" | jsonfilter -e '@["ipv4-address"][0].address')"
+  _gateway="$(echo "$_status" | jsonfilter -e '@["route"][0].nexthop')"
   if [ "$_ip" = "" ]
   then
     echo 1

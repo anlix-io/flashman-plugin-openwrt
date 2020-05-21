@@ -56,7 +56,7 @@ function handle_config(command, data)
 			end
 			write_file("/root/flashbox_config.json", json.encode(config_file))
 			web.send_json({success = true}) -- reply before changing network
-			flashman.set_wan_type("dhcp", "", "")
+			flashman.set_wan_type("dhcp", "none", "none")
 		elseif conn_type == "pppoe" then
 			-- Change to PPPoE, assume we always need to update credentials
 			local user = data.user

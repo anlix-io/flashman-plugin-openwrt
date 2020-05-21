@@ -3,18 +3,6 @@ local auth={};
 auth.user = ""
 auth.is_auth = false
 
-function auth.get_ntp_status()
-	local result = run_process("sh -c \". /usr/share/functions/system_functions.sh; ntp_anlix\"")
-	-- remove \n
-	ntp_st = result:sub(1,-2)
-
-	if ntp_st == "unsync" then
-		return false
-	end
-
-	return true
-end
-
 function auth.get_user()
 	return auth.user
 end
@@ -30,13 +18,8 @@ function auth.decode_provider()
 		return false
 	end
 
-	if auth.get_ntp_status() then
-		local cur_time = os.time(os.date("!*t"))
-		if data.expire < cur_time then
-			return false
-		end
-	else
-		-- we cant validate expire time (not in sync)
+	local cur_time = os.time()
+	if data.expire < cur_time then
 		return false
 	end
 
@@ -59,7 +42,7 @@ function auth.authenticate(auth_data)
 
 	-- check the provider information
 	touch_file("/tmp/provider.data")
-	append_to_file("/tmp/provider.data", provider_json .. "\n")
+	append_to_file("/tmp/provider.data", provider_json)
 	touch_file("/tmp/provider.data.sig")
 	append_to_file("/tmp/provider.data.sig", provider_sign)
 
