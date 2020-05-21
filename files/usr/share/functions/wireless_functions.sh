@@ -295,7 +295,7 @@ enable_mesh_routing() {
 
   if [ "$(type -t is_mesh_routing_capable)" ]
   then
-    if [ "$_mesh_mode" -gt "1" ] && [ "$(is_mesh_routing_capable)" -gt "0" ]
+    if [ "$(is_mesh_routing_capable)" -gt "0" ]
     then
       if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
       then
@@ -311,6 +311,12 @@ enable_mesh_routing() {
           uci set wireless.mesh2.key='tempkey1234'
           _do_save=1
         fi
+      else
+        if [ "$(uci -q get wireless.mesh2)" ]
+        then
+          uci delete wireless.mesh2
+          _do_save=1
+        fi
       fi
       if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
       then
@@ -324,6 +330,12 @@ enable_mesh_routing() {
           uci set wireless.mesh5.mesh_id='anlix'
           uci set wireless.mesh5.encryption='psk2'
           uci set wireless.mesh5.key='tempkey1234'
+          _do_save=1
+        fi
+      else
+        if [ "$(uci -q get wireless.mesh5)" ]
+        then
+          uci delete wireless.mesh5
           _do_save=1
         fi
       fi
