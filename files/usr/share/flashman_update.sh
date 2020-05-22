@@ -202,22 +202,29 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 
     _blocked_macs=""
     _blocked_devices=""
-    json_select blocked_devices
-    INDEX="1"  # Json library starts indexing at 1
-    while json_get_type TYPE $INDEX && [ "$TYPE" = string ]; do
-      json_get_var _device "$((INDEX++))"
-      _blocked_devices="$_blocked_devices""$_device"$'\n'
-      _mac_addr=$(echo "$_device" | head -c 17)
-      _blocked_macs="$_mac_addr $_blocked_macs"
-    done
+    if json_get_type TYPE blocked_devices && [ "$TYPE" == array ]
+    then
+      json_select blocked_devices
+      INDEX="1"  # Json library starts indexing at 1
+      while json_get_type TYPE $INDEX && [ "$TYPE" = string ]; do
+        json_get_var _device "$((INDEX++))"
+        _blocked_devices="$_blocked_devices""$_device"$'\n'
+        _mac_addr=$(echo "$_device" | head -c 17)
+        _blocked_macs="$_mac_addr $_blocked_macs"
+      done
+      json_select ..
+    fi
     _named_devices=""
-    json_select ..
-    json_select named_devices
-    INDEX="1"  # Json library starts indexing at 1
-    while json_get_type TYPE $INDEX && [ "$TYPE" = string ]; do
-      json_get_var _device "$((INDEX++))"
-      _named_devices="$_named_devices""$_device"$'\n'
-    done
+    if json_get_type TYPE named_devices && [ "$TYPE" == array ]
+    then
+      json_select named_devices
+      INDEX="1"  # Json library starts indexing at 1
+      while json_get_type TYPE $INDEX && [ "$TYPE" = string ]; do
+        json_get_var _device "$((INDEX++))"
+        _named_devices="$_named_devices""$_device"$'\n'
+      done
+      json_select ..
+    fi
     # Remove trailing newline / space
     _blocked_macs=${_blocked_macs::-1}
     _blocked_devices=${_blocked_devices::-1}
