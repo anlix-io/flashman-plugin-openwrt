@@ -1,5 +1,6 @@
 #!/bin/sh
 # WARNING! This file may be replaced depending on the selected target!
+. /lib/functions.sh
 . /lib/functions/leds.sh
 
 get_radio_phy() {
@@ -149,10 +150,8 @@ reset_leds() {
 		led_off "$(basename "$trigger_path")"
 	done
 
-	for trigger_path in $(ls -d /sys/class/leds/*white*)
-	do
-		led_on "$(basename "$trigger_path")"
-	done
+	/etc/init.d/led restart > /dev/null
+	led_on "$(get_dt_led running)"
 }
 
 blink_leds() {
@@ -165,10 +164,16 @@ blink_leds() {
 			led_off "$(basename "$trigger_path")"
 		done
 
-		for trigger_path in $(ls -d /sys/class/leds/*yellow*)
-		do
-			echo "timer" > "$trigger_path"/trigger
-		done
+		local _noaccess_led="$(get_dt_led noaccess)"
+		if [ "$_noaccess_led" ]
+		then
+			led_timer "$_noaccess_led" 500 500
+		else
+			for trigger_path in $(ls -d /sys/class/leds/*green*)
+			do
+				led_timer "$(basename "$trigger_path")" 500 500
+			done
+		fi
 	fi
 }
 
@@ -182,40 +187,50 @@ get_mac() {
 	echo "$_mac_address_tag"
 }
 
-# Possible values: 10 or 100
-get_wan_negotiated_speed() {
-	cat /sys/class/net/eth0.2/speed
+get_vlan_device() {
+	parse_get_switch() { 
+		config_get device $2 device 
+		config_get vlan $2 vlan
+		[ $vlan -eq $1 ] && echo "${device}" 
+	}
+	config_load network
+	swt=$(config_foreach "parse_get_switch $1" switch_vlan)
+	echo "$swt"
 }
 
-# Possible values: half or full
+get_vlan_ports() {
+	local _switch="$(get_vlan_device $1)"
+	local _port=$(swconfig dev $_switch vlan $1 get ports)
+	echo "$(for i in $_port; do [ "${i:1}" != "t" ] && echo $i; done)"
+}
+
+get_wan_negotiated_speed() {
+	local _switch="$(get_vlan_device 2)"
+	local _port="$(get_vlan_ports 2)"
+	echo "$(swconfig dev $_switch port $_port get link|sed -ne 's/.*speed:\([0-9]*\)*.*/\1/p')"
+}
+
 get_wan_negotiated_duplex() {
-	cat /sys/class/net/eth0.2/duplex
+	local _switch="$(get_vlan_device 2)"
+	local _port="$(get_vlan_ports 2)"
+	echo "$(swconfig dev $_switch port $_port get link|sed -ne 's/.* \([a-z]*\)-duplex*.*/\1/p')"
 }
 
 get_lan_dev_negotiated_speed() {
 	local _speed="0"
-	local _switch="switch0"
-	local _vlan="1"
-	local _retstatus
+	local _switch="$(get_vlan_device 1)"
 
-	for _port in $(swconfig dev $_switch vlan $_vlan get ports)
+	for _port in $(get_vlan_ports 1)
 	do
-		# Check if it's not a bridge port
-		echo "$_port" | grep -q "t"
-		_retstatus=$?
-		if [ $_retstatus -eq 1 ]
+		local _speed_tmp="$(swconfig dev $_switch port $_port get link|sed -ne 's/.*speed:\([0-9]*\)*.*/\1/p')"
+		if [ "$_speed_tmp" != "" ]
 		then
-			local _speed_tmp="$(swconfig dev $_switch port $_port get link | \
-													awk -F: '{print $4}' | awk -F 'baseT' '{print $1}')"
-			if [ "$_speed_tmp" != "" ]
+			if [ "$_speed" != "0" ]
 			then
-				if [ "$_speed" != "0" ]
-				then
-					[ "$_speed" != "$_speed_tmp" ] && _speed="0"
-				else
-					# First assignment
-					_speed="$_speed_tmp"
-				fi
+				[ "$_speed" != "$_speed_tmp" ] && _speed="0"
+			else
+				# First assignment
+				_speed="$_speed_tmp"
 			fi
 		fi
 	done
