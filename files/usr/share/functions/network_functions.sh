@@ -7,8 +7,71 @@
 . /lib/functions/network.sh
 . /usr/share/functions/device_functions.sh
 
+diagnose_wan_connectivity() {
+  local _status=""
+  local _ip=""
+  local _gateway=""
+  local _hasconn=""
+  if [ "$(get_bridge_mode_status)" != "y" ]
+  then
+    # Not in bridge mode, WAN must be configured
+    _status="$(ifstatus wan)"
+  else
+    # Bridge mode enabled, WAN is not configured, so we use the LAN as a base
+    _status="$(ifstatus lan)"
+  fi
+  _ip="$(echo "$_status" | jsonfilter -e '@["ipv4-address"][0].address')"
+  _gateway="$(echo "$_status" | jsonfilter -e '@["route"][0].nexthop')"
+  if [ "$_ip" = "" ]
+  then
+    echo 1
+    return
+  fi
+  if [ "$_gateway" = "" ]
+  then
+    echo 2
+    return
+  fi
+  _hasconn="$(check_connectivity_internet $_gateway)"
+  if [ "$_hasconn" != "0" ]
+  then
+    echo 3
+    return
+  fi
+  echo 0
+  return
+}
+
+check_connectivity_ipv4() {
+  local _addrs="8.8.8.8"$'\n'"200.132.0.132"
+  check_connectivity_internet "$_addrs"
+}
+
+check_connectivity_ipv6() {
+  local _ip="2001:4860:4860::8888"
+  if ping6 -q -c 1 -w 2 "$_ip" > /dev/null 2>&1
+  then
+    # true
+    echo 0
+    return
+  fi
+  # No successfull pings
+  # false
+  echo 1
+  return
+}
+
+check_connectivity_flashman() {
+  _addrs="$FLM_SVADDR"
+  check_connectivity_internet "$_addrs"
+}
+
 check_connectivity_internet() {
   _addrs="www.google.com.br"$'\n'"www.facebook.com"$'\n'"www.globo.com"
+  if [ "$1" != "" ]
+  then
+    _addrs="$1"
+  fi
   for _addr in $_addrs
   do
     if ping -q -c 1 -w 2 "$_addr"  > /dev/null 2>&1
@@ -46,6 +109,21 @@ set_wan_type() {
   local _wan_type_remote=$1
   local _pppoe_user_remote=$2
   local _pppoe_password_remote=$3
+  local _wait_uhttpd_reply=$4 # TODO: Find a better way to solve this
+  local _did_change_bridge="n"
+
+  if [ "$_wait_uhttpd_reply" = "y" ]
+  then
+    sleep 3
+  fi
+
+  if [ "$_wan_type" = "none" ]
+  then
+    # Must disable bridge mode before changing wan configuration
+    log "FLASHMAN UPDATER" "Disabling bridge mode to change WAN config ..."
+    disable_bridge_mode "y"
+    _did_change_bridge="y"
+  fi
 
   if [ "$_wan_type_remote" != "$_wan_type" ]
   then
@@ -69,6 +147,13 @@ set_wan_type() {
       json_add_string pppoe_pass ""
       json_dump > /root/flashbox_config.json
       json_close_object
+
+      # If we changed bridge and router needs reboot, we do so here
+      if [ "$_did_change_bridge" = "y" ] && [ "$(type -t needs_reboot_bridge_mode)" ]
+      then
+        needs_reboot_bridge_mode
+      fi
+
     elif [ "$_wan_type_remote" = "pppoe" ]
     then
       if [ "$_pppoe_user_remote" != "" ] && [ "$_pppoe_password_remote" != "" ]
@@ -92,6 +177,13 @@ set_wan_type() {
         json_add_string pppoe_pass "$_pppoe_password_remote"
         json_dump > /root/flashbox_config.json
         json_close_object
+
+        # If we changed bridge and router needs reboot, we do so here
+        if [ "$_did_change_bridge" = "y" ] && [ "$(type -t needs_reboot_bridge_mode)" ]
+        then
+          needs_reboot_bridge_mode
+        fi
+
       fi
     fi
     # Don't put anything outside here. _content_type may be corrupted
@@ -102,8 +194,14 @@ set_pppoe_credentials() {
   local _wan_type=$(get_wan_type)
   local _pppoe_user_remote=$1
   local _pppoe_password_remote=$2
+  local _wait_uhttpd_reply=$3 # TODO: Find a better way to solve this
   local _pppoe_user_local=$(uci -q get network.wan.username)
   local _pppoe_password_local=$(uci -q get network.wan.password)
+
+  if [ "$_wait_uhttpd_reply" = "y" ]
+  then
+    sleep 3
+  fi
 
   if [ "$_wan_type" = "pppoe" ]
   then
@@ -537,11 +635,18 @@ get_bridge_mode_status() {
 }
 
 enable_bridge_mode() {
-  local _disable_lan_ports=$1
-  local _fixed_ip=$2
-  local _fixed_gateway=$3
-  local _fixed_dns=$4
-  local _do_network_restart=$5
+  local _do_network_restart=$1
+  local _wait_uhttpd_reply=$2 # TODO: Find a better way to solve this
+  local _disable_lan_ports=$3
+  local _fixed_ip=$4
+  local _fixed_gateway=$5
+  local _fixed_dns=$6
+
+  if [ "$_wait_uhttpd_reply" = "y" ]
+  then
+    sleep 3
+  fi
+
   # Get ifnames to bridge them together
   local _lan_ip="$(uci get network.lan.ipaddr)"
   local _lan_ifnames="$(uci get network.lan.ifname)"
@@ -647,10 +752,17 @@ enable_bridge_mode() {
 }
 
 update_bridge_mode() {
-  local _disable_switch=$1
-  local _fixed_ip=$2
-  local _fixed_gateway=$3
-  local _fixed_dns=$4
+  local _wait_uhttpd_reply=$1 # TODO: Find a better way to solve this
+  local _disable_switch=$2
+  local _fixed_ip=$3
+  local _fixed_gateway=$4
+  local _fixed_dns=$5
+
+  if [ "$_wait_uhttpd_reply" = "y" ]
+  then
+    sleep 3
+  fi
+
   local _current_switch=""
   local _current_ip=""
   local _current_gateway=""
@@ -719,7 +831,7 @@ update_bridge_mode() {
         json_add_string bridge_did_reset "y"
         json_dump > /root/flashbox_config.json
         json_close_object
-        update_bridge_mode "$1" "" "" ""
+        update_bridge_mode "n" "$2" "" "" ""
       fi
     fi
   else
@@ -731,6 +843,14 @@ disable_bridge_mode() {
   local _wan_conn_type=""
   local _lan_ifnames=""
   local _lan_ip=""
+  local _skip_network_restart="$1"
+  local _wait_uhttpd_reply="$2" # TODO: Find a better way to solve this
+
+  if [ "$_wait_uhttpd_reply" = "y" ]
+  then
+    sleep 3
+  fi
+
   # Clear bridge mode from config.json so it doesn't persist between flashes
   json_cleanup
   json_load_file /root/flashbox_config.json
@@ -764,12 +884,15 @@ disable_bridge_mode() {
   /etc/init.d/odhcpd enable
   /etc/init.d/odhcpd start
   uci commit network
-  # Some targets need to reboot the whole router after changing mode
-  if [ "$(type -t needs_reboot_bridge_mode)" ]
+  if [ "$_skip_network_restart" != "y" ]
   then
-    needs_reboot_bridge_mode
-  else
-    /etc/init.d/network restart
-    /etc/init.d/odhcpd restart
+    # Some targets need to reboot the whole router after changing mode
+    if [ "$(type -t needs_reboot_bridge_mode)" ]
+    then
+      needs_reboot_bridge_mode
+    else
+      /etc/init.d/network restart
+      /etc/init.d/odhcpd restart
+    fi
   fi
 }
