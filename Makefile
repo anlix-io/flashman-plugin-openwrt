@@ -204,6 +204,7 @@ define Package/flashman-plugin/install
 
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/anlix-mqtt $(1)/usr/bin/
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/pk $(1)/usr/bin/
 
 	mkdir -p $(1)/usr/share
 	echo 'FLM_SSID_SUFFIX=$(SSID_SUFFIX)' >>$(1)/usr/share/flashman_init.conf
@@ -227,12 +228,9 @@ define Package/flashman-plugin/install
 	echo 'FLM_DHCP_NOPROXY=$(CONFIG_FLASHMAN_DHCP_NOPROXY)' >>$(1)/usr/share/flashman_init.conf
 	echo 'MQTT_PORT=$(CONFIG_MQTT_PORT)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_CLIENT_ORG=$(CONFIG_FLASHMAN_CLIENT_ORG)' >>$(1)/usr/share/flashman_init.conf
-
-ifeq ($(WAN_PROTO), "pppoe")
 	echo 'FLM_WAN_PPPOE_USER=$(CONFIG_FLASHMAN_PPPOE_USER)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_WAN_PPPOE_PASSWD=$(CONFIG_FLASHMAN_PPPOE_PASSWD)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_WAN_PPPOE_SERVICE=$(CONFIG_FLASHMAN_PPPOE_SERVICE)' >>$(1)/usr/share/flashman_init.conf
-endif
 
 	echo 'FLM_USE_AUTH_SVADDR=$(CONFIG_FLASHMAN_USE_AUTH_SERVER)' >>$(1)/usr/share/flashman_init.conf
 
@@ -248,6 +246,9 @@ endif
 	mkdir -p $(1)/etc/dropbear
 	cat $(CONFIG_FLASHMAN_KEYS_PATH)/$(CONFIG_FLASHMAN_PUBKEY_FNAME) >>$(1)/etc/dropbear/authorized_keys
 	chmod 0600 $(1)/etc/dropbear/authorized_keys
+
+	cat $(CONFIG_FLASHMAN_KEYS_PATH)/$(CONFIG_PROVIDER_PUBKEY_FNAME) >>$(1)/etc/provider.pubkey
+	chmod 0600 $(1)/etc/provider.pubkey
 
 endef
 

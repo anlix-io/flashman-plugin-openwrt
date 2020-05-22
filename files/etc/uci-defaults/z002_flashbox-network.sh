@@ -83,8 +83,8 @@ then
   uci set network.wan.proto="$_wan_conn_type"
 fi
 
-if [ "$FLM_WAN_PROTO" = "pppoe" ] && [ "$_wan_proto_value" != "pppoe" ] && \
-   [ "$_wan_conn_type" != "dhcp" ]
+if { [ "$_wan_conn_type" = "" ] && [ "$FLM_WAN_PROTO" = "pppoe" ]; } || \
+   [ "$_wan_conn_type" = "pppoe" ];
 then
   uci set network.wan.username="$FLM_WAN_PPPOE_USER"
   uci set network.wan.password="$FLM_WAN_PPPOE_PASSWD"
@@ -120,8 +120,8 @@ fi
 # Check if bridge mode should be enabled
 if [ "$_bridge_mode" = "y" ]
 then
-  enable_bridge_mode "$_bridge_disable_switch" "$_bridge_fix_ip" \
-                     "$_bridge_fix_gateway" "$_bridge_fix_dns" "n"
+  enable_bridge_mode "n" "n" "$_bridge_disable_switch" "$_bridge_fix_ip" \
+                     "$_bridge_fix_gateway" "$_bridge_fix_dns"
 fi
 
 exit 0
