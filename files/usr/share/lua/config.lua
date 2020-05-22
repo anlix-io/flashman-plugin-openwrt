@@ -67,7 +67,11 @@ function handle_config(command, data)
 			end
 			write_file("/root/flashbox_config.json", json.encode(config_file))
 			web.send_json({success = true}) -- reply before changing network
-			flashman.set_wan_type("pppoe", user, pass)
+			if local_conn_type == "pppoe" then
+				flashman.set_pppoe_credentials(user, pass)
+			else
+				flashman.set_wan_type("pppoe", user, pass)
+			end
 		elseif conn_type == "bridge" then
 			local disable_switch = data.disable_switch
 			if (disable_switch) then

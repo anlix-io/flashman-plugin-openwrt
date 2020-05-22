@@ -94,19 +94,17 @@ choice
 		bool "PPPoE"
 endchoice
 
-if FLASHMAN_WAN_PROTO_PPPOE
-	config FLASHMAN_PPPOE_USER
-		string "PPPoE username. Remember to escape hashtags and dollar signs with a slash."
-		default "flashman-user"
+config FLASHMAN_PPPOE_USER
+	string "PPPoE username. Remember to escape hashtags and dollar signs with a slash."
+	default "flashman-user"
 
-	config FLASHMAN_PPPOE_PASSWD
-		string "PPPoE password. Remember to escape hashtags and dollar signs with a slash."
-		default "Flashman!"
+config FLASHMAN_PPPOE_PASSWD
+	string "PPPoE password. Remember to escape hashtags and dollar signs with a slash."
+	default "Flashman!"
 
-	config FLASHMAN_PPPOE_SERVICE
-		string "PPPoE service. Remember to escape hashtags and dollar signs with a slash."
-		default "auto"
-endif
+config FLASHMAN_PPPOE_SERVICE
+	string "PPPoE service. Remember to escape hashtags and dollar signs with a slash."
+	default "auto"
 
 config FLASHMAN_WAN_MTU
 	string "WAN MTU"
