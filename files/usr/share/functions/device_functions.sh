@@ -1,5 +1,6 @@
 #!/bin/sh
 # WARNING! This file may be replaced depending on the selected target!
+[ -e /usr/share/functions/custom_device.sh ] && . /usr/share/functions/custom_device.sh
 . /lib/functions.sh
 . /lib/functions/leds.sh
 
@@ -144,36 +145,27 @@ is_device_wireless() {
 	fi
 }
 
-reset_leds() {
+leds_off() {
 	for trigger_path in $(ls -d /sys/class/leds/*)
 	do
 		led_off "$(basename "$trigger_path")"
 	done
+}
 
+reset_leds() {
+	leds_off
 	/etc/init.d/led restart > /dev/null
 	led_on "$(get_dt_led running)"
 }
 
 blink_leds() {
-	local _do_restart=$1
-
-	if [ $_do_restart -eq 0 ]
+	if [ $1 -eq 0 ]
 	then
-		for trigger_path in $(ls -d /sys/class/leds/*)
-		do
-			led_off "$(basename "$trigger_path")"
+		local led_blink="$([ "$(type -t get_custom_leds_blink)" ] &&  get_custom_leds_blink || $(ls -d /sys/class/leds/*green*))"
+		leds_off
+		for trigger_path in $led_blink; do
+			led_timer "$(basename "$trigger_path")" 500 500
 		done
-
-		local _noaccess_led="$(get_dt_led noaccess)"
-		if [ "$_noaccess_led" ]
-		then
-			led_timer "$_noaccess_led" 500 500
-		else
-			for trigger_path in $(ls -d /sys/class/leds/*green*)
-			do
-				led_timer "$(basename "$trigger_path")" 500 500
-			done
-		fi
 	fi
 }
 
@@ -220,8 +212,7 @@ get_lan_dev_negotiated_speed() {
 	local _speed="0"
 	local _switch="$(get_vlan_device 1)"
 
-	for _port in $(get_vlan_ports 1)
-	do
+	for _port in $(get_vlan_ports 1); do
 		local _speed_tmp="$(swconfig dev $_switch port $_port get link|sed -ne 's/.*speed:\([0-9]*\)*.*/\1/p')"
 		if [ "$_speed_tmp" != "" ]
 		then

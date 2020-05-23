@@ -82,12 +82,15 @@ FILE_DIR=
 	endif
 
 CUSTOM_FILE_DIR=
+CUSTOM_FILE_ARQ=
 	ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_tplink_c20-v1), y)
 		CUSTOM_FILE_DIR="custom-files/archer-c20-v1"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_archer-c20-v4), y)
 		CUSTOM_FILE_DIR="custom-files/archer-c20-v4"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_archer-c20-v5), y)
 		CUSTOM_FILE_DIR="custom-files/archer-c20-v5"
+	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_tplink_c5-v4), y)
+		CUSTOM_FILE_ARQ="tplink_archer-c5-v4"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_archer-c20-v5preset), y)
 		CUSTOM_FILE_DIR="custom-files/archer-c20-v5preset"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_archer-c50-v3), y)
@@ -98,6 +101,8 @@ CUSTOM_FILE_DIR=
 		CUSTOM_FILE_DIR="custom-files/archer-c60-v2"
 	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_archer-c6-v2-us), y)
 		CUSTOM_FILE_DIR="custom-files/archer-c6-v2-us"
+	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_dlink_covr-c1200-a1), y)
+		CUSTOM_FILE_ARQ="dlink_covr-c1200-a1"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_dl-dwr116-a3), y)
 		CUSTOM_FILE_DIR="custom-files/dl-dwr116-a3"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_itlb-ncloud-v1), y)
@@ -196,6 +201,9 @@ define Package/flashman-plugin/install
 	$(CP) ./$(FILE_DIR)/* $(1)/
 ifneq ($(CUSTOM_FILE_DIR),)
 	$(CP) ./$(CUSTOM_FILE_DIR)/* $(1)/
+endif
+ifneq ($(CUSTOM_FILE_ARQ),)
+	$(CP) ./custom-files/$(CUSTOM_FILE_ARQ).sh $(1)/usr/share/functions/custom_device.sh
 endif
 
 	$(INSTALL_DIR) $(1)/usr/bin
