@@ -106,7 +106,7 @@ check_zabbix_startup() {
     log "ZABBIX" "Zabbix Enabled"
   else
     # Disable Zabbix
-    /etc/init.d/zabbix_agentd stop
+    /etc/init.d/zabbix_agentd stop 2>/dev/null
     /etc/init.d/zabbix_agentd disable
     log "ZABBIX" "Zabbix Disabled"
   fi
