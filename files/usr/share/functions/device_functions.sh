@@ -161,7 +161,7 @@ reset_leds() {
 blink_leds() {
 	if [ $1 -eq 0 ]
 	then
-		local led_blink="$([ "$(type -t get_custom_leds_blink)" ] &&  get_custom_leds_blink || $(ls -d /sys/class/leds/*green*))"
+		local led_blink="$([ "$(type -t get_custom_leds_blink)" ] &&  get_custom_leds_blink || ls -d /sys/class/leds/*green*)"
 		leds_off
 		for trigger_path in $led_blink; do
 			led_timer "$(basename "$trigger_path")" 500 500
