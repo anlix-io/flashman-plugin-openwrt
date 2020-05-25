@@ -171,8 +171,7 @@ get_online_devices() {
     local _ipv4="$(echo "$_ipv4_neigh" | grep "$_mac" | awk '{ print $2 }')"
     local _ipv6="$(echo "$_ipv6_neigh" | grep "$_mac" | awk '{ print $2 }')"
 
-    local _hostname="$(cat /tmp/dhcp.leases | grep $_mac | \
-                       awk '{ if ($4=="*") print "!"; else print $4 }')"
+    local _hostname=""
     local _conn_type="$(get_device_conn_type $_mac $_online)"
     local _conn_speed=""
     local _dev_signal=""
@@ -182,6 +181,11 @@ get_online_devices() {
     local _dev_signature=""
     local _dhcp_signature=""
     local _dhcp_vendor_class=""
+
+    if [ -f /tmp/dhcp.leases ]
+    then
+      _hostname="$(cat /tmp/dhcp.leases | grep $_mac | awk '{ if ($4=="*") print "!"; else print $4 }')"
+    fi
 
     if [ "$_conn_type" == "0" ]
     then
