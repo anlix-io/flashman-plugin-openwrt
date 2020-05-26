@@ -265,7 +265,10 @@ function handle_request(env)
 		resp["wireless"] = wifi
 		web.send_json(resp)
 	elseif command == "devices" then
-		local leases = read_lines("/tmp/dhcp.leases")
+		local leases = {}
+		if check_file("/tmp/dhcp.leases") then
+			leases = read_lines("/tmp/dhcp.leases")
+		end
 		local result = leases_to_json(leases)
 		local blacklist = {}
 		local named_devices = {}
