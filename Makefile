@@ -93,8 +93,8 @@ CUSTOM_FILE_ARQ=
 		CUSTOM_FILE_ARQ="tplink_archer-c20-v5W"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_tplink_c5-v4), y)
 		CUSTOM_FILE_ARQ="tplink_archer-c5-v4"
-	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_archer-c50-v3), y)
-		CUSTOM_FILE_DIR="custom-files/archer-c50-v3"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tplink_c50-v3), y)
+		CUSTOM_FILE_ARQ="tplink_archer-c50-v3"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_archer-c50-v4), y)
 		CUSTOM_FILE_DIR="custom-files/archer-c50-v4"
 	else ifeq ($(CONFIG_TARGET_ar71xx_generic_DEVICE_archer-c60-v2), y)
