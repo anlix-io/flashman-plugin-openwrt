@@ -76,6 +76,14 @@ then
     uci set wireless.@wifi-iface[1].macaddr="$MAC_WIFI_5"
   fi
   uci commit wireless
+else
+  # Fix a bug present in version 0.25.2
+  uci set wireless.@wifi-iface[0].macaddr="$MAC_WIFI"
+  if [ "$(uci -q get wireless.@wifi-iface[1])" ]
+  then
+    uci set wireless.@wifi-iface[1].macaddr="$MAC_WIFI_5"
+  fi
+  uci commit wireless
 fi
 
 exit 0
