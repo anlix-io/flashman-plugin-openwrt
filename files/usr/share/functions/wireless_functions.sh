@@ -19,25 +19,23 @@ get_wifi_local_config() {
   local _htmode_50="$(uci -q get wireless.radio1.htmode)"
   local _state_50="$(get_wifi_state '1')"
 
-  #
-  # WARNING! No spaces or tabs inside the following string!
-  #
-  local _wifi_json="{\
-'local_ssid_24':'$_ssid_24',\
-'local_password_24':'$_password_24',\
-'local_channel_24':'$_channel_24',\
-'local_hwmode_24':'$_hwmode_24',\
-'local_htmode_24':'$_htmode_24',\
-'local_state_24':'$_state_24',\
-'local_5ghz_capable':'$_is_5ghz_capable',\
-'local_ssid_50':'$_ssid_50',\
-'local_password_50':'$_password_50',\
-'local_channel_50':'$_channel_50',\
-'local_hwmode_50':'$_hwmode_50',\
-'local_htmode_50':'$_htmode_50',\
-'local_state_50':'$_state_50'}"
-
-  echo "$_wifi_json"
+  json_cleanup
+  json_load "{}"
+  json_add_string "local_ssid_24" "$_ssid_24"
+  json_add_string "local_password_24" "$_password_24"
+  json_add_string "local_channel_24" "$_channel_24"
+  json_add_string "local_hwmode_24" "$_hwmode_24"
+  json_add_string "local_htmode_24" "$_htmode_24"
+  json_add_string "local_state_24" "$_state_24"
+  json_add_string "local_5ghz_capable" "$_is_5ghz_capable"
+  json_add_string "local_ssid_50" "$_ssid_50"
+  json_add_string "local_password_50" "$_password_50"
+  json_add_string "local_channel_50" "$_channel_50"
+  json_add_string "local_hwmode_50" "$_hwmode_50"
+  json_add_string "local_htmode_50" "$_htmode_50"
+  json_add_string "local_state_50" "$_state_50"
+  echo "$(json_dump)"
+  json_close_object
 }
 
 set_wifi_local_config() {
