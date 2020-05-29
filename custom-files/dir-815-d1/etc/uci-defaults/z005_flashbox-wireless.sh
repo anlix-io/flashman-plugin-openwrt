@@ -79,9 +79,11 @@ then
 else
   # Fix a bug present in version 0.25.2
   uci set wireless.@wifi-iface[0].macaddr="$MAC_WIFI"
+  uci set wireless.@wifi-iface[0].encryption="psk2"
   if [ "$(uci -q get wireless.@wifi-iface[1])" ]
   then
     uci set wireless.@wifi-iface[1].macaddr="$MAC_WIFI_5"
+    uci set wireless.@wifi-iface[1].encryption="psk2"
   fi
   uci commit wireless
 fi
