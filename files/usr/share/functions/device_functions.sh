@@ -56,6 +56,14 @@ is_mesh_routing_capable() {
 save_wifi_local_config() {
 	if [ "$(is_5ghz_capable)" -eq "1" ]
 	then
+		if [ ! "$(is_5ghz_vht)" ]
+		then
+			if [ "$(uci -q get wireless.radio1.htmode)" != "HT40" ] ||
+				[ "$(uci -q get wireless.radio1.htmode)" != "HT20" ]
+			then
+				uci set wireless.radio1.htmode="HT40"
+			fi
+		fi
 		[ "$(uci -q get wireless.radio1.hwmode)" = "11ac" ] && uci set wireless.radio1.hwmode="11a"
 	fi
 	uci commit wireless
