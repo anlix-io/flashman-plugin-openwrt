@@ -113,8 +113,8 @@ CUSTOM_FILE_ARQ=
 		CUSTOM_FILE_DIR="custom-files/actionrf1200-v1"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_ACTIONRG1200), y)
 		CUSTOM_FILE_DIR="custom-files/actionrg1200-v1"
-	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_dir-819-a1), y)
-		CUSTOM_FILE_DIR="custom-files/dir-819-a1"
+	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_dlink_dir-819-a1), y)
+		CUSTOM_FILE_ARQ="tbs"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr740n-v4), y)
 		CUSTOM_FILE_DIR="custom-files/tl-wr740n-v4"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr740n-v5), y)
