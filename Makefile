@@ -97,6 +97,8 @@ CUSTOM_FILE_ARQ=
 		CUSTOM_FILE_ARQ="tplink_archer-c50-v3"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tplink_c50-v4), y)
 		CUSTOM_FILE_ARQ="tplink_archer-c50-v4"
+	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_zyxel_emg1702-t10a-a1), y)
+		CUSTOM_FILE_ARQ="tbs"
 	else ifeq ($(CONFIG_TARGET_ar71xx_generic_DEVICE_archer-c60-v2), y)
 		CUSTOM_FILE_DIR="custom-files/archer-c60-v2"
 	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_archer-c6-v2-us), y)
@@ -113,8 +115,6 @@ CUSTOM_FILE_ARQ=
 		CUSTOM_FILE_DIR="custom-files/actionrg1200-v1"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_dir-819-a1), y)
 		CUSTOM_FILE_DIR="custom-files/dir-819-a1"
-	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_emg1702-t10a-a1), y)
-		CUSTOM_FILE_DIR="custom-files/emg1702-t10a-a1"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr740n-v4), y)
 		CUSTOM_FILE_DIR="custom-files/tl-wr740n-v4"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr740n-v5), y)
