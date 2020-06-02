@@ -84,7 +84,7 @@ FILE_DIR=
 CUSTOM_FILE_DIR=
 CUSTOM_FILE_ARQ=
 	ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_tplink_c20-v1), y)
-		CUSTOM_FILE_DIR="custom-files/archer-c20-v1"
+		CUSTOM_FILE_ARQ="tplink_archer-c20-v1"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tplink_c20-v4), y)
 		CUSTOM_FILE_ARQ="tplink_archer-c20-v4"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tplink_c20-v5), y)
