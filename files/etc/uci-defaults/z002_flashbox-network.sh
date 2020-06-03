@@ -3,6 +3,7 @@
 . /usr/share/flashman_init.conf
 . /usr/share/libubox/jshn.sh
 . /usr/share/functions/network_functions.sh
+. /usr/share/functions/wireless_functions.sh
 
 _wan_proto_value=$(uci get network.wan.proto)
 
@@ -20,6 +21,7 @@ json_get_var _lan_addr lan_addr
 json_get_var _lan_netmask lan_netmask
 json_get_var _lan_ipv6prefix lan_ipv6prefix
 json_get_var _mesh_mode mesh_mode
+json_get_var _mesh_master mesh_master
 json_close_object
 
 if [ "$_lan_addr" = "" ] || [ "$_lan_netmask" = "" ]
@@ -127,8 +129,14 @@ then
                      "$_bridge_fix_gateway" "$_bridge_fix_dns"
 fi
 
-if [ "$_mesh_mode" -gt "1" ]
+if [ "$_mesh_mode" -gt "0" ]
 then
+  if [ -z "$_mesh_master" ]
+  then
+    set_mesh_master_mode "$_mesh_mode"
+  else
+    set_mesh_slave_mode "$_mesh_mode" "$_mesh_master"
+  fi
   enable_mesh_routing "$_mesh_mode"
 fi
 
