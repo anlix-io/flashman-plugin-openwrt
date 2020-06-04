@@ -53,6 +53,7 @@ then
 	uci set wireless.@wifi-device[0].channel="$FLM_24_CHANNEL"
 	uci set wireless.@wifi-device[0].hwmode="11n"
 	uci set wireless.@wifi-device[0].country="BR"
+	uci set wireless.@wifi-device[0].channels="1-11"
 
 	if [ "$FLM_24_BAND" = "HT40" ]
 	then
