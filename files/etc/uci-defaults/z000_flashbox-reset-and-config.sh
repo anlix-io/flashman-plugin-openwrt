@@ -65,20 +65,18 @@ then
     _tmp_hard_reset_info="1"
     rm /root/hard_reset
   fi
-  #
-  # WARNING! No spaces or tabs inside the following string!
-  #
-  _flashbox_config_json="{\
-'mqtt_secret': '$_tmp_mqtt_secret',\
-'wan_conn_type': '$_tmp_conn_type',\
-'pppoe_user': '$_tmp_pppoe_user',\
-'pppoe_pass': '$_tmp_pppoe_pass',\
-'flashapp_pass': '$_tmp_flashapp_pass',\
-'zabbix_send_data': 'n',\
-'has_upgraded_version': '$_tmp_has_upgraded_version',\
-'hard_reset_info': '$_tmp_hard_reset_info'}"
-
-  echo "$_flashbox_config_json" > /root/flashbox_config.json
+  json_cleanup
+  json_init
+  json_add_string "mqtt_secret" "$_tmp_mqtt_secret"
+  json_add_string "wan_conn_type" "$_tmp_conn_type"
+  json_add_string "pppoe_user" "$_tmp_pppoe_user"
+  json_add_string "pppoe_pass" "$_tmp_pppoe_pass"
+  json_add_string "flashapp_pass" "$_tmp_flashapp_pass"
+  json_add_string "zabbix_send_data" "n"
+  json_add_string "has_upgraded_version" "$_tmp_has_upgraded_version"
+  json_add_string "hard_reset_info" "$_tmp_hard_reset_info"
+  json_dump > /root/flashbox_config.json
+  json_close_object
 
   ## Migration below usefull for versions older than 0.13.0
 
