@@ -85,20 +85,59 @@ then
   # In this migration we can also update some fixed wifi parameters
   # that improves performance and were not present on older Flashbox versions
   # This will be replaced on z005 if it's the first boot after factory firmware
-  uci set wireless.@wifi-device[0].wifimode="9"
   uci set wireless.@wifi-device[0].noscan="1"
-  uci set wireless.@wifi-device[0].ht_bsscoexist="0"
-  uci set wireless.@wifi-device[0].bw="1"
-  # 5GHz
+  uci set wireless.@wifi-device[0].country="BR"
   if [ "$(uci -q get wireless.@wifi-iface[1])" ]
   then
-    uci set wireless.@wifi-device[1].wifimode="15"
     uci set wireless.@wifi-device[1].noscan="1"
-    uci set wireless.@wifi-device[1].ht_bsscoexist="0"
-    uci set wireless.@wifi-device[1].bw="2"
     uci set wireless.@wifi-device[1].country="BR"
   fi
+
+  if [ -f /etc/wireless/mt7628/mt7628.dat ]
+  then
+    uci set wireless.@wifi-device[0].wifimode="9"
+    uci set wireless.@wifi-device[0].ht_bsscoexist="0"
+    uci set wireless.@wifi-device[0].bw="1"
+    # 5GHz
+    if [ "$(uci -q get wireless.@wifi-iface[1])" ]
+    then
+      uci set wireless.@wifi-device[1].wifimode="15"
+      uci set wireless.@wifi-device[1].ht_bsscoexist="0"
+      uci set wireless.@wifi-device[1].bw="2"
+    fi
+  fi
   uci commit wireless
+fi
+
+#Migrate wireless
+SSID_VALUE=$(uci -q get wireless.@wifi-iface[0].ssid)
+if [ "$SSID_VALUE" != "OpenWrt" ] && [ "$SSID_VALUE" != "LEDE" ] && [ -n "$SSID_VALUE" ]
+then
+  json_cleanup
+  json_load_file /root/flashbox_config.json
+  json_get_var _ssid_24 ssid_24
+  if [ -z "$_ssid_24" ]
+  then
+    json_add_string ssid_24 "$(uci -q get wireless.@wifi-iface[0].ssid)"
+    json_add_string password_24 "$(uci -q get wireless.@wifi-iface[0].key)"
+    json_add_string channel_24 "$(uci -q get wireless.@wifi-device[0].channel)"
+    json_add_string hwmode_24 "$(uci -q get wireless.@wifi-device[0].hwmode)"
+    json_add_string htmode_24 "$(uci -q get wireless.@wifi-device[0].htmode)"
+    json_add_string state_24 "1"
+
+    SSID_VALUE=$(uci -q get wireless.@wifi-iface[1].ssid)
+    if [ "$SSID_VALUE" != "OpenWrt" ] && [ "$SSID_VALUE" != "LEDE" ] && [ -n "$SSID_VALUE" ]
+    then
+      json_add_string ssid_50 "$(uci -q get wireless.@wifi-iface[1].ssid)"
+      json_add_string password_50 "$(uci -q get wireless.@wifi-iface[1].key)"
+      json_add_string channel_50 "$(uci -q get wireless.@wifi-device[1].channel)"
+      json_add_string hwmode_50 "$(uci -q get wireless.@wifi-device[1].hwmode)"
+      json_add_string htmode_50 "$(uci -q get wireless.@wifi-device[1].htmode)"
+      json_add_string state_50 "1"
+    fi
+    json_dump > /root/flashbox_config.json
+  fi
+  json_close_object
 fi
 
 # Create temporary file to differentiate between a boot after a upgrade

@@ -3,12 +3,26 @@
 . /usr/share/libubox/jshn.sh
 . /usr/share/functions/device_functions.sh
 
+is_ralink() {
+  [ "$(uci -q get wireless.@wifi-device[0].type)" == "ralink" ] && echo "1" || echo ""
+}
+
+get_hwmode_24() {
+  local _htmode_24="$(uci -q get wireless.radio0.htmode)"
+  [ "$_htmode_24" = "NOHT" ] && echo "11g" || echo "11n"
+}
+
+get_htmode_24() {
+  local _htmode_24="$(uci -q get wireless.radio0.htmode)"
+  [ "$_htmode_24" = "NOHT" ] && echo "HT20" || echo "$_htmode_24"
+}
+
 get_wifi_local_config() {
   local _ssid_24="$(uci -q get wireless.@wifi-iface[0].ssid)"
   local _password_24="$(uci -q get wireless.@wifi-iface[0].key)"
   local _channel_24="$(uci -q get wireless.radio0.channel)"
-  local _hwmode_24="$(uci -q get wireless.radio0.hwmode)"
-  local _htmode_24="$(uci -q get wireless.radio0.htmode)"
+  local _hwmode_24="$(get_hwmode_24)"
+  local _htmode_24="$(get_htmode_24)"
   local _state_24="$(get_wifi_state '0')"
   local _ft_24="$(uci -q get wireless.@wifi-iface[0].ieee80211r)"
 
@@ -42,6 +56,35 @@ get_wifi_local_config() {
 'local_state_50':'$_state_50'}"
 
   echo "$_wifi_json"
+}
+
+save_wifi_parameters() {
+  json_cleanup
+  json_load_file /root/flashbox_config.json
+  json_add_string ssid_24 "$(uci -q get wireless.@wifi-iface[0].ssid)"
+  json_add_string password_24 "$(uci -q get wireless.@wifi-iface[0].key)"
+  json_add_string channel_24 "$(uci -q get wireless.@wifi-device[0].channel)"
+  json_add_string hwmode_24 "$(uci -q get wireless.@wifi-device[0].hwmode)"
+  json_add_string htmode_24 "$(uci -q get wireless.@wifi-device[0].htmode)"
+  if [ "$(uci -q get wireless.@wifi-device[0].type)" == "ralink" ]
+  then
+    json_add_string state_24 "$([ -e /etc/modules.d/50-mt7628 ] && echo "0" || echo "1")"
+  else
+    _dstate=$(uci -q get wireless.@wifi-device[0].disabled)
+    json_add_string state_24 "$([ "$_dstate" == "1" ] && echo "0" || echo "1")"
+  fi
+  if [ "$(is_5ghz_capable)" == "1" ]
+  then
+    json_add_string ssid_50 "$(uci -q get wireless.@wifi-iface[1].ssid)"
+    json_add_string password_50 "$(uci -q get wireless.@wifi-iface[1].key)"
+    json_add_string channel_50 "$(uci -q get wireless.@wifi-device[1].channel)"
+    json_add_string hwmode_50 "$(uci -q get wireless.@wifi-device[1].hwmode)"
+    json_add_string htmode_50 "$(uci -q get wireless.@wifi-device[1].htmode)"
+    _dstate=$(uci -q get wireless.@wifi-device[1].disabled)
+    json_add_string state_50 "$([ "$_dstate" == "1" ] && echo "0" || echo "1")"
+  fi
+  json_dump > /root/flashbox_config.json
+  json_close_object
 }
 
 set_wifi_local_config() {
@@ -103,34 +146,40 @@ set_wifi_local_config() {
   if [ "$_remote_hwmode_24" != "" ] && \
      [ "$_remote_hwmode_24" != "$_local_hwmode_24" ]
   then
-    if [ "$_remote_hwmode_24" = "11n" ]
+    # hostapd use only 11g (11n is defined in htmode)
+    [ "$_remote_hwmode_24" = "11g" ] && uci set wireless.radio0.htmode="NOHT"
+    [ "$_remote_hwmode_24" = "11n" ] && uci set wireless.radio0.htmode="HT20"
+    if [ "$(is_ralink)" ]
     then
       uci set wireless.radio0.hwmode="$_remote_hwmode_24"
-      uci set wireless.radio0.wifimode="9"
-    elif [ "$_remote_hwmode_24" = "11g" ]
-    then
-      uci set wireless.radio0.hwmode="$_remote_hwmode_24"
-      uci set wireless.radio0.wifimode="4"
+      [ "$_remote_hwmode_24" = "11n" ] && uci set wireless.radio0.wifimode="9"
+      [ "$_remote_hwmode_24" = "11g" ] && uci set wireless.radio0.wifimode="4"
     fi
     _do_reload=1
   fi
   if [ "$_remote_htmode_24" != "" ] && \
      [ "$_remote_htmode_24" != "$_local_htmode_24" ]
   then
-    if [ "$_remote_htmode_24" = "HT40" ]
+    local _newht=$(uci -q get wireless.radio0.htmode)
+    if [ "$_newht" != "NOHT" ]
     then
       uci set wireless.radio0.htmode="$_remote_htmode_24"
-      uci set wireless.radio0.noscan="1"
-      uci set wireless.radio0.ht_bsscoexist="0"
-      uci set wireless.radio0.bw="1"
-    elif [ "$_remote_htmode_24" = "HT20" ]
-    then
-      uci set wireless.radio0.htmode="$_remote_htmode_24"
-      uci set wireless.radio0.noscan="0"
-      uci set wireless.radio0.ht_bsscoexist="1"
-      uci set wireless.radio0.bw="0"
+      [ "$_remote_htmode_24" = "HT40" ] && uci set wireless.radio0.noscan="1"
+      [ "$_remote_htmode_24" = "HT20" ] && uci set wireless.radio0.noscan="0"
+      if [ "$(is_ralink)" ]
+      then
+        if [ "$_remote_htmode_24" = "HT40" ]
+        then
+          uci set wireless.radio0.ht_bsscoexist="0"
+          uci set wireless.radio0.bw="1"
+        elif [ "$_remote_htmode_24" = "HT20" ]
+        then
+          uci set wireless.radio0.ht_bsscoexist="1"
+          uci set wireless.radio0.bw="0"
+        fi
+      fi
+      _do_reload=1
     fi
-    _do_reload=1
   fi
 
   # Enable Fast Transition
@@ -161,6 +210,7 @@ set_wifi_local_config() {
   then
     save_wifi_local_config
     store_disable_wifi "0"
+    save_wifi_parameters
     _do_reload=0
   elif [ "$_remote_state_24" != "" ] && \
        [ "$_remote_state_24" = "1" ] && \
@@ -168,6 +218,7 @@ set_wifi_local_config() {
   then
     save_wifi_local_config
     store_enable_wifi "0"
+    save_wifi_parameters
     _do_reload=0
   fi
 
@@ -195,50 +246,46 @@ set_wifi_local_config() {
     if [ "$_remote_hwmode_50" != "" ] && \
        [ "$_remote_hwmode_50" != "$_local_hwmode_50" ]
     then
-      if [ "$_remote_hwmode_50" = "11ac" ]
+      # Standard cfg80211 use only "11a" ("na" mode is defined in htmode)
+      if [ "$(is_ralink)" ]
       then
-        uci set wireless.radio1.hwmode="$_remote_hwmode_50"
-        uci set wireless.radio1.wifimode="15"
-      elif [ "$_remote_hwmode_50" = "11na" ]
-      then
-        uci set wireless.radio1.hwmode="$_remote_hwmode_50"
-        uci set wireless.radio1.wifimode="11"
+        [ "$_remote_hwmode_50" = "11ac" ] && uci set wireless.radio1.wifimode="15"
+        [ "$_remote_hwmode_50" = "11na" ] && uci set wireless.radio1.wifimode="11"
+        _do_reload=1
       fi
-      _do_reload=1
     fi
     if [ "$_remote_htmode_50" != "" ] && \
        [ "$_remote_htmode_50" != "$_local_htmode_50" ]
     then
-      if [ "$_remote_htmode_50" = "VHT80" ]
+      uci set wireless.radio1.htmode="$_remote_htmode_50"
+      if [ "$(is_ralink)" ]
       then
-        uci set wireless.radio1.htmode="$_remote_htmode_50"
-        uci set wireless.radio1.noscan="1"
-        uci set wireless.radio1.ht_bsscoexist="0"
-        uci set wireless.radio1.bw="2"
-      elif [ "$_remote_htmode_50" = "VHT40" ]
-      then
-        uci set wireless.radio1.htmode="$_remote_htmode_50"
-        uci set wireless.radio1.noscan="1"
-        uci set wireless.radio1.ht_bsscoexist="0"
-        uci set wireless.radio1.bw="1"
-      elif [ "$_remote_htmode_50" = "HT40" ]
-      then
-        uci set wireless.radio1.htmode="$_remote_htmode_50"
-        uci set wireless.radio1.noscan="1"
-        uci set wireless.radio1.ht_bsscoexist="0"
-        uci set wireless.radio1.bw="1"
-      elif [ "$_remote_htmode_50" = "VHT20" ]
-      then
-        uci set wireless.radio1.htmode="$_remote_htmode_50"
-        uci set wireless.radio1.noscan="0"
-        uci set wireless.radio1.ht_bsscoexist="1"
-        uci set wireless.radio1.bw="0"
-      elif [ "$_remote_htmode_50" = "HT20" ]
-      then
-        uci set wireless.radio1.htmode="$_remote_htmode_50"
-        uci set wireless.radio1.noscan="0"
-        uci set wireless.radio1.ht_bsscoexist="1"
-        uci set wireless.radio1.bw="0"
+        if [ "$_remote_htmode_50" = "VHT80" ]
+        then
+          uci set wireless.radio1.noscan="1"
+          uci set wireless.radio1.ht_bsscoexist="0"
+          uci set wireless.radio1.bw="2"
+        elif [ "$_remote_htmode_50" = "VHT40" ]
+        then
+          uci set wireless.radio1.noscan="1"
+          uci set wireless.radio1.ht_bsscoexist="0"
+          uci set wireless.radio1.bw="1"
+        elif [ "$_remote_htmode_50" = "HT40" ]
+        then
+          uci set wireless.radio1.noscan="1"
+          uci set wireless.radio1.ht_bsscoexist="0"
+          uci set wireless.radio1.bw="1"
+        elif [ "$_remote_htmode_50" = "VHT20" ]
+        then
+          uci set wireless.radio1.noscan="0"
+          uci set wireless.radio1.ht_bsscoexist="1"
+          uci set wireless.radio1.bw="0"
+        elif [ "$_remote_htmode_50" = "HT20" ]
+        then
+          uci set wireless.radio1.noscan="0"
+          uci set wireless.radio1.ht_bsscoexist="1"
+          uci set wireless.radio1.bw="0"
+        fi
       fi
       _do_reload=1
     fi
@@ -271,6 +318,7 @@ set_wifi_local_config() {
     then
       save_wifi_local_config
       store_disable_wifi "1"
+      save_wifi_parameters
       _do_reload=0
     elif [ "$_remote_state_50" != "" ] && \
          [ "$_remote_state_50" = "1" ] && \
@@ -278,6 +326,7 @@ set_wifi_local_config() {
     then
       save_wifi_local_config
       store_enable_wifi "1"
+      save_wifi_parameters
       _do_reload=0
     fi
   fi
@@ -285,6 +334,7 @@ set_wifi_local_config() {
   if [ $_do_reload -eq 1 ]
   then
     save_wifi_local_config
+    save_wifi_parameters
     wifi reload
   fi
 }
