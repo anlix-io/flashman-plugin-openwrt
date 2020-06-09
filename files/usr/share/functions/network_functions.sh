@@ -88,6 +88,13 @@ check_connectivity_internet() {
   return
 }
 
+renew_dhcp() {
+  local _iface="wan"
+  [ "$(get_bridge_mode_status)" = "y" ] && _iface="lan"
+  local _proto="$(ifstatus $_iface | jsonfilter -e '@.proto')"
+  [ "$_proto" = "dhcp" ] && ubus call "network.interface.$_iface" renew
+}
+
 get_wan_ip() {
   local _ip=""
   if [ "$(get_bridge_mode_status)" != "y" ]

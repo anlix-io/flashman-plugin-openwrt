@@ -4,19 +4,8 @@
 . /usr/share/functions/common_functions.sh
 . /usr/share/functions/system_functions.sh
 . /usr/share/functions/device_functions.sh
+. /usr/share/functions/network_functions.sh
 . /usr/share/functions/zabbix_functions.sh
-
-# Verify if connection is up.
-check_connectivity_flashman() {
-  if ping -q -c 2 -w 2 "$FLM_SVADDR" 2>/dev/null >/dev/null
-  then
-    # true
-    echo 0
-  else
-    # false
-    echo 1
-  fi
-}
 
 log "IMALIVE" "ROUTER STARTED!"
 
@@ -56,6 +45,7 @@ do
     fi
   else
     log "IMALIVE" "Cant reach Flashman server! Waiting to retry ..."
+    renew_dhcp
     sleep 5
   fi
 done
@@ -88,7 +78,7 @@ do
 
   #if we were disconnected because of lack of connectivity
   # try again only when connection is restored
-  if [ ! "$(check_connectivity_flashman)" -eq 0 ]
+  if [ "$(check_connectivity_flashman)" -eq 1 ]
   then
     log "IMALIVE" "Cant reach Flashman server! Waiting to retry ..."
     connected=false
@@ -111,6 +101,7 @@ do
           sleep 5
         fi
       else
+        renew_dhcp
         sleep 5
       fi
     done
