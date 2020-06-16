@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=flasman-plugin
-PKG_VERSION:=0.27.2
+PKG_VERSION:=0.27.3
 PKG_RELEASE:=1
 
 PKG_LICENSE:=GPL
@@ -86,7 +86,7 @@ CUSTOM_FILE_DIR=
 		CUSTOM_FILE_DIR="custom-files/archer-c20-v1"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_archer-c20-v4), y)
 		CUSTOM_FILE_DIR="custom-files/archer-c20-v4"
-	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_archer-c20-v5), y)
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tplink_c20-v5), y)
 		CUSTOM_FILE_DIR="custom-files/archer-c20-v5"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_archer-c20-v5preset), y)
 		CUSTOM_FILE_DIR="custom-files/archer-c20-v5preset"
