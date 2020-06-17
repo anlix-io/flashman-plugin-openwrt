@@ -4,8 +4,7 @@
 
 while true
 do
-  # Collect and store wan traffic information
-  store_wan_bytes
-
-  sleep 60
+	# Collect and store wan traffic information
+	store_wan_bytes
+	sleep 60
 done
