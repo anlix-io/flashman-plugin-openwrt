@@ -11,6 +11,10 @@ clean_memory() {
 	echo 3 > /proc/sys/vm/drop_caches
 }
 
+lupg() {
+	log "FLASHBOX UPGRADE" "$1"
+}
+
 download_file() {
 	local _dfile="$2"
 	local _uri="$1/$_dfile"
@@ -31,7 +35,7 @@ download_file() {
 														-o "$_dest_dir/$_dfile" "$_uri"`
 			if [ "$_curl_code" != "200" ]
 			then
-				log "FLASHBOX UPGRADE" "FAIL: Download error on $_uri"
+				lupg "FAIL: Download error on $_uri"
 				if [ "$_curl_code" != "304" ]
 				then
 					rm "$_dest_dir/$_dfile"
@@ -43,15 +47,14 @@ download_file() {
 		local _md5_local_hash=$(md5sum $_dest_dir/$_dfile | awk '{ print $1 }')
 		if [ "$_md5_remote_hash" != "$_md5_local_hash" ]
 		then
-			log "FLASHBOX UPGRADE" "FAIL: No match on MD5 hash"
+			lupg "FAIL: No match on MD5 hash"
 			rm "$_dest_dir/$_dfile"
 			return 1
 		fi
-
-		log "FLASHBOX UPGRADE" "Downloaded file on $_uri"
+		lupg "Downloaded file on $_uri"
 		return 0
 	else
-		log "FLASHBOX UPGRADE" "FAIL: Wrong number of arguments in download"
+		lupg "FAIL: Wrong number of arguments in download"
 		return 1
 	fi
 }
@@ -72,11 +75,11 @@ get_image() {
 
 		if [ $_retstatus -eq 1 ]
 		then
-			log "FLASHBOX UPGRADE" "FAIL: Image download failed"
+			lupg "FAIL: Image download failed"
 			return 1
 		fi
 	else
-		log "FLASHBOX UPGRADE" "FAIL: Error in number of args for get_image"
+		lupg "FAIL: Error in number of args for get_image"
 		return 1
 	fi
 	return 0
@@ -85,7 +88,7 @@ get_image() {
 run_reflash() {
 	if [ "$#" -eq 2 ]
 	then
-		log "FLASHBOX UPGRADE" "Init image reflash"
+		lupg "Init image reflash"
 		local _sv_address=$1
 		local _release_id=$2
 		local _vendor
@@ -104,7 +107,7 @@ run_reflash() {
 
 		if ! lock -n /tmp/lock_firmware 2> /dev/null
 		then
-			log "FLASHBOX UPGRADE" "FAIL: Firmware locked!"
+			lupg "FAIL: Firmware locked!"
 			return 1
 		fi
 
@@ -151,7 +154,7 @@ run_reflash() {
 					"https://$_sv_address/deviceinfo/ack/"
 		fi
 	else
-		log "FLASHBOX UPGRADE" "FAIL: Error in number of args"
+		lupg "FAIL: Error in number of args"
 		return 1
 	fi
 }
