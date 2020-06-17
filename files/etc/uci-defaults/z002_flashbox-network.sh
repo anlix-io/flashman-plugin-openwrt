@@ -105,6 +105,9 @@ fi
 if [ "$FLM_WAN_IPV6_ENABLED" == "y" ]
 then
 	uci set network.wan.ipv6="auto"
+	uci set network.lan6=interface
+	uci set network.lan6.ifname='@lan'
+	uci set network.lan6.proto='dhcpv6'
 else
 	uci set network.wan.ipv6="0"
 	uci set network.lan.ipv6="0"
