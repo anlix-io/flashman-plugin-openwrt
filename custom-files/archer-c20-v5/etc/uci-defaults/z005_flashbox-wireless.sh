@@ -76,6 +76,7 @@ fi
 
 uci set wireless.@wifi-device[0].txpower="17"
 uci set wireless.@wifi-device[0].htmode="$_htmode_24"
+uci set wireless.@wifi-device[0].hwmode="11n"
 uci set wireless.@wifi-device[0].noscan="0"
 [ "$_htmode_24" = "HT40" ] && uci set wireless.@wifi-device[0].noscan="1"
 uci set wireless.@wifi-device[0].country="BR"
