@@ -198,6 +198,13 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		json_get_var _mesh_mode mesh_mode
 		json_get_var _mesh_master mesh_master
 
+		if [ "$_do_update" == "1" ]
+		then
+			log "FLASHMAN UPDATER" "Reflashing ..."
+			run_reflash $_release_id
+			exit 1
+		fi
+
 		_local_bridge_enabled=$(get_bridge_mode_status)
 
 		_blocked_macs=""
@@ -389,13 +396,6 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		then
 			log "FLASHMAN UPDATER" "Disabling bridge mode..."
 			disable_bridge_mode
-		fi
-
-		if [ "$_do_update" == "1" ]
-		then
-			log "FLASHMAN UPDATER" "Reflashing ..."
-			# Execute firmware update
-			run_reflash $FLM_SVADDR $_release_id
 		fi
 	fi
 else
