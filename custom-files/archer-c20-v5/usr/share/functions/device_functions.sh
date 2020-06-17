@@ -21,17 +21,17 @@ get_phy_type() {
 }
 
 get_24ghz_phy() {
-  for i in /sys/class/ieee80211/* 
-  do 
-    iface=`basename $i` 
+  for i in /sys/class/ieee80211/*
+  do
+    iface=`basename $i`
     [ "$(get_phy_type $iface)" -eq "1" ] && echo $iface
   done
 }
 
 get_5ghz_phy() {
-  for i in /sys/class/ieee80211/* 
-  do 
-    iface=`basename $i` 
+  for i in /sys/class/ieee80211/*
+  do
+    iface=`basename $i`
     [ "$(get_phy_type $iface)" -eq "2" ] && echo $iface
   done
 }
@@ -52,7 +52,7 @@ is_mesh_routing_capable() {
   local _5iface=$(get_5ghz_phy)
   [ "$_24iface" ] && [ "$(iw phy $_24iface info|grep "mesh point")" ] && _ret=1
   [ "$_5iface" ] && [ "$(iw phy $_5iface info|grep "mesh point")" ] && _ret5=1
-  if [ "$_ret5" -eq "1" ] 
+  if [ "$_ret5" -eq "1" ]
   then
     [ "$_ret" -eq "1" ] && echo "3" || echo "2"
   else
@@ -195,10 +195,10 @@ get_mac() {
 }
 
 get_vlan_device() {
-  parse_get_switch() { 
-    config_get device $2 device 
+  parse_get_switch() {
+    config_get device $2 device
     config_get vlan $2 vlan
-    [ $vlan -eq $1 ] && echo "${device}" 
+    [ $vlan -eq $1 ] && echo "${device}"
   }
   config_load network
   swt=$(config_foreach "parse_get_switch $1" switch_vlan)
