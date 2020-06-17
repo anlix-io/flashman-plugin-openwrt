@@ -10,6 +10,7 @@
 . /usr/share/functions/api_functions.sh
 
 _need_update=0
+_force_update=0
 _cert_error=0
 while true
 do
@@ -103,9 +104,21 @@ wanuptime=$(wan_uptime)"
 
       if [ $_need_update -gt 7 ]
       then
-        # More than 7 checks (>20 min), force a firmware update
-        log "KEEPALIVE" "Running update ..."
-        sh /usr/share/flashman_update.sh
+        if [ $_force_update -eq 1 ] 
+        then
+          _force_update=0
+        else
+          lock -n /tmp/lock_firmware || _force_update=1
+        fi
+
+        if [ $_force_update -eq 0 ]
+        then
+          lock -u /tmp/lock_firmware
+          # More than 7 checks (>20 min), force a firmware update
+          log "KEEPALIVE" "Running update ..."
+          sh /usr/share/flashman_update.sh
+        fi
+        _need_update=0
       fi
 
       if [ "$_mqtt_status" = "0" ]

@@ -7,7 +7,7 @@
 . /usr/share/functions/network_functions.sh
 
 clean_memory() {
-  rm -r /tmp/opkg-lists/
+  [ -d /tmp/opkg-lists/ ] && rm -r /tmp/opkg-lists/
   echo 3 > /proc/sys/vm/drop_caches
 }
 
@@ -25,34 +25,35 @@ download_file() {
                            --tlsv1.2 --connect-timeout 5 --retry 3 "$_uri" \
                            | grep "X-Checksum-Md5" | awk '{ print $2 }'`
 
-    local _curl_code=`curl -s -w "%{http_code}" -u routersync:landufrj123 \
-                           --tlsv1.2 --connect-timeout 5 --retry 3 \
-                           -o "/tmp/$_dfile" "$_uri"`
-
-    if [ "$_curl_code" = "200" ]
+    if [ ! -f $_dest_dir/$_dfile ]
     then
-      local _md5_local_hash=$(md5sum /tmp/$_dfile | awk '{ print $1 }')
-      if [ "$_md5_remote_hash" != "$_md5_local_hash" ]
+      local _curl_code=`curl -s -w "%{http_code}" -u routersync:landufrj123 \
+                             --tlsv1.2 --connect-timeout 5 --retry 3 \
+                             -o "$_dest_dir/$_dfile" "$_uri"`
+
+      if [ "$_curl_code" != "200" ]
       then
-        log "FLASHBOX UPGRADE" "No match on MD5 hash"
-        rm "/tmp/$_dfile"
-        return 1
-      fi
-      mv "/tmp/$_dfile" "$_dest_dir/$_dfile"
-      log "FLASHBOX UPGRADE" "Downloaded file on $_uri"
-      return 0
-    else
-      log "FLASHBOX UPGRADE" "Download error on $_uri"
-      if [ "$_curl_code" != "304" ]
-      then
-        rm "/tmp/$_dfile"
-        return 1
-      else
-        return 0
+        log "FLASHBOX UPGRADE" "FAIL: Download error on $_uri"
+        if [ "$_curl_code" != "304" ]
+        then
+          rm "$_dest_dir/$_dfile"
+          return 1
+        fi
       fi
     fi
+
+    local _md5_local_hash=$(md5sum $_dest_dir/$_dfile | awk '{ print $1 }')
+    if [ "$_md5_remote_hash" != "$_md5_local_hash" ]
+    then
+      log "FLASHBOX UPGRADE" "FAIL: No match on MD5 hash"
+      rm "$_dest_dir/$_dfile"
+      return 1
+    fi
+
+    log "FLASHBOX UPGRADE" "Downloaded file on $_uri"
+    return 0
   else
-    log "FLASHBOX UPGRADE" "Wrong number of arguments"
+    log "FLASHBOX UPGRADE" "FAIL: Wrong number of arguments in download"
     return 1
   fi
 }
@@ -73,11 +74,11 @@ get_image() {
 
     if [ $_retstatus -eq 1 ]
     then
-      log "FLASHBOX UPGRADE" "Image download failed"
+      log "FLASHBOX UPGRADE" "FAIL: Image download failed"
       return 1
     fi
   else
-    log "FLASHBOX UPGRADE" "Error in number of args"
+    log "FLASHBOX UPGRADE" "FAIL: Error in number of args for get_image"
     return 1
   fi
   return 0
@@ -103,6 +104,12 @@ run_reflash() {
     _pppoe_password_local=$(uci -q get network.wan.password)
     _connection_type=$(get_wan_type)
 
+    if ! lock -n /tmp/lock_firmware 2> /dev/null
+    then
+      log "FLASHBOX UPGRADE" "FAIL: Firmware locked!"
+      return 1
+    fi
+
     clean_memory
     if get_image "$_sv_address" "$_release_id" "$_vendor" "$_model" "$_ver"
     then
@@ -122,39 +129,31 @@ run_reflash() {
       json_add_string has_upgraded_version "0"
       json_dump > /root/flashbox_config.json
       json_close_object
-      if sysupgrade -T "/tmp/"$_vendor"_"$_model"_"$_ver"_"$_release_id".bin"
-      then
-        curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
-             --tlsv1.2 --connect-timeout 5 --retry 0 \
-             --data "id=$(get_mac)&status=1" \
-             "https://$_sv_address/deviceinfo/ack/"
-        /etc/init.d/check_cable_wan stop
-        /etc/init.d/keepalive stop
-        /etc/init.d/flashman stop
-        /etc/init.d/netstats stop
-        /etc/init.d/uhttpd stop
-        /etc/init.d/miniupnpd stop
-        wifi down
-        /etc/init.d/network stop
-        clean_memory
-        sysupgrade -f /tmp/config.tar.gz \
-                      "/tmp/"$_vendor"_"$_model"_"$_ver"_"$_release_id".bin"
-      else
-        curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
+
+      curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
            --tlsv1.2 --connect-timeout 5 --retry 0 \
-           --data "id=$(get_mac)&status=0" \
+           --data "id=$(get_mac)&status=1" \
            "https://$_sv_address/deviceinfo/ack/"
-        log "FLASHBOX UPGRADE" "Image check failed"
-        return 1
-      fi
+      /etc/init.d/check_cable_wan stop
+      /etc/init.d/keepalive stop
+      /etc/init.d/flashman stop
+      /etc/init.d/netstats stop
+      /etc/init.d/uhttpd stop
+      /etc/init.d/miniupnpd stop
+      wifi down
+      /etc/init.d/network stop
+      clean_memory
+      sysupgrade --force -f /tmp/config.tar.gz \
+                    "/tmp/"$_vendor"_"$_model"_"$_ver"_"$_release_id".bin"
     else
+      lock -u /tmp/lock_firmware
       curl -s -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
            --tlsv1.2 --connect-timeout 5 --retry 0 \
            --data "id=$(get_mac)&status=2" \
            "https://$_sv_address/deviceinfo/ack/"
     fi
   else
-    log "FLASHBOX UPGRADE" "Error in number of args"
+    log "FLASHBOX UPGRADE" "FAIL: Error in number of args"
     return 1
   fi
 }
