@@ -28,7 +28,7 @@ start_service() {
   json_add_string "mac" "$(get_mac)"
   json_add_string "ssid" "$(get_wifi_local_config | jsonfilter -e '@["local_ssid_24"]')"
   json_add_string "ssid_5" "$(get_wifi_local_config | jsonfilter -e '@["local_ssid_50"]')"
-  [ "$(is_mesh_master)" = "1" ] && json_add_string "mesh" "$(get_mesh_mode)"
+  [ "$(is_mesh_master)" = "1" ] && json_add_int "mesh" "$(get_mesh_mode)"
   for i in $radios
   do 
     [ "${i: -1}" = "0" ] && tlan="2" || tlan="5"

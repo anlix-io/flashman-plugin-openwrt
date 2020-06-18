@@ -1025,3 +1025,25 @@ set_mesh_slaves() {
 		fi
 	fi
 }
+
+set_mesh_rrm() {
+	local rrm_list
+	local radios=$(ubus list | grep hostapd.wlan)
+	A=$'\n'$(ubus call anlix_sapo get_meshids | jsonfilter -e "@.list[*]")
+	while [ "$A" ]
+	do
+		B=${A##*$'\n'}
+		A=${A%$'\n'*}
+		rrm_list=$rrm_list",$B"
+	done
+	for value in ${radios}
+	do
+		rrm_list=${rrm_list}",$(ubus call ${value} rrm_nr_get_own | jsonfilter -e '$.value')"
+	done
+	for value in ${radios}
+	do
+		ubus call ${value} bss_mgmt_enable '{"neighbor_report": true}'
+		eval "ubus call ${value} rrm_nr_set '{ \"list\": [ ${rrm_list:1} ] }'"
+	done
+}
+
