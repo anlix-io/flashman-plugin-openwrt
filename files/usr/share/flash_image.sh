@@ -61,7 +61,7 @@ download_file() {
 
 # Downloads correct image based on current model
 get_image() {
-	if [ "$#" -eq 5 ]
+	if [ "$#" -eq 4 ]
 	then
 		local _release_id=$1
 		local _vendor=$2
@@ -85,7 +85,7 @@ get_image() {
 }
 
 run_reflash() {
-	if [ "$#" -eq 2 ]
+	if [ "$#" -eq 1 ]
 	then
 		lupg "Init image reflash"
 		local _release_id=$1
