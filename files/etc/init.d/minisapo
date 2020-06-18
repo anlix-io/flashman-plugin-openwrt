@@ -8,6 +8,7 @@ START=9F
 STOP=1F
 
 USE_PROCD=1
+radios=$(ubus list | grep hostapd.wlan)
 
 start_service() {
   BRIDGE_IP_ADDR=""
@@ -27,6 +28,13 @@ start_service() {
   json_add_string "mac" "$(get_mac)"
   json_add_string "ssid" "$(get_wifi_local_config | jsonfilter -e '@["local_ssid_24"]')"
   json_add_string "ssid_5" "$(get_wifi_local_config | jsonfilter -e '@["local_ssid_50"]')"
+  [ "$(is_mesh_master)" = "1" ] && json_add_string "mesh" "$(get_mesh_mode)"
+  for i in $radios
+  do 
+    [ "${i: -1}" = "0" ] && tlan="2" || tlan="5"
+    json_add_string "mac_ssid$tlan" "$(ubus call $i rrm_nr_get_own | jsonfilter -e '$.value[0]')"
+    json_add_string "meshid$tlan" "$(ubus call $i rrm_nr_get_own | jsonfilter -e '$.value[2]')"
+  done
   PARAMS=`json_dump`
   json_cleanup
 
