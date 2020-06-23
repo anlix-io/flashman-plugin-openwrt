@@ -2,7 +2,11 @@
 
 [ "$ACTION" = ifup ] || exit 0
 
+. /lib/functions/network.sh
 . /usr/share/functions/network_functions.sh
+
+network_find_wan extiface
+network_find_wan ext6iface
 
 update_lan_ip() {
   local _lan_addr=""
@@ -20,9 +24,8 @@ update_lan_ip() {
   # Replace LAN IP so Flash App can find the router
   sed -i 's/.*anlixrouter/'"$_lan_addr"' anlixrouter/' /etc/hosts
   /etc/init.d/uhttpd restart
-  /etc/init.d/minisapo restart
 }
-[ "$INTERFACE" = "wan" ] && update_lan_ip
+[ "$INTERFACE" = "$extiface" ] && update_lan_ip
 
 set_dns_proxy_config() {
   local _dns_sv_list
@@ -78,13 +81,12 @@ set_dns_proxy_config() {
         uci del_list dhcp.lan.dhcp_option=$i
       fi
     done
-    uci commit dhcp
     uci get dhcp.lan.dns > /dev/null 2>&1
     if [ $? -eq 0 ]
     then
       uci delete dhcp.lan.dns
-      uci commit dhcp
     fi
+    uci commit dhcp
   fi
 }
 # Use proxy or give DNS addresses directly
@@ -94,4 +96,4 @@ set_dns_proxy_config
 /etc/init.d/dnsmasq enabled && /etc/init.d/dnsmasq restart
 
 # Fix dhcp and iface wan6 race condition
-[ "$INTERFACE" = "wan6" ] && /etc/init.d/odhcpd enabled && /etc/init.d/odhcpd restart
+[ "$INTERFACE" = "$ext6iface" ] && /etc/init.d/odhcpd enabled && /etc/init.d/odhcpd restart
