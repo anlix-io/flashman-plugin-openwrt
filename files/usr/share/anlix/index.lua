@@ -156,7 +156,7 @@ function handle_request(env)
 		local cache = ubus("anlix_sapo", "get_cache")
 		local resp = {}
 		resp["ok"] = true
-		if(cache ~= nil) then
+		if(cache ~= nil and next(cache) ~= nil) then
 			resp["multicast_cache"] = cache
 		end
 		web.send_json(resp)
