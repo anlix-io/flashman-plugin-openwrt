@@ -312,7 +312,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 
 		# WiFi update
 		log "FLASHMAN UPDATER" "Updating Wireless ..."
-		local _need_wifi_reload=0
+		_need_wifi_reload=0
 		if [ "$_mesh_mode" != "$_local_mesh_mode" ] 
 		then
 			if [ -z "$_mesh_master" ]
