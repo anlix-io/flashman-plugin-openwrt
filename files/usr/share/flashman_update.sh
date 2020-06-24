@@ -310,6 +310,9 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 			set_use_dns_proxy "$_lan_no_dns_proxy"
 		fi
 
+		# WiFi update
+		log "FLASHMAN UPDATER" "Updating Wireless ..."
+		local _need_wifi_reload=0
 		if [ "$_mesh_mode" != "$_local_mesh_mode" ] 
 		then
 			if [ -z "$_mesh_master" ]
@@ -318,18 +321,18 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 			else
 				set_mesh_slave_mode "$_mesh_mode" "$_mesh_master"
 			fi
-			enable_mesh_routing "$_mesh_mode"
+			enable_mesh_routing "$_mesh_mode" && _need_wifi_reload=1
 		fi
 
-		# WiFi update
-		log "FLASHMAN UPDATER" "Updating Wireless ..."
 		set_wifi_local_config "$_wifi_ssid_24" "$_wifi_password_24" \
-													"$_wifi_channel_24" "$_wifi_hwmode_24" \
-													"$_wifi_htmode_24" "$_wifi_state" \
-													"$_wifi_ssid_50" "$_wifi_password_50" \
-													"$_wifi_channel_50" "$_wifi_hwmode_50" \
-													"$_wifi_htmode_50" "$_wifi_state_50" \
-													"$_mesh_mode"
+									"$_wifi_channel_24" "$_wifi_hwmode_24" \
+									"$_wifi_htmode_24" "$_wifi_state" \
+									"$_wifi_ssid_50" "$_wifi_password_50" \
+									"$_wifi_channel_50" "$_wifi_hwmode_50" \
+									"$_wifi_htmode_50" "$_wifi_state_50" \
+									"$_mesh_mode" && _need_wifi_reload=1
+		[ $_need_wifi_reload -eq 1 ] && wifi reload
+
 		# Flash App password update
 		if [ "$_app_password" == "" ]
 		then

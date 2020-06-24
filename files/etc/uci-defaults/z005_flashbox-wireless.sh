@@ -11,6 +11,8 @@ SUFFIX_5="-5GHz"
 
 json_cleanup
 json_load_file /root/flashbox_config.json
+json_get_var _mesh_mode mesh_mode
+json_get_var _mesh_master mesh_master
 json_get_var _ssid_24 ssid_24
 json_get_var _password_24 password_24
 json_get_var _channel_24 channel_24
@@ -100,6 +102,18 @@ then
 	uci set wireless.@wifi-iface[1].encryption="psk2"
 	uci set wireless.@wifi-iface[1].key="$_password_50"
 fi
+
+if [ "$_mesh_mode" -gt "0" ]
+then
+	if [ -z "$_mesh_master" ]
+	then
+		set_mesh_master_mode "$_mesh_mode"
+	else
+		set_mesh_slave_mode "$_mesh_mode" "$_mesh_master"
+	fi
+	enable_mesh_routing "$_mesh_mode"
+fi
+
 uci commit wireless
 
 exit 0

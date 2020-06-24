@@ -331,8 +331,9 @@ set_wifi_local_config() {
 	then
 		save_wifi_local_config
 		save_wifi_parameters
-		wifi reload
+		return 0
 	fi
+	return 1
 }
 
 enable_mesh_routing() {
@@ -341,11 +342,12 @@ enable_mesh_routing() {
 
 	if [ "$(type -t is_mesh_routing_capable)" ]
 	then
-		if [ "$(is_mesh_routing_capable)" -gt "0" ]
+		local _mrc=$(is_mesh_routing_capable)
+		if [ "$_mrc" -gt "0" ]
 		then
 			if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
 			then
-				if [ "$(is_mesh_routing_capable)" -eq "1" ] || [ "$(is_mesh_routing_capable)" -eq "3" ]
+				if [ "$_mrc" -eq "1" ] || [ "$_mrc" -eq "3" ]
 				then
 					uci set wireless.mesh2=wifi-iface
 					uci set wireless.mesh2.device='radio0'
@@ -366,7 +368,7 @@ enable_mesh_routing() {
 			fi
 			if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
 			then
-				if [ "$(is_mesh_routing_capable)" -eq "2" ] || [ "$(is_mesh_routing_capable)" -eq "3" ]
+				if [ "$_mrc" -eq "2" ] || [ "$_mrc" -eq "3" ]
 				then
 					uci set wireless.mesh5=wifi-iface
 					uci set wireless.mesh5.device='radio1'
@@ -389,10 +391,11 @@ enable_mesh_routing() {
 
 		if [ $_do_save -eq 1 ]
 		then
-			uci commit
-			wifi reload
+			uci commit wireless
+			return 0
 		fi
 	fi
+	return 1
 }
 
 change_wifi_state() {
