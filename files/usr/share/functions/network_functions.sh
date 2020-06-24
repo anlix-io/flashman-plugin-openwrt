@@ -911,12 +911,7 @@ get_mesh_mode() {
 	json_load_file /root/flashbox_config.json
 	json_get_var _mesh_mode mesh_mode
 	json_close_object
-	if [ -z "$_mesh_mode" ]
-	then
-		echo "0"
-	else
-		echo "$_mesh_mode"
-	fi
+	[ -z "$_mesh_mode" ] && echo "0" || echo "$_mesh_mode"
 }
 
 get_mesh_master() {
@@ -936,16 +931,7 @@ is_mesh_master() {
 	json_get_var _mesh_mode mesh_mode
 	json_get_var _mesh_master mesh_master
 	json_close_object
-
-	if [ -n "$_mesh_mode" ]
-	then
-		if [ "$_mesh_mode" != "0" ] && [ -z "$_mesh_master" ]
-		then
-			echo "1"
-		fi
-	else
-		echo "0"
-	fi
+	[ -n "$_mesh_mode" ] && [ "$_mesh_mode" != "0" ] && [ -z "$_mesh_master" ] && echo "1" || echo "0"
 }
 
 set_mesh_master_mode() {
