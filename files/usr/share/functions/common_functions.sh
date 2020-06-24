@@ -3,6 +3,7 @@
 . /usr/share/flashman_init.conf
 . /usr/share/libubox/jshn.sh
 . /usr/share/functions/device_functions.sh
+. /usr/share/functions/network_functions.sh
 
 log() {
 	logger -t "$1 " "$2"
@@ -129,7 +130,8 @@ is_authenticated() {
 organization=$FLM_CLIENT_ORG&\
 secret=$FLM_CLIENT_SECRET&\
 model=$(get_hardware_model)&\
-model_ver=$(get_hardware_version)"
+model_ver=$(get_hardware_version)&\
+is_mesh_active=$(is_mesh_slave)"
 
 		_res=$(curl -s \
 			-A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
