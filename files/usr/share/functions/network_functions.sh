@@ -974,7 +974,6 @@ set_mesh_master_mode() {
 		json_load_file /root/flashbox_config.json
 		json_add_string mesh_mode "$_mesh_mode"
 		json_add_string mesh_master ""
-		json_add_string mesh_is_slave "0"
 		json_dump > /root/flashbox_config.json
 		json_close_object
 
@@ -992,12 +991,6 @@ set_mesh_slave_mode() {
 	json_load_file /root/flashbox_config.json
 	json_add_string mesh_mode "$_mesh_mode"
 	json_add_string mesh_master "$_mesh_master"
-	if [ "$_mesh_mode" != "0" ]
-	then
-		json_add_string mesh_is_slave "1"
-	else
-		json_add_string mesh_is_slave "0"
-	fi
 	json_dump > /root/flashbox_config.json
 	json_close_object
 }

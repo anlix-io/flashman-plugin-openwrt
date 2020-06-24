@@ -116,18 +116,15 @@ rest_flashman() {
 }
 
 is_mesh_slave() {
-	local _mesh_is_slave=""
+	local _mesh_mode=""
+	local _mesh_master=""
 	json_cleanup
 	json_load_file /root/flashbox_config.json
-	json_get_var _mesh_is_slave mesh_is_slave
+	json_get_var _mesh_mode mesh_mode
+	json_get_var _mesh_master mesh_master
 	json_close_object
 
-	if [ -n "$_mesh_is_slave" ]
-	then
-		echo "$_mesh_is_slave"
-	else
-		echo "0"
-	fi
+	[ -n "$_mesh_mode" ] && [ "$_mesh_mode" != "0" ] && [ -n "$_mesh_master" ] && echo "1" || echo "0"
 }
 
 is_authenticated() {
