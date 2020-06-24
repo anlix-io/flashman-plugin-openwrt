@@ -3,7 +3,6 @@
 . /usr/share/flashman_init.conf
 . /usr/share/libubox/jshn.sh
 . /usr/share/functions/device_functions.sh
-. /usr/share/functions/network_functions.sh
 
 log() {
 	logger -t "$1 " "$2"
@@ -113,6 +112,21 @@ rest_flashman() {
 		log "REST FLASHMAN" "Error connecting to server ($_curl_out)"
 		# other curl errors
 		return 1
+	fi
+}
+
+is_mesh_slave() {
+	local _mesh_is_slave=""
+	json_cleanup
+	json_load_file /root/flashbox_config.json
+	json_get_var _mesh_is_slave mesh_is_slave
+	json_close_object
+
+	if [ -n "$_mesh_is_slave" ]
+	then
+		echo "$_mesh_is_slave"
+	else
+		echo "0"
 	fi
 }
 
