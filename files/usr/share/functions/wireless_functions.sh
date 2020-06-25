@@ -341,11 +341,55 @@ set_wifi_local_config() {
 }
 
 get_mesh_id() {
-	echo "anlix"
+	local _mesh_id=""
+	json_cleanup
+	json_load_file /root/flashbox_config.json
+	json_get_var _mesh_id mesh_id
+	json_close_object
+	[ "$_mesh_id" ] && echo "$_mesh_id" || echo "anlix"
 }
 
 get_mesh_key() {
-	echo "tempkey1234"
+	local _mesh_key=""
+	json_cleanup
+	json_load_file /root/flashbox_config.json
+	json_get_var _mesh_key mesh_key
+	json_close_object
+	[ "$_mesh_key" ] && echo "$_mesh_key" || echo "tempkey1234"
+}
+
+update_mesh_id() {
+	local _new_mesh_id=$1
+	local _new_mesh_key=$2
+	local _local_mesh_id=$(get_mesh_id)
+	local _do_save=0
+	if [ "$_local_mesh_id" != "$_new_mesh_id" ]
+	then
+		json_cleanup
+		json_load_file /root/flashbox_config.json
+		json_add_string mesh_id "$_new_mesh_id"
+		json_add_string mesh_key "$_new_mesh_key"
+		json_dump > /root/flashbox_config.json
+		json_close_object
+		if [ "$(uci -q get wireless.mesh2)" ]
+		then
+			uci set wireless.mesh2.mesh_id="$_new_mesh_id"
+			uci set wireless.mesh2.key="$_new_mesh_key"
+			_do_save=1
+		fi
+		if [ "$(uci -q get wireless.mesh5)" ]
+		then
+			uci set wireless.mesh5.mesh_id="$_new_mesh_id"
+			uci set wireless.mesh5.key="$_new_mesh_key"
+			_do_save=1
+		fi
+		if [ $_do_save -eq 1 ]
+		then
+			uci commit wireless
+			return 0
+		fi
+	fi
+	return 1
 }
 
 enable_mesh_routing() {
