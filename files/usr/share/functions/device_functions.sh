@@ -246,14 +246,14 @@ store_enable_wifi() {
 
 	if [ "$_itf_num" = "0" ]
 	then
-		uci set wireless.@wifi-iface[0].disabled="0"
+		uci set wireless.default_radio0.disabled="0"
 	elif [ "$_itf_num" = "1" ]
 	then
-		uci set wireless.@wifi-iface[1].disabled="0"
+		uci set wireless.default_radio1.disabled="0"
 	else
-		uci set wireless.@wifi-iface[0].disabled="0"
+		uci set wireless.default_radio0.disabled="0"
 
-		[ "$(uci -q get wireless.@wifi-iface[1])" ] && uci set wireless.@wifi-iface[1].disabled="0"
+		[ "$(is_5ghz_capable)" == "1" ] && uci set wireless.default_radio1.disabled="0"
 	fi
 	save_wifi_local_config
 	wifi up
@@ -268,13 +268,13 @@ store_disable_wifi() {
 
 	if [ "$_itf_num" = "0" ]
 	then
-		uci set wireless.@wifi-iface[0].disabled="1"
+		uci set wireless.default_radio0.disabled="1"
 	elif [ "$_itf_num" = "1" ]
 	then
-		uci set wireless.@wifi-iface[1].disabled="1"
+		uci set wireless.default_radio1.disabled="1"
 	else
-		uci set wireless.@wifi-iface[0].disabled="1"
-		[ "$(uci -q get wireless.@wifi-iface[1])" ] && uci set wireless.@wifi-iface[1].disabled="1"
+		uci set wireless.default_radio0.disabled="1"
+		[ "$(is_5ghz_capable)" == "1" ] && uci set wireless.default_radio1.disabled="1"
 	fi
 	save_wifi_local_config
 	wifi up
@@ -288,19 +288,19 @@ get_wifi_state() {
 
 	if [ "$_itf_num" = "0" ]
 	then
-		_q=$(uci -q get wireless.@wifi-iface[0].disabled)
+		_q=$(uci -q get wireless.default_radio0.disabled)
 		if [ "$_q" ]
 		then
-			[ "$(uci get wireless.@wifi-iface[0].disabled)" = "1" ] && echo "0" || echo "1"
+			[ "$(uci get wireless.default_radio0.disabled)" = "1" ] && echo "0" || echo "1"
 		else
 			echo "1"
 		fi
 	elif [ "$_itf_num" = "1" ]
 	then
-		_q=$(uci -q get wireless.@wifi-iface[1].disabled)
+		_q=$(uci -q get wireless.default_radio1.disabled)
 		if [ "$_q" ]
 		then
-			[ "$(uci get wireless.@wifi-iface[1].disabled)" = "1" ] && echo "0" || echo "1"
+			[ "$(uci get wireless.default_radio1.disabled)" = "1" ] && echo "0" || echo "1"
 		else
 			echo "1"
 		fi
