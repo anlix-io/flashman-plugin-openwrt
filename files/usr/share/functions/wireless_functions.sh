@@ -336,6 +336,14 @@ set_wifi_local_config() {
 	return 1
 }
 
+get_mesh_id() {
+	echo "anlix"
+}
+
+get_mesh_key() {
+	echo "tempkey1234"
+}
+
 enable_mesh_routing() {
 	local _mesh_mode=$1
 	local _do_save=0
@@ -354,9 +362,9 @@ enable_mesh_routing() {
 					uci set wireless.mesh2.ifname='mesh0'
 					uci set wireless.mesh2.network='lan'
 					uci set wireless.mesh2.mode='mesh'
-					uci set wireless.mesh2.mesh_id='anlix'
+					uci set wireless.mesh2.mesh_id="$(get_mesh_id)"
 					uci set wireless.mesh2.encryption='psk2'
-					uci set wireless.mesh2.key='tempkey1234'
+					uci set wireless.mesh2.key="$(get_mesh_key)"
 					_do_save=1
 				fi
 			else
@@ -375,9 +383,9 @@ enable_mesh_routing() {
 					uci set wireless.mesh5.ifname='mesh1'
 					uci set wireless.mesh5.network='lan'
 					uci set wireless.mesh5.mode='mesh'
-					uci set wireless.mesh5.mesh_id='anlix'
+					uci set wireless.mesh5.mesh_id="$(get_mesh_id)"
 					uci set wireless.mesh5.encryption='psk2'
-					uci set wireless.mesh5.key='tempkey1234'
+					uci set wireless.mesh5.key="$(get_mesh_key)"
 					_do_save=1
 				fi
 			else
