@@ -1,7 +1,9 @@
 #!/bin/sh
 
 . /usr/share/libubox/jshn.sh
+. /usr/share/functions/common_functions.sh
 . /usr/share/functions/device_functions.sh
+. /usr/share/functions/network_functions.sh
 
 is_ralink() {
 	[ "$(uci -q get wireless.@wifi-device[0].type)" == "ralink" ] && echo "1" || echo ""
@@ -42,6 +44,7 @@ get_wifi_local_config() {
 	json_add_string "local_channel_24" "$_channel_24"
 	json_add_string "local_hwmode_24" "$_hwmode_24"
 	json_add_string "local_htmode_24" "$_htmode_24"
+	json_add_string "local_ft_24" "$_ft_24"
 	json_add_string "local_state_24" "$_state_24"
 	json_add_string "local_5ghz_capable" "$_is_5ghz_capable"
 	json_add_string "local_ssid_50" "$_ssid_50"
@@ -49,6 +52,7 @@ get_wifi_local_config() {
 	json_add_string "local_channel_50" "$_channel_50"
 	json_add_string "local_hwmode_50" "$_hwmode_50"
 	json_add_string "local_htmode_50" "$_htmode_50"
+	json_add_string "local_ft_50" "$_ft_50"
 	json_add_string "local_state_50" "$_state_50"
 	echo "$(json_dump)"
 	json_close_object
@@ -418,5 +422,59 @@ change_wifi_state() {
 		store_disable_wifi "$_itf_num"
 	else
 		store_enable_wifi "$_itf_num"
+	fi
+}
+
+auto_change_mesh_channel() {
+	scan_channel(){
+		local _NCh=""
+		A=$(iw dev $1 scan -u);
+		while [ "$A" ]
+		do
+			AP=${A##*BSS }
+			A=${A%BSS *}
+			case "$AP" in
+				*"MESH ID"*)
+					_NCh="$(echo "$AP"|awk 'BEGIN{OT="";CH=""}/MESH ID/{OT=$3}/primary channel/{CH=$4}END{print CH" "OT}')"
+					;;
+			esac
+		done
+		echo "$_NCh"
+	}
+
+	local _mesh_mode="$(get_mesh_mode)"
+	local _NCh2=""
+	local _NCh5=""
+	if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
+	then
+		log "AUTOCHANNEL" "Scanning MESH channel for mesh0..."
+		if iw dev mesh0 info 1>/dev/null 2> /dev/null
+		then
+			_NCh2=$(scan_channel mesh0)
+			[ "$_NCh2" ] && [ "${_NCh2##* }" = "$(get_mesh_id)" ] && _NCh2="${_NCh2% *}"
+		fi
+	fi
+	if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
+	then
+		log "AUTOCHANNEL" "Scanning MESH channel for mesh1..."
+		if iw dev mesh1 info 1>/dev/null 2> /dev/null
+		then
+			_NCh5=$(scan_channel mesh1)
+			[ "$_NCh5" ] && [ "${_NCh5##* }" = "$(get_mesh_id)" ] && _NCh5="${_NCh5% *}"
+		fi
+	fi
+
+	if [ "$_NCh2" ] || [ "$_NCh5" ]
+	then
+		if set_wifi_local_config "" "" "$_NCh2" "" "" "" "" "" \
+			"$_NCh5" "" "" "" "$_mesh_mode"
+		then
+			log "AUTOCHANNEL" "MESH Channel change ($_NCh2) ($_NCh5)"
+			wifi reload
+		else
+			log "AUTOCHANNEL" "No need to change MESH channel"
+		fi
+	else
+		log "AUTOCHANNEL" "No MESH signal found"
 	fi
 }
