@@ -29,6 +29,8 @@ then
 fi
 json_close_object
 
+[ ! "$_mesh_mode" ] && _mesh_mode="0"
+
 if [ -z "$_ssid24" ]
 then
 	#use defaults
