@@ -675,8 +675,6 @@ enable_bridge_mode() {
 	# Disable wan and bridge interfaces in lan
 	uci set network.wan.proto="none"
 	uci set network.wan6.proto="none"
-	# WAN ifname needs to be included by default
-	uci set network.lan.ifname="$_wan_ifnames"
 	if [ "$_fixed_ip" != "" ]
 	then
 		uci set network.lan.ipaddr="$_fixed_ip"
@@ -696,13 +694,16 @@ enable_bridge_mode() {
 			_lan_ifnames_wifi="$iface $_lan_ifnames_wifi"
 		fi
 	done
-	# Enable/disable ethernet connection on LAN physical ports
-	if [ "$_disable_lan_ports" = "y" ]
+	if [ -z "$FLM_KEEP_IFNAMES_IN_BRIDGE_MODE" ]
 	then
-		uci set network.lan.ifname="$_lan_ifnames_wifi $_wan_ifnames"
-	else
-		# DO NOT PLACE WAN IFNAME BEFORE LAN IFNAME OR SOME ROUTERS WILL CRASH
-		uci set network.lan.ifname="$_lan_ifnames $_wan_ifnames"
+		# Enable/disable ethernet connection on LAN physical ports
+		if [ "$_disable_lan_ports" = "y" ]
+		then
+			uci set network.lan.ifname="$_lan_ifnames_wifi $_wan_ifnames"
+		else
+			# DO NOT PLACE WAN IFNAME BEFORE LAN IFNAME OR SOME ROUTERS WILL CRASH
+			uci set network.lan.ifname="$_lan_ifnames $_wan_ifnames"
+		fi
 	fi
 	# Some routers need to change port mapping on software switch
 	if [ "$(type -t set_switch_bridge_mode)" ]
@@ -873,8 +874,11 @@ disable_bridge_mode() {
 	then
 		_wan_conn_type="$FLM_WAN_PROTO"
 	fi
-	# Get ifname to remove from the bridge
-	uci set network.lan.ifname="$_lan_ifnames"
+	if [ -z "$FLM_KEEP_IFNAMES_IN_BRIDGE_MODE" ]
+	then
+		# Get ifname to remove from the bridge
+		uci set network.lan.ifname="$_lan_ifnames"
+	fi
 	uci set network.lan.proto="static"
 	uci set network.lan.ipaddr="$_lan_ip"
 	# Set wan and lan back to proper values
