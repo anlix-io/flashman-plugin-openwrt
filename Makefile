@@ -136,7 +136,7 @@ CUSTOM_FILE_ARQ=
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v5preset), y)
 		CUSTOM_FILE_DIR="custom-files/tl-wr840n-v5preset"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v5), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wr840n-v5"
+		CUSTOM_FILE_ARQ="tplink_tl-wr840n-v5"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v6), y)
 		CUSTOM_FILE_DIR="custom-files/tl-wr840n-v6"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v62), y)
