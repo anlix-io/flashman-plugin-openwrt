@@ -1,7 +1,9 @@
 #!/bin/sh
 
 . /usr/share/libubox/jshn.sh
+. /usr/share/functions/common_functions.sh
 . /usr/share/functions/device_functions.sh
+. /usr/share/functions/network_functions.sh
 
 is_ralink() {
 	[ "$(uci -q get wireless.@wifi-device[0].type)" == "ralink" ] && echo "1" || echo ""
@@ -18,22 +20,22 @@ get_htmode_24() {
 }
 
 get_wifi_local_config() {
-	local _ssid_24="$(uci -q get wireless.@wifi-iface[0].ssid)"
-	local _password_24="$(uci -q get wireless.@wifi-iface[0].key)"
+	local _ssid_24="$(uci -q get wireless.default_radio0.ssid)"
+	local _password_24="$(uci -q get wireless.default_radio0.key)"
 	local _channel_24="$(uci -q get wireless.radio0.channel)"
 	local _hwmode_24="$(get_hwmode_24)"
 	local _htmode_24="$(get_htmode_24)"
 	local _state_24="$(get_wifi_state '0')"
-	local _ft_24="$(uci -q get wireless.@wifi-iface[0].ieee80211r)"
+	local _ft_24="$(uci -q get wireless.default_radio0.ieee80211r)"
 
 	local _is_5ghz_capable="$(is_5ghz_capable)"
-	local _ssid_50="$(uci -q get wireless.@wifi-iface[1].ssid)"
-	local _password_50="$(uci -q get wireless.@wifi-iface[1].key)"
+	local _ssid_50="$(uci -q get wireless.default_radio1.ssid)"
+	local _password_50="$(uci -q get wireless.default_radio1.key)"
 	local _channel_50="$(uci -q get wireless.radio1.channel)"
 	local _hwmode_50="$(uci -q get wireless.radio1.hwmode)"
 	local _htmode_50="$(uci -q get wireless.radio1.htmode)"
 	local _state_50="$(get_wifi_state '1')"
-	local _ft_50="$(uci -q get wireless.@wifi-iface[1].ieee80211r)"
+	local _ft_50="$(uci -q get wireless.default_radio1.ieee80211r)"
 
 	json_cleanup
 	json_init
@@ -42,6 +44,7 @@ get_wifi_local_config() {
 	json_add_string "local_channel_24" "$_channel_24"
 	json_add_string "local_hwmode_24" "$_hwmode_24"
 	json_add_string "local_htmode_24" "$_htmode_24"
+	json_add_string "local_ft_24" "$_ft_24"
 	json_add_string "local_state_24" "$_state_24"
 	json_add_string "local_5ghz_capable" "$_is_5ghz_capable"
 	json_add_string "local_ssid_50" "$_ssid_50"
@@ -49,6 +52,7 @@ get_wifi_local_config() {
 	json_add_string "local_channel_50" "$_channel_50"
 	json_add_string "local_hwmode_50" "$_hwmode_50"
 	json_add_string "local_htmode_50" "$_htmode_50"
+	json_add_string "local_ft_50" "$_ft_50"
 	json_add_string "local_state_50" "$_state_50"
 	echo "$(json_dump)"
 	json_close_object
@@ -57,26 +61,26 @@ get_wifi_local_config() {
 save_wifi_parameters() {
 	json_cleanup
 	json_load_file /root/flashbox_config.json
-	json_add_string ssid_24 "$(uci -q get wireless.@wifi-iface[0].ssid)"
-	json_add_string password_24 "$(uci -q get wireless.@wifi-iface[0].key)"
-	json_add_string channel_24 "$(uci -q get wireless.@wifi-device[0].channel)"
-	json_add_string hwmode_24 "$(uci -q get wireless.@wifi-device[0].hwmode)"
-	json_add_string htmode_24 "$(uci -q get wireless.@wifi-device[0].htmode)"
+	json_add_string ssid_24 "$(uci -q get wireless.default_radio0.ssid)"
+	json_add_string password_24 "$(uci -q get wireless.default_radio0.key)"
+	json_add_string channel_24 "$(uci -q get wireless.radio0.channel)"
+	json_add_string hwmode_24 "$(uci -q get wireless.radio0.hwmode)"
+	json_add_string htmode_24 "$(uci -q get wireless.radio0.htmode)"
 	if [ "$(uci -q get wireless.@wifi-device[0].type)" == "ralink" ]
 	then
 		json_add_string state_24 "$([ -e /etc/modules.d/50-mt7628 ] && echo "0" || echo "1")"
 	else
-		_dstate=$(uci -q get wireless.@wifi-device[0].disabled)
+		_dstate=$(uci -q get wireless.default_radio0.disabled)
 		json_add_string state_24 "$([ "$_dstate" == "1" ] && echo "0" || echo "1")"
 	fi
 	if [ "$(is_5ghz_capable)" == "1" ]
 	then
-		json_add_string ssid_50 "$(uci -q get wireless.@wifi-iface[1].ssid)"
-		json_add_string password_50 "$(uci -q get wireless.@wifi-iface[1].key)"
-		json_add_string channel_50 "$(uci -q get wireless.@wifi-device[1].channel)"
-		json_add_string hwmode_50 "$(uci -q get wireless.@wifi-device[1].hwmode)"
-		json_add_string htmode_50 "$(uci -q get wireless.@wifi-device[1].htmode)"
-		_dstate=$(uci -q get wireless.@wifi-device[1].disabled)
+		json_add_string ssid_50 "$(uci -q get wireless.default_radio1.ssid)"
+		json_add_string password_50 "$(uci -q get wireless.default_radio1.key)"
+		json_add_string channel_50 "$(uci -q get wireless.radio1.channel)"
+		json_add_string hwmode_50 "$(uci -q get wireless.radio1.hwmode)"
+		json_add_string htmode_50 "$(uci -q get wireless.radio1.htmode)"
+		_dstate=$(uci -q get wireless.default_radio1.disabled)
 		json_add_string state_50 "$([ "$_dstate" == "1" ] && echo "0" || echo "1")"
 	fi
 	json_dump > /root/flashbox_config.json
@@ -124,13 +128,13 @@ set_wifi_local_config() {
 	if [ "$_remote_ssid_24" != "" ] && \
 		 [ "$_remote_ssid_24" != "$_local_ssid_24" ]
 	then
-		uci set wireless.@wifi-iface[0].ssid="$_remote_ssid_24"
+		uci set wireless.default_radio0.ssid="$_remote_ssid_24"
 		_do_reload=1
 	fi
 	if [ "$_remote_password_24" != "" ] && \
 		 [ "$_remote_password_24" != "$_local_password_24" ]
 	then
-		uci set wireless.@wifi-iface[0].key="$_remote_password_24"
+		uci set wireless.default_radio0.key="$_remote_password_24"
 		_do_reload=1
 	fi
 	if [ "$_remote_channel_24" != "" ] && \
@@ -182,10 +186,10 @@ set_wifi_local_config() {
 	if [ "$_mesh_mode" != "0" ] && \
 		 [ "$_local_ft_24" != "1" ]
 	then
-		uci set wireless.@wifi-iface[0].ieee80211r="1"
-		uci set wireless.@wifi-iface[0].ieee80211v="1"
-		uci set wireless.@wifi-iface[0].bss_transition="1"
-		uci set wireless.@wifi-iface[0].ieee80211k="1"
+		uci set wireless.default_radio0.ieee80211r="1"
+		uci set wireless.default_radio0.ieee80211v="1"
+		uci set wireless.default_radio0.bss_transition="1"
+		uci set wireless.default_radio0.ieee80211k="1"
 		_do_reload=1
 	fi
 
@@ -193,10 +197,10 @@ set_wifi_local_config() {
 	if [ "$_mesh_mode" == "0" ] && \
 		 [ "$_local_ft_24" == "1" ]
 	then
-		uci delete wireless.@wifi-iface[0].ieee80211r
-		uci delete wireless.@wifi-iface[0].ieee80211v
-		uci delete wireless.@wifi-iface[0].bss_transition
-		uci delete wireless.@wifi-iface[0].ieee80211k
+		uci delete wireless.default_radio0.ieee80211r
+		uci delete wireless.default_radio0.ieee80211v
+		uci delete wireless.default_radio0.bss_transition
+		uci delete wireless.default_radio0.ieee80211k
 		_do_reload=1
 	fi 
 
@@ -219,18 +223,18 @@ set_wifi_local_config() {
 	fi
 
 	# 5GHz
-	if [ "$(uci -q get wireless.@wifi-iface[1])" ]
+	if [ "$(is_5ghz_capable)" == "1" ]
 	then
 		if [ "$_remote_ssid_50" != "" ] && \
 			 [ "$_remote_ssid_50" != "$_local_ssid_50" ]
 		then
-			uci set wireless.@wifi-iface[1].ssid="$_remote_ssid_50"
+			uci set wireless.default_radio1.ssid="$_remote_ssid_50"
 			_do_reload=1
 		fi
 		if [ "$_remote_password_50" != "" ] && \
 			 [ "$_remote_password_50" != "$_local_password_50" ]
 		then
-			uci set wireless.@wifi-iface[1].key="$_remote_password_50"
+			uci set wireless.default_radio1.key="$_remote_password_50"
 			_do_reload=1
 		fi
 		if [ "$_remote_channel_50" != "" ] && \
@@ -290,10 +294,10 @@ set_wifi_local_config() {
 		if [ "$_mesh_mode" != "0" ] && \
 			 [ "$_local_ft_50" != "1" ]
 		then
-			uci set wireless.@wifi-iface[1].ieee80211r="1"
-			uci set wireless.@wifi-iface[1].ieee80211v="1"
-			uci set wireless.@wifi-iface[1].bss_transition="1"
-			uci set wireless.@wifi-iface[1].ieee80211k="1"
+			uci set wireless.default_radio1.ieee80211r="1"
+			uci set wireless.default_radio1.ieee80211v="1"
+			uci set wireless.default_radio1.bss_transition="1"
+			uci set wireless.default_radio1.ieee80211k="1"
 			_do_reload=1
 		fi
 
@@ -301,10 +305,10 @@ set_wifi_local_config() {
 		if [ "$_mesh_mode" == "0" ] && \
 			 [ "$_local_ft_50" == "1" ]
 		then
-			uci delete wireless.@wifi-iface[1].ieee80211r
-			uci delete wireless.@wifi-iface[1].ieee80211v
-			uci delete wireless.@wifi-iface[1].bss_transition
-			uci delete wireless.@wifi-iface[1].ieee80211k
+			uci delete wireless.default_radio1.ieee80211r
+			uci delete wireless.default_radio1.ieee80211v
+			uci delete wireless.default_radio1.bss_transition
+			uci delete wireless.default_radio1.ieee80211k
 			_do_reload=1
 		fi
 
@@ -336,6 +340,58 @@ set_wifi_local_config() {
 	return 1
 }
 
+get_mesh_id() {
+	local _mesh_id=""
+	json_cleanup
+	json_load_file /root/flashbox_config.json
+	json_get_var _mesh_id mesh_id
+	json_close_object
+	[ "$_mesh_id" ] && echo "$_mesh_id" || echo "anlix"
+}
+
+get_mesh_key() {
+	local _mesh_key=""
+	json_cleanup
+	json_load_file /root/flashbox_config.json
+	json_get_var _mesh_key mesh_key
+	json_close_object
+	[ "$_mesh_key" ] && echo "$_mesh_key" || echo "tempkey1234"
+}
+
+update_mesh_id() {
+	local _new_mesh_id=$1
+	local _new_mesh_key=$2
+	local _local_mesh_id=$(get_mesh_id)
+	local _do_save=0
+	if [ "$_local_mesh_id" != "$_new_mesh_id" ]
+	then
+		json_cleanup
+		json_load_file /root/flashbox_config.json
+		json_add_string mesh_id "$_new_mesh_id"
+		json_add_string mesh_key "$_new_mesh_key"
+		json_dump > /root/flashbox_config.json
+		json_close_object
+		if [ "$(uci -q get wireless.mesh2)" ]
+		then
+			uci set wireless.mesh2.mesh_id="$_new_mesh_id"
+			uci set wireless.mesh2.key="$_new_mesh_key"
+			_do_save=1
+		fi
+		if [ "$(uci -q get wireless.mesh5)" ]
+		then
+			uci set wireless.mesh5.mesh_id="$_new_mesh_id"
+			uci set wireless.mesh5.key="$_new_mesh_key"
+			_do_save=1
+		fi
+		if [ $_do_save -eq 1 ]
+		then
+			uci commit wireless
+			return 0
+		fi
+	fi
+	return 1
+}
+
 enable_mesh_routing() {
 	local _mesh_mode=$1
 	local _do_save=0
@@ -354,9 +410,9 @@ enable_mesh_routing() {
 					uci set wireless.mesh2.ifname='mesh0'
 					uci set wireless.mesh2.network='lan'
 					uci set wireless.mesh2.mode='mesh'
-					uci set wireless.mesh2.mesh_id='anlix'
+					uci set wireless.mesh2.mesh_id="$(get_mesh_id)"
 					uci set wireless.mesh2.encryption='psk2'
-					uci set wireless.mesh2.key='tempkey1234'
+					uci set wireless.mesh2.key="$(get_mesh_key)"
 					_do_save=1
 				fi
 			else
@@ -375,9 +431,9 @@ enable_mesh_routing() {
 					uci set wireless.mesh5.ifname='mesh1'
 					uci set wireless.mesh5.network='lan'
 					uci set wireless.mesh5.mode='mesh'
-					uci set wireless.mesh5.mesh_id='anlix'
+					uci set wireless.mesh5.mesh_id="$(get_mesh_id)"
 					uci set wireless.mesh5.encryption='psk2'
-					uci set wireless.mesh5.key='tempkey1234'
+					uci set wireless.mesh5.key="$(get_mesh_key)"
 					_do_save=1
 				fi
 			else
@@ -410,5 +466,59 @@ change_wifi_state() {
 		store_disable_wifi "$_itf_num"
 	else
 		store_enable_wifi "$_itf_num"
+	fi
+}
+
+auto_change_mesh_channel() {
+	scan_channel(){
+		local _NCh=""
+		A=$(iw dev $1 scan -u);
+		while [ "$A" ]
+		do
+			AP=${A##*BSS }
+			A=${A%BSS *}
+			case "$AP" in
+				*"MESH ID"*)
+					_NCh="$(echo "$AP"|awk 'BEGIN{OT="";CH=""}/MESH ID/{OT=$3}/primary channel/{CH=$4}END{print CH" "OT}')"
+					;;
+			esac
+		done
+		echo "$_NCh"
+	}
+
+	local _mesh_mode="$(get_mesh_mode)"
+	local _NCh2=""
+	local _NCh5=""
+	if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
+	then
+		log "AUTOCHANNEL" "Scanning MESH channel for mesh0..."
+		if iw dev mesh0 info 1>/dev/null 2> /dev/null
+		then
+			_NCh2=$(scan_channel mesh0)
+			[ "$_NCh2" ] && [ "${_NCh2##* }" = "$(get_mesh_id)" ] && _NCh2="${_NCh2% *}"
+		fi
+	fi
+	if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
+	then
+		log "AUTOCHANNEL" "Scanning MESH channel for mesh1..."
+		if iw dev mesh1 info 1>/dev/null 2> /dev/null
+		then
+			_NCh5=$(scan_channel mesh1)
+			[ "$_NCh5" ] && [ "${_NCh5##* }" = "$(get_mesh_id)" ] && _NCh5="${_NCh5% *}"
+		fi
+	fi
+
+	if [ "$_NCh2" ] || [ "$_NCh5" ]
+	then
+		if set_wifi_local_config "" "" "$_NCh2" "" "" "" "" "" \
+			"$_NCh5" "" "" "" "$_mesh_mode"
+		then
+			log "AUTOCHANNEL" "MESH Channel change ($_NCh2) ($_NCh5)"
+			wifi reload
+		else
+			log "AUTOCHANNEL" "No need to change MESH channel"
+		fi
+	else
+		log "AUTOCHANNEL" "No MESH signal found"
 	fi
 }

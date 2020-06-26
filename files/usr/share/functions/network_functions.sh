@@ -938,6 +938,20 @@ is_mesh_master() {
 	[ -n "$_mesh_mode" ] && [ "$_mesh_mode" != "0" ] && [ -z "$_mesh_master" ] && echo "1" || echo "0"
 }
 
+is_mesh_connected() {
+	local _mesh_mode="$(get_mesh_mode)"
+	local conn=""
+	if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
+	then
+		iw dev mesh0 info 2> /dev/null && [ "$(iw mesh0 station dump | grep ESTAB)" ] && conn="1"
+	fi
+	if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
+	then
+		iw dev mesh1 info 2> /dev/null && [ "$(iw mesh1 station dump | grep ESTAB)" ] && conn="1"
+	fi
+	echo "$conn"
+}
+
 set_mesh_master_mode() {
 	local _mesh_mode="$1"
 	local _local_mesh_mode=$(get_mesh_mode)

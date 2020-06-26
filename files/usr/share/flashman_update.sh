@@ -197,6 +197,8 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		json_get_var _bridge_mode_dns bridge_mode_dns
 		json_get_var _mesh_mode mesh_mode
 		json_get_var _mesh_master mesh_master
+		json_get_var _mesh_id mesh_id
+		json_get_var _mesh_key mesh_key
 
 		if [ "$_do_update" == "1" ]
 		then
@@ -321,6 +323,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 			else
 				set_mesh_slave_mode "$_mesh_mode" "$_mesh_master"
 			fi
+			update_mesh_id "$_mesh_id" "$_mesh_id" && _need_wifi_reload=1
 			enable_mesh_routing "$_mesh_mode" && _need_wifi_reload=1
 		fi
 

@@ -3,7 +3,6 @@
 . /usr/share/flashman_init.conf
 . /usr/share/libubox/jshn.sh
 . /usr/share/functions/network_functions.sh
-. /usr/share/functions/wireless_functions.sh
 
 _wan_proto_value=$(uci get network.wan.proto)
 
