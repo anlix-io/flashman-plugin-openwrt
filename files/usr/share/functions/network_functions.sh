@@ -694,7 +694,7 @@ enable_bridge_mode() {
 			_lan_ifnames_wifi="$iface $_lan_ifnames_wifi"
 		fi
 	done
-	if [ -z "$FLM_KEEP_IFNAMES_IN_BRIDGE_MODE" ]
+	if [ "$(type -t keep_ifnames_in_bridge_mode)" == "" ]
 	then
 		# Enable/disable ethernet connection on LAN physical ports
 		if [ "$_disable_lan_ports" = "y" ]
@@ -874,7 +874,7 @@ disable_bridge_mode() {
 	then
 		_wan_conn_type="$FLM_WAN_PROTO"
 	fi
-	if [ -z "$FLM_KEEP_IFNAMES_IN_BRIDGE_MODE" ]
+	if [ "$(type -t keep_ifnames_in_bridge_mode)" == "" ]
 	then
 		# Get ifname to remove from the bridge
 		uci set network.lan.ifname="$_lan_ifnames"

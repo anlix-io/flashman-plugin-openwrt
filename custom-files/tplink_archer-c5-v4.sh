@@ -1,9 +1,5 @@
 #!/bin/sh
 
-# Will not change ifnames if this variable is set when in bridge mode
-FLM_KEEP_IFNAMES_IN_BRIDGE_MODE="1"
-FLM_SWCONFIG_BOOT_ORDER=97
-
 get_custom_hardware_model() {
 	echo "ARCHERC5"
 }
@@ -33,4 +29,13 @@ set_switch_bridge_mode() {
 # Needs reboot to validate switch config   
 needs_reboot_bridge_mode() {
   reboot
+}
+
+# Will not change ifnames if this variable is set when in bridge mode
+keep_ifnames_in_bridge_mode() {
+  echo "1"
+}
+
+swconfig_boot_order() {
+  echo "97"
 }
