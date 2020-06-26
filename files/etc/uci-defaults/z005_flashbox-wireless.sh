@@ -84,6 +84,7 @@ uci set wireless.radio0.noscan="0"
 uci set wireless.radio0.country="BR"
 uci set wireless.radio0.channel="$_channel_24"
 uci set wireless.radio0.channels="1-11"
+uci set wireless.radio0.disabled='0'
 uci set wireless.default_radio0.disabled="$([ "$_state_24" = "1" ] && echo "0" || echo "1")"
 uci set wireless.default_radio0.ifname='wlan0'
 uci set wireless.default_radio0.ssid="$_ssid_24"
@@ -97,6 +98,7 @@ then
 	uci set wireless.radio1.country="BR"
 	uci set wireless.radio1.htmode="$_htmode_50"
 	uci set wireless.radio1.noscan="1"
+	uci set wireless.radio1.disabled='0'
 	uci set wireless.default_radio1.disabled="$([ "$_state_50" = "1" ] && echo "0" || echo "1")"
 	uci set wireless.default_radio1.ifname='wlan1'
 	uci set wireless.default_radio1.ssid="$_ssid_50"
