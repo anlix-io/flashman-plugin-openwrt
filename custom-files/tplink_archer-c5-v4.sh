@@ -10,32 +10,26 @@ get_custom_hardware_version() {
 
 # Enable/disable ethernet connection on LAN physical ports when in bridge mode
 set_switch_bridge_mode() {
-  local _disable_lan_ports="$1"
+  local _enable_bridge="$1"
+  local _disable_lan_ports="$2"
 
-  if [ "$_disable_lan_ports" = "y" ]
+  if [ "$_enable_bridge" = "y" ]
   then
-    # eth0
-    swconfig dev switch1 vlan 2 set ports ''
-    # eth1
-    swconfig dev switch1 vlan 1 set ports '4 5t'
+    if [ "$_disable_lan_ports" = "y" ]
+    then
+      uci set network.@switch_vlan[0].ports='4 5t'
+      uci set network.@switch_vlan[1].ports=''
+    else
+      uci set network.@switch_vlan[0].ports='0 1 2 3 4 5t'
+      uci set network.@switch_vlan[1].ports=''
+    fi
   else
-    # eth0.2
-    swconfig dev switch1 vlan 2 set ports ''
-    # eth0.1
-    swconfig dev switch1 vlan 1 set ports '0 1 2 3 4 5t'
+    uci set network.@switch_vlan[0].ports='0 1 2 3 5t'
+    uci set network.@switch_vlan[1].ports='4 5t'
   fi
-}
-
-# Needs reboot to validate switch config   
-needs_reboot_bridge_mode() {
-  reboot
 }
 
 # Will not change ifnames if this variable is set when in bridge mode
 keep_ifnames_in_bridge_mode() {
   echo "1"
-}
-
-swconfig_boot_order() {
-  echo "97"
 }
