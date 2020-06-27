@@ -1,15 +1,19 @@
 #!/bin/sh /etc/rc.common
 
 . /usr/share/libubox/jshn.sh
-. /usr/share/functions/device_functions.sh
-
-IDX_START=17
-if [ "$(type -t swconfig_boot_order)" ]
+if [ -e /usr/share/functions/custom_device.sh ]
 then
-	IDX_START=$(swconfig_boot_order)
+	. /usr/share/functions/custom_device.sh
+else
+	. /usr/share/functions/device_functions.sh
 fi
 
-START=$IDX_START
+if [ "$(type -t swconfig_boot_order)" ]
+then
+	START=$(swconfig_boot_order)
+else
+	START=17
+fi
 
 boot() {
 	local _bridge_mode=""
@@ -21,8 +25,9 @@ boot() {
 	json_get_var _disable_lan_ports bridge_disable_switch
 	json_close_object
 
-	if [ "$_bridge_mode" = "y" ] && [ "$(type -t set_switch_bridge_mode)" ]
+	# ONLY RELEVANT TO TARGETS THAT SWITCH CONFIG BY UCI IS USELESS
+	if [ "$_bridge_mode" = "y" ] && [ "$(type -t set_switch_bridge_mode_on_boot)" ]
 	then
-		set_switch_bridge_mode "$_disable_lan_ports"
+		set_switch_bridge_mode_on_boot "$_disable_lan_ports"
 	fi
 }
