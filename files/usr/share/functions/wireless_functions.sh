@@ -19,6 +19,18 @@ get_htmode_24() {
 	[ "$_htmode_24" = "NOHT" ] && echo "HT20" || echo "$_htmode_24"
 }
 
+auto_channel_selection() {
+	local _iface=$1
+	case "$_iface" in
+		wlan0)
+			echo "6"
+		;;
+		wlan1)
+			echo "44"
+		;;
+	esac
+}
+
 get_wifi_local_config() {
 	local _ssid_24="$(uci -q get wireless.default_radio0.ssid)"
 	local _password_24="$(uci -q get wireless.default_radio0.key)"
@@ -140,7 +152,13 @@ set_wifi_local_config() {
 	if [ "$_remote_channel_24" != "" ] && \
 		 [ "$_remote_channel_24" != "$_local_channel_24" ]
 	then
-		uci set wireless.radio0.channel="$_remote_channel_24"
+		local _new_channel="$_remote_channel_24"
+		if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ] && [ "$_new_channel" = "auto" ]
+		then
+			#MESH cant run auto!
+			_new_channel="$(auto_channel_selection wlan0)"
+		fi
+		uci set wireless.radio0.channel="$_new_channel"
 		_do_reload=1
 	fi
 	if [ "$_remote_hwmode_24" != "" ] && \
@@ -240,7 +258,13 @@ set_wifi_local_config() {
 		if [ "$_remote_channel_50" != "" ] && \
 			 [ "$_remote_channel_50" != "$_local_channel_50" ]
 		then
-			uci set wireless.radio1.channel="$_remote_channel_50"
+			local _new_channel="$_remote_channel_50"
+			if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ] && [ "$_new_channel" = "auto" ]
+			then
+				#MESH cant run auto!
+				_new_channel="$(auto_channel_selection wlan1)"
+			fi
+			uci set wireless.radio1.channel="$_new_channel"
 			_do_reload=1
 		fi
 		if [ "$_remote_hwmode_50" != "" ] && \
@@ -469,7 +493,7 @@ change_wifi_state() {
 	fi
 }
 
-auto_change_mesh_channel() {
+auto_change_mesh_slave_channel() {
 	scan_channel(){
 		local _NCh=""
 		A=$(iw dev $1 scan -u);
