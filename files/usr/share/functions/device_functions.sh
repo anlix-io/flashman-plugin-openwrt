@@ -204,16 +204,46 @@ get_vlan_ports() {
 	echo "$(for i in $_port; do [ "${i:1}" != "t" ] && echo $i; done)"
 }
 
+get_wan_device() {
+	config_load network
+	config_get iface wan ifname
+	echo $iface
+}
+
+is_device_vlan() {
+	local _iface=$1
+	[ "${_iface:4:1}" == "." ] && echo "1"
+}
+
+get_device_vlan() {
+	local _iface=$1
+	echo "${_iface:5:1}"
+}
+
 get_wan_negotiated_speed() {
-	local _switch="$(get_vlan_device 2)"
-	local _port="$(get_vlan_ports 2)"
-	echo "$(swconfig dev $_switch port $_port get link|sed -ne 's/.*speed:\([0-9]*\)*.*/\1/p')"
+	local _wan=$(get_wan_device)
+	if [ "$(is_device_vlan $_wan)" ]
+	then
+		local _vport=$(get_device_vlan $_wan)
+		local _switch="$(get_vlan_device $_vport)"
+		local _port="$(get_vlan_ports $_vport)"
+		echo "$(swconfig dev $_switch port $_port get link|sed -ne 's/.*speed:\([0-9]*\)*.*/\1/p')"
+	else
+		cat /sys/class/net/$_wan/speed
+	fi
 }
 
 get_wan_negotiated_duplex() {
-	local _switch="$(get_vlan_device 2)"
-	local _port="$(get_vlan_ports 2)"
-	echo "$(swconfig dev $_switch port $_port get link|sed -ne 's/.* \([a-z]*\)-duplex*.*/\1/p')"
+	local _wan=$(get_wan_device)
+	if [ "$(is_device_vlan $_wan)" ]
+	then
+		local _vport=$(get_device_vlan $_wan)
+		local _switch="$(get_vlan_device $_vport)"
+		local _port="$(get_vlan_ports $_vport)"
+		echo "$(swconfig dev $_switch port $_port get link|sed -ne 's/.* \([a-z]*\)-duplex*.*/\1/p')"
+	else
+		cat /sys/class/net/$_wan/duplex
+	fi
 }
 
 get_lan_dev_negotiated_speed() {
