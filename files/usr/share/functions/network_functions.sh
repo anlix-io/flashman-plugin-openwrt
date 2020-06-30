@@ -993,34 +993,31 @@ set_mesh_master_mode() {
 	local _mesh_mode="$1"
 	local _local_mesh_mode=$(get_mesh_mode)
 
-	if [ "$_local_mesh_mode" != "$_mesh_mode" ]
-	then
-		for i in $(uci -q get dhcp.lan.dhcp_option)
-		do
-			if [ "$i" != "${i#"vendor:ANLIX,43"}" ]
-			then
-				uci del_list dhcp.lan.dhcp_option=$i
-			fi
-		done
-
-		if [ "$_mesh_mode" != "0" ]
+	for i in $(uci -q get dhcp.lan.dhcp_option)
+	do
+		if [ "$i" != "${i#"vendor:ANLIX,43"}" ]
 		then
-			log "MESH" "Enabling mesh mode $_mesh_mode"
-			uci add_list dhcp.lan.dhcp_option="vendor:ANLIX,43,$_mesh_mode"
-			_need_restart=1
-		else
-			log "MESH" "Mesh mode disabled"
+			uci del_list dhcp.lan.dhcp_option=$i
 		fi
-		json_cleanup
-		json_load_file /root/flashbox_config.json
-		json_add_string mesh_mode "$_mesh_mode"
-		json_add_string mesh_master ""
-		json_dump > /root/flashbox_config.json
-		json_close_object
+	done
 
-		uci commit dhcp
-		/etc/init.d/dnsmasq reload
+	if [ "$_mesh_mode" != "0" ]
+	then
+		log "MESH" "Enabling mesh mode $_mesh_mode"
+		uci add_list dhcp.lan.dhcp_option="vendor:ANLIX,43,$_mesh_mode"
+		_need_restart=1
+	else
+		log "MESH" "Mesh mode disabled"
 	fi
+	json_cleanup
+	json_load_file /root/flashbox_config.json
+	json_add_string mesh_mode "$_mesh_mode"
+	json_add_string mesh_master ""
+	json_dump > /root/flashbox_config.json
+	json_close_object
+
+	uci commit dhcp
+	/etc/init.d/dnsmasq reload
 }
 
 set_mesh_slave_mode() {
