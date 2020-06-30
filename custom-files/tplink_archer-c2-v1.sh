@@ -17,15 +17,15 @@ set_switch_bridge_mode() {
   then
     if [ "$_disable_lan_ports" = "y" ]
     then
-      uci set network.@switch_vlan[0].ports='0 5t'
+      uci set network.@switch_vlan[0].ports='0 6t'
       uci set network.@switch_vlan[1].ports=''
     else
-      uci set network.@switch_vlan[0].ports='0 1 2 3 4 5t'
+      uci set network.@switch_vlan[0].ports='0 1 2 3 4 6t'
       uci set network.@switch_vlan[1].ports=''
     fi
   else
-    uci set network.@switch_vlan[0].ports='1 2 3 4 5t'
-    uci set network.@switch_vlan[1].ports='0 5t'
+    uci set network.@switch_vlan[0].ports='1 2 3 4 6t'
+    uci set network.@switch_vlan[1].ports='0 6t'
   fi
 }
 
