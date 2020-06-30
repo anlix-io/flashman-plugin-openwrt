@@ -61,7 +61,7 @@ then
 	wifi config
 fi
 
-local _phy0=$(get_radio_phy "0")
+_phy0=$(get_radio_phy "0")
 if [ "$(get_phy_type $_phy0)" -eq "2" ]
 then
 	# 2.4 Radio is always first radio

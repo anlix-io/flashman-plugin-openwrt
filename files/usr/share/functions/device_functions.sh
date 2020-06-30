@@ -10,7 +10,7 @@ get_radio_phy() {
 
 get_phy_type() {
 	#1: 2.4 2: 5GHz
-	echo "$(iw phy $1 channels|grep Band|cut -c6)"
+	echo "$(iw phy $1 channels|grep Band|tail -1|cut -c6)"
 }
 
 get_24ghz_phy() {
