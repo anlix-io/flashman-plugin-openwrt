@@ -1,10 +1,11 @@
 #!/bin/sh
 . /usr/share/functions/device_functions.sh
+. /usr/share/flashman_init.conf
 
 collectedDataPath="/tmp/influx_line_protocol"
 wifiDataPath=$collectedDataPath"/wifi"
 influxCompressedDataPath=$collectedDataPath"/compressed"
-influxDBAddress="10.0.10.208"
+# $influxDBAddress is inside /usr/share/flashman_init.conf, it holds the ip to influxdb.
 
 # prints the name of all available wireless interfaces, separated by new lines.
 getAllInterfaceNames() {
@@ -101,16 +102,16 @@ collectDevicesWifiDataForInflux() {
 	for interface in $(getAllInterfaceNames); do # for each interface in the router;
 		# extracting the noise value from the interface so we can calculate the signal to noise ratio.
 		noise=$(iwinfo ${interface} info) # interface info where we will take the noise value.
-		noise=${noise##*Noise: } # removes everything until "Noise: " including it.
+		noise=${noise#*Noise: } # removes everything until "Noise: " including it.
 		noise=${noise%% *} # removes everything past " " inclusind it.
 
 		allDevices=$(iw dev ${interface} station dump); # this prints only if there is any device connected to wifi.
-		while [ "$allDevices" ]; do 
+		while [ "$allDevices" ]; do
 			oneDevice=${allDevices##*Station }; # removes, from $allDevices, the biggest match before and including "*Station ".
 			allDevices=${allDevices%Station *}; # removes, from $allDevices, the smallest match after and including "Station *".
 
 			# extracting only the signal so we can calculate the signal to noise ratio.
-			signal=$(echo $oneDevice); signal=${oneDevice##*signal: }; signal=${signal%% *}
+			signal=$(echo $oneDevice); signal=${oneDevice#*signal: }; signal=${signal%% *}
 
 			# following command extract fields from one device and builds a 
 			# string as influx line protocol format and append that to a file.
@@ -119,6 +120,44 @@ collectDevicesWifiDataForInflux() {
 			s/://g" >> "$newFilename"; # file name is the timestamp, this helps to order the files by creation time.
 		done
 	done
+}
+
+collectPingForInflux() {
+	local dataPath="$1"
+	mkdir -p "$dataPath" # if 'dataPath' doesn't exists, create it and all parent directories.
+
+	local timestamp=$(date +%s) # gets current unix time in seconds.
+	local newFilename="${dataPath}/${timestamp}" # name of the filed being created holding current collected data.
+	local mac=$(get_mac); # defined in /usr/share/functions/device_functions.sh
+	mac=${mac//:/}
+
+	local string="ping,r=$mac "
+	local pingResult=$(echo $(ping -i 0.01 -c 100 "$FLM_SVADDR"))
+	pingResult=${pingResult#*64 bytes}
+	local pingResume=${pingResult##* --- }
+	pingResult=${pingResult%% ---*}
+
+	local onePing
+	local pingNumber
+	while [ "$pingResult" ]; do
+		onePing=${pingResult%%ms*}
+		pingResult=${pingResult#*ms}
+
+		onePing=${onePing#*icmp_req=}
+		pingNumber=${onePing%% *}
+		onePing=${onePing#*time=}
+		pingTime=${onePing%% *}
+
+		echo i=$pingNumber $pingTime ms
+
+		string="$string${pingNumber}=${pingTime}"
+		if [ $pingNumber -eq 100 ]; then
+			string="$string $timestamp"
+		else
+			string="$string,"
+		fi
+	done
+	echo "$string" > "$newFilename"
 }
 
 # collect data and store in a path, if the size of the files is this path is 
