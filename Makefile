@@ -117,14 +117,6 @@ CUSTOM_FILE_ARQ=
 		CUSTOM_FILE_DIR="custom-files/actionrg1200-v1"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_dlink_dir-819-a1), y)
 		CUSTOM_FILE_ARQ="tbs"
-	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr740n-v4), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wr740n-v4"
-	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr740n-v5), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wr740n-v5"
-	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr740n-v6), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wr740n-v6"
-	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr741nd-v4), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wr741nd-v4"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr841-v7), y)
 		CUSTOM_FILE_DIR="custom-files/tl-wr841-v7"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr841-v8), y)
@@ -153,10 +145,6 @@ CUSTOM_FILE_ARQ=
 		CUSTOM_FILE_DIR="custom-files/tl-wr849n-v6"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v62), y)
 		CUSTOM_FILE_DIR="custom-files/tl-wr849n-v62"
-	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr940n-v6), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wr940n-v6"
-	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr949n-v6), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wr949n-v6"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8197d_DEVICE_DIR815D1), y)
 		CUSTOM_FILE_DIR="custom-files/dir-815-d1"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8196e_DEVICE_GWR300N), y)
