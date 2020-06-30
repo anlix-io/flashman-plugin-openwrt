@@ -6,18 +6,16 @@ wifiDataPath=$collectedDataPath"/wifi"
 influxCompressedDataPath=$collectedDataPath"/compressed"
 influxDBAddress="10.0.10.208"
 
-# prints the name of all available wireless interfaces, separated by spaces.
+# prints the name of all available wireless interfaces, separated by new lines.
 getAllInterfaceNames() {
 	local index=0
-	local interfaces=""
 	local name
 	while true; do
 		name=$(uci -q get wireless.default_radio$index.ifname)
 		if [ "$?" -ne 0 ]; then break; fi
-		interfaces="${interfaces}$name "
+		echo $name
 		index=$(($index + 1))
 	done
-	echo "$interfaces"
 }
 
 # prints the size of a file, using 'ls', where full file 
@@ -88,30 +86,55 @@ removeOldFiles() {
 
 # extract data from devices in wifi and append to a new file created at given
 # $dataPath ($1) which name is the current timestamp.
-collectDevicesWifiDataToInflux() {
+collectDevicesWifiDataForInflux() {
 	local dataPath="$1"
 	mkdir -p "$dataPath" # if 'dataPath' doesn't exists, create it and all parent directories.
 
 	local timestamp=$(date +%s) # gets current unix time in seconds.
 	local newFilename="${dataPath}/${timestamp}" # name of the filed being created holding current collected data.
 	local mac=$(get_mac); # defined in /usr/share/functions/device_functions.sh
-	local A
-	local Sta
+	local allDevices
+	local oneDevice
+	local noise
+	local signal
 
-	for interface in $(getAllInterfaceNames); do
-		A=$(iw dev ${interface} station dump); # this prints only if there is any device connected to wifi.
-		while [ "$A" ]; do 
-			Sta=${A##*Station }; # removes, from A, the biggest match before and including "*Station ".
-			A=${A%Station *}; # removes, from 'A', the smallest match after and including "Station *".
+	for interface in $(getAllInterfaceNames); do # for each interface in the router;
+		# extracting the noise value from the interface so we can calculate the signal to noise ratio.
+		noise=$(iwinfo ${interface} info) # interface info where we will take the noise value.
+		noise=${noise##*Noise: } # removes everything until "Noise: " including it.
+		noise=${noise%% *} # removes everything past " " inclusind it.
 
-			# following command extract information from one device and builds
-			# a string as influx line protocol format and append that to a file.
-			echo $Sta | sed "
-			s/\([0-9a-f:]*\).* rx bytes: \([0-9]*\).*rx packets: \([0-9]*\).*tx bytes: \([0-9]*\).*tx packets: \([0-9]*\).*signal:\s*\([-0-9]*\)\s.*dBm.*tx bitrate: \([0-9]*\.[0-9]*\).*rx bitrate: \([0-9]*\.[0-9]*\).*/wifi,d=\1,r=${mac} ib=\2i,ip=\3i,ob=\4i,op=\5i,rx=\8,sig=\6i,tx=\7 ${timestamp}/
+		allDevices=$(iw dev ${interface} station dump); # this prints only if there is any device connected to wifi.
+		while [ "$allDevices" ]; do 
+			oneDevice=${allDevices##*Station }; # removes, from $allDevices, the biggest match before and including "*Station ".
+			allDevices=${allDevices%Station *}; # removes, from $allDevices, the smallest match after and including "Station *".
+
+			# extracting only the signal so we can calculate the signal to noise ratio.
+			signal=$(echo $oneDevice); signal=${oneDevice##*signal: }; signal=${signal%% *}
+
+			# following command extract fields from one device and builds a 
+			# string as influx line protocol format and append that to a file.
+			echo $oneDevice | sed "
+			s/\([0-9a-f:]*\).* rx bytes: \([0-9]*\).*rx packets: \([0-9]*\).*tx bytes: \([0-9]*\).*tx packets: \([0-9]*\).*signal:\s*\([-0-9]*\)\s.*dBm.*tx bitrate: \([0-9]*\.[0-9]*\).*rx bitrate: \([0-9]*\.[0-9]*\).*/wifi,d=\1,r=${mac} ib=\2i,ip=\3i,ob=\4i,op=\5i,rx=\8,sig=\6i,snr=$(($signal - $noise)),tx=\7 ${timestamp}/
 			s/://g" >> "$newFilename"; # file name is the timestamp, this helps to order the files by creation time.
 		done
 	done
 }
+
+# collect data and store in a path, if the size of the files is this path is 
+# too big, join all files in a new file in a path for compressed files and 
+# compress it.
+collectDevicesWifiData() {
+	collectDevicesWifiDataForInflux "$wifiDataPath"
+
+	# $(zipFiles) returns 0 only if any amount of files has been compressed 
+	# and, consequently, moved to the directory of compressed files. So
+	# $(removeOldFiles) is only execute if any a new compressed file was 
+	# created.
+	zipFiles "$wifiDataPath/*" 6144 "$influxCompressedDataPath/wifi_"$(date +"%FT%H-%M-%S") && \
+	removeOldFiles "$influxCompressedDataPath/*" 2048
+}
+
 
 # prints the number written in the file at given path ($1) if it exists, 
 # else prints 1.
@@ -264,21 +287,6 @@ writeBackoff() {
 }
 
 
-# collect data and store in a path, if the size of the files is this path is 
-# too big, join all files in a new file in a path for compressed files and 
-# compress it.
-collectDevicesWifiData() {
-	collectDevicesWifiDataToInflux "$wifiDataPath"
-
-	# $(zipFiles) returns 0 only if any amount of files has been compressed 
-	# and, consequently, moved to the directory of compressed files. So
-	# $(removeOldFiles) is only execute if any a new compressed file was 
-	# created.
-	zipFiles "$wifiDataPath/*" 6144 "$influxCompressedDataPath/wifi_"$(date +"%FT%H-%M-%S") && \
-	removeOldFiles "$influxCompressedDataPath/*" 2048
-}
-
-
 # prints a number between 1 and 9.
 random1To9() {
 	local _rand=$(head /dev/urandom | tr -dc "123456789")
@@ -369,4 +377,4 @@ loop() {
 	done
 }
 
-loop
+# loop
