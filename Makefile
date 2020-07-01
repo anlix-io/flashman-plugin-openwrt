@@ -131,6 +131,10 @@ CUSTOM_FILE_ARQ=
 		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v5-v6"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v6), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v5-v6"
+	else ifeq ($(CONFIG_TARGET_ath79_tiny_DEVICE_tplink_tl-wr940n-v6), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wr94Xn-v6"
+	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_tl-wdr3500-v1), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wdr3500"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8197d_DEVICE_DIR815D1), y)
 		CUSTOM_FILE_DIR="custom-files/dir-815-d1"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8196e_DEVICE_GWR300N), y)
