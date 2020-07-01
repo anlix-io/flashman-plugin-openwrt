@@ -200,27 +200,30 @@ set_wifi_local_config() {
 		fi
 	fi
 
-	# Enable Fast Transition
-	if [ "$_mesh_mode" != "0" ] && \
-		 [ "$_local_ft_24" != "1" ]
+	if [ -n "$_mesh_mode" ]
 	then
-		uci set wireless.default_radio0.ieee80211r="1"
-		uci set wireless.default_radio0.ieee80211v="1"
-		uci set wireless.default_radio0.bss_transition="1"
-		uci set wireless.default_radio0.ieee80211k="1"
-		_do_reload=1
-	fi
+		# Enable Fast Transition
+		if [ "$_mesh_mode" != "0" ] && \
+			 [ "$_local_ft_24" != "1" ]
+		then
+			uci set wireless.default_radio0.ieee80211r="1"
+			uci set wireless.default_radio0.ieee80211v="1"
+			uci set wireless.default_radio0.bss_transition="1"
+			uci set wireless.default_radio0.ieee80211k="1"
+			_do_reload=1
+		fi
 
-	#Disable Fast Transition
-	if [ "$_mesh_mode" == "0" ] && \
-		 [ "$_local_ft_24" == "1" ]
-	then
-		uci delete wireless.default_radio0.ieee80211r
-		uci delete wireless.default_radio0.ieee80211v
-		uci delete wireless.default_radio0.bss_transition
-		uci delete wireless.default_radio0.ieee80211k
-		_do_reload=1
-	fi 
+		#Disable Fast Transition
+		if [ "$_mesh_mode" == "0" ] && \
+			 [ "$_local_ft_24" == "1" ]
+		then
+			uci delete wireless.default_radio0.ieee80211r
+			uci delete wireless.default_radio0.ieee80211v
+			uci delete wireless.default_radio0.bss_transition
+			uci delete wireless.default_radio0.ieee80211k
+			_do_reload=1
+		fi 
+	fi
 
 	if [ "$_remote_state_24" != "" ] && \
 		 [ "$_remote_state_24" = "0" ] && \
@@ -314,26 +317,29 @@ set_wifi_local_config() {
 			_do_reload=1
 		fi
 
-		# Enable Fast Transition
-		if [ "$_mesh_mode" != "0" ] && \
-			 [ "$_local_ft_50" != "1" ]
+		if [ -n "$_mesh_mode" ]
 		then
-			uci set wireless.default_radio1.ieee80211r="1"
-			uci set wireless.default_radio1.ieee80211v="1"
-			uci set wireless.default_radio1.bss_transition="1"
-			uci set wireless.default_radio1.ieee80211k="1"
-			_do_reload=1
-		fi
+			# Enable Fast Transition
+			if [ "$_mesh_mode" != "0" ] && \
+				 [ "$_local_ft_50" != "1" ]
+			then
+				uci set wireless.default_radio1.ieee80211r="1"
+				uci set wireless.default_radio1.ieee80211v="1"
+				uci set wireless.default_radio1.bss_transition="1"
+				uci set wireless.default_radio1.ieee80211k="1"
+				_do_reload=1
+			fi
 
-		#Disable Fast Transition
-		if [ "$_mesh_mode" == "0" ] && \
-			 [ "$_local_ft_50" == "1" ]
-		then
-			uci delete wireless.default_radio1.ieee80211r
-			uci delete wireless.default_radio1.ieee80211v
-			uci delete wireless.default_radio1.bss_transition
-			uci delete wireless.default_radio1.ieee80211k
-			_do_reload=1
+			#Disable Fast Transition
+			if [ "$_mesh_mode" == "0" ] && \
+				 [ "$_local_ft_50" == "1" ]
+			then
+				uci delete wireless.default_radio1.ieee80211r
+				uci delete wireless.default_radio1.ieee80211v
+				uci delete wireless.default_radio1.bss_transition
+				uci delete wireless.default_radio1.ieee80211k
+				_do_reload=1
+			fi
 		fi
 
 		if [ "$_remote_state_50" != "" ] && \
