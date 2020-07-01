@@ -121,28 +121,20 @@ CUSTOM_FILE_ARQ=
 		CUSTOM_FILE_DIR="custom-files/tl-wr841-v8"
 	else ifeq ($(CONFIG_TARGET_ar71xx_generic_DEVICE_tl-wr842n-v3), y)
 		CUSTOM_FILE_DIR="custom-files/tl-wr842n-v3"
-	else ifeq ($(CONFIG_TARGET_ar71xx_generic_DEVICE_tl-wr2543-v1), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wr2543-v1"
-	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v5preset), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wr840n-v5preset"
+	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_tl-wr2543-v1), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wr2543nd-v1"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v5), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v5-v6"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v6), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wr840n-v6"
-	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v62), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wr840n-v62"
-	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v6preset), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wr840n-v6preset"
+		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v5-v6"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr845n-v3), y)
 		CUSTOM_FILE_DIR="custom-files/tl-wr845n-v3"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr845n-v4), y)
 		CUSTOM_FILE_DIR="custom-files/tl-wr845n-v4"
-	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v4), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wr849n-v4"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v5), y)
-		CUSTOM_FILE_ARQ="tplink_tl-wr849n-v5"
+		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v5-v6"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v6), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wr849n-v6"
-	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v62), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wr849n-v62"
+		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v5-v6"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8197d_DEVICE_DIR815D1), y)
 		CUSTOM_FILE_DIR="custom-files/dir-815-d1"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8196e_DEVICE_GWR300N), y)
