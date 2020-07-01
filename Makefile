@@ -137,6 +137,8 @@ CUSTOM_FILE_ARQ=
 		CUSTOM_FILE_ARQ="tplink_tl-wr94Xn-v6"
 	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_tl-wdr3500-v1), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wdr3500"
+	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_dlink_dwr-116-a1), y)
+		CUSTOM_FILE_ARQ="dlink_dl-dwr116-a3"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8197d_DEVICE_DIR815D1), y)
 		CUSTOM_FILE_DIR="custom-files/dir-815-d1"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8196e_DEVICE_GWR300N), y)
@@ -149,8 +151,6 @@ CUSTOM_FILE_ARQ=
 		CUSTOM_FILE_DIR="custom-files/re172-v1"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_RE708), y)
 		CUSTOM_FILE_DIR="custom-files/re708-v1"
-	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_dl-dwr116-a3), y)
-		CUSTOM_FILE_DIR="custom-files/dl-dwr116-a3"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_ACTIONRF1200), y)
 		CUSTOM_FILE_DIR="custom-files/actionrf1200-v1"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_ACTIONRG1200), y)
