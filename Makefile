@@ -47,13 +47,11 @@ define Package/flashman-plugin
 	DEPENDS:=+curl \
 			+iputils-ping \
 			+iputils-ping6 \
-			+wireless-tools \
 			+uhttpd \
 			+uhttpd-mod-lua \
 			+px5g-mbedtls \
 			+libustream-mbedtls \
 			+libuuid \
-			+libcares \
 			+rpcd \
 			+libuci-lua \
 			+libubus-lua \
