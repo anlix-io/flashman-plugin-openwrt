@@ -178,13 +178,18 @@ blink_leds() {
 }
 
 get_mac() {
-	local _mac_address_tag=""
-	local _p1
+	if [ "$(type -t get_custom_mac)" ]
+	then
+		get_custom_mac
+	else
+		local _mac_address_tag=""
+		local _p1
 
-	_p1=$(awk '{print toupper($1)}' /sys/class/net/eth0/address)
-	[ ! -z "$_p1" ] && _mac_address_tag=$_p1
+		_p1=$(awk '{print toupper($1)}' /sys/class/net/eth0/address)
+		[ ! -z "$_p1" ] && _mac_address_tag=$_p1
 
-	echo "$_mac_address_tag"
+		echo "$_mac_address_tag"
+	fi
 }
 
 get_vlan_device() {
