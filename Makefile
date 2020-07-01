@@ -123,8 +123,8 @@ CUSTOM_FILE_ARQ=
 		CUSTOM_FILE_DIR="custom-files/tl-wr841-v8"
 	else ifeq ($(CONFIG_TARGET_ar71xx_generic_DEVICE_tl-wr842n-v3), y)
 		CUSTOM_FILE_DIR="custom-files/tl-wr842n-v3"
-	else ifeq ($(CONFIG_TARGET_ar71xx_generic_DEVICE_tl-wr2543-v1), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wr2543-v1"
+	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_tl-wr2543-v1), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wr2543nd-v1"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v5), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v5-v6"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v6), y)
