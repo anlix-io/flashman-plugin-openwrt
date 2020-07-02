@@ -42,7 +42,7 @@ sumFileSizes() {
 # contents of all these files in a final file which full path is given by 
 # third argument ($3), gzip it and delete each original file.
 zipFiles() {
-	local filesPaths="$1" capSize=$2 zippedFilePath=$3
+	local filesPaths="$1" capSize="$2" zippedFilePath="$3"
 
 	local sumSize=$(sumFileSizes "$filesPaths")
 	# echo zipping files found "sumSize=$sumSize"
@@ -64,7 +64,7 @@ zipFiles() {
 # so we don't have to sort files by date ourselves. we let shell do the 
 # sorting.
 removeOldFiles() {
-	local filesPaths=$1 capSize=$2=
+	local filesPaths="$1" capSize="$2"
 
 	local sumSize=$(sumFileSizes "$filesPaths")
 
@@ -105,7 +105,7 @@ collectDevicesWifiDataForInflux() {
 			# following command extract fields from one device and builds a 
 			# string as influx line protocol format and append that to a file.
 			echo $oneDevice | sed "
-			s/\([0-9a-f:]*\).* rx bytes: \([0-9]*\).*rx packets: \([0-9]*\).*tx bytes: \([0-9]*\).*tx packets: \([0-9]*\).*signal:\s*\([-0-9]*\)\s.*dBm.*tx bitrate: \([0-9]*\.[0-9]*\).*rx bitrate: \([0-9]*\.[0-9]*\).*/wifi,d=\1,r=${mac} rx=\8,rxb=\2i,rxp=\3i,sig=\6i,snr=${snr},tx=\7,txb=\4i,txp=\5i ${timestamp}/
+			s/\([0-9a-f:]*\).* rx bytes: \([0-9]*\).*rx packets: \([0-9]*\).*tx bytes: \([0-9]*\).*tx packets: \([0-9]*\).*signal:\s*\([-0-9]*\)\s.*dBm.*tx bitrate: \([0-9]*\.[0-9]*\).*rx bitrate: \([0-9]*\.[0-9]*\).*/wifi,d=\1,r=${mac} rx=\8,rxb=\2i,rxp=\3i,sig=\6i,snr=${snr}i,tx=\7,txb=\4i,txp=\5i ${timestamp}/
 			s/://g" >> "$filename"; # file name is the timestamp, this helps to order the files by creation time.
 		done
 	done
@@ -126,7 +126,7 @@ collectWanStatisticsForInflux() {
 	local txPackets=$(cat /sys/class/net/$wanName/statistics/tx_packets)
 	local string="wan,r=$mac rxb=${rxBytes}i,rxp=${rxPackets}i,txb=${txBytes}i,txp=${txPackets}i $timestamp"
 	# echo s$string
-	echo "$string" > "$filename"
+	echo "$string" >> "$filename"
 }
 
 # executes 100 pings, in burst, to flashman server, extracts the individual 
@@ -173,7 +173,7 @@ collectPingForInflux() {
 	string="${string}loss=${loss}i ${timestamp}" # append loss information and $timestamp to string.
 
 	# printf "string is: '%s'\n" "$string"
-	echo "$string" > "$filename" # appending string to file.
+	echo "$string" >> "$filename" # appending string to file.
 }
 
 # collect every data and stores in a file which name is the time when the 
@@ -197,8 +197,8 @@ collectData() {
 	# and, consequently, moved to the directory of compressed files. So
 	# $(removeOldFiles) is only execute if any new compressed file was 
 	# created.
-	zipFiles "$influxRawDataDir/*" 6144 "$influxCompressedDataDir/wifi_"$(date +"%FT%H-%M-%S") && \
-	removeOldFiles "$influxCompressedDataDir/*" 2048
+	zipFiles "$influxRawDataDir/*" 4096 "$influxCompressedDataDir/wifi_"$(date +"%FT%H-%M-%S") && \
+	removeOldFiles "$influxCompressedDataDir/*" 4096
 }
 
 
@@ -245,7 +245,7 @@ sendToInflux() {
 	local filepath="$1" serverAddress=$2
 	echo sending curl
 	curl -s -m 20 --connect-timeout 5 \
-	-XPOST "http://$serverAddress:8086/write?db=stress&precision=s" \
+	-XPOST "http://$serverAddress:8086/write?db=routers&precision=s" \
 	-H 'Content-Encoding: gzip' \
 	-H 'Content-Type: application/octet-stream' \
 	--data-binary @"$1"
@@ -412,8 +412,11 @@ getStartTime() {
 }
 
 loop() {
-	local interval=5 # interval between beginnings of data collecting.
+	local interval=60 # interval between beginnings of data collecting.
+
+	mkdir -p "$influxDataDir"
 	local time=$(getStartTime "$influxDataDir/startTime" $interval) # time when we will start executing.
+
 	while true; do # infinite loop where we execute all procedures over and over again until the end of times.
 		echo startTime $time
 
@@ -431,4 +434,4 @@ loop() {
 	done
 }
 
-# loop
+loop
