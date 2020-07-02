@@ -299,7 +299,7 @@ sendUncompressedData() {
 		cat $i >> "$tempFilePath" # append it's content to the temporary file.
 	done
 	if [ "$anyFile" = false ]; then  # if no files existed.
-		return 0; # no need to send data, there fore we return with success.
+		return 0; # no need to send data, return with success.
 	fi
 
 	# echo compressing final files
