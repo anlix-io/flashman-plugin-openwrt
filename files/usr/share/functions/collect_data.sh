@@ -54,7 +54,9 @@ zipFiles() {
 		cat "$i" >> "$zippedFilePath" # append to end of final file.
 		rm "$i" # remove file.
 	done
-	gzip "$zippedFilePath" # gzip final file.
+	if [ -f "$zippedFilePath" ]; then # if file has actually been created.
+		gzip "$zippedFilePath" # gzip final file.
+	fi
 }
 
 # given file paths in first argument ($1), starting from first to last, files 
@@ -288,12 +290,18 @@ sendUncompressedData() {
 
 	# echo going to send uncompressed files
 	
+	local anyFile=false # boolean that will be changed to true if any file was found.
 	mkdir -p ${tempFilePath%/*} # mkdir with the directory the temp file should be in.
 	for i in $uncompressedFilesPaths; do # for each uncompressed file in the pattern expansion.
 		[ -f "$i" ] || continue # check if file still exists.
+		anyFile=true # this means at least one file was found.
 		# echo appending $i to final file
 		cat $i >> "$tempFilePath" # append it's content to the temporary file.
 	done
+	if [ "$anyFile" = false ]; then  # if no files existed.
+		return 0; # no need to send data, there fore we return with success.
+	fi
+
 	# echo compressing final files
 	local compressedTempFilePath="${tempFilePath}.gz" # the name the compressed file will have.
 	trap "rm $compressedTempFilePath" SIGTERM # in case the process is interrupted, delete compressed file.
@@ -412,7 +420,7 @@ getStartTime() {
 }
 
 loop() {
-	local interval=60 # interval between beginnings of data collecting.
+	local interval=5 # interval between beginnings of data collecting.
 
 	mkdir -p "$influxDataDir"
 	local time=$(getStartTime "$influxDataDir/startTime" $interval) # time when we will start executing.
