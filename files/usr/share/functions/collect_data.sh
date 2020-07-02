@@ -222,7 +222,7 @@ getLastServerState() {
 checkLastServerState() {
 	local lastState=$1 serverAddress=$2
 	if [ $lastState -ne 0 ]; then
-		echo pinging influx
+		# echo pinging influx
 		curl -sl -I "http://$serverAddress:8086/ping" > /dev/null # check if server is alive.
 		lastState="$?" #return $(curl) exit code.
 		# echo ping found state $currentState
@@ -234,9 +234,9 @@ checkLastServerState() {
 # second argument ($2).
 writeCurrentServerState() {
 	local currentState=$1 lastState=$2 serverStateFilePath="$3"
-	echo current influx state is $currentState and last state $lastState
+	# echo current influx state is $currentState and last state $lastState
 	if [ $currentState -ne $lastState ]; then # if server state has changed.
-		echo writing current server state $currentState
+		# echo writing current server state $currentState
 		echo $currentState > "$serverStateFilePath" # write server state to file.
 	fi
 }
@@ -245,7 +245,7 @@ writeCurrentServerState() {
 # and returns $(curl) exit code.
 sendToInflux() {
 	local filepath="$1" serverAddress=$2
-	echo sending curl
+	# echo sending curl
 	curl -s -m 20 --connect-timeout 5 \
 	-XPOST "http://$serverAddress:8086/write?db=routers&precision=s" \
 	-H 'Content-Encoding: gzip' \
@@ -420,13 +420,13 @@ getStartTime() {
 }
 
 loop() {
-	local interval=5 # interval between beginnings of data collecting.
+	local interval=60 # interval between beginnings of data collecting.
 
 	mkdir -p "$influxDataDir"
 	local time=$(getStartTime "$influxDataDir/startTime" $interval) # time when we will start executing.
 
 	while true; do # infinite loop where we execute all procedures over and over again until the end of times.
-		echo startTime $time
+		# echo startTime $time
 
 		collectData "$time" # does everything related to collecting and storing data.
 		sendData # does everything related to sending data and deletes data sent.
