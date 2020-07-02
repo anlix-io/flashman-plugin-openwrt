@@ -9,8 +9,7 @@ influxCompressedDataPath=$collectedDataPath"/compressed"
 
 # prints the name of all available wireless interfaces, separated by new lines.
 getAllInterfaceNames() {
-	local index=0
-	local name
+	local index=0 name
 	while true; do
 		name=$(uci -q get wireless.default_radio$index.ifname)
 		if [ "$?" -ne 0 ]; then break; fi
@@ -43,9 +42,7 @@ sumFileSizes() {
 # contents of all these files in a final file which full path is given by 
 # third argument ($3), gzip it and delete each original file.
 zipFiles() {
-	local filesPaths="$1"
-	local capSize=$2
-	local zippedFilePath=$3
+	local filesPaths="$1" capSize=$2 zippedFilePath=$3
 
 	local sumSize=$(sumFileSizes "$filesPaths")
 	# echo zipping files found "sumSize=$sumSize"
@@ -67,8 +64,7 @@ zipFiles() {
 # so we don't have to sort files by date ourselves. we let shell do the 
 # sorting.
 removeOldFiles() {
-	local filesPaths=$1
-	local capSize=$2
+	local filesPaths=$1 capSize=$2=
 
 	local sumSize=$(sumFileSizes "$filesPaths")
 
@@ -94,29 +90,23 @@ collectDevicesWifiDataForInflux() {
 	local timestamp=$(date +%s) # gets current unix time in seconds.
 	local newFilename="${dataPath}/${timestamp}" # name of the filed being created holding current collected data.
 	local mac=$(get_mac); # defined in /usr/share/functions/device_functions.sh
-	local allDevices
-	local oneDevice
-	local noise
-	local signal
+	local allDevices oneDevice snr
 
 	for interface in $(getAllInterfaceNames); do # for each interface in the router;
-		# extracting the noise value from the interface so we can calculate the signal to noise ratio.
-		noise=$(iwinfo ${interface} info) # interface info where we will take the noise value.
-		noise=${noise#*Noise: } # removes everything until "Noise: " including it.
-		noise=${noise%% *} # removes everything past " " inclusind it.
+		# extracting the signal to noise ratio value from the interface.
+		snr=$(iwinfo ${interface} assoclist) # interface info where we will take the snr value.
+		snr=${snr#*\(SNR } # removes everything until "(SNR " including it.
+		snr=${snr%%\)*} # removes everything past "\)" including it.
 
 		allDevices=$(iw dev ${interface} station dump); # this prints only if there is any device connected to wifi.
 		while [ "$allDevices" ]; do
-			oneDevice=${allDevices##*Station }; # removes, from $allDevices, the biggest match before and including "*Station ".
-			allDevices=${allDevices%Station *}; # removes, from $allDevices, the smallest match after and including "Station *".
-
-			# extracting only the signal so we can calculate the signal to noise ratio.
-			signal=$(echo $oneDevice); signal=${oneDevice#*signal: }; signal=${signal%% *}
+			oneDevice=${allDevices##*Station }; # removes, from $allDevices, the biggest match before and including "Station ".
+			allDevices=${allDevices%Station *}; # removes, from $allDevices, the smallest match after and including "Station ".
 
 			# following command extract fields from one device and builds a 
 			# string as influx line protocol format and append that to a file.
 			echo $oneDevice | sed "
-			s/\([0-9a-f:]*\).* rx bytes: \([0-9]*\).*rx packets: \([0-9]*\).*tx bytes: \([0-9]*\).*tx packets: \([0-9]*\).*signal:\s*\([-0-9]*\)\s.*dBm.*tx bitrate: \([0-9]*\.[0-9]*\).*rx bitrate: \([0-9]*\.[0-9]*\).*/wifi,d=\1,r=${mac} ib=\2i,ip=\3i,ob=\4i,op=\5i,rx=\8,sig=\6i,snr=$(($signal - $noise)),tx=\7 ${timestamp}/
+			s/\([0-9a-f:]*\).* rx bytes: \([0-9]*\).*rx packets: \([0-9]*\).*tx bytes: \([0-9]*\).*tx packets: \([0-9]*\).*signal:\s*\([-0-9]*\)\s.*dBm.*tx bitrate: \([0-9]*\.[0-9]*\).*rx bitrate: \([0-9]*\.[0-9]*\).*/wifi,d=\1,r=${mac} ib=\2i,ip=\3i,ob=\4i,op=\5i,rx=\8,sig=\6i,snr=${snr},tx=\7 ${timestamp}/
 			s/://g" >> "$newFilename"; # file name is the timestamp, this helps to order the files by creation time.
 		done
 	done
@@ -132,32 +122,32 @@ collectPingForInflux() {
 	mac=${mac//:/}
 
 	local string="ping,r=$mac "
-	local pingResult=$(echo $(ping -i 0.01 -c 100 "$FLM_SVADDR"))
-	pingResult=${pingResult#*64 bytes}
-	local pingResume=${pingResult##* --- }
-	pingResult=${pingResult%% ---*}
+	local pingNumber pingTime unreachable
 
-	local onePing
-	local pingNumber
-	while [ "$pingResult" ]; do
-		onePing=${pingResult%%ms*}
-		pingResult=${pingResult#*ms}
 
-		onePing=${onePing#*icmp_req=}
-		pingNumber=${onePing%% *}
-		onePing=${onePing#*time=}
-		pingTime=${onePing%% *}
+	local pingResult=$(ping -i 0.01 -c 100 "$FLM_SVADDR")
+	local pingSummary=${pingResult##* ---}
+	string=$(printf "%s" "$pingResult" | head -n -4 | sed '1d' | (while read line; do
+		unreachable=${line% Unreachable}
+		[ ${#unreachable} -eq ${#line} ] || continue
 
-		echo i=$pingNumber $pingTime ms
-
-		string="$string${pingNumber}=${pingTime}"
-		if [ $pingNumber -eq 100 ]; then
-			string="$string $timestamp"
-		else
-			string="$string,"
-		fi
+		pingNumber=${line#*icmp_req=}
+		pingTime=${line#*time=}
+		string="${string}${pingNumber%% *}=${pingTime%% *},"
 	done
-	echo "$string" > "$newFilename"
+	echo $string))
+
+	local loss=${pingSummary%\% packet loss*}
+	loss=${loss##* }
+	if [ $loss -ne 100 ]; then
+		local average=${pingSummary#*[0-9]/}
+		string="${string}avg=${average%%/*},"
+	fi
+	string="${string}loss=${loss}i ${timestamp}"
+
+	printf "string is: '%s'\n" "$string"
+
+	# echo "$string" > "$newFilename"
 }
 
 # collect data and store in a path, if the size of the files is this path is 
@@ -191,8 +181,7 @@ getLastServerState() {
 # in second argument ($2) and returns the exit code of $(curl), but if that 
 # number is zero, return that number.
 checkLastServerState() {
-	local lastState=$1
-	local serverAddress=$2
+	local lastState=$1 serverAddress=$2
 	if [ $lastState -ne 0 ]; then
 		echo pinging influx
 		curl -sl -I "http://$serverAddress:8086/ping" > /dev/null # check if server is alive.
@@ -205,9 +194,7 @@ checkLastServerState() {
 # if first argument ($1) isn't equal 0, write it to a file at path given in 
 # second argument ($2).
 writeCurrentServerState() {
-	local currentState=$1
-	local lastState=$2
-	local serverStateFilePath="$3"
+	local currentState=$1 lastState=$2 serverStateFilePath="$3"
 	echo current influx state is $currentState and last state $lastState
 	if [ $currentState -ne $lastState ]; then # if server state has changed.
 		echo writing current server state $currentState
@@ -218,8 +205,7 @@ writeCurrentServerState() {
 # sends file at given path ($1) to influxdb at given address ($2) using $(curl) 
 # and returns $(curl) exit code.
 sendToInflux() {
-	local filepath="$1"
-	local serverAddress=$2
+	local filepath="$1" serverAddress=$2
 	echo sending curl
 	curl -s -m 20 --connect-timeout 5 \
 	-XPOST "http://$serverAddress:8086/write?db=stress&precision=s" \
@@ -233,8 +219,7 @@ sendToInflux() {
 # server at address given in second argument ($2). If any sending is 
 # unsuccessful, stop sending and return it's last exit code;
 sendCompressedData() {
-	local compressedFilesPaths="$1"
-	local serverAddress="$2"
+	local compressedFilesPaths="$1" serverAddress="$2"
 
 	# echo going to send compressed data
 	# echo $compressedFilesPaths
@@ -262,9 +247,7 @@ sendCompressedData() {
 # delete it. If send was successful, remove original files, if not, keep them. 
 # Returns the return of $(curl).
 sendNonCompressedData() {
-	local nonCompressedFilesPaths="$1"
-	local tempFilePath="$2"
-	local serverAddress="$3"
+	local nonCompressedFilesPaths="$1" tempFilePath="$2" serverAddress="$3"
 
 	# echo going to send non compressed files
 	
@@ -294,8 +277,7 @@ sendNonCompressedData() {
 }
 
 checkBackoff() {
-	local backoffCounterPath=$1
-	local minBackoffCounter=$2
+	local backoffCounterPath=$1 minBackoffCounter=$2
 	local counter
 	if [ -f  "$backoffCounterPath" ]; then
 		counter=$(cat "$backoffCounterPath")
@@ -314,10 +296,7 @@ checkBackoff() {
 # ($2) is written to file at path given in forth argument (4), but if it's not 
 # 0, the third argument ($3) is written instead.
 writeBackoff() {
-	local currentServerState=$1
-	local normalBackoff=$2
-	local changedBackoff=$3
-	local backoffCounterPath=$4
+	local currentServerState=$1 normalBackoff=$2 changedBackoff=$3 backoffCounterPath=$4
 	if [ "$currentServerState" -ne 0 ]; then
 		normalBackoff=$changedBackoff
 	fi
@@ -372,8 +351,7 @@ sendDevicesWifiData() {
 # interval, given in second argument ($2), would make it fall into, and sleep
 # for the amount of time left to that second.
 getStartTime() {
-	local startTimeFilePath="$1"
-	local interval=$2
+	local startTimeFilePath="$1" interval=$2
 
 	local currentTime=$(date +%s)
 	local startTime
