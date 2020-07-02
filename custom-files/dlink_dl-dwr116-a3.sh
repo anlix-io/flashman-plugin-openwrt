@@ -8,7 +8,7 @@ get_custom_hardware_version() {
 	echo "A3"
 }
 
-get_mac() {
+get_custom_mac() {
   local _mac_address_tag=""
   local _p0
   _p0=$(awk '{print toupper($1)}' /sys/class/ieee80211/phy0/macaddress)
