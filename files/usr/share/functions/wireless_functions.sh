@@ -152,13 +152,7 @@ set_wifi_local_config() {
 	if [ "$_remote_channel_24" != "" ] && \
 		 [ "$_remote_channel_24" != "$_local_channel_24" ]
 	then
-		local _new_channel="$_remote_channel_24"
-		if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ] && [ "$_new_channel" = "auto" ]
-		then
-			#MESH cant run auto!
-			_new_channel="$(auto_channel_selection wlan0)"
-		fi
-		uci set wireless.radio0.channel="$_new_channel"
+		uci set wireless.radio0.channel="$_remote_channel_24"
 		_do_reload=1
 	fi
 	if [ "$_remote_hwmode_24" != "" ] && \
@@ -202,6 +196,15 @@ set_wifi_local_config() {
 
 	if [ -n "$_mesh_mode" ]
 	then
+		local _new_channel="$([ "$_remote_channel_24" != "" ] && echo "$_remote_channel_24" || echo $_local_channel_24)"
+		if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ] && [ "$_new_channel" = "auto" ]
+		then
+			#MESH cant run auto!
+			_new_channel="$(auto_channel_selection wlan0)"
+			uci set wireless.radio0.channel="$_new_channel"
+			_do_reload=1
+		fi
+
 		# Enable Fast Transition
 		if [ "$_mesh_mode" != "0" ] && \
 			 [ "$_local_ft_24" != "1" ]
@@ -261,13 +264,7 @@ set_wifi_local_config() {
 		if [ "$_remote_channel_50" != "" ] && \
 			 [ "$_remote_channel_50" != "$_local_channel_50" ]
 		then
-			local _new_channel="$_remote_channel_50"
-			if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ] && [ "$_new_channel" = "auto" ]
-			then
-				#MESH cant run auto!
-				_new_channel="$(auto_channel_selection wlan1)"
-			fi
-			uci set wireless.radio1.channel="$_new_channel"
+			uci set wireless.radio1.channel="$_remote_channel_50"
 			_do_reload=1
 		fi
 		if [ "$_remote_hwmode_50" != "" ] && \
@@ -319,6 +316,15 @@ set_wifi_local_config() {
 
 		if [ -n "$_mesh_mode" ]
 		then
+			local _new_channel="$([ "$_remote_channel_50" != "" ] && echo "$_remote_channel_50" || echo $_local_channel_50)"
+			if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ] && [ "$_new_channel" = "auto" ]
+			then
+				#MESH cant run auto!
+				_new_channel="$(auto_channel_selection wlan1)"
+				uci set wireless.radio1.channel="$_new_channel"
+				_do_reload=1
+			fi
+
 			# Enable Fast Transition
 			if [ "$_mesh_mode" != "0" ] && \
 				 [ "$_local_ft_50" != "1" ]
