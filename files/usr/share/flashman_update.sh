@@ -202,13 +202,6 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		json_get_var _mesh_id mesh_id
 		json_get_var _mesh_key mesh_key
 
-		if [ "$_do_update" == "1" ]
-		then
-			log "FLASHMAN UPDATER" "Reflashing ..."
-			run_reflash $_release_id
-			exit 1
-		fi
-
 		_local_bridge_enabled=$(get_bridge_mode_status)
 
 		_blocked_macs=""
@@ -241,6 +234,13 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		_blocked_devices=${_blocked_devices::-1}
 		_named_devices=${_named_devices::-1}
 		json_close_object
+
+		if [ "$_do_update" == "1" ]
+		then
+			log "FLASHMAN UPDATER" "Reflashing ..."
+			run_reflash $_release_id
+			exit 1
+		fi
 
 		# Reset the reset flags when we receive syn reply
 		if [ "$_local_bridge_did_reset" = "y" ]
