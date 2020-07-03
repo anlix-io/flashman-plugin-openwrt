@@ -3,6 +3,7 @@
 . /usr/share/flashman_init.conf
 . /usr/share/libubox/jshn.sh
 . /usr/share/functions/network_functions.sh
+. /usr/share/functions/device_functions.sh
 
 _wan_proto_value=$(uci get network.wan.proto)
 
@@ -64,14 +65,18 @@ uci set network.wan.proto="$FLM_WAN_PROTO"
 uci set network.wan.mtu="$FLM_WAN_MTU"
 uci set network.wan.service="$FLM_WAN_PPPOE_SERVICE"
 uci set network.wan.keepalive="60 3"
-uci set network.wan.vendorid="ANLIX"
-uci set network.wan.reqopts="43"
 # Configure LAN
 uci set network.lan.ipaddr="$_lan_addr"
 uci set network.lan.netmask="$_lan_netmask"
 uci set network.lan.ip6assign="$_lan_ipv6prefix"
 uci set network.lan.igmp_snooping='1'
-uci set network.lan.stp='1'
+
+if [ "$(is_mesh_capable)" ]
+then
+	uci set network.wan.vendorid="ANLIX"
+	uci set network.wan.reqopts="43"
+	uci set network.lan.stp='1'
+fi
 
 uci set network.dmz=interface
 uci set network.dmz.proto='static'
@@ -110,7 +115,6 @@ else
 	uci set network.wan.ipv6="0"
 	uci set network.lan.ipv6="0"
 fi
-
 
 # Remove IPv6 ULA prefix to avoid phone issues
 uci -q delete network.globals
