@@ -199,8 +199,8 @@ collectData() {
 	# and, consequently, moved to the directory of compressed files. So
 	# $(removeOldFiles) is only execute if any new compressed file was 
 	# created.
-	zipFiles "$influxRawDataDir/*" 4096 "$influxCompressedDataDir/wifi_"$(date +"%FT%H-%M-%S") && \
-	removeOldFiles "$influxCompressedDataDir/*" 4096
+	zipFiles "$influxRawDataDir/*" 8192 "$influxCompressedDataDir/data_"$(date +"%FT%H-%M-%S") && \
+	removeOldFiles "$influxCompressedDataDir/*" 24576
 }
 
 
@@ -292,6 +292,7 @@ sendUncompressedData() {
 	
 	local anyFile=false # boolean that will be changed to true if any file was found.
 	mkdir -p ${tempFilePath%/*} # mkdir with the directory the temp file should be in.
+	trap "rm $tempFilePath" SIGTERM # in case the process is interrupted, delete temp file.
 	for i in $uncompressedFilesPaths; do # for each uncompressed file in the pattern expansion.
 		[ -f "$i" ] || continue # check if file still exists.
 		anyFile=true # this means at least one file was found.
@@ -379,9 +380,9 @@ sendData() {
 		# if server stops before sending some data, current server state will differ from last server state.
 		# $currentServerState get the exit code of the first of these 3 functions above that returns anything other than 0.
 
-		# writes the $(curl) exit code if has changed since last attempt to send data.
+		# writes the $(curl) exit code if it has changed since last attempt to send data.
 		writeCurrentServerState $currentServerState $lastServerState "$influxDataDir/serverState"
-		# sets a random backoff if $(curl) exit code wasn't equal 0.
+		# sets a random backoff if $(curl) exit code wasn't equal 0 or default value.
 		writeBackoff $currentServerState $defaultBackOff $((1 + $(random1To9))) "${influxDataDir}/backoffCounter"
 	fi
 }
