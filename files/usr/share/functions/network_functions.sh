@@ -995,7 +995,7 @@ set_mesh_master_mode() {
 
 	for i in $(uci -q get dhcp.lan.dhcp_option)
 	do
-		if [ "$i" != "${i#"vendor:ANLIX,43"}" ]
+		if [ "$i" != "${i#"vendor:ANLIX02,43"}" ]
 		then
 			uci del_list dhcp.lan.dhcp_option=$i
 		fi
@@ -1004,7 +1004,7 @@ set_mesh_master_mode() {
 	if [ "$_mesh_mode" != "0" ]
 	then
 		log "MESH" "Enabling mesh mode $_mesh_mode"
-		uci add_list dhcp.lan.dhcp_option="vendor:ANLIX,43,$_mesh_mode"
+		uci add_list dhcp.lan.dhcp_option="vendor:ANLIX02,43,$_mesh_mode"
 		_need_restart=1
 	else
 		log "MESH" "Mesh mode disabled"

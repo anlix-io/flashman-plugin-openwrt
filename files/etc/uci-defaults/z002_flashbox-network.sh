@@ -73,9 +73,11 @@ uci set network.lan.igmp_snooping='1'
 
 if [ "$(is_mesh_capable)" ]
 then
-	uci set network.wan.vendorid="ANLIX"
+	uci set network.wan.vendorid="ANLIX02"
 	uci set network.wan.reqopts="43"
 	uci set network.lan.stp='1'
+else
+	uci set network.wan.vendorid="ANLIX01"
 fi
 
 uci set network.dmz=interface
