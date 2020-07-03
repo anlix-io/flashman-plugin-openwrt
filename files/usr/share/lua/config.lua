@@ -37,6 +37,14 @@ function handle_config(command, data)
 		end
 		web.send_json(resp)
 		return
+	elseif command == "getRoutersInfo" then
+		local routers = ubus("anlix_sapo", "get_router_status")
+		local resp = {}
+		if(routers ~= nil and next(routers) ~= nil) then
+			resp["routers"] = routers
+		end
+		web.send_json(resp)
+		return
 	elseif command == "nobridge" then
 		-- Disable bridge and reply with ok so that
 		web.send_json({success = true}) -- reply before changing network
