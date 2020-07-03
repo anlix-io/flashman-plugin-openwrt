@@ -53,6 +53,10 @@ is_mesh_routing_capable() {
 	fi
 }
 
+is_mesh_capable() {
+	[ -f /usr/sbin/wpad ] && [ "$(is_mesh_routing_capable)" != "0" ] && echo "1"
+}
+
 save_wifi_local_config() {
 	if [ "$(is_5ghz_capable)" -eq "1" ]
 	then
