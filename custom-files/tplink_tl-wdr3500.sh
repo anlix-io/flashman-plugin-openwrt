@@ -1,14 +1,11 @@
 #!/bin/sh
 
 get_custom_mac() {
-  local _mac_address_tag=""
-  local _p0
-  _p0=$(awk '{print toupper($1)}' /sys/class/ieee80211/phy0/macaddress)
+	local _mac_address_tag=""
+	local _p1
 
-  if [ ! -z "$_p0" ]
-  then
-	_mac_address_tag=$_p0
-  fi
+	_p1=$(awk '{print toupper($1)}' /sys/class/net/eth1/address)
+	[ ! -z "$_p1" ] && _mac_address_tag=$_p1
 
-  echo "$_mac_address_tag"
+	echo "$_mac_address_tag"
 }
