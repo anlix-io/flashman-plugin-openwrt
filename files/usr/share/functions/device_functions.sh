@@ -319,33 +319,6 @@ store_disable_wifi() {
 	wifi up
 }
 
-get_wifi_state() {
-	local _itf_num
-	local _q
-	# 0: 2.4GHz 1: 5.0GHz
-	_itf_num=$1
-
-	if [ "$_itf_num" = "0" ]
-	then
-		_q=$(uci -q get wireless.default_radio0.disabled)
-		if [ "$_q" ]
-		then
-			[ "$(uci get wireless.default_radio0.disabled)" = "1" ] && echo "0" || echo "1"
-		else
-			echo "1"
-		fi
-	elif [ "$_itf_num" = "1" ]
-	then
-		_q=$(uci -q get wireless.default_radio1.disabled)
-		if [ "$_q" ]
-		then
-			[ "$(uci get wireless.default_radio1.disabled)" = "1" ] && echo "0" || echo "1"
-		else
-			echo "1"
-		fi
-	fi
-}
-
 get_wifi_device_signature() {
 	local _dev_mac="$1"
 	local _q=""

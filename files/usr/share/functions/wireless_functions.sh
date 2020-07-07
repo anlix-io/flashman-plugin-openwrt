@@ -15,6 +15,11 @@ get_htmode_24() {
 	[ "$_htmode_24" = "NOHT" ] && echo "HT20" || echo "$_htmode_24"
 }
 
+get_wifi_state() {
+	local _q=$(uci -q get wireless.default_radio$1.disabled)
+	[ "$_q" ] && [ "$_q" = "1" ] && echo "0" || echo "1"
+}
+
 auto_channel_selection() {
 	local _iface=$1
 	case "$_iface" in
