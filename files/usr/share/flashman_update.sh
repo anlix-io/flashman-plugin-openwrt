@@ -325,8 +325,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 			else
 				set_mesh_slave_mode "$_mesh_mode" "$_mesh_master"
 			fi
-			update_mesh_id "$_mesh_id" "$_mesh_key" && _need_wifi_reload=1
-			enable_mesh_routing "$_mesh_mode" && _need_wifi_reload=1
+			enable_mesh_routing "$_mesh_mode" "$_mesh_id" "$_mesh_key" && _need_wifi_reload=1
 		fi
 
 		set_wifi_local_config "$_wifi_ssid_24" "$_wifi_password_24" \

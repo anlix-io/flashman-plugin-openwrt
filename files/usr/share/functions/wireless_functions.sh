@@ -429,8 +429,29 @@ update_mesh_id() {
 }
 
 enable_mesh_routing() {
+	local _new_mesh_id
+	local _new_mesh_key
 	local _mesh_mode=$1
 	local _do_save=0
+	local _local_mesh_id=$(get_mesh_id)
+	if [ "$#" -eq 3 ]
+	then
+		_new_mesh_id=$2
+		_new_mesh_key=$3
+	else
+		_new_mesh_id="$(get_mesh_id)"
+		_new_mesh_key="$(get_mesh_key)"
+	fi
+
+	if [ "$_local_mesh_id" != "$_new_mesh_id" ]
+	then
+		json_cleanup
+		json_load_file /root/flashbox_config.json
+		json_add_string mesh_id "$_new_mesh_id"
+		json_add_string mesh_key "$_new_mesh_key"
+		json_dump > /root/flashbox_config.json
+		json_close_object
+	fi
 
 	if [ "$(type -t is_mesh_routing_capable)" ]
 	then
@@ -446,9 +467,9 @@ enable_mesh_routing() {
 					uci set wireless.mesh2.ifname='mesh0'
 					uci set wireless.mesh2.network='lan'
 					uci set wireless.mesh2.mode='mesh'
-					uci set wireless.mesh2.mesh_id="$(get_mesh_id)"
+					uci set wireless.mesh2.mesh_id="$_new_mesh_id"
 					uci set wireless.mesh2.encryption='psk2'
-					uci set wireless.mesh2.key="$(get_mesh_key)"
+					uci set wireless.mesh2.key="$_new_mesh_key"
 					_do_save=1
 				fi
 			else
@@ -467,9 +488,9 @@ enable_mesh_routing() {
 					uci set wireless.mesh5.ifname='mesh1'
 					uci set wireless.mesh5.network='lan'
 					uci set wireless.mesh5.mode='mesh'
-					uci set wireless.mesh5.mesh_id="$(get_mesh_id)"
+					uci set wireless.mesh5.mesh_id="$_new_mesh_id"
 					uci set wireless.mesh5.encryption='psk2'
-					uci set wireless.mesh5.key="$(get_mesh_key)"
+					uci set wireless.mesh5.key="$_new_mesh_key"
 					_do_save=1
 				fi
 			else
