@@ -276,49 +276,6 @@ get_lan_dev_negotiated_speed() {
 	echo "$_speed"
 }
 
-store_enable_wifi() {
-	local _itf_num
-	# 0: 2.4GHz 1: 5.0GHz 2: Both
-	_itf_num=$1
-
-	wifi down
-
-	if [ "$_itf_num" = "0" ]
-	then
-		uci set wireless.default_radio0.disabled="0"
-	elif [ "$_itf_num" = "1" ]
-	then
-		uci set wireless.default_radio1.disabled="0"
-	else
-		uci set wireless.default_radio0.disabled="0"
-
-		[ "$(is_5ghz_capable)" == "1" ] && uci set wireless.default_radio1.disabled="0"
-	fi
-	save_wifi_local_config
-	wifi up
-}
-
-store_disable_wifi() {
-	local _itf_num
-	# 0: 2.4GHz 1: 5.0GHz 2: Both
-	_itf_num=$1
-
-	wifi down
-
-	if [ "$_itf_num" = "0" ]
-	then
-		uci set wireless.default_radio0.disabled="1"
-	elif [ "$_itf_num" = "1" ]
-	then
-		uci set wireless.default_radio1.disabled="1"
-	else
-		uci set wireless.default_radio0.disabled="1"
-		[ "$(is_5ghz_capable)" == "1" ] && uci set wireless.default_radio1.disabled="1"
-	fi
-	save_wifi_local_config
-	wifi up
-}
-
 get_wifi_device_signature() {
 	local _dev_mac="$1"
 	local _q=""

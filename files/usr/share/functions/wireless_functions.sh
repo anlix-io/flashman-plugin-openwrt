@@ -207,22 +207,17 @@ set_wifi_local_config() {
 		fi 
 	fi
 
-	if [ "$_remote_state_24" != "" ] && \
-		 [ "$_remote_state_24" = "0" ] && \
-		 [ "$_local_state_24" = "1" ]
+	if [ "$_remote_state_24" != "" ]
 	then
-		save_wifi_local_config
-		store_disable_wifi "0"
-		save_wifi_parameters
-		_do_reload=0
-	elif [ "$_remote_state_24" != "" ] && \
-			 [ "$_remote_state_24" = "1" ] && \
-			 [ "$_local_state_24" = "0" ]
-	then
-		save_wifi_local_config
-		store_enable_wifi "0"
-		save_wifi_parameters
-		_do_reload=0
+		if [ "$_remote_state_24" = "0" ] && [ "$_local_state_24" = "1" ]
+		then
+			uci set wireless.default_radio0.disabled="1"
+			_do_reload=1
+		elif [ "$_remote_state_24" = "1" ] && [ "$_local_state_24" = "0" ]
+		then
+			uci set wireless.default_radio0.disabled="0"
+			_do_reload=1
+		fi
 	fi
 
 	# 5GHz
@@ -288,22 +283,17 @@ set_wifi_local_config() {
 			fi
 		fi
 
-		if [ "$_remote_state_50" != "" ] && \
-			 [ "$_remote_state_50" = "0" ] && \
-			 [ "$_local_state_50" = "1" ]
+		if [ "$_remote_state_50" != "" ]
 		then
-			save_wifi_local_config
-			store_disable_wifi "1"
-			save_wifi_parameters
-			_do_reload=0
-		elif [ "$_remote_state_50" != "" ] && \
-				 [ "$_remote_state_50" = "1" ] && \
-				 [ "$_local_state_50" = "0" ]
-		then
-			save_wifi_local_config
-			store_enable_wifi "1"
-			save_wifi_parameters
-			_do_reload=0
+			if [ "$_remote_state_50" = "0" ] && [ "$_local_state_50" = "1" ]
+			then
+				uci set wireless.default_radio1.disabled="1"
+				_do_reload=1
+			elif [ "$_remote_state_50" = "1" ] && [ "$_local_state_50" = "0" ]
+			then
+				uci set wireless.default_radio1.disabled="0"
+				_do_reload=1
+			fi
 		fi
 	fi
 
@@ -420,16 +410,25 @@ enable_mesh_routing() {
 change_wifi_state() {
 	local _state
 	local _itf_num
+	local _wifi_state
+	local _wifi_state_50
 
 	_state=$1
 	_itf_num=$2
 
 	if [ "_$_state" = "0" ]
 	then
-		store_disable_wifi "$_itf_num"
+		_wifi_state="0"
+		_wifi_state_50="0"
 	else
-		store_enable_wifi "$_itf_num"
+		_wifi_state="1"
+		_wifi_state_50="1"
 	fi
+	[ "$_itf_num" = "0" ] && _wifi_state_50=""
+	[ "$_itf_num" = "1" ] && _wifi_state=""
+	set_wifi_local_config "" "" "" "" "" "$_wifi_state" \
+					"" "" "" "" "" "$_wifi_state_50" \
+					"" && wifi reload && /etc/init.d/minisapo reload
 }
 
 auto_change_mesh_slave_channel() {

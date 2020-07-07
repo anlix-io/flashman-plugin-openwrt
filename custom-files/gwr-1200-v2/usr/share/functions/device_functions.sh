@@ -221,64 +221,6 @@ get_lan_dev_negotiated_speed() {
   echo "$_speed"
 }
 
-store_enable_wifi() {
-  local _itf_num
-  # 0: 2.4GHz 1: 5.0GHz 2: Both
-  _itf_num=$1
-
-  wifi down
-
-  if [ "$_itf_num" = "0" ]
-  then
-    uci set wireless.@wifi-iface[0].disabled="0"
-    uci set system.led_wifi0.default='1'
-  elif [ "$_itf_num" = "1" ]
-  then
-    uci set wireless.@wifi-iface[1].disabled="0"
-    uci set system.led_wifi1.default='1'
-  else
-    uci set wireless.@wifi-iface[0].disabled="0"
-    uci set system.led_wifi0.default='1'
-    if [ "$(uci -q get wireless.@wifi-iface[1])" ]
-    then
-      uci set wireless.@wifi-iface[1].disabled="0"
-      uci set system.led_wifi1.default='1'
-    fi
-  fi
-  save_wifi_local_config
-  /etc/init.d/led reload
-  wifi up
-}
-
-store_disable_wifi() {
-  local _itf_num
-  # 0: 2.4GHz 1: 5.0GHz 2: Both
-  _itf_num=$1
-
-  wifi down
-
-  if [ "$_itf_num" = "0" ]
-  then
-    uci set wireless.@wifi-iface[0].disabled="1"
-    uci set system.led_wifi0.default='0'
-  elif [ "$_itf_num" = "1" ]
-  then
-    uci set wireless.@wifi-iface[1].disabled="1"
-    uci set system.led_wifi1.default='0'
-  else
-    uci set wireless.@wifi-iface[0].disabled="1"
-    uci set system.led_wifi0.default='0'
-    if [ "$(uci -q get wireless.@wifi-iface[1])" ]
-    then
-      uci set wireless.@wifi-iface[1].disabled="1"
-      uci set system.led_wifi1.default='0'
-    fi
-  fi
-  save_wifi_local_config
-  /etc/init.d/led reload
-  wifi up
-}
-
 # Enable/disable ethernet connection on LAN physical ports when in bridge mode
 set_switch_bridge_mode_on_boot() {
   local _disable_lan_ports="$1"

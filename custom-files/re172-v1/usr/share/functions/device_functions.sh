@@ -201,28 +201,6 @@ get_lan_dev_negotiated_speed() {
   echo "$_speed"
 }
 
-store_enable_wifi() {
-  local _itf_num
-  # 0: 2.4GHz 1: 5.0GHz 2: Both
-  _itf_num=$1
-
-  wifi down
-  uci set wireless.@wifi-iface[0].disabled="0"
-  save_wifi_local_config
-  wifi up
-}
-
-store_disable_wifi() {
-  local _itf_num
-  # 0: 2.4GHz 1: 5.0GHz 2: Both
-  _itf_num=$1
-
-  wifi down
-  uci set wireless.@wifi-iface[0].disabled="1"
-  save_wifi_local_config
-  wifi up
-}
-
 # Enable/disable ethernet connection on LAN physical ports when in bridge mode
 set_switch_bridge_mode_on_boot() {
   local _disable_lan_ports="$1"
