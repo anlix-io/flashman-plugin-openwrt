@@ -1038,7 +1038,7 @@ set_mesh_slaves() {
 	if [ "$(is_mesh_master)" = "1" ]
 	then
 		local _retstatus
-		local _status=21
+		local _status=20
 		local _data="id=$(get_mac)&slave=$_mesh_slave"
 		local _url="deviceinfo/mesh/add"
 		local _res=$(rest_flashman "$_url" "$_data")
@@ -1054,14 +1054,15 @@ set_mesh_slaves() {
 			if [ "$_is_registered" = "1" ]
 			then
 				log "MESH" "Slave router $_mesh_slave registered successfull"
-				_status=20
 			fi
 			if [ "$_is_registered" = "0" ]
 			then
 				log "MESH" "Error registering slave router $_mesh_slave"
+				_status=21
 			fi
 		else
 			log "MESH" "Error communicating with server for registration"
+			_status=21
 		fi
 		json_cleanup
 		json_init
