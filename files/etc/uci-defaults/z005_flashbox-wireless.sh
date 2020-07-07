@@ -54,13 +54,6 @@ then
 	_state_50="1"
 fi
 
-if [ "$SSID_VALUE" != "OpenWrt" ] && [ "$SSID_VALUE" != "LEDE" ] && [ -n "$SSID_VALUE" ]
-then
-	# reset /etc/config/wireless
-	rm /etc/config/wireless
-	wifi config
-fi
-
 _phy0=$(get_radio_phy "0")
 if [ "$(get_phy_type $_phy0)" -eq "2" ]
 then
