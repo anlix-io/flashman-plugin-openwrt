@@ -1064,6 +1064,7 @@ set_mesh_slaves() {
 			log "MESH" "Error communicating with server for registration"
 		fi
 		json_cleanup
+		json_init
 		json_add_string mac "$_mesh_slave"
 		json_add_int status $_status
 		ubus call anlix_sapo notify_sapo "$(json_dump)"
