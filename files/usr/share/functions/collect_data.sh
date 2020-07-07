@@ -3,8 +3,8 @@
 . /usr/share/flashman_init.conf
 
 influxDataDir="/tmp/influx_data_collecting"
-influxRawDataDir=$influxDataDir"/raw"
-influxCompressedDataDir=$influxDataDir"/compressed"
+influxRawDataFile="${influxDataDir}/raw"
+influxCompressedDataDir="${influxDataDir}/compressed"
 # $influxDBAddress is inside /usr/share/flashman_init.conf, it holds the ip to influxdb.
 
 # prints the name of all available wireless interfaces, separated by new lines.
@@ -15,70 +15,6 @@ getAllInterfaceNames() {
 		if [ "$?" -ne 0 ]; then break; fi
 		echo $name
 		index=$(($index + 1))
-	done
-}
-
-# prints the size of a file, using 'ls', where full file 
-# path is given as first argument ($1).
-fileSize() {
-	local wcline=$(wc -c "$1") # file size is the information at the 1th column.
-	local size=${wcline% *} #remove suffix: space and anything else.
-	echo $size
-}
-
-# prints the sum of the sizes of all files which paths are 
-# given separated by space or new line given in first argument ($1).
-sumFileSizes() {
-	local sumSize=0
-	for i in $1; do # for each file path.
-		[ -f "$i" ] || continue
-		sumSize=$(($sumSize + $(fileSize $i))) # increment 'sumSize' by its size.
-	done
-	echo $sumSize
-}
-
-# sum the sizes of all files which paths are given in first argument ($1). if 
-# that sum is bigger than number given in second argument ($2), join the 
-# contents of all these files in a final file which full path is given by 
-# third argument ($3), gzip it and delete each original file.
-zipFiles() {
-	local filesPaths="$1" capSize="$2" zippedFilePath="$3"
-
-	local sumSize=$(sumFileSizes "$filesPaths")
-	# echo zipping files found "sumSize=$sumSize"
-	if [ $sumSize -lt $capSize ]; then return 1; fi # a return of 1 means nothing will be gzipped.
-
-	mkdir -p ${zippedFilePath%/*} # mkdir with the directory the final file should be in.
-	for i in $filesPaths; do # for each given file.
-		[ -f "$i" ] || continue
-		cat "$i" >> "$zippedFilePath" # append to end of final file.
-		rm "$i" # remove file.
-	done
-	if [ -f "$zippedFilePath" ]; then # if file has actually been created.
-		gzip "$zippedFilePath" # gzip final file.
-	fi
-}
-
-# given file paths in first argument ($1), starting from first to last, files 
-# are removed until all data remaining is below number given in second 
-# argument ($2). As files are named using a formatted date, pattern expansion 
-# of file names will always order oldest files first. This was done this way 
-# so we don't have to sort files by date ourselves. we let shell do the 
-# sorting.
-removeOldFiles() {
-	local filesPaths="$1" capSize="$2"
-
-	local sumSize=$(sumFileSizes "$filesPaths")
-
-	# if $sumSize is more than given $capSize, remove oldest file. which is 
-	# the file that shell orders as first.
-	for i in $filesPaths; do
-		# echo removing files found "sumSize=$sumSize"
-		if [ $sumSize -lt $capSize ]; then break; fi;
-		sumSize=$(($sumSize - $(fileSize "$i"))) # subtract that file's size from sum.
-		rm "$i" # remove that file.
-		# echo removed file "$i"
-		# echo new sumSize is $sumSize
 	done
 }
 
@@ -108,7 +44,7 @@ collectDevicesWifiDataForInflux() {
 			# string as influx line protocol format and append that to a file.
 			echo $oneDevice | sed "
 			s/\([0-9a-f:]*\).* rx bytes: \([0-9]*\).*rx packets: \([0-9]*\).*tx bytes: \([0-9]*\).*tx packets: \([0-9]*\).*signal:\s*\([-0-9]*\)\s.*dBm.*tx bitrate: \([0-9]*\.[0-9]*\).*rx bitrate: \([0-9]*\.[0-9]*\).*/wifi,d=\1,r=${mac} rx=\8,rxb=\2i,rxp=\3i,sig=\6i,snr=${snr}i,tx=\7,txb=\4i,txp=\5i ${timestamp}/
-			s/://g" >> "$filename"; # file name is the timestamp, this helps to order the files by creation time.
+			s/://g" >> "$filename";
 		done
 	done
 }
@@ -152,10 +88,10 @@ collectPingForInflux() {
 
 	# removing the first line and the last 4 lines. only the ping lines remain.
 	string=$(printf "%s" "$pingResult" | head -n -4 | sed '1d' | (while read line; do # for each ping line.
-		unreachable=${line% Unreachable} # removes ' Unreachable' part if it exists.
-		# if " Unreachable" has actually been removed, it means that line 
-		# contains it, which also means that icmp request wasn't fulfilled. 
-		[ ${#unreachable} -eq ${#line} ] || continue # if line contains ' Unreachable', skip this line.
+		reached=${line%time=*} # removes 'time=' part if it exists.
+		# if "time=" has actually been removed, it means that line 
+		# contains it, which also means the icmp request was fulfilled.
+		[ ${#reached} -lt ${#line} ] || continue # if line doesn't contain 'time=', skip this line.
 
 		pingNumber=${line#*icmp_req=} # from the whole line, removes everything until, and including, "icmp_req=".
 		pingNumber=${pingNumber%% *} # removes everything after the first space.
@@ -168,7 +104,8 @@ collectPingForInflux() {
 	local loss=${pingSummary%\% packet loss*} # removes everything after, and including, '% packet loss'.
 	loss=${loss##* } # removes everything after first space.
 	if [ $loss -ne 100 ]; then # if $loss is not '100'.
-		local average=${pingSummary#*[0-9]/} # takes average after removing everything until, and including first digit followed by '/'.
+		# takes average after removing everything until, and including first digit followed by '/'.
+		local average=${pingSummary#*[0-9]/}
 		average=${average%%/*} # removes everything after first '/'.
 		string="${string}avg=$average," # append average information.
 	fi # when loss is 100%, no rtt information is present in ping result, which means there is no average, min or max info.
@@ -178,6 +115,84 @@ collectPingForInflux() {
 	echo "$string" >> "$filename" # appending string to file.
 }
 
+# prints the size of a file, using 'ls', where full file 
+# path is given as first argument ($1).
+fileSize() {
+	local wcline=$(wc -c "$1") # file size is the information at the 1st column.
+	local size=${wcline% *} #remove suffix composed of space and anything else.
+	echo $size
+}
+
+# prints the sum of the sizes of all files inside given directory path.
+sumFileSizesInPath() {
+	anyFile=false # boolean that marks that at least one file exists inside given directory.
+	for i in "$1"/*; do # for each file in that directory.
+		[ -f "$i" ] || continue # if that pattern expansion exists as a file.
+		anyFile=true # set boolean to true.
+		break # as we have at least one file, we don't need to loop through all files.
+	done
+	if [ "$anyFile" = false ]; then # if no files.
+		echo 0 # prints zero. size of nothing is 0.
+		return 0 # result was given, we can leave function.
+	fi
+	# if there is at least one file.
+
+	local wcResult=$(wc -c "$1"/*) # prints a list of sizes and files.
+	local hasTotal=${wcResult% total} # if there is 2 or more files, the last line will have a "total". remove that string.
+	# if it has a total, it was removed. if not, nothing was removed and both strings are the same.
+
+	if [ ${#hasTotal} -lt ${#wcResult} ]; then # if length of string with "total" removed is smaller than original string.
+		echo ${hasTotal##* } # remove everything before the last word, which is the value for total, and print what remains.
+	else # if there were no total, then there was only one file, in one line of output, and the first column is the size value.
+		echo ${wcResult%% *} # remove everything past, and including, the first space, and print what remains.
+	fi
+}
+
+# sum the size of the file, given in first argument ($1), where raw data is 
+# written to, with the size of all compressed files inside the directory given 
+# in second argument ($2). if that sum is bigger than number given in third 
+# argument ($3), compress that file and move it to that directory.
+zipFile() {
+	local fileToCompress="$1" compressedFilesDir="$2" capSize="$3"
+
+	# if file doesn't exist, we won't have to compressed anything.
+	[ -f "$fileToCompress" ] || return 1 # a return of 1 means nothing has been be gzipped.
+
+	local size=$(fileSize "$fileToCompress") # size of file with raw data.
+	local dirSize=$(sumFileSizesInPath "$compressedFilesDir") # sum of file sizes in directory for compressed files.
+	
+	# echo zipping files found $size and total size $(($size + $dirSize))
+	# if sum is smaller than $capSize, do nothing.
+	if [ $(($size + $dirSize)) -lt $capSize ]; then return 1; fi # a return of 1 means nothing will be gzipped.
+
+	gzip "$fileToCompress" # compress file with raw data.
+	mv "${fileToCompress}.gz" "$compressedFilesDir/$(date +%s).gz" # move newly compressed file to directory for compressed files.
+
+}
+
+# given file paths in first argument ($1), starting from first to last, files 
+# are removed until all data remaining is below number given in second 
+# argument ($2). As files are named using a formatted date, pattern expansion 
+# of file names will always order oldest files first. This was done this way 
+# so we don't have to sort files by date ourselves. we let shell do the 
+# sorting.
+removeOldFiles() {
+	local dirPath="$1" capSize="$2"
+
+	local dirSize=$(sumFileSizesInPath "$dirPath")
+
+	# if $sumSize is more than given $capSize, remove oldest file. which is 
+	# the file that shell orders as first.
+	for i in "$filesPaths"/*; do
+		# echo removing files found "dirSize=$dirSize"
+		if [ $dirSize -lt $capSize ]; then break; fi;
+		rm "$i" # remove that file.
+		# echo removed file "$i"
+		dirSize=$(($dirSize - $(fileSize "$i"))) # subtract that file's size from sum.
+		# echo new dirSize is $dirSize
+	done
+}
+
 # collect every data and stores in a file which name is the time when the 
 # script ran, given as first argument ($1), in a directory for uncompressed 
 # files. if the size of the files is this directory is too big, join all files 
@@ -185,30 +200,38 @@ collectPingForInflux() {
 collectData() {
 	local time="$1"
 
-	# getting routers mac address used to identify the router.
+	# getting router's mac address used to identify the router.
 	local mac=$(get_mac); # defined in /usr/share/functions/device_functions.sh
 	mac=${mac//:/} # removing all colons in mac address.
-	mkdir -p "$influxRawDataDir" # if 'dataPath' doesn't exists, create it and all parent directories.
-	local file="${influxRawDataDir}/$time"
 
-	collectDevicesWifiDataForInflux "$file" "$mac"
-	collectWanStatisticsForInflux "$file" "$mac"
-	collectPingForInflux "$file" "$mac"
+	# echo collecting all data
+	collectDevicesWifiDataForInflux "$influxRawDataFile" "$mac"
+	collectWanStatisticsForInflux "$influxRawDataFile" "$mac"
+	collectPingForInflux "$influxRawDataFile" "$mac"
 
-	# $(zipFiles) returns 0 only if any amount of files has been compressed 
+	# $(zipFile) returns 0 only if any amount of files has been compressed 
 	# and, consequently, moved to the directory of compressed files. So
-	# $(removeOldFiles) is only execute if any new compressed file was 
+	# $(removeOldFiles) is only executed if any new compressed file was 
 	# created.
-	zipFiles "$influxRawDataDir/*" 8192 "$influxCompressedDataDir/data_"$(date +"%FT%H-%M-%S") && \
-	removeOldFiles "$influxCompressedDataDir/*" 24576
+	mkdir -p "$influxCompressedDataDir"
+	zipFile "$influxRawDataFile" "$influxCompressedDataDir" $((32*1024)) && \
+	removeOldFiles "$influxCompressedDataDir" $((24*1024))
+	# the difference between the cap size sent to $(zipFile) and 
+	# $(removeOldFiles) is the size left as a minimum amount for raw data 
+	# before compressing it. This means that, if there are no compressed files, 
+	# the uncompressed file could grow to as much as the cap size given to 
+	# $(zipFile). but in case there is any amount of compressed files, the 
+	# uncompressed file can grow to as much as the cap size given to $(zipFile) 
+	# minus the sum of all the compressed files sizes. As $(removeOldFiles) 
+	# will keep the sum of all compressed files sizes to a maximum of its given 
+	# cap size, the difference between these two cap sizes is the minimum size 
+	# the uncompressed file will always have available for it's growth.
 }
-
 
 # prints the number written in the file at given path ($1) if it exists, 
 # else prints 1.
 getLastServerState() {
 	local lastServerStateFilePath="$1" # file that holds the last $(curl) exit code made to server.
-	local lastState
 	if [ -f "$lastServerStateFilePath" ]; then # if file exists.
 		echo $(cat "$lastServerStateFilePath")
 	else
@@ -286,56 +309,54 @@ sendCompressedData() {
 # delete it. If send was successful, remove original files, if not, keep them. 
 # Returns the return of $(curl).
 sendUncompressedData() {
-	local uncompressedFilesPaths="$1" tempFilePath="$2" serverAddress="$3"
+	local uncompressedFile="$1" serverAddress="$2"
+
+	# if no uncompressed file, nothing wrong, but there's nothing to do in this function.
+	[ -f "$uncompressedFile" ] || return 0
 
 	# echo going to send uncompressed files
-	
-	local anyFile=false # boolean that will be changed to true if any file was found.
-	mkdir -p ${tempFilePath%/*} # mkdir with the directory the temp file should be in.
-	trap "rm $tempFilePath" SIGTERM # in case the process is interrupted, delete temp file.
-	for i in $uncompressedFilesPaths; do # for each uncompressed file in the pattern expansion.
-		[ -f "$i" ] || continue # check if file still exists.
-		anyFile=true # this means at least one file was found.
-		# echo appending $i to final file
-		cat $i >> "$tempFilePath" # append it's content to the temporary file.
-	done
-	if [ "$anyFile" = false ]; then  # if no files existed.
-		return 0; # no need to send data, return with success.
-	fi
+	local compressedTempFile="${uncompressedFile}.gz" # the name the compressed file will have.
+	# remove old file if it exists. it should never be left there.
+	if [ -f "$compressedTempFile" ]; then rm "$compressedTempFile"; fi
 
-	# echo compressing final files
-	local compressedTempFilePath="${tempFilePath}.gz" # the name the compressed file will have.
-	trap "rm $compressedTempFilePath" SIGTERM # in case the process is interrupted, delete compressed file.
-	gzip "$tempFilePath" # compress temporary file.
+	trap "rm $compressedTempFile" SIGTERM # in case the process is interrupted, delete compressed file.
+	gzip -k "$uncompressedFile" # compress to a temporary file and keep original, uncompressed, intact.
 
 	# echo sending compressed final file
-	sendToInflux "$compressedTempFilePath" $serverAddress # send compressed file to influx.
+	sendToInflux "$compressedTempFile" $serverAddress # send compressed file to influx.
 	local sentResult="$?" # store $(curl) exit code.
-	rm "$compressedTempFilePath" # remove temporary file. a new temporary should be created, with more content, if we couldn't send data this time.
+	# remove temporary file. a new temporary should be created, with more content, if we couldn't send data this time.
+	rm "$compressedTempFile"
 	trap - SIGTERM # clean trap
 	# echo removed compressed final file
 
 	if [ "$sentResult" -eq 0 ]; then # if send was successful
 		# echo removing uncompressed files
-		rm $uncompressedFilesPaths # remove original files.
+		rm $uncompressedFile # remove original file.
 	fi
 	return $sentResult # Returns #(curl) exit code.
 }
 
+
+# gets written in file given as first argument ($1) is and subtract by 1. if 
+# that subtraction results in any number that isn't zero, writes that results 
+# to the same file and returns 1. returning 1 means it's not time to send data.
+# If file doesn't exist, use number given as second argument ($2).
 checkBackoff() {
-	local backoffCounterPath=$1 minBackoffCounter=$2
+	local backoffCounterPath=$1 defaultBackoff=$2
 	local counter
-	if [ -f  "$backoffCounterPath" ]; then
-		counter=$(cat "$backoffCounterPath")
-	else
-		counter=$minBackoffCounter
+	if [ -f  "$backoffCounterPath" ]; then # if file exists.
+		counter=$(cat "$backoffCounterPath") # take number written in that file.
+	else # if file doesn't exist.
+		counter=$defaultBackoff # use default value
 	fi
-	counter=$((counter - 1))
+	counter=$((counter - 1)) # subtract number found on file by 1.
 	# echo new backoff is $counter
-	if [ $counter -ne 0 ]; then
-		echo $counter > "$backoffCounterPath"
+	if [ $counter -ne 0 ]; then # if subtraction result is not zero.
+		echo $counter > "$backoffCounterPath" # write result to file.
 		return 1 # return 1 means we remain in backoff.
 	fi
+	# return 0 means we can send data.
 }
 
 # given an exit code as first argument ($1), if it's 0, the second argument 
@@ -374,8 +395,8 @@ sendData() {
 		# now, then send all data, but if it's still dead, do nothing.
 		local lastServerState=$(getLastServerState "$influxDataDir/serverState")
 		checkLastServerState "$lastServerState" $influxDBAddress && \
-		sendCompressedData "${influxCompressedDataDir}/*.gz" $influxDBAddress && \
-		sendUncompressedData "${influxRawDataDir}/*" "${influxDataDir}/latestdata" $influxDBAddress
+		sendCompressedData "${influxCompressedDataDir}/*" $influxDBAddress && \
+		sendUncompressedData "$influxRawDataFile" $influxDBAddress
 		local currentServerState="$?"
 		# if server stops before sending some data, current server state will differ from last server state.
 		# $currentServerState get the exit code of the first of these 3 functions above that returns anything other than 0.
@@ -422,8 +443,7 @@ getStartTime() {
 
 loop() {
 	local interval=60 # interval between beginnings of data collecting.
-
-	mkdir -p "$influxDataDir"
+	mkdir -p "$influxDataDir" # making sure directory exists every time.
 	local time=$(getStartTime "$influxDataDir/startTime" $interval) # time when we will start executing.
 
 	while true; do # infinite loop where we execute all procedures over and over again until the end of times.
