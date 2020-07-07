@@ -1065,7 +1065,7 @@ set_mesh_slaves() {
 		fi
 		json_cleanup
 		json_add_string mac "$MACADDR"
-		json_add_string status $_status
+		json_add_int status $_status
 		ubus call anlix_sapo notify_sapo "$(json_dump)"
 		json_close_object
 	fi
