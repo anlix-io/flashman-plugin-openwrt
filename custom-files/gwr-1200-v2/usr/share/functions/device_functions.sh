@@ -3,15 +3,6 @@
 . /lib/functions.sh
 . /lib/functions/system.sh
 
-save_wifi_local_config() {
-  if [ "$(uci -q get wireless.radio1.hwmode)" = "11ac" ]
-  then
-    uci set wireless.radio1.hwmode="11a"
-  fi
-  uci commit system
-  uci commit wireless
-}
-
 is_5ghz_capable() {
   # true
   echo "1"

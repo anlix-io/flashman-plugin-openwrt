@@ -1,9 +1,5 @@
 #!/bin/sh
 
-save_wifi_local_config() {
-  uci commit wireless
-}
-
 is_5ghz_capable() {
   # false
   echo "0"

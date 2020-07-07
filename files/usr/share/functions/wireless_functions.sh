@@ -246,6 +246,14 @@ set_wifi_local_config() {
 			 [ "$_remote_htmode_50" != "$_local_htmode_50" ]
 		then
 			uci set wireless.radio1.htmode="$_remote_htmode_50"
+			if [ ! "$(is_5ghz_vht)" ]
+			then
+				if [ "$_remote_htmode_50" != "HT40" ] ||
+					[ "$_remote_htmode_50" != "HT20" ]
+				then
+					uci set wireless.radio1.htmode="HT40"
+				fi
+			fi
 			_do_reload=1
 		fi
 
@@ -299,7 +307,7 @@ set_wifi_local_config() {
 
 	if [ $_do_reload -eq 1 ]
 	then
-		save_wifi_local_config
+		uci commit wireless
 		save_wifi_parameters
 		return 0
 	fi
