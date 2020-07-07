@@ -213,6 +213,7 @@ function handle_request(env)
 		local data = {}
 		data["mac"] = flashman.get_router_id()
 		data["ssid"] = flashman.get_router_ssid()
+		data["mesh_master"] = flashman.get_mesh_master()
 		resp["data"] = data
 		web.send_json(resp)
 		return

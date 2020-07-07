@@ -18,6 +18,7 @@ function handle_config(command, data)
 		resp["conn_type"] = flashman.get_wan_type()
 		resp["flashman"] = flashman.get_server()
 		resp["wifi"] = flashman.get_wifi_config()
+		resp["mesh_master"] = flashman.get_mesh_master()
 		if (resp["conn_type"] == "pppoe") then
 			resp["pppoe"] = {}
 			resp["pppoe"]["user"] = flashman.get_pppoe_user()
@@ -40,6 +41,7 @@ function handle_config(command, data)
 	elseif command == "getRoutersInfo" then
 		local routers = ubus("anlix_sapo", "get_router_status")
 		local resp = {}
+		resp["ok"] = true;
 		if(routers ~= nil and next(routers) ~= nil) then
 			resp["routers"] = routers
 		end

@@ -55,6 +55,12 @@ function flashman.get_pppoe_pass()
   return result:sub(1,-2)
 end
 
+function flashman.get_mesh_master()
+  local result = run_process("sh -c \". /usr/share/functions/network_functions.sh; get_mesh_master\"")
+  -- remove \n
+  return result:sub(1,-2)
+end
+
 function flashman.set_wan_type(conn_type, user, pass)
   local result = run_process("sh -c \". /usr/share/functions/network_functions.sh; set_wan_type " .. conn_type .. " " .. user .. " " .. pass .. " y &\"")
 end
