@@ -317,8 +317,10 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		# WiFi update
 		log "FLASHMAN UPDATER" "Updating Wireless ..."
 		_need_wifi_reload=0
+		_need_sapo_reload=0
 		if [ "$_mesh_mode" ] && [ "$_mesh_mode" != "$_local_mesh_mode" ] 
 		then
+			_need_sapo_reload=1
 			if [ -z "$_mesh_master" ]
 			then
 				set_mesh_master_mode "$_mesh_mode"
@@ -335,7 +337,8 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 									"$_wifi_channel_50" "$_wifi_hwmode_50" \
 									"$_wifi_htmode_50" "$_wifi_state_50" \
 									"$_mesh_mode" && _need_wifi_reload=1
-		[ $_need_wifi_reload -eq 1 ] && wifi reload && /etc/init.d/minisapo reload
+		[ $_need_wifi_reload -eq 1 ] && wifi reload 
+		[ $_need_wifi_reload -eq 1 ] || [ $_need_sapo_reload -eq 1 ] && /etc/init.d/minisapo reload
 
 		# Flash App password update
 		if [ "$_app_password" == "" ]
