@@ -20,11 +20,11 @@ set_switch_bridge_mode() {
       uci set network.@switch_vlan[0].ports='1 0t'
       uci set network.@switch_vlan[1].ports=''
     else
-      uci set network.@switch_vlan[0].ports='1 2 0t'
+      uci set network.@switch_vlan[0].ports='1 2 3 4 5 0t'
       uci set network.@switch_vlan[1].ports=''
     fi
   else
-    uci set network.@switch_vlan[0].ports='2 0t'
+    uci set network.@switch_vlan[0].ports='2 3 4 5 0t'
     uci set network.@switch_vlan[1].ports='1 0t'
   fi
 }
