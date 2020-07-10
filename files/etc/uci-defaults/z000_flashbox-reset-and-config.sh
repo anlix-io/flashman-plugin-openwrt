@@ -77,34 +77,6 @@ then
 	json_add_string "hard_reset_info" "$_tmp_hard_reset_info"
 	json_dump > /root/flashbox_config.json
 	json_close_object
-
-	## Migration below usefull for versions older than 0.13.0
-
-	# In this migration we can also update some fixed wifi parameters
-	# that improves performance and were not present on older Flashbox versions
-	# This will be replaced on z005 if it's the first boot after factory firmware
-	uci set wireless.@wifi-device[0].noscan="1"
-	uci set wireless.@wifi-device[0].country="BR"
-	if [ "$(uci -q get wireless.@wifi-iface[1])" ]
-	then
-		uci set wireless.@wifi-device[1].noscan="1"
-		uci set wireless.@wifi-device[1].country="BR"
-	fi
-
-	if [ -f /etc/wireless/mt7628/mt7628.dat ]
-	then
-		uci set wireless.@wifi-device[0].wifimode="9"
-		uci set wireless.@wifi-device[0].ht_bsscoexist="0"
-		uci set wireless.@wifi-device[0].bw="1"
-		# 5GHz
-		if [ "$(uci -q get wireless.@wifi-iface[1])" ]
-		then
-			uci set wireless.@wifi-device[1].wifimode="15"
-			uci set wireless.@wifi-device[1].ht_bsscoexist="0"
-			uci set wireless.@wifi-device[1].bw="2"
-		fi
-	fi
-	uci commit wireless
 fi
 
 #Migrate wireless
@@ -136,6 +108,10 @@ then
 		json_dump > /root/flashbox_config.json
 	fi
 	json_close_object
+
+	# reset /etc/config/wireless
+	rm /etc/config/wireless
+	wifi config
 fi
 
 # Create temporary file to differentiate between a boot after a upgrade

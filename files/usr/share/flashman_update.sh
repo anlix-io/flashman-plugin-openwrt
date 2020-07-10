@@ -202,13 +202,6 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		json_get_var _mesh_id mesh_id
 		json_get_var _mesh_key mesh_key
 
-		if [ "$_do_update" == "1" ]
-		then
-			log "FLASHMAN UPDATER" "Reflashing ..."
-			run_reflash $_release_id
-			exit 1
-		fi
-
 		_local_bridge_enabled=$(get_bridge_mode_status)
 
 		_blocked_macs=""
@@ -241,6 +234,13 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		_blocked_devices=${_blocked_devices::-1}
 		_named_devices=${_named_devices::-1}
 		json_close_object
+
+		if [ "$_do_update" == "1" ]
+		then
+			log "FLASHMAN UPDATER" "Reflashing ..."
+			run_reflash $_release_id
+			exit 1
+		fi
 
 		# Reset the reset flags when we receive syn reply
 		if [ "$_local_bridge_did_reset" = "y" ]
@@ -317,16 +317,17 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		# WiFi update
 		log "FLASHMAN UPDATER" "Updating Wireless ..."
 		_need_wifi_reload=0
-		if [ "$_mesh_mode" != "$_local_mesh_mode" ] 
+		_need_sapo_reload=0
+		if [ "$_mesh_mode" ] && [ "$_mesh_mode" != "$_local_mesh_mode" ] 
 		then
+			_need_sapo_reload=1
 			if [ -z "$_mesh_master" ]
 			then
 				set_mesh_master_mode "$_mesh_mode"
 			else
 				set_mesh_slave_mode "$_mesh_mode" "$_mesh_master"
 			fi
-			update_mesh_id "$_mesh_id" "$_mesh_key" && _need_wifi_reload=1
-			enable_mesh_routing "$_mesh_mode" && _need_wifi_reload=1
+			enable_mesh_routing "$_mesh_mode" "$_mesh_id" "$_mesh_key" && _need_wifi_reload=1
 		fi
 
 		set_wifi_local_config "$_wifi_ssid_24" "$_wifi_password_24" \
@@ -336,7 +337,8 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 									"$_wifi_channel_50" "$_wifi_hwmode_50" \
 									"$_wifi_htmode_50" "$_wifi_state_50" \
 									"$_mesh_mode" && _need_wifi_reload=1
-		[ $_need_wifi_reload -eq 1 ] && wifi reload
+		[ $_need_wifi_reload -eq 1 ] && wifi reload 
+		[ $_need_wifi_reload -eq 1 ] || [ $_need_sapo_reload -eq 1 ] && /etc/init.d/minisapo reload
 
 		# Flash App password update
 		if [ "$_app_password" == "" ]

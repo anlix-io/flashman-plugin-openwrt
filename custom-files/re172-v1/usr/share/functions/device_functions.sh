@@ -1,9 +1,5 @@
 #!/bin/sh
 
-save_wifi_local_config() {
-  uci commit wireless
-}
-
 is_5ghz_capable() {
   # false
   echo "0"
@@ -199,54 +195,6 @@ get_lan_dev_negotiated_speed() {
   done
 
   echo "$_speed"
-}
-
-store_enable_wifi() {
-  local _itf_num
-  # 0: 2.4GHz 1: 5.0GHz 2: Both
-  _itf_num=$1
-
-  wifi down
-  uci set wireless.@wifi-iface[0].disabled="0"
-  save_wifi_local_config
-  wifi up
-}
-
-store_disable_wifi() {
-  local _itf_num
-  # 0: 2.4GHz 1: 5.0GHz 2: Both
-  _itf_num=$1
-
-  wifi down
-  uci set wireless.@wifi-iface[0].disabled="1"
-  save_wifi_local_config
-  wifi up
-}
-
-get_wifi_state() {
-  local _itf_num
-  local _q
-  # 0: 2.4GHz 1: 5.0GHz
-  _itf_num=$1
-
-  if [ "$_itf_num" = "0" ]
-  then
-    _q=$(uci -q get wireless.@wifi-iface[0].disabled)
-    if [ "$_q" ]
-    then
-      if [ "$(uci get wireless.@wifi-iface[0].disabled)" = "1" ]
-      then
-        echo "0"
-      else
-        echo "1"
-      fi
-    else
-      echo "1"
-    fi
-  elif [ "$_itf_num" = "1" ]
-  then
-    echo "0"
-  fi
 }
 
 # Enable/disable ethernet connection on LAN physical ports when in bridge mode

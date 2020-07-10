@@ -366,7 +366,7 @@ set_lan_subnet() {
 				/etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
 				/etc/init.d/dnsmasq reload
 				/etc/init.d/uhttpd restart # Must restart to update Flash App API
-				/etc/init.d/minisapo restart
+				/etc/init.d/minisapo reload
 				/etc/init.d/miniupnpd reload
 
 				# Save LAN config
@@ -727,8 +727,6 @@ enable_bridge_mode() {
 		if [ "$_fixed_ip" != "" ]
 		then
 			/etc/init.d/network restart
-			/etc/init.d/uhttpd restart
-			/etc/init.d/minisapo restart
 			# Wait for network to configure itself and check connectivity
 			sleep 5
 			_accessOK="$(check_connectivity_internet)"
@@ -756,6 +754,8 @@ enable_bridge_mode() {
 			needs_reboot_bridge_mode
 		else
 			/etc/init.d/network restart
+			/etc/init.d/uhttpd restart
+			/etc/init.d/minisapo reaload
 		fi
 	fi
 }
@@ -777,10 +777,10 @@ update_bridge_mode() {
 	local _current_gateway=""
 	local _current_dns=""
 	local _lan_ifnames=""
-  local _lan_ifnames_wifi=""
+	local _lan_ifnames_wifi=""
 	local _reset_network="n"
-  local _check_reboot="n"
-  local _wan_ifnames="$(uci get network.wan.ifname)"
+	local _check_reboot="n"
+	local _wan_ifnames="$(uci get network.wan.ifname)"
 	json_cleanup
 	json_load_file /root/flashbox_config.json
 	json_get_var _current_switch bridge_disable_switch
@@ -818,32 +818,32 @@ update_bridge_mode() {
 		json_add_string bridge_disable_switch "$_disable_lan_ports"
 		json_get_var _lan_ifnames bridge_lan_backup
 		_reset_network="y"
-    _check_reboot="y"
-    # Separate non-wifi interfaces to back them up
-    for iface in $_lan_ifnames
-    do
-      if [ "$(echo $iface | grep ra)" != "" ]
-      then
-        _lan_ifnames_wifi="$iface $_lan_ifnames_wifi"
-      fi
-    done
+		_check_reboot="y"
+		# Separate non-wifi interfaces to back them up
+		for iface in $_lan_ifnames
+		do
+			if [ "$(echo $iface | grep ra)" != "" ]
+			then
+				_lan_ifnames_wifi="$iface $_lan_ifnames_wifi"
+			fi
+		done
 		# Enable/disable ethernet connection on LAN physical ports
-    if [ "$(type -t keep_ifnames_in_bridge_mode)" == "" ]
-    then
-      # Enable/disable ethernet connection on LAN physical ports
-      if [ "$_disable_lan_ports" = "y" ]
-      then
-        uci set network.lan.ifname="$_lan_ifnames_wifi $_wan_ifnames"
-      else
-        # DO NOT PLACE WAN IFNAME BEFORE LAN IFNAME OR SOME ROUTERS WILL CRASH
-        uci set network.lan.ifname="$_lan_ifnames $_wan_ifnames"
-      fi
-    fi
-    # Some routers need to change port mapping on software switch
-    if [ "$(type -t set_switch_bridge_mode)" ]
-    then
-      set_switch_bridge_mode "y" "$_disable_lan_ports"
-    fi
+		if [ "$(type -t keep_ifnames_in_bridge_mode)" == "" ]
+		then
+		# Enable/disable ethernet connection on LAN physical ports
+			if [ "$_disable_lan_ports" = "y" ]
+			then
+				uci set network.lan.ifname="$_lan_ifnames_wifi $_wan_ifnames"
+			else
+				# DO NOT PLACE WAN IFNAME BEFORE LAN IFNAME OR SOME ROUTERS WILL CRASH
+				uci set network.lan.ifname="$_lan_ifnames $_wan_ifnames"
+			fi
+		fi
+		# Some routers need to change port mapping on software switch
+		if [ "$(type -t set_switch_bridge_mode)" ]
+		then
+			set_switch_bridge_mode "y" "$_disable_lan_ports"
+		fi
 	fi
 	json_dump > /root/flashbox_config.json
 	json_close_object
@@ -855,7 +855,6 @@ update_bridge_mode() {
 		if [ "$_fixed_ip" != "" ]
 		then
 			/etc/init.d/uhttpd restart
-			/etc/init.d/minisapo restart
 			# Wait for network to configure itself and check connectivity
 			sleep 5
 			_accessOK="$(check_connectivity_internet)"
@@ -870,11 +869,12 @@ update_bridge_mode() {
 				update_bridge_mode "n" "$2" "" "" ""
 			fi
 		fi
-    # Some targets need to reboot the whole router after changes on switch
-    if [ "$(type -t needs_reboot_bridge_mode)" ] && [ "$_check_reboot" == "y" ]
-    then
-      needs_reboot_bridge_mode
-    fi
+		# Some targets need to reboot the whole router after changes on switch
+		if [ "$(type -t needs_reboot_bridge_mode)" ] && [ "$_check_reboot" == "y" ]
+		then
+			needs_reboot_bridge_mode
+		fi
+		/etc/init.d/minisapo reload
 	else
 		log "FLASHMAN UPDATER" "No changes in bridge parameters..."
 	fi
@@ -993,34 +993,31 @@ set_mesh_master_mode() {
 	local _mesh_mode="$1"
 	local _local_mesh_mode=$(get_mesh_mode)
 
-	if [ "$_local_mesh_mode" != "$_mesh_mode" ]
-	then
-		for i in $(uci -q get dhcp.lan.dhcp_option)
-		do
-			if [ "$i" != "${i#"vendor:ANLIX,43"}" ]
-			then
-				uci del_list dhcp.lan.dhcp_option=$i
-			fi
-		done
-
-		if [ "$_mesh_mode" != "0" ]
+	for i in $(uci -q get dhcp.lan.dhcp_option)
+	do
+		if [ "$i" != "${i#"vendor:ANLIX02,43"}" ]
 		then
-			log "MESH" "Enabling mesh mode $_mesh_mode"
-			uci add_list dhcp.lan.dhcp_option="vendor:ANLIX,43,$_mesh_mode"
-			_need_restart=1
-		else
-			log "MESH" "Mesh mode disabled"
+			uci del_list dhcp.lan.dhcp_option=$i
 		fi
-		json_cleanup
-		json_load_file /root/flashbox_config.json
-		json_add_string mesh_mode "$_mesh_mode"
-		json_add_string mesh_master ""
-		json_dump > /root/flashbox_config.json
-		json_close_object
+	done
 
-		uci commit dhcp
-		/etc/init.d/dnsmasq reload
+	if [ "$_mesh_mode" != "0" ]
+	then
+		log "MESH" "Enabling mesh mode $_mesh_mode"
+		uci add_list dhcp.lan.dhcp_option="vendor:ANLIX02,43,$_mesh_mode"
+		_need_restart=1
+	else
+		log "MESH" "Mesh mode disabled"
 	fi
+	json_cleanup
+	json_load_file /root/flashbox_config.json
+	json_add_string mesh_mode "$_mesh_mode"
+	json_add_string mesh_master ""
+	json_dump > /root/flashbox_config.json
+	json_close_object
+
+	uci commit dhcp
+	/etc/init.d/dnsmasq reload
 }
 
 set_mesh_slave_mode() {
@@ -1040,30 +1037,47 @@ set_mesh_slaves() {
 	local _mesh_slave="$1"
 	if [ "$(is_mesh_master)" = "1" ]
 	then
-		local _retstatus
-		local _data="id=$(get_mac)&slave=$_mesh_slave"
-		local _url="deviceinfo/mesh/add"
-		local _res=$(rest_flashman "$_url" "$_data")
-
-		_retstatus=$?
-		if [ $_retstatus -eq 0 ]
+		# Check license availability before proceeding
+		if is_mesh_license_available $_mesh_slave
 		then
-			json_cleanup
-			json_load "$_res"
-			json_get_var _is_registered is_registered
-			json_close_object
-			# value 2 is already registred. No need to do anything
-			if [ "$_is_registered" = "1" ]
+			local _retstatus
+			local _status=20
+			local _data="id=$(get_mac)&slave=$_mesh_slave"
+			local _url="deviceinfo/mesh/add"
+			local _res=$(rest_flashman "$_url" "$_data")
+
+			_retstatus=$?
+			if [ $_retstatus -eq 0 ]
 			then
-				log "MESH" "Slave router $_mesh_slave registered successfull"
-			fi
-			if [ "$_is_registered" = "0" ]
-			then
-				log "MESH" "Error registering slave router $_mesh_slave"
+				json_cleanup
+				json_load "$_res"
+				json_get_var _is_registered is_registered
+				json_close_object
+				# value 2 is already registred. No need to do anything
+				if [ "$_is_registered" = "1" ]
+				then
+					log "MESH" "Slave router $_mesh_slave registered successfull"
+				fi
+				if [ "$_is_registered" = "0" ]
+				then
+					log "MESH" "Error registering slave router $_mesh_slave"
+					_status=21
+				fi
+			else
+				log "MESH" "Error communicating with server for registration"
+				_status=21
 			fi
 		else
-			log "MESH" "Error communicating with server for registration"
+			log "MESH" "No license available"
+			_status=22
 		fi
+
+		json_cleanup
+		json_init
+		json_add_string mac "$_mesh_slave"
+		json_add_int status $_status
+		ubus call anlix_sapo notify_sapo "$(json_dump)"
+		json_close_object
 	fi
 }
 
