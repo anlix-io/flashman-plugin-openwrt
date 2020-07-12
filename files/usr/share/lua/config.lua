@@ -9,6 +9,11 @@ function handle_config(command, data)
 		local data = flashman.run_diagnostic()
 		web.send_json(data)
 		return
+	elseif command == "restartSapo" then
+		-- Restart sapo after it reaches error state
+		flashman.restart_sapo()
+		web.send_json({success = true})
+		return
 	elseif command == "getLoginInfo" then
 		-- Send information for diagnose app login
 		local resp = {}
