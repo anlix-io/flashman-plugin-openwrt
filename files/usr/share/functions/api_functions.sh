@@ -198,19 +198,23 @@ sys_uptime() {
 wan_uptime() {
 	local _wan_uptime
 	local _wan_up
+	local _start_time
 
 	json_cleanup
-	json_load "$(ifstatus wan)"
-	json_get_var _wan_up up
-
-	if [ $_wan_up -eq 1 ]
+	if [ -f /tmp/ext_access_time.json ]
 	then
-		json_get_var _wan_uptime uptime
+		json_load_file /tmp/ext_access_time.json
+		json_get_var _start_time starttime
+		json_close_object
+		if [ $_start_time -eq 0 ] || [ -z $_start_time ]
+		then
+			_wan_uptime="0"
+		else
+			_wan_uptime=$(($(sys_uptime)-$_start_time))
+		fi
 	else
 		_wan_uptime="0"
 	fi
-
-	json_close_object
 
 	echo "$_wan_uptime"
 }
