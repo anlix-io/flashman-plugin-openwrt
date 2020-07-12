@@ -55,8 +55,8 @@ function flashman.get_pppoe_pass()
   return result:sub(1,-2)
 end
 
-function flashman.restart_sapo()
-  run_process("sh -c \"/etc/init.d/minisapo restart\"")
+function flashman.retry_sapo_flashman(slave_mac)
+  run_process("sh -c \". /usr/share/functions/network_functions.sh; set_mesh_slaves " .. slave_mac .. "\"")
 end
 
 function flashman.get_mesh_master()
