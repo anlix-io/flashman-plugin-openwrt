@@ -2,6 +2,7 @@
 
 . /usr/share/functions/common_functions.sh
 . /usr/share/functions/device_functions.sh
+. /usr/share/functions/network_functions.sh
 . /usr/share/functions/api_functions.sh
 
 DO_RESTART=1
