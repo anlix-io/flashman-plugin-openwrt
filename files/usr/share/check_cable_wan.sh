@@ -6,24 +6,6 @@
 
 DO_RESTART=1
 
-check_connectivity_internet() {
-	_addrs="www.google.com.br"$'\n'"www.facebook.com"$'\n'"www.globo.com"
-	for _addr in $_addrs
-	do
-		if ping -q -c 1 -w 4 "$_addr"  > /dev/null 2>&1
-		then
-			# true
-			echo 0
-			return
-		fi
-	done
-	# No successfull pings
-
-	# false
-	echo 1
-	return
-}
-
 write_access_start_time() {
 	local _start_time="$1"
 	# Reset external access start time
