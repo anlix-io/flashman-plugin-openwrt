@@ -13,4 +13,4 @@ pk: pk.o
 	$(CC) $(LDFLAGS) -o $@ pk.o -lmbedtls -lmbedx509 -lmbedcrypto
 
 clean:
-	rm *.o paho/*.o anlix-mqtt pk_sign pk_verify
+	rm *.o paho/*.o anlix-mqtt pk

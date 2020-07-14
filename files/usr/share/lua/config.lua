@@ -1,4 +1,3 @@
-require("lib")
 flashman = require("flashman")
 
 function handle_config(command, data)
@@ -10,6 +9,12 @@ function handle_config(command, data)
 		local data = flashman.run_diagnostic()
 		web.send_json(data)
 		return
+	elseif command == "retrySapoFlashman" then
+		-- Force a retry on sapo flashman communication
+		local slave_mac = data.slave_mac
+		flashman.retry_sapo_flashman(slave_mac)
+		web.send_json({success = true})
+		return
 	elseif command == "getLoginInfo" then
 		-- Send information for diagnose app login
 		local resp = {}
@@ -19,6 +24,7 @@ function handle_config(command, data)
 		resp["conn_type"] = flashman.get_wan_type()
 		resp["flashman"] = flashman.get_server()
 		resp["wifi"] = flashman.get_wifi_config()
+		resp["mesh_master"] = flashman.get_mesh_master()
 		if (resp["conn_type"] == "pppoe") then
 			resp["pppoe"] = {}
 			resp["pppoe"]["user"] = flashman.get_pppoe_user()
@@ -35,6 +41,15 @@ function handle_config(command, data)
 			else
 				resp["bridge"]["ip"] = ""
 			end
+		end
+		web.send_json(resp)
+		return
+	elseif command == "getRoutersInfo" then
+		local routers = ubus("anlix_sapo", "get_router_status")
+		local resp = {}
+		resp["ok"] = true;
+		if(routers ~= nil and next(routers) ~= nil) then
+			resp["routers"] = routers
 		end
 		web.send_json(resp)
 		return

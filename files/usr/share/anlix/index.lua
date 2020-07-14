@@ -1,4 +1,5 @@
 require("uci")
+require("lib")
 json = require("json")
 flashman = require("flashman") 
 web = require("webHandle")
@@ -152,11 +153,11 @@ function handle_request(env)
 		web.send_json(info)
 		return
 	elseif command == "getMulticastCache" then
-		local cache = read_file("/tmp/sapo-cache.json")
+		local cache = ubus("anlix_sapo", "get_cache")
 		local resp = {}
 		resp["ok"] = true
-		if(cache ~= nil) then
-			resp["multicast_cache"] = json.decode(cache)
+		if(cache ~= nil and next(cache) ~= nil) then
+			resp["multicast_cache"] = cache
 		end
 		web.send_json(resp)
 		return
@@ -212,6 +213,7 @@ function handle_request(env)
 		local data = {}
 		data["mac"] = flashman.get_router_id()
 		data["ssid"] = flashman.get_router_ssid()
+		data["mesh_master"] = flashman.get_mesh_master()
 		resp["data"] = data
 		web.send_json(resp)
 		return
@@ -264,7 +266,10 @@ function handle_request(env)
 		resp["wireless"] = wifi
 		web.send_json(resp)
 	elseif command == "devices" then
-		local leases = read_lines("/tmp/dhcp.leases")
+		local leases = {}
+		if check_file("/tmp/dhcp.leases") then
+			leases = read_lines("/tmp/dhcp.leases")
+		end
 		local result = leases_to_json(leases)
 		local blacklist = {}
 		local named_devices = {}
