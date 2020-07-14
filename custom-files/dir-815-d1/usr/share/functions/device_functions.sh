@@ -1,19 +1,5 @@
 #!/bin/sh
 
-save_wifi_local_config() {
-  # Current MT7620 driver has a bug with 2.4 "auto" channel mode
-  if [ "$(uci -q get wireless.radio1.channel)" == "auto" ] || ([ "$(uci -q get wireless.radio1.channel)" -gt 50 ] && [ "$(uci -q get wireless.radio1.channel)" -lt 142 ])
-  then
-    uci set wireless.radio1.channel="36"
-  fi
-
-  if [ "$(uci -q get wireless.radio1.hwmode)" = "11ac" ]
-  then
-    uci set wireless.radio1.hwmode="11a"
-  fi
-  uci commit wireless
-}
-
 is_5ghz_capable() {
   # true
   echo "1"
@@ -250,94 +236,8 @@ get_lan_dev_negotiated_speed() {
   echo "$_speed"
 }
 
-store_enable_wifi() {
-  local _itf_num
-  # 0: 2.4GHz 1: 5.0GHz 2: Both
-  _itf_num=$1
-
-  wifi down
-
-  if [ "$_itf_num" = "0" ]
-  then
-    uci set wireless.@wifi-iface[0].disabled="0"
-  elif [ "$_itf_num" = "1" ]
-  then
-    uci set wireless.@wifi-iface[1].disabled="0"
-  else
-    uci set wireless.@wifi-iface[0].disabled="0"
-
-    if [ "$(uci -q get wireless.@wifi-iface[1])" ]
-    then
-      uci set wireless.@wifi-iface[1].disabled="0"
-    fi
-  fi
-  save_wifi_local_config
-  wifi up
-}
-
-store_disable_wifi() {
-  local _itf_num
-  # 0: 2.4GHz 1: 5.0GHz 2: Both
-  _itf_num=$1
-
-  wifi down
-
-  if [ "$_itf_num" = "0" ]
-  then
-    uci set wireless.@wifi-iface[0].disabled="1"
-  elif [ "$_itf_num" = "1" ]
-  then
-    uci set wireless.@wifi-iface[1].disabled="1"
-  else
-    uci set wireless.@wifi-iface[0].disabled="1"
-    if [ "$(uci -q get wireless.@wifi-iface[1])" ]
-    then
-      uci set wireless.@wifi-iface[1].disabled="1"
-    fi
-  fi
-  save_wifi_local_config
-  wifi up
-}
-
-get_wifi_state() {
-  local _itf_num
-  local _q
-  # 0: 2.4GHz 1: 5.0GHz
-  _itf_num=$1
-
-  if [ "$_itf_num" = "0" ]
-  then
-    _q=$(uci -q get wireless.@wifi-iface[0].disabled)
-    if [ "$_q" ]
-    then
-      if [ "$(uci get wireless.@wifi-iface[0].disabled)" = "1" ]
-      then
-        echo "0"
-      else
-        echo "1"
-      fi
-    else
-      echo "1"
-    fi
-  elif [ "$_itf_num" = "1" ]
-  then
-    _q=$(uci -q get wireless.@wifi-iface[1].disabled)
-    if [ "$_q" ]
-    then
-      if [ "$(uci get wireless.@wifi-iface[1].disabled)" = "1" ]
-      then
-        echo "0"
-      else
-        echo "1"
-      fi
-    else
-      echo "1"
-    fi
-  fi
-}
-
 # Enable/disable ethernet connection on LAN physical ports when in bridge mode
-set_switch_bridge_mode() {
+set_switch_bridge_mode_on_boot() {
   local _disable_lan_ports="$1"
 
   if [ "$_disable_lan_ports" = "y" ]
