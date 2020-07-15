@@ -37,10 +37,11 @@ ping)
 	run_ping_ondemand_test
 	;;
 measure)
-	log "MQTTMSG" "Changing Zabbix PSK settings"
-	if [ "$ZBX_SUPPORT" == "y" ]
-	then
-		update_zabbix_params "$2"
+	log "MQTTMSG" "Changing Measure settings"
+	if [ "$2" = "on" ]; then
+		/etc/init.d/collect_data start
+	elif [ "$2" = "off" ]; then
+		/etc/init.d/collect_data stop
 	fi
 	;;
 status)
