@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=flasman-plugin
-PKG_VERSION:=0.27.3
+PKG_VERSION:=0.28.0
 PKG_RELEASE:=1
 
 PKG_LICENSE:=GPL
@@ -139,6 +139,8 @@ CUSTOM_FILE_ARQ=
 		CUSTOM_FILE_ARQ="tplink_tl-wdr3500"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_dlink_dwr-116-a1), y)
 		CUSTOM_FILE_ARQ="dlink_dl-dwr116-a3"
+	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_itlb-ncloud-v1), y)
+		CUSTOM_FILE_DIR="custom-files/itlb-ncloud-v1"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8197d_DEVICE_DIR815D1), y)
 		CUSTOM_FILE_DIR="custom-files/dir-815-d1"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8196e_DEVICE_GWR300N), y)

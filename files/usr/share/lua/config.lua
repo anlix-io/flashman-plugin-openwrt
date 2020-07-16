@@ -9,6 +9,12 @@ function handle_config(command, data)
 		local data = flashman.run_diagnostic()
 		web.send_json(data)
 		return
+	elseif command == "retrySapoFlashman" then
+		-- Force a retry on sapo flashman communication
+		local slave_mac = data.slave_mac
+		flashman.retry_sapo_flashman(slave_mac)
+		web.send_json({success = true})
+		return
 	elseif command == "getLoginInfo" then
 		-- Send information for diagnose app login
 		local resp = {}

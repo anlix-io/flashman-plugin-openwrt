@@ -335,11 +335,11 @@ enable_mesh_routing() {
 	local _new_mesh_key
 	local _mesh_mode=$1
 	local _do_save=0
-	local _local_mesh_id=$(get_mesh_id)
+	local _local_mesh_id="$(get_mesh_id)"
 	if [ "$#" -eq 3 ]
 	then
-		_new_mesh_id=$2
-		_new_mesh_key=$3
+		_new_mesh_id="$2"
+		_new_mesh_key="$3"
 	else
 		_new_mesh_id="$(get_mesh_id)"
 		_new_mesh_key="$(get_mesh_key)"
@@ -439,41 +439,35 @@ change_wifi_state() {
 
 auto_change_mesh_slave_channel() {
 	scan_channel(){
-		local _NCh=""
+		local _new_NCh=""
+		local _mesh_id="$2"
 		A=$(iw dev $1 scan -u);
 		while [ "$A" ]
 		do
 			AP=${A##*BSS }
 			A=${A%BSS *}
 			case "$AP" in
-				*"MESH ID"*)
-					_NCh="$(echo "$AP"|awk 'BEGIN{OT="";CH=""}/MESH ID/{OT=$3}/primary channel/{CH=$4}END{print CH" "OT}')"
+				*"MESH ID: $_mesh_id"*)
+					_new_NCh="$(echo "$AP"|awk 'BEGIN{CH=""}/primary channel/{CH=$4}END{print CH}')"
 					;;
 			esac
 		done
-		echo "$_NCh"
+		echo "$_new_NCh"
 	}
 
 	local _mesh_mode="$(get_mesh_mode)"
+	local _mesh_id="$(get_mesh_id)"
 	local _NCh2=""
 	local _NCh5=""
 	if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
 	then
 		log "AUTOCHANNEL" "Scanning MESH channel for mesh0..."
-		if iw dev mesh0 info 1>/dev/null 2> /dev/null
-		then
-			_NCh2=$(scan_channel mesh0)
-			[ "$_NCh2" ] && [ "${_NCh2##* }" = "$(get_mesh_id)" ] && _NCh2="${_NCh2% *}"
-		fi
+		iw dev mesh0 info 1>/dev/null 2> /dev/null && _NCh2=$(scan_channel mesh0 $_mesh_id)
 	fi
 	if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
 	then
 		log "AUTOCHANNEL" "Scanning MESH channel for mesh1..."
-		if iw dev mesh1 info 1>/dev/null 2> /dev/null
-		then
-			_NCh5=$(scan_channel mesh1)
-			[ "$_NCh5" ] && [ "${_NCh5##* }" = "$(get_mesh_id)" ] && _NCh5="${_NCh5% *}"
-		fi
+		iw dev mesh1 info 1>/dev/null 2> /dev/null && _NCh5=$(scan_channel mesh1 $_mesh_id)
 	fi
 
 	if [ "$_NCh2" ] || [ "$_NCh5" ]
