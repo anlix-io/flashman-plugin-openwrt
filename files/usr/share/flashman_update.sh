@@ -367,7 +367,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		# Update zabbix parameters as necessary
 		if [ "$ZBX_SUPPORT" == "y" ]
 		then
-			set_measure_params "$_measure_fqdn" "$_measure_active"
+			set_measure_params "$_measure_fqdn" "$_measure_is_active"
 		fi
 
 		# Check for updates in port forward mapping
