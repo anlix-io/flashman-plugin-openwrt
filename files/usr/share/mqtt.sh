@@ -4,7 +4,7 @@
 . /usr/share/functions/common_functions.sh
 . /usr/share/functions/dhcp_functions.sh
 . /usr/share/functions/api_functions.sh
-. /usr/share/functions/zabbix_functions.sh
+. /usr/share/functions/measure_functions.sh
 . /usr/share/functions/wireless_functions.sh
 
 case "$1" in
@@ -38,11 +38,7 @@ ping)
 	;;
 measure)
 	log "MQTTMSG" "Changing Measure settings"
-	if [ "$2" = "on" ]; then
-		/etc/init.d/collect_data start
-	elif [ "$2" = "off" ]; then
-		/etc/init.d/collect_data stop
-	fi
+	set_measure_on_off "$2"
 	;;
 status)
 	log "MQTTMSG" "Collecting status information"

@@ -1,11 +1,14 @@
 #!/bin/sh
 . /usr/share/functions/device_functions.sh
 . /usr/share/flashman_init.conf
+. /usr/share/libubox/jshn.sh
 
 influxDataDir="/tmp/influx_data_collecting"
 influxRawDataFile="${influxDataDir}/raw"
 influxCompressedDataDir="${influxDataDir}/compressed"
 # $influxDBAddress is inside /usr/share/flashman_init.conf, it holds the ip to influxdb.
+
+/root/flashbox_config.json
 
 # prints the name of all available wireless interfaces, separated by new lines.
 getAllInterfaceNames() {
@@ -408,6 +411,48 @@ sendData() {
 	fi
 }
 
+is_measure_license_available() {
+	local _res
+	local _is_available=1
+
+	if [ "$FLM_USE_AUTH_SVADDR" == "y" ]
+	then
+		#
+		# WARNING! No spaces or tabs inside the following string!
+		#
+		local _data
+		_data="organization=$FLM_CLIENT_ORG&\
+mac=$_slave_mac&\
+secret=$FLM_CLIENT_SECRET"
+
+		_res=$(curl -s \
+			-A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
+			--tlsv1.2 --connect-timeout 5 --retry 1 \
+			--data "$_data" \
+			"https://$FLM_AUTH_SVADDR/api/device/license/measure")
+
+		local _curl_res=$?
+		if [ $_curl_res -eq 0 ]
+		then
+			json_cleanup
+			json_load "$_res" 2>/dev/null
+			if [ $? == 0 ]
+			then
+				json_get_var _is_available is_available
+				json_close_object
+			else
+				log "AUTHENTICATOR" "Invalid answer from controller when requesting measure license"
+			fi
+		else
+			log "AUTHENTICATOR" "Error connecting to controller ($_curl_res)"
+		fi
+	else
+		_is_available=0
+	fi
+
+	return $_is_available
+}
+
 # prints the timestamp written in file at path given in first argument ($1). 
 # that timestamp is used to mark the second when data collection has started, 
 # so we can keep collecting data always at the same interval, without care of 
@@ -463,4 +508,4 @@ loop() {
 	done
 }
 
-loop
+is_measure_license_available && loop
