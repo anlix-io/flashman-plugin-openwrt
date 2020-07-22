@@ -429,7 +429,7 @@ secret=$FLM_CLIENT_SECRET"
 			-A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
 			--tlsv1.2 --connect-timeout 5 --retry 1 \
 			--data "$_data" \
-			"https://$FLM_AUTH_SVADDR/api/device/license/measure")
+			"https://$FLM_AUTH_SVADDR/api/device/license/measure/available")
 
 		local _curl_res=$?
 		if [ $_curl_res -eq 0 ]
