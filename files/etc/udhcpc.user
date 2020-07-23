@@ -3,10 +3,13 @@
 
 . /usr/share/functions/common_functions.sh
 . /usr/share/functions/network_functions.sh
+. /usr/share/functions/device_functions.sh
 
 #format is "43 <numval> <val1> FF"
 if [ "${opt43:0: -4}" == "2b01" ]
 then
+	[ ! "$(is_mesh_capable)" ] && exit 1
+	
 	#get the mesh mode
 	_mesh_mode="${opt43:5: -2}"
 	if [ "$_mesh_mode" != "0" ]

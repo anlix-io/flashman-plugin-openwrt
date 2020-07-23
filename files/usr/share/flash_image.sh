@@ -25,14 +25,14 @@ download_file() {
 		mkdir -p "$_dest_dir"
 
 		local _md5_remote_hash=`curl -I -s -w "%{http_code}" \
-													-u routersync:landufrj123 \
-													--tlsv1.2 --connect-timeout 5 --retry 3 "$_uri" \
-													| grep "X-Checksum-Md5" | awk '{ print $2 }'`
+								-u routersync:landufrj123 \
+								--tlsv1.2 --connect-timeout 5 --retry 3 "$_uri" \
+								| grep "X-Checksum-Md5" | awk '{ print $2 }'`
 		if [ ! -f $_dest_dir/$_dfile ]
 		then
 			local _curl_code=`curl -s -w "%{http_code}" -u routersync:landufrj123 \
-														--tlsv1.2 --connect-timeout 5 --retry 3 \
-														-o "$_dest_dir/$_dfile" "$_uri"`
+								--tlsv1.2 --connect-timeout 5 --retry 3 \
+								-o "$_dest_dir/$_dfile" "$_uri"`
 			if [ "$_curl_code" != "200" ]
 			then
 				lupg "FAIL: Download error on $_uri"
@@ -136,6 +136,7 @@ run_reflash() {
 				/etc/init.d/keepalive stop
 				/etc/init.d/flashman stop
 				/etc/init.d/netstats stop
+				/etc/init.d/minisapo stop
 				/etc/init.d/uhttpd stop
 				/etc/init.d/miniupnpd stop
 				wifi down

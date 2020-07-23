@@ -53,20 +53,8 @@ is_mesh_routing_capable() {
 	fi
 }
 
-save_wifi_local_config() {
-	if [ "$(is_5ghz_capable)" -eq "1" ]
-	then
-		if [ ! "$(is_5ghz_vht)" ]
-		then
-			if [ "$(uci -q get wireless.radio1.htmode)" != "HT40" ] ||
-				[ "$(uci -q get wireless.radio1.htmode)" != "HT20" ]
-			then
-				uci set wireless.radio1.htmode="HT40"
-			fi
-		fi
-		[ "$(uci -q get wireless.radio1.hwmode)" = "11ac" ] && uci set wireless.radio1.hwmode="11a"
-	fi
-	uci commit wireless
+is_mesh_capable() {
+	[ -f /usr/sbin/wpad ] && [ "$(is_mesh_routing_capable)" != "0" ] && echo "1"
 }
 
 get_wifi_device_stats() {
@@ -178,13 +166,18 @@ blink_leds() {
 }
 
 get_mac() {
-	local _mac_address_tag=""
-	local _p1
+	if [ "$(type -t get_custom_mac)" ]
+	then
+		get_custom_mac
+	else
+		local _mac_address_tag=""
+		local _p1
 
-	_p1=$(awk '{print toupper($1)}' /sys/class/net/eth0/address)
-	[ ! -z "$_p1" ] && _mac_address_tag=$_p1
+		_p1=$(awk '{print toupper($1)}' /sys/class/net/eth0/address)
+		[ ! -z "$_p1" ] && _mac_address_tag=$_p1
 
-	echo "$_mac_address_tag"
+		echo "$_mac_address_tag"
+	fi
 }
 
 get_vlan_device() {
@@ -265,76 +258,6 @@ get_lan_dev_negotiated_speed() {
 	done
 
 	echo "$_speed"
-}
-
-store_enable_wifi() {
-	local _itf_num
-	# 0: 2.4GHz 1: 5.0GHz 2: Both
-	_itf_num=$1
-
-	wifi down
-
-	if [ "$_itf_num" = "0" ]
-	then
-		uci set wireless.default_radio0.disabled="0"
-	elif [ "$_itf_num" = "1" ]
-	then
-		uci set wireless.default_radio1.disabled="0"
-	else
-		uci set wireless.default_radio0.disabled="0"
-
-		[ "$(is_5ghz_capable)" == "1" ] && uci set wireless.default_radio1.disabled="0"
-	fi
-	save_wifi_local_config
-	wifi up
-}
-
-store_disable_wifi() {
-	local _itf_num
-	# 0: 2.4GHz 1: 5.0GHz 2: Both
-	_itf_num=$1
-
-	wifi down
-
-	if [ "$_itf_num" = "0" ]
-	then
-		uci set wireless.default_radio0.disabled="1"
-	elif [ "$_itf_num" = "1" ]
-	then
-		uci set wireless.default_radio1.disabled="1"
-	else
-		uci set wireless.default_radio0.disabled="1"
-		[ "$(is_5ghz_capable)" == "1" ] && uci set wireless.default_radio1.disabled="1"
-	fi
-	save_wifi_local_config
-	wifi up
-}
-
-get_wifi_state() {
-	local _itf_num
-	local _q
-	# 0: 2.4GHz 1: 5.0GHz
-	_itf_num=$1
-
-	if [ "$_itf_num" = "0" ]
-	then
-		_q=$(uci -q get wireless.default_radio0.disabled)
-		if [ "$_q" ]
-		then
-			[ "$(uci get wireless.default_radio0.disabled)" = "1" ] && echo "0" || echo "1"
-		else
-			echo "1"
-		fi
-	elif [ "$_itf_num" = "1" ]
-	then
-		_q=$(uci -q get wireless.default_radio1.disabled)
-		if [ "$_q" ]
-		then
-			[ "$(uci get wireless.default_radio1.disabled)" = "1" ] && echo "0" || echo "1"
-		else
-			echo "1"
-		fi
-	fi
 }
 
 get_wifi_device_signature() {
