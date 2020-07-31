@@ -190,7 +190,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		json_get_var _blocked_devices_index blocked_devices_index
 		json_get_var _upnp_devices_index upnp_devices_index
 		json_get_var _measures_fqdn measure_fqdn
-		json_get_var _measures_is_active measures_is_active
+		json_get_var _is_measures_active is_measures_active
 		json_get_var _bridge_mode_enabled bridge_mode_enabled
 		json_get_var _bridge_mode_switch_disable bridge_mode_switch_disable
 		json_get_var _bridge_mode_ip bridge_mode_ip
@@ -369,7 +369,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		# Update zabbix parameters as necessary
 		if [ "$ZBX_SUPPORT" == "y" ]
 		then
-			set_measures_params "$_measures_fqdn" "$_measures_is_active"
+			set_measures_params "$_measures_fqdn" "$_is_measures_active"
 		fi
 
 		# Check for updates in port forward mapping
