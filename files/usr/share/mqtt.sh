@@ -4,7 +4,7 @@
 . /usr/share/functions/common_functions.sh
 . /usr/share/functions/dhcp_functions.sh
 . /usr/share/functions/api_functions.sh
-. /usr/share/functions/measure_functions.sh
+. /usr/share/functions/measures_functions.sh
 . /usr/share/functions/wireless_functions.sh
 
 case "$1" in
@@ -38,7 +38,7 @@ ping)
 	;;
 measure)
 	log "MQTTMSG" "Changing Measure settings"
-	set_measure_on_off "$2"
+	set_measures_on_off "$2"
 	;;
 status)
 	log "MQTTMSG" "Collecting status information"
