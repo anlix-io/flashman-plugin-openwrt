@@ -8,8 +8,6 @@ influxRawDataFile="${influxDataDir}/raw"
 influxCompressedDataDir="${influxDataDir}/compressed"
 # $influxDBAddress is inside /usr/share/flashman_init.conf, it holds the ip to influxdb.
 
-/root/flashbox_config.json
-
 # prints the name of all available wireless interfaces, separated by new lines.
 getAllInterfaceNames() {
 	local index=0 name

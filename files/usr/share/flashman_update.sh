@@ -10,7 +10,7 @@
 . /usr/share/functions/network_functions.sh
 . /usr/share/functions/firewall_functions.sh
 . /usr/share/functions/api_functions.sh
-. /usr/share/functions/measures_functions.sh
+. /usr/share/functions/data_collecting_functions.sh
 
 # If a command hash is provided, check if it should still be done
 COMMANDHASH=""
@@ -189,8 +189,8 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		json_get_var _forward_index forward_index
 		json_get_var _blocked_devices_index blocked_devices_index
 		json_get_var _upnp_devices_index upnp_devices_index
-		json_get_var _measures_fqdn measures_fqdn
-		json_get_var _is_measures_active is_measures_active
+		json_get_var _data_collecting_fqdn data_collecting_fqdn
+		json_get_var _data_collecting_is_active data_collecting_is_active
 		json_get_var _bridge_mode_enabled bridge_mode_enabled
 		json_get_var _bridge_mode_switch_disable bridge_mode_switch_disable
 		json_get_var _bridge_mode_ip bridge_mode_ip
@@ -369,7 +369,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		# Update zabbix parameters as necessary
 		if [ "$ZBX_SUPPORT" == "y" ]
 		then
-			set_measures_params "$_measures_fqdn" "$_is_measures_active"
+			set_data_collecting_params "$_data_collecting_fqdn" "$_data_collecting_is_active"
 		fi
 
 		# Check for updates in port forward mapping
