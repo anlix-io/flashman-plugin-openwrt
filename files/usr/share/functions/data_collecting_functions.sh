@@ -30,8 +30,7 @@ set_data_collecting_parameters() {
 	json_close_object
 
 	# "true" boolean value is translated as string "1" by jshn.sh
-	# flashman returns empty strings ("") when it has "false" booleans in json responses.
-	# empty strings ("") are translated as empty strings by jshn.sh
+	# "false" boolean value is translated as string "0" by jshn.sh
 	if [ "$data_collecting_is_active" = "1" ]; then
 		log "DATA COLLECTING" "Starting data collecting service"
 		data_collecting_service start
@@ -44,9 +43,9 @@ set_data_collecting_parameters() {
 }
 
 set_data_collecting_on_off() {
-	# flashman responds false values as empty strings. to simplify our lives, 
-	# we write empty strings when we mean boolean false.
-	local is_active="" 
+	# jshn translates false values to string "0". to simplify our lives, 
+	# we write string "0" when we mean boolean false.
+	local is_active="0" 
 
 	if [ "$1" = "on" ]; then
 		log "DATA COLLECTING" "Starting data collecting service"
