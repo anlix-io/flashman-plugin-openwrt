@@ -35,7 +35,7 @@ set_data_collecting_parameters() {
 		if data_collecting_is_running; then
 			if [ "$changed_parameters" = 1 ]; then
 				# this case happens if device loses connection and later reconnects, without 
-				# rebooting, and $data_collecting_fqdn has changed in flashman during that time.
+				# rebooting, and parameters, like $data_collecting_fqdn, have changed in flashman during that time.
 				log "DATA COLLECTING" "Restarting data collecting service"
 				data_collecting_service restart;
 			fi
