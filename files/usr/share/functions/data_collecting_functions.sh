@@ -14,13 +14,13 @@ set_data_collecting_parameters() {
 	json_get_var saved_data_collecting_fqdn data_collecting_fqdn
 	json_get_var saved_data_collecting_is_active data_collecting_is_active
 
-	# Check if data_collecting_fqdn is different.
+	# Check if $data_collecting_fqdn has changed.
 	if [ "$saved_data_collecting_fqdn" != "$data_collecting_fqdn" ]; then
 		log "DATA COLLECTING" "Updating data_collecting_fqdn parameter"
 		json_add_string data_collecting_fqdn "$data_collecting_fqdn"
 	fi
 
-	# Check if data_collecting_is_active is different.
+	# Check if $data_collecting_is_active has changed.
 	if [ "$saved_data_collecting_is_active" != "$data_collecting_is_active" ]; then
 		log "DATA COLLECTING" "Updating data_collecting_is_active parameter"
 		json_add_string data_collecting_is_active "$data_collecting_is_active"
@@ -44,11 +44,15 @@ set_data_collecting_parameters() {
 }
 
 set_data_collecting_on_off() {
-	local is_active=""
+	# flashman responds false values as empty strings. to simplify our lives, 
+	# we write empty strings when we mean boolean false.
+	local is_active="" 
 
 	if [ "$1" = "on" ]; then
 		log "DATA COLLECTING" "Starting data collecting service"
 		data_collecting_service start
+		# jshn translates true boolean values to string "1", to simplify our 
+		# lives, we write string "1" when we mean boolean true.
 		is_active="1"
 	elif [ "$1" = "off" ]; then
 		log "DATA COLLECTING" "Stopping data collecting service"
