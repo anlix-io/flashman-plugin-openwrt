@@ -369,7 +369,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		# Update zabbix parameters as necessary
 		if [ "$ZBX_SUPPORT" == "y" ]
 		then
-			set_data_collecting_params "$_data_collecting_fqdn" "$_data_collecting_is_active"
+			set_data_collecting_parameters "$_data_collecting_fqdn" "$_data_collecting_is_active"
 		fi
 
 		# Check for updates in port forward mapping
