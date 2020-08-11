@@ -266,10 +266,10 @@ writeCurrentServerState() {
 # sends file at given path ($1) to influxdb at given address ($2) using $(curl) 
 # and returns $(curl) exit code.
 sendToStorageServer() {
-	local filepath="$1" serverAddress=$2
+	local filepath="$1" serverAddress="$2"
 	# echo sending curl
 	curl -s -m 20 --connect-timeout 5 \
-	-XPOST "http://$serverAddress:8086/write?db=routers&precision=s" \
+	-XPOST "http://$serverAddress:8086/write?db=$FLM_CLIENT_ORG&precision=s" \
 	-H 'Content-Encoding: gzip' \
 	-H 'Content-Type: application/octet-stream' \
 	--data-binary @"$1"
@@ -290,7 +290,7 @@ sendCompressedData() {
 		# echo checking existence of file $i
 		[ -f "$i" ] || continue # check if file still exists.
 		# echo sending file $i
-		sendToStorageServer "$i" "$serverAddress" # se file to influx.
+		sendToStorageServer "$i" "$serverAddress" # send file to influx.
 		sentResult="$?" # store $(curl) exit code.
 		if [ "$sentResult" -eq 0 ]; then # if $(curl) exit code is equal to 0.
 			# echo finished sending, now removing.
