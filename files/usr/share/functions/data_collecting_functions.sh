@@ -1,5 +1,6 @@
 . /usr/share/libubox/jshn.sh
 . /usr/share/functions/common_functions.sh
+. /usr/share/functions/device_functions.sh
 . /usr/share/flashman_init.conf
 
 data_collecting_service() {
@@ -56,7 +57,7 @@ is_data_colleting_license_available() {
 		local _res=$(curl -s \
 			-A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
 			--tlsv1.2 --connect-timeout 5 --retry 1 \
-			--data "mac=$_slave_mac&secret=$FLM_CLIENT_SECRET" \
+			--data "mac=$(get_mac)&secret=$FLM_CLIENT_SECRET" \
 			"https://$FLM_AUTH_SVADDR/api/device/license/data_collecting/is_available")
 		if [ "$?" -eq 0 ]; then
 			json_cleanup
