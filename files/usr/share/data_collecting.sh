@@ -1,12 +1,10 @@
 #!/bin/sh
 . /usr/share/functions/device_functions.sh
-. /usr/share/flashman_init.conf
-. /usr/share/libubox/jshn.sh
+. /usr/share/functions/data_collecting_functions.sh
 
-influxDataDir="/tmp/influx_data_collecting"
-influxRawDataFile="${influxDataDir}/raw"
-influxCompressedDataDir="${influxDataDir}/compressed"
-# $influxDBAddress is inside /usr/share/flashman_init.conf, it holds the ip to influxdb.
+dataCollectingDir="/tmp/influx_data_collecting"
+rawData="${dataCollectingDir}/raw"
+compressedDataDir="${dataCollectingDir}/compressed"
 
 # prints the name of all available wireless interfaces, separated by new lines.
 getAllInterfaceNames() {
@@ -206,17 +204,17 @@ collectData() {
 	mac=${mac//:/} # removing all colons in mac address.
 
 	# echo collecting all data
-	collectDevicesWifiDataForInflux "$influxRawDataFile" "$mac"
-	collectWanStatisticsForInflux "$influxRawDataFile" "$mac"
-	collectPingForInflux "$influxRawDataFile" "$mac"
+	collectDevicesWifiDataForInflux "$rawData" "$mac"
+	collectWanStatisticsForInflux "$rawData" "$mac"
+	collectPingForInflux "$rawData" "$mac"
 
 	# $(zipFile) returns 0 only if any amount of files has been compressed 
 	# and, consequently, moved to the directory of compressed files. So
 	# $(removeOldFiles) is only executed if any new compressed file was 
 	# created.
-	mkdir -p "$influxCompressedDataDir"
-	zipFile "$influxRawDataFile" "$influxCompressedDataDir" $((32*1024)) && \
-	removeOldFiles "$influxCompressedDataDir" $((24*1024))
+	mkdir -p "$compressedDataDir"
+	zipFile "$rawData" "$compressedDataDir" $((32*1024)) && \
+	removeOldFiles "$compressedDataDir" $((24*1024))
 	# the difference between the cap size sent to $(zipFile) and 
 	# $(removeOldFiles) is the size left as a minimum amount for raw data 
 	# before compressing it. This means that, if there are no compressed files, 
@@ -267,7 +265,7 @@ writeCurrentServerState() {
 
 # sends file at given path ($1) to influxdb at given address ($2) using $(curl) 
 # and returns $(curl) exit code.
-sendToInflux() {
+sendToStorageServer() {
 	local filepath="$1" serverAddress=$2
 	# echo sending curl
 	curl -s -m 20 --connect-timeout 5 \
@@ -292,7 +290,7 @@ sendCompressedData() {
 		# echo checking existence of file $i
 		[ -f "$i" ] || continue # check if file still exists.
 		# echo sending file $i
-		sendToInflux "$i" $serverAddress # se file to influx.
+		sendToStorageServer "$i" "$serverAddress" # se file to influx.
 		sentResult="$?" # store $(curl) exit code.
 		if [ "$sentResult" -eq 0 ]; then # if $(curl) exit code is equal to 0.
 			# echo finished sending, now removing.
@@ -324,7 +322,7 @@ sendUncompressedData() {
 	gzip -k "$uncompressedFile" # compress to a temporary file and keep original, uncompressed, intact.
 
 	# echo sending compressed final file
-	sendToInflux "$compressedTempFile" $serverAddress # send compressed file to influx.
+	sendToStorageServer "$compressedTempFile" "$serverAddress" # send compressed file to influx.
 	local sentResult="$?" # store $(curl) exit code.
 	# remove temporary file. a new temporary should be created, with more content, if we couldn't send data this time.
 	rm "$compressedTempFile"
@@ -387,68 +385,30 @@ sendData() {
 	local defaultBackOff=5 # amount of calls needed to trigger the sending of data.
 
 	# check if we will send data this time and returns 0 if true. this controls if we will send data at this call.
-	checkBackoff "${influxDataDir}/backoffCounter" $defaultBackOff
+	checkBackoff "${dataCollectingDir}/backoffCounter" $defaultBackOff
 	if [ "$?" -eq 0 ]; then # if $(checkBackoff) returned 0.
+
+		# getting fqdn every time we need to send data, this way we don't have to 
+		# restart the service if fqdn changes.
+		local dataCollectingFqdn=$(get_data_collecting_fqdn)
 
 		# check if the last time, data was sent, server was alive. if it was, 
 		# send compressed data, if everything was sent, send uncompressed 
 		# data. If server wasn't alive last time, ping it and if it's alive 
 		# now, then send all data, but if it's still dead, do nothing.
-		local lastServerState=$(getLastServerState "$influxDataDir/serverState")
-		checkLastServerState "$lastServerState" $influxDBAddress && \
-		sendCompressedData "${influxCompressedDataDir}/*" $influxDBAddress && \
-		sendUncompressedData "$influxRawDataFile" $influxDBAddress
+		local lastServerState=$(getLastServerState "$dataCollectingDir/serverState")
+		checkLastServerState "$lastServerState" "$dataCollectingFqdn" && \
+		sendCompressedData "${compressedDataDir}/*" "$dataCollectingFqdn" && \
+		sendUncompressedData "$rawData" "$dataCollectingFqdn"
 		local currentServerState="$?"
 		# if server stops before sending some data, current server state will differ from last server state.
 		# $currentServerState get the exit code of the first of these 3 functions above that returns anything other than 0.
 
 		# writes the $(curl) exit code if it has changed since last attempt to send data.
-		writeCurrentServerState $currentServerState $lastServerState "$influxDataDir/serverState"
+		writeCurrentServerState $currentServerState $lastServerState "$dataCollectingDir/serverState"
 		# sets a random backoff if $(curl) exit code wasn't equal 0 or default value.
-		writeBackoff $currentServerState $defaultBackOff $((1 + $(random1To9))) "${influxDataDir}/backoffCounter"
+		writeBackoff $currentServerState $defaultBackOff $((1 + $(random1To9))) "${dataCollectingDir}/backoffCounter"
 	fi
-}
-
-is_measure_license_available() {
-	local _res
-	local _is_available=1
-
-	if [ "$FLM_USE_AUTH_SVADDR" == "y" ]
-	then
-		#
-		# WARNING! No spaces or tabs inside the following string!
-		#
-		local _data
-		_data="organization=$FLM_CLIENT_ORG&\
-mac=$_slave_mac&\
-secret=$FLM_CLIENT_SECRET"
-
-		_res=$(curl -s \
-			-A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
-			--tlsv1.2 --connect-timeout 5 --retry 1 \
-			--data "$_data" \
-			"https://$FLM_AUTH_SVADDR/api/device/license/measure/available")
-
-		local _curl_res=$?
-		if [ $_curl_res -eq 0 ]
-		then
-			json_cleanup
-			json_load "$_res" 2>/dev/null
-			if [ $? == 0 ]
-			then
-				json_get_var _is_available is_available
-				json_close_object
-			else
-				log "AUTHENTICATOR" "Invalid answer from controller when requesting measure license"
-			fi
-		else
-			log "AUTHENTICATOR" "Error connecting to controller ($_curl_res)"
-		fi
-	else
-		_is_available=0
-	fi
-
-	return $_is_available
 }
 
 # prints the timestamp written in file at path given in first argument ($1). 
@@ -486,8 +446,8 @@ getStartTime() {
 
 loop() {
 	local interval=60 # interval between beginnings of data collecting.
-	mkdir -p "$influxDataDir" # making sure directory exists every time.
-	local time=$(getStartTime "$influxDataDir/startTime" $interval) # time when we will start executing.
+	mkdir -p "$dataCollectingDir" # making sure directory exists every time.
+	local time=$(getStartTime "$dataCollectingDir/startTime" $interval) # time when we will start executing.
 
 	while true; do # infinite loop where we execute all procedures over and over again until the end of times.
 		# echo startTime $time
@@ -506,4 +466,4 @@ loop() {
 	done
 }
 
-is_measure_license_available && loop
+loop
