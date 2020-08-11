@@ -36,7 +36,7 @@ ping)
 	log "MQTTMSG" "Running ping test"
 	run_ping_ondemand_test
 	;;
-measure)
+datacollecting)
 	log "MQTTMSG" "Changing Measure settings"
 	set_data_collecting_on_off "$2"
 	;;
