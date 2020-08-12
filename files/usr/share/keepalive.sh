@@ -147,5 +147,7 @@ wanuptime=$(wan_uptime)"
 		else
 			log "KEEPALIVE" "Fail in Rest Flashman! Aborting..."
 		fi
+
+		[ "$(type -t anlix_force_clean_memory)" ] && anlix_force_clean_memory
 	fi
 done

@@ -8,6 +8,8 @@ anlix_bootup_defaults() {
 	iwpriv wlan0 set_mib pwrlevelHT40_1S_A=2929292828282828282828282828
 	iwpriv wlan0 set_mib pwrlevelHT40_1S_B=2b2b2b2a2a2a2a2a2a2a2a2a2a2a
 	ifconfig wlan0 down
+
+	echo 1 > /proc/sys/vm/panic_on_oom
 }
 
 get_custom_mac() {
@@ -35,5 +37,10 @@ set_switch_bridge_mode_on_boot() {
 		# eth1
 		swconfig dev switch0 vlan 8 set ports '0 1 2 3 4 6'
 	fi
+}
+
+#Force a memory cleanup to avoid processor usage in network
+anlix_force_clean_memory() {
+	echo 3 > /proc/sys/vm/drop_caches
 }
 

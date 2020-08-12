@@ -68,6 +68,7 @@ do
 	then
 		log "IMALIVE" "Empty MQTT Secret... Waiting..."
 	else
+		[ "$(type -t anlix_force_clean_memory)" ] && anlix_force_clean_memory
 		log "IMALIVE" "Running MQTT client"
 		anlix-mqtt flashman/update/$(get_mac) --clientid $(get_mac) \
 		--host $FLM_SVADDR --port $MQTT_PORT \

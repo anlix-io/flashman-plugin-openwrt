@@ -60,3 +60,4 @@ speedtest)
 	;;
 esac
 
+[ "$(type -t anlix_force_clean_memory)" ] && anlix_force_clean_memory
