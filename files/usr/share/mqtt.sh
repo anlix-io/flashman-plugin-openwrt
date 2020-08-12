@@ -29,8 +29,11 @@ log)
 	send_boot_log "live"
 	;;
 onlinedev)
-	log "MQTTMSG" "Sending Online Devices..."
-	send_online_devices
+	if lock -n /tmp/get_online_devs.lock
+		log "MQTTMSG" "Sending Online Devices..."
+		send_online_devices
+		lock -u /tmp/get_online_devs.lock
+	fi
 	;;
 ping)
 	log "MQTTMSG" "Running ping test"
@@ -44,8 +47,12 @@ measure)
 	fi
 	;;
 status)
-	log "MQTTMSG" "Collecting status information"
-	router_status
+	if lock -n /tmp/get_status.lock
+	then
+		log "MQTTMSG" "Collecting status information"
+		router_status
+		lock -u /tmp/get_status.lock
+	fi
 	;;
 wifistate)
 	log "MQTTMSG" "Changing wireless radio state"
