@@ -30,6 +30,7 @@ log)
 	;;
 onlinedev)
 	if lock -n /tmp/get_online_devs.lock
+	then
 		log "MQTTMSG" "Sending Online Devices..."
 		send_online_devices
 		lock -u /tmp/get_online_devs.lock
