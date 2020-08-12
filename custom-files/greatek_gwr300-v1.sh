@@ -43,3 +43,7 @@ set_switch_bridge_mode_on_boot() {
 anlix_force_clean_memory() {
 	echo 3 > /proc/sys/vm/drop_caches
 }
+
+custom_wan_port() {
+	[ $1 == 1 ] && echo "switch0" || echo "4"
+}
