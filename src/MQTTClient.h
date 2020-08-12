@@ -55,7 +55,13 @@
 enum QoS { QOS0, QOS1, QOS2, SUBFAIL=0x80 };
 
 /* all failure return codes must be negative */
-enum returnCode { BUFFER_OVERFLOW = -2, FAILURE = -1, SUCCESS = 0 };
+enum returnCode {
+  SEND_ERROR = -4,
+  KEEALIVE_TIMEOUT = -3, 
+  BUFFER_OVERFLOW = -2, 
+  FAILURE = -1, 
+  SUCCESS = 0 
+};
 
 /* The Platform specific header must define the Network and Timer structures and functions
  * which operate on them.

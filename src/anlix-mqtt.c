@@ -283,7 +283,7 @@ int main(int argc, char** argv)
   data.username.cstring = opts.username;
   data.password.cstring = opts.password;
 
-  data.keepAliveInterval = 10;
+  data.keepAliveInterval = 30;
   data.cleansession = 1;
   printlog ("Connecting to %s %d", opts.host, opts.port);
   
@@ -311,7 +311,7 @@ int main(int argc, char** argv)
     rc = MQTTYield(&c, 1000);
     if(rc != SUCCESS) {
       toStop = 1;
-      printlog ("MQTT Yield FAILURE, disconnecting...");
+      printlog ("MQTT Yield exit (%d), disconnecting...", rc);
     } 
   }
   
