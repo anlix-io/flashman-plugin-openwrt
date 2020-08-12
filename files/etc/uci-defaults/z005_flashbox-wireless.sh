@@ -83,7 +83,7 @@ uci set wireless.radio0.disabled='0'
 uci set wireless.default_radio0.disabled="$([ "$_state_24" = "1" ] && echo "0" || echo "1")"
 uci set wireless.default_radio0.ifname='wlan0'
 uci set wireless.default_radio0.ssid="$_ssid_24"
-uci set wireless.default_radio0.encryption="psk2"
+uci set wireless.default_radio0.encryption="$([ "$(type -t custom_wifi_enc_proto)"  ] && custom_wifi_enc_proto || echo "psk2")"
 uci set wireless.default_radio0.key="$_password_24"
 
 if [ "$(is_5ghz_capable)" == "1" ]
