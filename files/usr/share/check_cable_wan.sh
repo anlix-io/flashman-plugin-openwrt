@@ -20,7 +20,11 @@ write_access_start_time() {
 	json_cleanup
 }
 
+# Bootstrap
 reset_leds
+blink_leds "0"
+write_access_start_time 0
+
 while true
 do
 	# We have layer 2 connectivity, now check external access
