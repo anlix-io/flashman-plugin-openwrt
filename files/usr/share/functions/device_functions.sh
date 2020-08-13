@@ -94,6 +94,8 @@ get_wifi_device_stats() {
 			local _dev_txpackets="$(echo "$_dev_info" | grep 'tx packets:' | awk '{print $3}')"
 			local _dev_rxpackets="$(echo "$_dev_info" | grep 'rx packets:' | awk '{print $3}')"
 
+			_ap_noise=$([ "$_ap_noise" == "unknown" ] && echo "-92" || echo "$_ap_noise")
+
 			# Calculate SNR
 			local _dev_snr="$(($_dev_signal - $_ap_noise))"
 
