@@ -39,6 +39,11 @@ set_switch_bridge_mode_on_boot() {
 	fi
 }
 
+# Needs reboot to validate switch config
+needs_reboot_bridge_mode() {
+  reboot
+}
+
 #Force a memory cleanup to avoid processor usage in network
 anlix_force_clean_memory() {
 	echo 3 > /proc/sys/vm/drop_caches
