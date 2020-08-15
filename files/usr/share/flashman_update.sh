@@ -53,6 +53,7 @@ then
 	json_get_var _local_hwmode_24 local_hwmode_24
 	json_get_var _local_htmode_24 local_htmode_24
 	json_get_var _local_state_24 local_state_24
+	json_get_var _local_txpower_24 local_txpower_24
 	json_get_var _local_5ghz_capable local_5ghz_capable
 	json_get_var _local_ssid_50 local_ssid_50
 	json_get_var _local_password_50 local_password_50
@@ -60,6 +61,7 @@ then
 	json_get_var _local_hwmode_50 local_hwmode_50
 	json_get_var _local_htmode_50 local_htmode_50
 	json_get_var _local_state_50 local_state_50
+	json_get_var _local_txpower_50 local_txpower_50
 	json_close_object
 	# Get config data
 	json_cleanup
@@ -194,6 +196,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		json_get_var _wifi_channel_24 wifi_channel
 		json_get_var _wifi_htmode_24 wifi_band
 		json_get_var _wifi_hwmode_24 wifi_mode
+		json_get_var _wifi_txpower_24 wifi_txpower
 		json_get_var _wifi_state wifi_state
 		json_get_var _wifi_ssid_50 wifi_ssid_5ghz
 		json_get_var _wifi_password_50 wifi_password_5ghz
@@ -201,6 +204,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		json_get_var _wifi_htmode_50 wifi_band_5ghz
 		json_get_var _wifi_hwmode_50 wifi_mode_5ghz
 		json_get_var _wifi_state_50 wifi_state_5ghz
+		json_get_var _wifi_txpower_50 wifi_txpower_5ghz
 		json_get_var _app_password app_password
 		json_get_var _forward_index forward_index
 		json_get_var _blocked_devices_index blocked_devices_index
@@ -356,9 +360,11 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		set_wifi_local_config "$_wifi_ssid_24" "$_wifi_password_24" \
 									"$_wifi_channel_24" "$_wifi_hwmode_24" \
 									"$_wifi_htmode_24" "$_wifi_state" \
+									"$_wifi_txpower_24" \
 									"$_wifi_ssid_50" "$_wifi_password_50" \
 									"$_wifi_channel_50" "$_wifi_hwmode_50" \
 									"$_wifi_htmode_50" "$_wifi_state_50" \
+									"$_wifi_txpower_50" \
 									"$_mesh_mode" && _need_wifi_reload=1
 		[ $_need_wifi_reload -eq 1 ] && wifi reload 
 		[ $_need_wifi_reload -eq 1 ] || [ $_need_sapo_reload -eq 1 ] && /etc/init.d/minisapo reload
