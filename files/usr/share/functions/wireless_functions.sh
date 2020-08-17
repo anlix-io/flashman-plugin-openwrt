@@ -230,7 +230,7 @@ set_wifi_local_config() {
 	if [ "$_remote_txpower_24" != "" ] && \
                  [ "$_remote_txpower_24" != "$_local_txpower_24" ]
         then
-                uci set wireless.default_radio0.txpower="$_remote_txpower_24"
+                uci set wireless.radio0.txpower="$_remote_txpower_24"
                 _do_reload=1
         fi
 
@@ -320,7 +320,7 @@ set_wifi_local_config() {
 		if [ "$_remote_txpower_50" != "" ] && \
                  	[ "$_remote_txpower_50" != "$_local_txpower_50" ]
         	then
-                	uci set wireless.default_radio1.txpower="$_remote_txpower_50"
+                	uci set wireless.radio1.txpower="$_remote_txpower_50"
                 	_do_reload=1
         	fi
 	fi
