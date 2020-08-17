@@ -19,6 +19,7 @@ json_get_var _password_24 password_24
 json_get_var _channel_24 channel_24
 json_get_var _htmode_24 htmode_24
 json_get_var _state_24 state_24
+json_get_var _txpower_24 txpower_24
 if [ "$(is_5ghz_capable)" == "1" ]
 then
 	json_get_var _ssid_50 ssid_50
@@ -26,6 +27,7 @@ then
 	json_get_var _channel_50 channel_50
 	json_get_var _htmode_50 htmode_50
 	json_get_var _state_50 state_50
+	json_get_var _txpower_50 txpower_50
 fi
 json_close_object
 
@@ -46,12 +48,14 @@ then
 	_channel_24="$FLM_24_CHANNEL"
 	_htmode_24="$([ "$FLM_24_BAND" = "HT40" ] && echo "HT40" || echo "HT20")"
 	_state_24="1"
+	_txpower_24="17"
 
 	_ssid_50="$setssid$SUFFIX_5"
 	_password_50="$FLM_PASSWD"
 	_channel_50="$FLM_50_CHANNEL"
 	_htmode_50="$([ "$(is_5ghz_vht)" ] && echo "VHT80" || echo "HT40")"
 	_state_50="1"
+	_txpower_50="17"
 fi
 
 _phy0=$(get_radio_phy "0")
