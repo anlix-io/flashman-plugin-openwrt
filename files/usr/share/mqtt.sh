@@ -60,8 +60,20 @@ wifistate)
 	change_wifi_state "$2" "$3"
 	;;
 speedtest)
-	log "MQTTMSG" "Starting speed test..."
-	run_speed_ondemand_test "$2" "$3" "$4" "$5"
+	if lock -n /tmp/set_speedtest.lock
+	then
+		log "MQTTMSG" "Starting speed test..."
+		run_speed_ondemand_test "$2" "$3" "$4" "$5"
+		lock -u /tmp/set_speedtest.lock
+	fi
+	;;
+wps)
+	if lock -n /tmp/set_wps.lock
+	then
+		log "MQTTMSG" "WPS push button pressed"
+		set_wps_push_button
+		lock -u /tmp/set_wps.lock
+	fi
 	;;
 *)
 	log "MQTTMSG" "Cant recognize message: $1"

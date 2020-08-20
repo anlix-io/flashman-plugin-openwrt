@@ -85,6 +85,7 @@ uci set wireless.default_radio0.ifname='wlan0'
 uci set wireless.default_radio0.ssid="$_ssid_24"
 uci set wireless.default_radio0.encryption="$([ "$(type -t custom_wifi_enc_proto)"  ] && custom_wifi_enc_proto || echo "psk2")"
 uci set wireless.default_radio0.key="$_password_24"
+uci set wireless.default_radio0.wps_pushbutton='1'
 
 if [ "$(is_5ghz_capable)" == "1" ]
 then
@@ -99,6 +100,7 @@ then
 	uci set wireless.default_radio1.ssid="$_ssid_50"
 	uci set wireless.default_radio1.encryption="psk2"
 	uci set wireless.default_radio1.key="$_password_50"
+	uci set wireless.default_radio1.wps_pushbutton='1'
 fi
 
 if [ "$_mesh_mode" -gt "0" ]

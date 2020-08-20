@@ -484,3 +484,13 @@ auto_change_mesh_slave_channel() {
 		log "AUTOCHANNEL" "No MESH signal found"
 	fi
 }
+
+set_wps_push_button() {
+	# Push button will last 1 min active or until first conn succeeds
+	hostapd_cli -i wlan0 wps_pbc
+
+	if [ "$(is_5ghz_capable)" == "1" ]
+	then
+		hostapd_cli -i wlan1 wps_pbc
+	fi
+}
