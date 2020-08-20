@@ -56,3 +56,7 @@ custom_wan_port() {
 custom_wifi_enc_proto(){
 	echo "psk2+tkip+ccmp"
 }
+
+custom_wifi_24_txpower(){
+	echo "22"
+}

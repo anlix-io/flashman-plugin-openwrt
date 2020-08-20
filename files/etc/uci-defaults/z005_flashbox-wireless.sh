@@ -72,7 +72,7 @@ then
 	uci reorder wireless.default_radio1=3
 fi
 
-uci set wireless.radio0.txpower="17"
+uci set wireless.radio0.txpower="$([ "$(type -t custom_wifi_24_txpower)"  ] && custom_wifi_24_txpower || echo "17")"
 uci set wireless.radio0.htmode="$_htmode_24"
 uci set wireless.radio0.noscan="0"
 [ "$_htmode_24" = "HT40" ] && uci set wireless.radio0.noscan="1"
