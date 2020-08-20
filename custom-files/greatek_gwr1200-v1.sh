@@ -1,9 +1,6 @@
-#!/bin/sh /etc/rc.common
-# Copyright (C) 2006-2011 OpenWrt.org
+#!/bin/sh
 
-START=18
-
-boot() {
+anlix_bootup_defaults() {
 	ifconfig wlan0 up
 	iwpriv wlan0 set_mib xcap=35
 	iwpriv wlan0 set_mib ther=0
@@ -23,4 +20,36 @@ boot() {
 	iwpriv wlan1 set_mib pwrdiff_5G_80BW1S_160BW1S_A=0000000000000000000000000000000000000000000000000000000000000000000000d0d0d0d0d0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e000000000000000000000000000000000000000
 	iwpriv wlan1 set_mib pwrdiff_5G_80BW1S_160BW1S_B=0000000000000000000000000000000000000000000000000000000000000000000000e0e0e0e0e0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d000000000000000000000000000000000000000
 	ifconfig wlan1 down
+}
+
+get_custom_mac() {
+	. /lib/functions/system.sh
+	local _mac_address_tag=""
+	local _p1
+
+	_p1=$(mtd_get_mac_binary boot 131091 | awk '{print toupper($1)}')
+	[ ! -z "$_p1" ] && _mac_address_tag=$_p1
+
+	echo "$_mac_address_tag"
+}
+
+set_switch_bridge_mode_on_boot() {
+	local _disable_lan_ports="$1"
+
+	if [ "$_disable_lan_ports" = "y" ]
+	then
+		# eth0
+		swconfig dev switch0 vlan 9 set ports ''
+		# eth1
+		swconfig dev switch0 vlan 8 set ports '0 6'
+	else
+		# eth0
+		swconfig dev switch0 vlan 9 set ports ''
+		# eth1
+		swconfig dev switch0 vlan 8 set ports '0 1 2 3 4 6'
+	fi
+}
+
+custom_wan_port() {
+	[ $1 == 1 ] && echo "switch0" || echo "0"
 }
