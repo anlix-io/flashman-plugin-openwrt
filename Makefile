@@ -154,9 +154,9 @@ CUSTOM_FILE_ARQ=
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_RE708), y)
 		CUSTOM_FILE_ARQ="multilaser_re708-v1"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_ACTIONRF1200), y)
-		CUSTOM_FILE_ARQ="intelbras_actionrf1200-v1"
+		CUSTOM_FILE_ARQ="intelbras_rf1200-v1"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_ACTIONRG1200), y)
-		CUSTOM_FILE_ARQ="intelbras_actionrg1200-v1"
+		CUSTOM_FILE_ARQ="intelbras_rg1200-v1"
 	endif
 
 WAN_PROTO=
