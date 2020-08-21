@@ -161,6 +161,15 @@ function handle_request(env)
 		end
 		web.send_json(resp)
 		return
+	elseif command == "getLoginInfo" then
+		local data = {}
+		data["mac"] = flashman.get_router_id()
+		data["ssid"] = flashman.get_router_ssid()
+		data["mesh_master"] = flashman.get_mesh_master()
+		local resp = {}
+		resp["data"] = data
+		web.send_json(resp)
+		return
 	end
 
 	if tonumber(app_protocol_ver) == 1 then
@@ -207,17 +216,6 @@ function handle_request(env)
 	auth["id_router"] = flashman.get_router_id()
 	auth["app_secret"] = secret
 	auth["flashman_addr"] = flashman.get_server()
-
-	if command == "getLoginInfo" then
-		resp["auth"] = auth
-		local data = {}
-		data["mac"] = flashman.get_router_id()
-		data["ssid"] = flashman.get_router_ssid()
-		data["mesh_master"] = flashman.get_mesh_master()
-		resp["data"] = data
-		web.send_json(resp)
-		return
-	end
 
 	-- verify passwd
 	local passwd = flashman.get_router_passwd()
