@@ -3,12 +3,15 @@
 
 . /usr/share/libubox/jshn.sh
 . /usr/share/flashman_init.conf
+. /lib/functions/system.sh
 . /usr/share/functions/device_functions.sh
 . /usr/share/functions/wireless_functions.sh
 
-MAC_LAST_CHARS=$(get_mac | awk -F: '{ print $5$6 }')
+MAC_ADDR="$(get_mac)"
+MAC_LAST_CHARS=$(echo $MAC_ADDR | awk -F: '{ print $5$6 }')
 SSID_VALUE=$(uci -q get wireless.@wifi-iface[0].ssid)
 SUFFIX_5="-5GHz"
+IS_REALTEK="$(lsmod | grep rtl8192cd)"
 
 json_cleanup
 json_load_file /root/flashbox_config.json
@@ -38,7 +41,7 @@ then
 	# Wireless password cannot be empty or have less than 8 chars
 	if [ "$FLM_PASSWD" == "" ] || [ $(echo "$FLM_PASSWD" | wc -m) -lt 9 ]
 	then
-		FLM_PASSWD=$(get_mac | sed -e "s/://g")
+		FLM_PASSWD=$(echo $MAC_ADDR | sed -e "s/://g")
 	fi
 
 	_ssid_24=$setssid
@@ -83,8 +86,9 @@ uci set wireless.radio0.disabled='0'
 uci set wireless.default_radio0.disabled="$([ "$_state_24" = "1" ] && echo "0" || echo "1")"
 uci set wireless.default_radio0.ifname='wlan0'
 uci set wireless.default_radio0.ssid="$_ssid_24"
-uci set wireless.default_radio0.encryption="$([ "$(type -t custom_wifi_enc_proto)"  ] && custom_wifi_enc_proto || echo "psk2")"
+uci set wireless.default_radio0.encryption="$([ "$(grep RTL8196E /proc/cpuinfo)" ] && echo "psk2+tkip+ccmp" || echo "psk2")"
 uci set wireless.default_radio0.key="$_password_24"
+[ "$IS_REALTEK" ] && uci set wireless.default_radio0.macaddr="$(macaddr_add $MAC_ADDR -1)"
 
 if [ "$(is_5ghz_capable)" == "1" ]
 then
@@ -99,6 +103,7 @@ then
 	uci set wireless.default_radio1.ssid="$_ssid_50"
 	uci set wireless.default_radio1.encryption="psk2"
 	uci set wireless.default_radio1.key="$_password_50"
+	[ "$IS_REALTEK" ] && uci set wireless.default_radio1.macaddr="$(macaddr_add $MAC_ADDR -2)"
 fi
 
 if [ "$_mesh_mode" -gt "0" ]

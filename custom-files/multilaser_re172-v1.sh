@@ -52,7 +52,3 @@ anlix_force_clean_memory() {
 custom_wan_port() {
 	[ $1 == 1 ] && echo "switch0" || echo "4"
 }
-
-custom_wifi_enc_proto(){
-	echo "psk2+tkip+ccmp"
-}
