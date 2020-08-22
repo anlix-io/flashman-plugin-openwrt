@@ -56,3 +56,7 @@ set_switch_bridge_mode_on_boot() {
 custom_wan_port() {
 	[ $1 == 1 ] && echo "switch0" || echo "3"
 }
+
+get_custom_leds_blink() {
+	echo "$(ls -d /sys/class/leds/*blue*)"
+}
