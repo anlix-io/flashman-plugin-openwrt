@@ -65,6 +65,7 @@ get_wifi_device_stats() {
 	local _cmd_res
 	local _wifi_itf="wlan0"
 	local _ap_freq="2.4"
+	local _base_noise="-92"
 
 	_cmd_res=$(command -v iw)
 	_retstatus=$?
@@ -93,6 +94,12 @@ get_wifi_device_stats() {
 			local _dev_rxbytes="$(echo "$_dev_info" | grep 'rx bytes:' | awk '{print $3}')"
 			local _dev_txpackets="$(echo "$_dev_info" | grep 'tx packets:' | awk '{print $3}')"
 			local _dev_rxpackets="$(echo "$_dev_info" | grep 'rx packets:' | awk '{print $3}')"
+
+			_ap_noise=$([ "$_ap_noise" == "unknown" ] && echo "$_base_noise" || echo "$_ap_noise")
+			if [ "$_ap_noise" -lt "$_base_noise" ]
+			then
+				_ap_noise="$_base_noise"
+			fi
 
 			# Calculate SNR
 			local _dev_snr="$(($_dev_signal - $_ap_noise))"
@@ -215,11 +222,19 @@ get_device_vlan() {
 
 get_wan_negotiated_speed() {
 	local _wan=$(get_wan_device)
-	if [ "$(is_device_vlan $_wan)" ]
+	if [ "$(type -t custom_wan_port)" ] || [ "$(is_device_vlan $_wan)" ]
 	then
-		local _vport=$(get_device_vlan $_wan)
-		local _switch="$(get_vlan_device $_vport)"
-		local _port="$(get_vlan_ports $_vport)"
+		local _switch
+		local _port
+		if [ "$(type -t custom_wan_port)" ]
+		then
+			_switch="$(custom_wan_port 1)"
+			_port="$(custom_wan_port 2)"
+		else
+			local _vport=$(get_device_vlan $_wan)
+			_switch="$(get_vlan_device $_vport)"
+			_port="$(get_vlan_ports $_vport)"
+		fi
 		echo "$(swconfig dev $_switch port $_port get link|sed -ne 's/.*speed:\([0-9]*\)*.*/\1/p')"
 	else
 		cat /sys/class/net/$_wan/speed
@@ -228,11 +243,19 @@ get_wan_negotiated_speed() {
 
 get_wan_negotiated_duplex() {
 	local _wan=$(get_wan_device)
-	if [ "$(is_device_vlan $_wan)" ]
+	if [ "$(type -t custom_wan_port)" ] || [ "$(is_device_vlan $_wan)" ]
 	then
-		local _vport=$(get_device_vlan $_wan)
-		local _switch="$(get_vlan_device $_vport)"
-		local _port="$(get_vlan_ports $_vport)"
+		local _switch
+		local _port
+		if [ "$(type -t custom_wan_port)" ]
+		then
+			_switch="$(custom_wan_port 1)"
+			_port="$(custom_wan_port 2)"
+		else
+			local _vport=$(get_device_vlan $_wan)
+			_switch="$(get_vlan_device $_vport)"
+			_port="$(get_vlan_ports $_vport)"
+		fi
 		echo "$(swconfig dev $_switch port $_port get link|sed -ne 's/.* \([a-z]*\)-duplex*.*/\1/p')"
 	else
 		cat /sys/class/net/$_wan/duplex

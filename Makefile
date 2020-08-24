@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=flasman-plugin
-PKG_VERSION:=0.28.1
+PKG_VERSION:=0.29.0
 PKG_RELEASE:=1
 
 PKG_LICENSE:=GPL
@@ -144,19 +144,19 @@ CUSTOM_FILE_ARQ=
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8197d_DEVICE_DIR815D1), y)
 		CUSTOM_FILE_DIR="custom-files/dir-815-d1"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8196e_DEVICE_GWR300N), y)
-		CUSTOM_FILE_DIR="custom-files/gwr-300-v1"
+		CUSTOM_FILE_ARQ="greatek_gwr300-v1"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_GWR1200AC-V1), y)
-		CUSTOM_FILE_DIR="custom-files/gwr-1200-v1"
+		CUSTOM_FILE_ARQ="greatek_gwr1200-v1"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_GWR1200AC-V2), y)
-		CUSTOM_FILE_DIR="custom-files/gwr-1200-v2"
+		CUSTOM_FILE_ARQ="greatek_gwr1200-v2"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8196e_DEVICE_RE172), y)
-		CUSTOM_FILE_DIR="custom-files/re172-v1"
+		CUSTOM_FILE_ARQ="multilaser_re172-v1"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_RE708), y)
-		CUSTOM_FILE_DIR="custom-files/re708-v1"
+		CUSTOM_FILE_ARQ="multilaser_re708-v1"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_ACTIONRF1200), y)
-		CUSTOM_FILE_DIR="custom-files/actionrf1200-v1"
+		CUSTOM_FILE_ARQ="intelbras_rf1200-v1"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_ACTIONRG1200), y)
-		CUSTOM_FILE_DIR="custom-files/actionrg1200-v1"
+		CUSTOM_FILE_ARQ="intelbras_rg1200-v1"
 	endif
 
 WAN_PROTO=
