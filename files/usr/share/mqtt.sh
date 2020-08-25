@@ -71,7 +71,7 @@ wps)
 	if lock -n /tmp/set_wps.lock
 	then
 		log "MQTTMSG" "WPS push button pressed"
-		set_wps_push_button
+		set_wps_push_button "$2"
 		lock -u /tmp/set_wps.lock
 	fi
 	;;
