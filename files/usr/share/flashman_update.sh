@@ -330,6 +330,12 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 			enable_mesh_routing "$_mesh_mode" "$_mesh_id" "$_mesh_key" && _need_wifi_reload=1
 		fi
 
+		if [ "$(uci -q get wireless.radio1.channels)" ]
+		then
+			uci -q delete wireless.radio1.channels
+			uci commit wireless
+		fi
+
 		set_wifi_local_config "$_wifi_ssid_24" "$_wifi_password_24" \
 									"$_wifi_channel_24" "$_wifi_hwmode_24" \
 									"$_wifi_htmode_24" "$_wifi_state" \
