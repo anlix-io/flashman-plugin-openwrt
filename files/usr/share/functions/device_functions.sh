@@ -65,6 +65,7 @@ get_wifi_device_stats() {
 	local _cmd_res
 	local _wifi_itf="wlan0"
 	local _ap_freq="2.4"
+	local _base_noise="-92"
 
 	_cmd_res=$(command -v iw)
 	_retstatus=$?
@@ -94,7 +95,11 @@ get_wifi_device_stats() {
 			local _dev_txpackets="$(echo "$_dev_info" | grep 'tx packets:' | awk '{print $3}')"
 			local _dev_rxpackets="$(echo "$_dev_info" | grep 'rx packets:' | awk '{print $3}')"
 
-			_ap_noise=$([ "$_ap_noise" == "unknown" ] && echo "-92" || echo "$_ap_noise")
+			_ap_noise=$([ "$_ap_noise" == "unknown" ] && echo "$_base_noise" || echo "$_ap_noise")
+			if [ "$_ap_noise" -lt "$_base_noise" ]
+			then
+				_ap_noise="$_base_noise"
+			fi
 
 			# Calculate SNR
 			local _dev_snr="$(($_dev_signal - $_ap_noise))"
