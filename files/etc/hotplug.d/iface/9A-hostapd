@@ -1,0 +1,22 @@
+#!/bin/sh
+
+if [ "$ACTION" = ifup ]
+then
+	if [ "$INTERFACE" = wlan0 ]
+	then
+		hostapd_cli -i wlan0 -a /usr/share/hostapdstats.sh -B
+	fi
+
+	if [ "$INTERFACE" = wlan1 ]
+	then
+		hostapd_cli -i wlan1 -a /usr/share/hostapdstats.sh -B
+	fi
+elif [ "$ACTION" = ifdown ]
+then
+	if [ "$INTERFACE" = wlan0 ] || [ "$INTERFACE" = wlan1 ]
+	then
+		killall hostapd_cli
+	fi
+else
+	exit 0
+fi
