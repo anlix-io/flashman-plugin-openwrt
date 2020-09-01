@@ -1,0 +1,17 @@
+#!/bin/sh /etc/rc.common
+
+USE_PROCD=1
+PROG="hostapd_cli -i wlan1 -a /usr/share/hostapdstats.sh"
+
+# THIS SERVICE DOES NOT START AUTOMATICALLY ON PURPOSE
+# SEE HOTPLUG
+
+start_service() {
+  procd_open_instance
+  procd_set_param command ${PROG}
+  procd_set_param respawn 180 15 6
+  procd_set_param stdout 1 # forward stdout of the command to logd
+  procd_set_param stderr 1 # same for stderr
+  procd_set_param pidfile /var/run/hostapdstats-wlan1.pid
+  procd_close_instance
+}

@@ -2,27 +2,21 @@
 
 if [ "$ACTION" = add ]
 then
-	if [ "$INTERFACE" = wlan0 ] && [ ! -f /var/run/hostapdstats-wlan0.pid ]
+	if [ "$INTERFACE" = wlan0 ]
 	then
-		hostapd_cli -i wlan0 -P /var/run/hostapdstats-wlan0.pid -a /usr/share/hostapdstats.sh -B
-	fi
-
-	if [ "$INTERFACE" = wlan1 ] && [ ! -f /var/run/hostapdstats-wlan1.pid ]
+		service hostapdstats_wlan0 start
+	elif [ "$INTERFACE" = wlan1 ]
 	then
-		hostapd_cli -i wlan1 -P /var/run/hostapdstats-wlan1.pid -a /usr/share/hostapdstats.sh -B
+		service hostapdstats_wlan1 start
 	fi
 elif [ "$ACTION" = remove ]
 then
-	if [ "$INTERFACE" = wlan0 ] && [ -f /var/run/hostapdstats-wlan0.pid ]
+	if [ "$INTERFACE" = wlan0 ]
 	then
-		hostapdstats_pid=$(cat /var/run/hostapdstats-wlan0.pid)
-		kill -9 $hostapdstats_pid
-	fi
-
-	if [ "$INTERFACE" = wlan1 ] && [ -f /var/run/hostapdstats-wlan1.pid ]
+		service hostapdstats_wlan0 stop
+	elif [ "$INTERFACE" = wlan1 ]
 	then
-		hostapdstats_pid=$(cat /var/run/hostapdstats-wlan1.pid)
-		kill -9 $hostapdstats_pid
+		service hostapdstats_wlan0 stop
 	fi
 else
 	exit 0
