@@ -4,19 +4,19 @@ if [ "$ACTION" = add ]
 then
 	if [ "$INTERFACE" = wlan0 ]
 	then
-		service hostapdstats_wlan0 start
+		/etc/init.d/hostapdstats_wlan0 start
 	elif [ "$INTERFACE" = wlan1 ]
 	then
-		service hostapdstats_wlan1 start
+		/etc/init.d/hostapdstats_wlan1 start
 	fi
 elif [ "$ACTION" = remove ]
 then
 	if [ "$INTERFACE" = wlan0 ]
 	then
-		service hostapdstats_wlan0 stop
+		/etc/init.d/hostapdstats_wlan0 stop
 	elif [ "$INTERFACE" = wlan1 ]
 	then
-		service hostapdstats_wlan0 stop
+		/etc/init.d/hostapdstats_wlan1 stop
 	fi
 else
 	exit 0
