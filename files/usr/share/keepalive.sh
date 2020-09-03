@@ -39,6 +39,16 @@ do
 		json_get_var _local_state_50 local_state_50
 		json_close_object
 
+		# Get WPS state if exists
+		_local_wps_state="false"
+		if [ -f "/tmp/wps_state.json" ]
+		then
+			json_cleanup
+			json_load_file /tmp/wps_state.json
+			json_get_var _local_wps_state wps_content
+			json_close_object
+		fi
+
 		log "KEEPALIVE" "Ping Flashman ..."
 		#
 		# WARNING! No spaces or tabs inside the following string!
@@ -72,7 +82,8 @@ wifi_state_5ghz=$_local_state_50&\
 connection_type=$(get_wan_type)&\
 ntp=$(ntp_anlix)&\
 sysuptime=$(sys_uptime)&\
-wanuptime=$(wan_uptime)"
+wanuptime=$(wan_uptime)&\
+wpsstate=$_local_wps_state"
 		_url="deviceinfo/syn/"
 		_res=$(rest_flashman "$_url" "$_data")
 
