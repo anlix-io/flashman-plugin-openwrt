@@ -15,10 +15,7 @@ elif [ "$EVENT" == "WPS-TIMEOUT" ] || [ "$EVENT" == "WPS-PBC-DISABLE" ]
 then
 	# Push button disabled
 	send_wps_status "0" "false"
-elif [ "$EVENT" == "WPS-SUCCESS" ]
-then
-	# Auth success
-	send_wps_status "1" "true"
+	# State 1 should be "$EVENT" == "WPS-SUCCESS" but useless at the moment
 elif [ "$EVENT" == "WPS-REG-SUCCESS" ]
 then
 	# Device MAC authenticated by WPS
