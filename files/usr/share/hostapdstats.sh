@@ -10,11 +10,11 @@ INFO="$3"
 if [ "$EVENT" == "WPS-PBC-ACTIVE" ]
 then
 	# Push button active
-	send_wps_status "0" "true"
+	send_wps_status "0" "1"
 elif [ "$EVENT" == "WPS-TIMEOUT" ] || [ "$EVENT" == "WPS-PBC-DISABLE" ]
 then
 	# Push button disabled
-	send_wps_status "0" "false"
+	send_wps_status "0" "0"
 	# State 1 should be "$EVENT" == "WPS-SUCCESS" but useless at the moment
 elif [ "$EVENT" == "WPS-REG-SUCCESS" ]
 then

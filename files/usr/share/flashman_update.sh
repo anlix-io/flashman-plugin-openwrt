@@ -73,7 +73,7 @@ then
 	json_close_object
 
 	# Get WPS state if exists
-	_local_wps_state="false"
+	_local_wps_state="0"
 	if [ -f "/tmp/wps_state.json" ]
 	then
 		json_cleanup
