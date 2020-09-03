@@ -307,13 +307,17 @@ run_diagnostics_test() {
 send_wps_status() {
 	local _res
 	local _processed
-	local _out_file="/tmp/wps_status.json"
 	local _wps_inform="$1"
 	local _wps_content="$2"
+	local _out_file="/tmp/wps_info.json"
+	if [ "$_wps_inform" == "0" ]
+	then
+		_out_file="/tmp/wps_state.json"
+	fi
 
 	json_init
-	json_add_string "wpsinform" "$_wps_inform"
-	json_add_string "wpscontent" "$_wps_content"
+	json_add_string "wps_inform" "$_wps_inform"
+	json_add_string "wps_content" "$_wps_content"
 	json_dump > "$_out_file"
 	json_cleanup
 
@@ -329,8 +333,6 @@ send_wps_status() {
 		json_load "$_res"
 		json_get_var _processed processed
 		json_close_object
-
-		rm "$_out_file"
 
 		return $_processed
 	else
