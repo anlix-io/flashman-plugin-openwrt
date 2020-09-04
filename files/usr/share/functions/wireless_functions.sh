@@ -490,7 +490,7 @@ set_wps_push_button() {
 
 	_state=$1
 
-	if [ "$_state" = "0" ]
+	if [ "$_state" = "1" ]
 	then
 		# Push button will last 2 min active or until first conn succeeds
 		hostapd_cli -i wlan0 wps_pbc
