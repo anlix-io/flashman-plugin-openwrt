@@ -1005,7 +1005,6 @@ set_mesh_master_mode() {
 	then
 		log "MESH" "Enabling mesh mode $_mesh_mode"
 		uci add_list dhcp.lan.dhcp_option="vendor:ANLIX02,43,$_mesh_mode"
-		_need_restart=1
 	else
 		log "MESH" "Mesh mode disabled"
 	fi
@@ -1017,7 +1016,10 @@ set_mesh_master_mode() {
 	json_close_object
 
 	uci commit dhcp
-	/etc/init.d/dnsmasq reload
+	if [ "$(get_bridge_mode_status)" != "y" ]
+	then
+		/etc/init.d/dnsmasq reload
+	fi
 }
 
 set_mesh_slave_mode() {

@@ -12,6 +12,8 @@
 . /usr/share/functions/api_functions.sh
 . /usr/share/functions/zabbix_functions.sh
 
+lock /tmp/lock_updater
+
 # If a command hash is provided, check if it should still be done
 COMMANDHASH=""
 if [ "$1" != "" ]
@@ -25,11 +27,13 @@ then
 		then
 			log "FLASHMAN UPDATER" "Provided hash received after command timeout"
 			log "FLASHMAN UPDATER" "Done"
+			lock -u /tmp/lock_updater
 			exit 0
 		fi
 	else
 		log "FLASHMAN UPDATER" "Provided hash is not in the to do file"
 		log "FLASHMAN UPDATER" "Done"
+		lock -u /tmp/lock_updater
 		exit 0
 	fi
 fi
@@ -160,6 +164,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 	if [ "$?" -eq 1 ]
 	then
 		log "FLASHMAN UPDATER" "Fail in Rest Flashman! Aborting..."
+		lock -u /tmp/lock_updater
 		exit 0
 	else
 		json_cleanup
@@ -239,6 +244,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		then
 			log "FLASHMAN UPDATER" "Reflashing ..."
 			run_reflash $_release_id
+			lock -u /tmp/lock_updater
 			exit 1
 		fi
 
@@ -330,6 +336,12 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 			enable_mesh_routing "$_mesh_mode" "$_mesh_id" "$_mesh_key" && _need_wifi_reload=1
 		fi
 
+		if [ "$(uci -q get wireless.radio1.channels)" ]
+		then
+			uci -q delete wireless.radio1.channels
+			uci commit wireless
+		fi
+
 		set_wifi_local_config "$_wifi_ssid_24" "$_wifi_password_24" \
 									"$_wifi_channel_24" "$_wifi_hwmode_24" \
 									"$_wifi_htmode_24" "$_wifi_state" \
@@ -410,7 +422,9 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 	fi
 else
 	log "FLASHMAN UPDATER" "Fail Authenticating device!"
+	lock -u /tmp/lock_updater
 	exit 0
 fi
 log "FLASHMAN UPDATER" "Done"
+lock -u /tmp/lock_updater
 exit 1

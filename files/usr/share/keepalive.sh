@@ -148,6 +148,9 @@ wanuptime=$(wan_uptime)"
 			log "KEEPALIVE" "Fail in Rest Flashman! Aborting..."
 		fi
 
+		#always keep the updater locker free
+		lock -u /tmp/lock_updater
+
 		[ "$(type -t anlix_force_clean_memory)" ] && anlix_force_clean_memory
 	fi
 done

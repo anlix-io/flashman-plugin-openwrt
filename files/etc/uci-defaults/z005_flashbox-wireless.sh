@@ -94,6 +94,7 @@ if [ "$(is_5ghz_capable)" == "1" ]
 then
 	uci set wireless.radio1.txpower="17"
 	uci set wireless.radio1.channel="$_channel_50"
+	[ "$_channel_50" == "auto" ] && uci set wireless.radio1.channels="36 40 44 153 157 161"
 	uci set wireless.radio1.country="BR"
 	uci set wireless.radio1.htmode="$_htmode_50"
 	uci set wireless.radio1.noscan="1"
