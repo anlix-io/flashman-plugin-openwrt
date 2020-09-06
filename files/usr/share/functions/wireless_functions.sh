@@ -422,7 +422,7 @@ change_wifi_state() {
 	_state=$1
 	_itf_num=$2
 
-	if [ "_$_state" = "0" ]
+	if [ "$_state" = "0" ]
 	then
 		_wifi_state="0"
 		_wifi_state_50="0"
@@ -482,5 +482,29 @@ auto_change_mesh_slave_channel() {
 		fi
 	else
 		log "AUTOCHANNEL" "No MESH signal found"
+	fi
+}
+
+set_wps_push_button() {
+	local _state
+
+	_state=$1
+
+	if [ "$_state" = "1" ]
+	then
+		# Push button will last 2 min active or until first conn succeeds
+		hostapd_cli -i wlan0 wps_pbc
+
+		if [ "$(is_5ghz_capable)" == "1" ]
+		then
+			hostapd_cli -i wlan1 wps_pbc
+		fi
+	else
+		hostapd_cli -i wlan0 wps_cancel
+
+		if [ "$(is_5ghz_capable)" == "1" ]
+		then
+			hostapd_cli -i wlan1 wps_cancel
+		fi
 	fi
 }

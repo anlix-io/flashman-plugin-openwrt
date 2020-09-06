@@ -76,6 +76,16 @@ then
 	json_get_var _local_mesh_mode mesh_mode
 	json_close_object
 
+	# Get WPS state if exists
+	_local_wps_state="0"
+	if [ -f "/tmp/wps_state.json" ]
+	then
+		json_cleanup
+		json_load_file /tmp/wps_state.json
+		json_get_var _local_wps_state wps_content
+		json_close_object
+	fi
+
 	[ ! "$_local_mesh_mode" ] && _local_mesh_mode="0"
 
 	# If bridge is active, we cannot use get_wan_type, use flashman_init.conf
@@ -144,7 +154,8 @@ ntp=$(ntp_anlix)&\
 hardreset=$_hard_reset_info&\
 upgfirm=$_has_upgraded_version&\
 sysuptime=$(sys_uptime)&\
-wanuptime=$(wan_uptime)"
+wanuptime=$(wan_uptime)&\
+wpsstate=$_local_wps_state"
 	if [ "$_local_bridge_did_reset" = "y" ] || [ "$_local_did_change_wan" = "y" ]
 	then
 		_data="$_data&\
