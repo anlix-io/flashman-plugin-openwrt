@@ -41,6 +41,7 @@ get_wifi_local_config() {
 	local _state_24="$(get_wifi_state '0')"
 	local _txpower_24="$(uci -q get wireless.radio0.txpower)"
 	local _ft_24="$(uci -q get wireless.default_radio0.ieee80211r)"
+	local _hidden_24="$(uci -q get wireless.default_radio0.hidden)"
 
 	local _is_5ghz_capable="$(is_5ghz_capable)"
 	local _ssid_50="$(uci -q get wireless.default_radio1.ssid)"
@@ -51,6 +52,7 @@ get_wifi_local_config() {
 	local _state_50="$(get_wifi_state '1')"
 	local _txpower_50="$(uci -q get wireless.radio1.txpower)"
 	local _ft_50="$(uci -q get wireless.default_radio1.ieee80211r)"
+	local _hidden_50="$(uci -q get wireless.default_radio1.hidden)"
 
 	json_cleanup
 	json_init
@@ -62,6 +64,7 @@ get_wifi_local_config() {
 	json_add_string "local_ft_24" "$_ft_24"
 	json_add_string "local_state_24" "$_state_24"
 	json_add_string "local_txpower_24" "$_txpower_24"
+	json_add_string "local_hidden_24" "$_hidden_24"
 	json_add_string "local_5ghz_capable" "$_is_5ghz_capable"
 	json_add_string "local_ssid_50" "$_ssid_50"
 	json_add_string "local_password_50" "$_password_50"
@@ -71,6 +74,7 @@ get_wifi_local_config() {
 	json_add_string "local_ft_50" "$_ft_50"
 	json_add_string "local_state_50" "$_state_50"
 	json_add_string "local_txpower_50" "$_txpower_50"
+	json_add_string "local_hidden_50" "$_hidden_50"
 	echo "$(json_dump)"
 	json_close_object
 }
@@ -84,7 +88,8 @@ save_wifi_parameters() {
 	json_add_string hwmode_24 "$(uci -q get wireless.radio0.hwmode)"
 	json_add_string htmode_24 "$(uci -q get wireless.radio0.htmode)"
 	json_add_string state_24 "$(get_wifi_state '0')"
-	json_add_string htmode_24 "$(uci -q get wireless.radio0.txpower)"
+	json_add_string txpower_24 "$(uci -q get wireless.radio0.txpower)"
+	json_add_string hidden_24 "$(uci -q get wireless.default_radio0.hidden)"
 
 	if [ "$(is_5ghz_capable)" == "1" ]
 	then
@@ -94,7 +99,8 @@ save_wifi_parameters() {
 		json_add_string hwmode_50 "$(uci -q get wireless.radio1.hwmode)"
 		json_add_string htmode_50 "$(uci -q get wireless.radio1.htmode)"
 		json_add_string state_50 "$(get_wifi_state '1')"
-		json_add_string htmode_50 "$(uci -q get wireless.radio1.txpower)"
+		json_add_string txpower_50 "$(uci -q get wireless.radio1.txpower)"
+		json_add_string hidden_50 "$(uci -q get wireless.default_radio1.hidden)"
 	fi
 	json_dump > /root/flashbox_config.json
 	json_close_object
@@ -110,16 +116,18 @@ set_wifi_local_config() {
 	local _remote_htmode_24="$5"
 	local _remote_state_24="$6"
 	local _remote_txpower_24="$7"
+	local _remote_hidden_24="$8"
 
-	local _remote_ssid_50="$8"
-	local _remote_password_50="$9"
-	local _remote_channel_50="$10"
-	local _remote_hwmode_50="$11"
-	local _remote_htmode_50="$12"
-	local _remote_state_50="$13"
-	local _remote_txpower_50="$14"
+	local _remote_ssid_50="$9"
+	local _remote_password_50="$10"
+	local _remote_channel_50="$11"
+	local _remote_hwmode_50="$12"
+	local _remote_htmode_50="$13"
+	local _remote_state_50="$14"
+	local _remote_txpower_50="$15"
+	local _remote_hidden_50="$15"
 
-	local _mesh_mode="$15"
+	local _mesh_mode="$17"
 
 	json_cleanup
 	json_load "$(get_wifi_local_config)"
@@ -131,6 +139,7 @@ set_wifi_local_config() {
 	json_get_var _local_ft_24 local_ft_24
 	json_get_var _local_state_24 local_state_24
 	json_get_var _local_txpower_24 local_txpower_24
+	json_get_var _local_hidden_24 local_hidden_24
 
 	json_get_var _local_ssid_50 local_ssid_50
 	json_get_var _local_password_50 local_password_50
@@ -140,6 +149,7 @@ set_wifi_local_config() {
 	json_get_var _local_ft_50 local_ft_50
 	json_get_var _local_state_50 local_state_50
 	json_get_var _local_txpower_50 local_txpower_50
+	json_get_var _local_hidden_50 local_hidden_50
 	json_close_object
 
 	if [ "$_remote_ssid_24" != "" ] && \
@@ -233,6 +243,12 @@ set_wifi_local_config() {
                 uci set wireless.radio0.txpower="$_remote_txpower_24"
                 _do_reload=1
         fi
+	if [ "$_remote_hidden_24" != "" ] && \
+                 [ "$_remote_hidden_24" != "$_local_hidden_24" ]
+        then
+                uci set wireless.default_radio0.hidden="$_remote_hidden_24"i
+                _do_reload=1
+        fi
 
 	# 5GHz
 	if [ "$(is_5ghz_capable)" == "1" ]
@@ -323,6 +339,12 @@ set_wifi_local_config() {
                 	uci set wireless.radio1.txpower="$_remote_txpower_50"
                 	_do_reload=1
         	fi
+		if [ "$_remote_hidden_50" != "" ] && \
+                        [ "$_remote_hidden_50" != "$_local_hidden_50" ]
+                then
+                        uci set wireless.default_radio1.hidden="$_remote_hidden_50"
+                        _do_reload=1
+                fi
 	fi
 
 	if [ $_do_reload -eq 1 ]
