@@ -136,6 +136,14 @@ get_online_devices() {
 	local _macs_v4="$(echo "$_ipv4_neigh" | awk '{ print $1 }')"
 	local _macs_v6="$(echo "$_ipv6_neigh" | awk '{ print $1 }')"
 	local _macs="$(printf %s\\n%s "$_macs_v4" "$_macs_v6" | sort | uniq)"
+	local _local_itf_macs="$(ifconfig | grep HWaddr | awk '{ print tolower($NF) }' | sort | uniq)"
+
+	# Remove MACs related to the router itself
+	local _local_mac_duplicates="$(printf %s\\n%s "$_macs" "$_local_itf_macs" | sort | uniq -d)"
+	for _mac in $_local_mac_duplicates
+	do
+		_macs="$(printf %s\\n%s "$_macs" | sed "/$_mac/d")"
+	done
 
 	# Create control dir with device status
 	[ -d /tmp/onlinedevscheck ] && rm -rf /tmp/onlinedevscheck
