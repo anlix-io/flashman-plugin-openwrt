@@ -2,6 +2,7 @@
 
 . /usr/share/libubox/jshn.sh
 . /usr/share/functions/device_functions.sh
+. /usr/share/functions/network_functions.sh
 
 get_device_mac_from_ip() {
 	local _ip=$1
@@ -175,7 +176,6 @@ get_online_devices() {
 	# Filter only online devs
 	_macs=$(ls /tmp/onlinedevscheck | grep ".on" | awk -F. '{print $1}')
 	# Create JSON with online devices
-	json_init
 	json_add_object "Devices"
 	for _mac in $_macs
 	do
@@ -263,12 +263,55 @@ get_online_devices() {
 		json_close_object
 	done
 	json_close_object
-	json_dump
+}
+
+get_online_mesh_routers() {
+	local _routers=""
+	local _stations=""
+	local _r
+	if [ -e /sys/class/net/mesh0 ]
+	then
+		_routers="$(iw dev mesh0 mpath dump | awk '/mesh0/{print $1}')"
+		_stations="$(iw dev mesh0 station dump)"
+	fi
+	if [ -e /sys/class/net/mesh1 ]
+	then
+		_routers="$_routers $(iw dev mesh1 mpath dump | awk '/mesh0/{print $1}')"
+		_stations="$_stations $(iw dev mesh1 station dump)"
+	fi
+
+	local _mac
+	json_add_object "mesh_routers"
+	while [ "$_stations" ]
+	do
+		_r=${_stations##*Station}
+		_stations=${_stations%Station *}
+		_mac="$(echo ${_r%% (*}|xargs)"
+		case "$_routers" in *"$_mac"*)
+			json_add_object "$_mac"
+			json_add_string "signal" "$(echo "$_r"|awk '/signal:/{print $2}')"
+			json_add_string "conn_time" "$(echo "$_r"|awk '/connected time:/{print $3}')"
+			json_add_string "rx_bytes" "$(echo "$_r"|awk '/rx bytes:/{print $3}')"
+			json_add_string "tx_bytes" "$(echo "$_r"|awk '/tx bytes:/{print $3}')"
+			json_add_string "rx_bit" "$(echo "$_r"|awk '/rx bitrate:/{print $3}')"
+			json_add_string "tx_bit" "$(echo "$_r"|awk '/tx bitrate:/{print $3}')"
+			json_close_object
+			;;
+		esac
+	done
+
+	json_close_object
 }
 
 send_online_devices() {
 	local _res
-	_res=$(get_online_devices | curl -s --tlsv1.2 --connect-timeout 5 \
+	local _mesh_mode=$(get_mesh_mode)
+
+	json_init
+	get_online_devices
+	if [ "$_mesh_mode" -gt 1 ] && get_online_mesh_routers
+
+	_res=$(json_dump | curl -s --tlsv1.2 --connect-timeout 5 \
 				--retry 1 -H "Content-Type: application/json" \
 				-H "X-ANLIX-ID: $(get_mac)" \
 				-H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
