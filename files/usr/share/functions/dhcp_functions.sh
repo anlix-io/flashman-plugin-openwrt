@@ -85,21 +85,24 @@ check_dev_online_status() {
 	local _ipv6_neigh="$3"
 	local _ipv4="$(echo "$_ipv4_neigh" | grep "$_mac" | awk '{ print $2 }')"
 	local _ipv6="$(echo "$_ipv6_neigh" | grep "$_mac" | awk '{ print $2 }')"
+	local _res
 
 	# check online in ipv4
-	ping -q -c 1 -w 1 "$i" > /dev/null 2>&1
+	_res="$(ping -q -c 1 -w 1 "$i")"
 	if [ $? -eq 0 ]
 	then
 		mv "/tmp/onlinedevscheck/$_mac.wait" "/tmp/onlinedevscheck/$_mac.on"
+		echo "$(echo $_res|sed -ne 's/.* = \([0-9\.]*\)*.*/\1/p')" > "/tmp/onlinedevscheck/$_mac.on"
 		return
 	fi
 
 	for i in $_ipv6
 	do
-		ping6 -I br-lan -q -c 1 -w 1 "$i" > /dev/null 2>&1
+		_res=$(ping6 -I br-lan -q -c 1 -w 1 "$i")
 		if [ $? -eq 0 ]
 		then
 			mv "/tmp/onlinedevscheck/$_mac.wait" "/tmp/onlinedevscheck/$_mac.on"
+			echo "$(echo $_res|sed -ne 's/.* = \([0-9\.]*\)*.*/\1/p')" > "/tmp/onlinedevscheck/$_mac.on"
 			return
 		fi
 	done
@@ -186,6 +189,10 @@ get_online_devices() {
 		local _dev_snr=""
 		local _dev_freq=""
 		local _dev_mode=""
+		local _dev_ping=""
+		local _dev_rx=""
+		local _dev_tx=""
+		local _dev_conntime=""
 		local _dev_signature=""
 		local _dhcp_signature=""
 		local _dhcp_vendor_class=""
@@ -208,6 +215,11 @@ get_online_devices() {
 			_dev_snr=$(echo $_wifi_stats | awk '{print $4}')
 			_dev_freq=$(echo $_wifi_stats | awk '{print $5}')
 			_dev_mode=$(echo $_wifi_stats | awk '{print $6}')
+			_dev_tx=$(echo $_wifi_stats | awk '{print $7}')
+			_dev_rx=$(echo $_wifi_stats | awk '{print $8}')
+			_dev_conntime=$(echo $_wifi_stats | awk '{print $11}')
+			_dev_ping=$([ -s "/tmp/onlinedevscheck/$_mac.on" ] && cat "/tmp/onlinedevscheck/$_mac.on")
+
 			if [ "$(type -t get_wifi_device_signature)" ]
 			then
 				_dev_signature="$(get_wifi_device_signature $_mac)"
@@ -241,6 +253,10 @@ get_online_devices() {
 		json_add_string "wifi_snr" "$_dev_snr"
 		json_add_string "wifi_freq" "$_dev_freq"
 		json_add_string "wifi_mode" "$_dev_mode"
+		json_add_string "ping" "$_dev_ping"
+		json_add_string "tx_bytes" "$_dev_tx"
+		json_add_string "rx_bytes" "$_dev_rx"
+		json_add_string "conn_time" "$_dev_conntime"
 		json_add_string "wifi_signature" "$_dev_signature"
 		json_add_string "dhcp_signature" "$_dhcp_signature"
 		json_add_string "dhcp_vendor_class" "$_dhcp_vendor_class"

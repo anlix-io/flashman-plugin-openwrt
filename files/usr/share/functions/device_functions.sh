@@ -94,6 +94,7 @@ get_wifi_device_stats() {
 			local _dev_rxbytes="$(echo "$_dev_info" | grep 'rx bytes:' | awk '{print $3}')"
 			local _dev_txpackets="$(echo "$_dev_info" | grep 'tx packets:' | awk '{print $3}')"
 			local _dev_rxpackets="$(echo "$_dev_info" | grep 'rx packets:' | awk '{print $3}')"
+			local _dev_conntime="$(echo "$_dev_info" | grep 'connected time:' | awk '{print $3}')"
 
 			_ap_noise=$([ "$_ap_noise" == "unknown" ] && echo "$_base_noise" || echo "$_ap_noise")
 			if [ "$_ap_noise" -lt "$_base_noise" ]
@@ -111,12 +112,13 @@ get_wifi_device_stats() {
 			# Traffic data
 			_wifi_stats="$_wifi_stats $_dev_txbytes $_dev_rxbytes"
 			_wifi_stats="$_wifi_stats $_dev_txpackets $_dev_rxpackets"
+			_wifi_stats="$_wifi_stats $_dev_conntime"
 			echo "$_wifi_stats"
 		else
-			echo "0.0 0.0 0.0 0.0 0 Z 0 0 0 0"
+			echo "0.0 0.0 0.0 0.0 0 Z 0 0 0 0 0"
 		fi
 	else
-		echo "0.0 0.0 0.0 0.0 0 Z 0 0 0 0"
+		echo "0.0 0.0 0.0 0.0 0 Z 0 0 0 0 0"
 	fi
 }
 
