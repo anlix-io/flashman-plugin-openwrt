@@ -10,6 +10,11 @@ STOP=1F
 USE_PROCD=1
 
 param_list() {
+
+  local _wifi_config="$(get_wifi_local_config)"
+  [ "$(echo "$_wifi_config" | jsonfilter -e '@["local_state_24"]')" == "1" ] && ubus -t 15 wait_for hostapd.wlan0 2>/dev/null
+  [ "$(is_5ghz_capable)" == "1" ] && [ "$(echo "$_wifi_config" | jsonfilter -e '@["local_state_50"]')" == "1" ] && ubus -t 15 wait_for hostapd.wlan1 2>/dev/null
+
   radios=$(ubus list | grep hostapd.wlan)
   BRIDGE_IP_ADDR=""
   while true
@@ -26,8 +31,8 @@ param_list() {
   json_init
   json_add_string "iface_ip" "$BRIDGE_IP_ADDR"
   json_add_string "mac" "$(get_mac)"
-  json_add_string "ssid" "$(get_wifi_local_config | jsonfilter -e '@["local_ssid_24"]')"
-  json_add_string "ssid_5" "$(get_wifi_local_config | jsonfilter -e '@["local_ssid_50"]')"
+  json_add_string "ssid" "$(echo "$_wifi_config" | jsonfilter -e '@["local_ssid_24"]')"
+  json_add_string "ssid_5" "$(echo "$_wifi_config" | jsonfilter -e '@["local_ssid_50"]')"
   [ "$(is_mesh_capable)" ] && json_add_int "mesh_support" "1"
   json_add_int "mesh" "$(get_mesh_mode)"
   [ "$(get_mesh_master)" ] && json_add_string "master" "$(get_mesh_master)" 
