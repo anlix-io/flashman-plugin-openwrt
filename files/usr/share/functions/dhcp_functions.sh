@@ -88,7 +88,7 @@ check_dev_online_status() {
 	local _res
 
 	# check online in ipv4
-	_res="$(ping -q -c 1 -w 1 "$i")"
+	_res="$(ping -q -c 1 -w 1 "$i" 2>/dev/null)"
 	if [ $? -eq 0 ]
 	then
 		mv "/tmp/onlinedevscheck/$_mac.wait" "/tmp/onlinedevscheck/$_mac.on"
@@ -98,7 +98,7 @@ check_dev_online_status() {
 
 	for i in $_ipv6
 	do
-		_res=$(ping6 -I br-lan -q -c 1 -w 1 "$i")
+		_res=$(ping6 -I br-lan -q -c 1 -w 1 "$i" 2>/dev/null)
 		if [ $? -eq 0 ]
 		then
 			mv "/tmp/onlinedevscheck/$_mac.wait" "/tmp/onlinedevscheck/$_mac.on"
@@ -217,13 +217,13 @@ get_online_devices() {
 			_dev_tx=$(echo $_wifi_stats | awk '{print $7}')
 			_dev_rx=$(echo $_wifi_stats | awk '{print $8}')
 			_dev_conntime=$(echo $_wifi_stats | awk '{print $11}')
-			_dev_ping=$([ -s "/tmp/onlinedevscheck/$_mac.on" ] && cat "/tmp/onlinedevscheck/$_mac.on")
 
 			if [ "$(type -t get_wifi_device_signature)" ]
 			then
 				_dev_signature="$(get_wifi_device_signature $_mac)"
 			fi
 		fi
+		_dev_ping=$([ -s "/tmp/onlinedevscheck/$_mac.on" ] && cat "/tmp/onlinedevscheck/$_mac.on")
 
 		if [ -e "/tmp/dhcpinfo/$_mac" ]
 		then
@@ -275,13 +275,23 @@ get_online_mesh_routers() {
 	fi
 	if [ -e /sys/class/net/mesh1 ]
 	then
-		_routers="$_routers $(iw dev mesh1 mpath dump | awk '/mesh0/{print $1}')"
-		_stations="$_stations $(iw dev mesh1 station dump)"
+		if [ "$_routers" ]
+		then
+			_routers="$_routers $(iw dev mesh1 mpath dump | awk '/mesh1/{print $1}')"
+		else
+			_routers="$(iw dev mesh1 mpath dump | awk '/mesh1/{print $1}')"
+		fi
+		if [ "$_stations" ]
+		then
+			_stations="$_stations $(iw dev mesh1 station dump)"
+		else
+			_stations="$(iw dev mesh1 station dump)"
+		fi
 	fi
 
 	local _mac
 	json_add_object "mesh_routers"
-	while [ "$_stations" ]
+	while [ "$(echo "$_stations"|xargs)" ]
 	do
 		_r=${_stations##*Station}
 		_stations=${_stations%Station *}
