@@ -2,7 +2,6 @@
 
 . /usr/share/libubox/jshn.sh
 . /usr/share/functions/device_functions.sh
-. /usr/share/functions/network_functions.sh
 
 get_device_mac_from_ip() {
 	local _ip=$1
@@ -306,7 +305,7 @@ get_online_mesh_routers() {
 
 send_online_devices() {
 	local _res
-	local _mesh_mode=$(get_mesh_mode)
+	local _mesh_mode=$(cat /root/flashbox_config.json | jsonfilter -e '@.mesh_mode')
 
 	json_init
 	get_online_devices
