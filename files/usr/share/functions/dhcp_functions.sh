@@ -295,6 +295,7 @@ get_online_mesh_routers() {
 			json_add_string "tx_bytes" "$(echo "$_r"|awk '/tx bytes:/{print $3}')"
 			json_add_string "rx_bit" "$(echo "$_r"|awk '/rx bitrate:/{print $3}')"
 			json_add_string "tx_bit" "$(echo "$_r"|awk '/tx bitrate:/{print $3}')"
+			json_add_string "iface" "$(echo "$_r"| awk '/\(on /{print substr($3, 1, 5)}')"
 			json_close_object
 			;;
 		esac
