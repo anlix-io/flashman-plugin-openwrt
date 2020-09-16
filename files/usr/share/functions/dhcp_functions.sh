@@ -309,7 +309,7 @@ send_online_devices() {
 
 	json_init
 	get_online_devices
-	if [ "$_mesh_mode" -gt 1 ] && get_online_mesh_routers
+	[ "$_mesh_mode" -gt 1 ] && get_online_mesh_routers
 
 	_res=$(json_dump | curl -s --tlsv1.2 --connect-timeout 5 \
 				--retry 1 -H "Content-Type: application/json" \
