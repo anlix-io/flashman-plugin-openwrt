@@ -140,9 +140,10 @@ get_online_devices() {
 	local _macs_v6="$(echo "$_ipv6_neigh" | awk '{ print $1 }')"
 	local _macs="$(printf %s\\n%s "$_macs_v4" "$_macs_v6" | sort | uniq)"
 	local _local_itf_macs="$(ifconfig | grep HWaddr | awk '{ print tolower($NF) }' | sort | uniq)"
+	local _mesh_routers="$(ubus call anlix_sapo get_routers_mac | jsonfilter -e '@.routers[@].mac')"
 
 	# Remove MACs related to the router itself
-	local _local_mac_duplicates="$(printf %s\\n%s "$_macs" "$_local_itf_macs" | sort | uniq -d)"
+	local _local_mac_duplicates="$(printf %s\\n%s\\n%s "$_macs" "$_local_itf_macs" "$_mesh_routers" | sort | uniq -d)"
 	for _mac in $_local_mac_duplicates
 	do
 		_macs="$(printf %s\\n%s "$_macs" | sed "/$_mac/d")"
