@@ -46,7 +46,9 @@ param_list() {
   [ $? == 0 ] && json_add_string "mac_mesh0" "$(echo "$_ifA"| awk '/HWaddr/{print tolower($NF)}')"
   _ifA="$(ifconfig mesh1)"
   [ $? == 0 ] && json_add_string "mac_mesh1" "$(echo "$_ifA"| awk '/HWaddr/{print tolower($NF)}')"
-  
+ _ifA="$(ifconfig br-lan)"
+  [ $? == 0 ] && json_add_string "mac_bridge" "$(echo "$_ifA"| awk '/HWaddr/{print tolower($NF)}')"
+
   echo "$(json_dump)"
   json_cleanup
 }
