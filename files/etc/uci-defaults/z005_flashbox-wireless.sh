@@ -75,7 +75,7 @@ then
 	uci reorder wireless.default_radio1=3
 fi
 
-uci set wireless.radio0.txpower="$([ "$(type -t custom_wifi_24_txpower)"  ] && custom_wifi_24_txpower || echo "17")"
+uci set wireless.radio0.txpower="$([ "$(type -t custom_wifi_24_txpower)"  ] && custom_wifi_24_txpower || echo "20")"
 uci set wireless.radio0.htmode="$_htmode_24"
 uci set wireless.radio0.noscan="0"
 [ "$_htmode_24" = "HT40" ] && uci set wireless.radio0.noscan="1"
@@ -93,7 +93,7 @@ uci set wireless.default_radio0.wps_pushbutton='1'
 
 if [ "$(is_5ghz_capable)" == "1" ]
 then
-	uci set wireless.radio1.txpower="17"
+	uci set wireless.radio1.txpower="30"
 	uci set wireless.radio1.channel="$_channel_50"
 	[ "$_channel_50" == "auto" ] && uci set wireless.radio1.channels="36 40 44 153 157 161"
 	uci set wireless.radio1.country="BR"
