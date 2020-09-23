@@ -83,7 +83,7 @@ then
 	uci reorder wireless.default_radio1=3
 fi
 
-uci set wireless.radio0.txpower="$([ "$(type -t custom_wifi_24_txpower)"  ] && custom_wifi_24_txpower || echo "20")"
+uci set wireless.radio0.txpower="$([ "$(type -t custom_wifi_24_txpower)"  ] && custom_wifi_24_txpower || echo "$_txpower_24")"
 uci set wireless.radio0.htmode="$_htmode_24"
 uci set wireless.radio0.noscan="0"
 [ "$_htmode_24" = "HT40" ] && uci set wireless.radio0.noscan="1"
@@ -96,13 +96,13 @@ uci set wireless.default_radio0.ifname='wlan0'
 uci set wireless.default_radio0.ssid="$_ssid_24"
 uci set wireless.default_radio0.encryption="$([ "$(grep RTL8196E /proc/cpuinfo)" ] && echo "psk2+tkip+ccmp" || echo "psk2")"
 uci set wireless.default_radio0.key="$_password_24"
-uci set wireless.default_radio0.hidden="0"
+uci set wireless.default_radio0.hidden="$_hidden_24"
 uci set wireless.default_radio0.wps_pushbutton='1'
 [ "$IS_REALTEK" ] && uci set wireless.default_radio0.macaddr="$(macaddr_add $MAC_ADDR -1)"
 
 if [ "$(is_5ghz_capable)" == "1" ]
 then
-	uci set wireless.radio1.txpower="30"
+	uci set wireless.radio1.txpower="$_tx_power_50"
 	uci set wireless.radio1.channel="$_channel_50"
 	[ "$_channel_50" == "auto" ] && uci set wireless.radio1.channels="36 40 44 153 157 161"
 	uci set wireless.radio1.country="BR"
@@ -114,7 +114,7 @@ then
 	uci set wireless.default_radio1.ssid="$_ssid_50"
 	uci set wireless.default_radio1.encryption="psk2"
 	uci set wireless.default_radio1.key="$_password_50"
-	uci set wireless.default_radio1.hidden="0"
+	uci set wireless.default_radio1.hidden="$_hidden_50"
 	uci set wireless.default_radio1.wps_pushbutton='1'
 	[ "$IS_REALTEK" ] && uci set wireless.default_radio1.macaddr="$(macaddr_add $MAC_ADDR -2)"
 fi
