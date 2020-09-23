@@ -80,8 +80,8 @@ then
 	uci reorder wireless.default_radio1=3
 fi
 
-uci set wireless.radio0.txpower="17"
-uci set wireless.default_radio0.hidden="0"
+uci set wireless.radio0.txpower="$_txpower_24"
+uci set wireless.default_radio0.hidden="$_hidden_24"
 uci set wireless.radio0.htmode="$_htmode_24"
 uci set wireless.radio0.noscan="0"
 [ "$_htmode_24" = "HT40" ] && uci set wireless.radio0.noscan="1"
@@ -97,8 +97,8 @@ uci set wireless.default_radio0.key="$_password_24"
 
 if [ "$(is_5ghz_capable)" == "1" ]
 then
-	uci set wireless.radio1.txpower="17"
-	uci set wireless.default_radio1.hidden="0"
+	uci set wireless.radio1.txpower="$_tx_power_50"
+	uci set wireless.default_radio1.hidden="$_hidden_50"
 	uci set wireless.radio1.channel="$_channel_50"
 	uci set wireless.radio1.country="BR"
 	uci set wireless.radio1.htmode="$_htmode_50"
