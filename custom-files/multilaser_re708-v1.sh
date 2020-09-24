@@ -23,7 +23,7 @@ get_custom_mac() {
 	local _mac_address_tag=""
 	local _p1
 
-	_p1=$(mtd_get_mac_binary boot 131079 | awk '{print toupper($1)}')
+	_p1=$(mtd_get_mac_binary config 7 | awk '{print toupper($1)}')
 	[ ! -z "$_p1" ] && _mac_address_tag=$_p1
 
 	echo "$_mac_address_tag"
