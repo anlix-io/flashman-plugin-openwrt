@@ -12,7 +12,19 @@ get_hwmode_24() {
 
 get_htmode_24() {
 	local _htmode_24="$(uci -q get wireless.radio0.htmode)"
-	[ "$_htmode_24" = "NOHT" ] && echo "HT20" || echo "$_htmode_24"
+	local _noscan_24="$(uci -q get wireless.radio0.htmode)"
+	if [ "$_noscan_24" == "0" ]
+	then
+		[ "$_htmode_24" = "HT40" ] && echo "auto" || echo "HT20"
+	else
+		[ "$_htmode_24" = "HT40" ] && echo "HT40" || echo "HT20"
+	fi
+}
+
+get_htmode_50() {
+        local _htmode_50="$(uci -q get wireless.radio1.htmode)"
+        local _noscan_50="$(uci -q get wireless.radio1.htmode)"
+	[ "$_noscan_50" == "0" ] && echo "auto" || echo "$_htmode_50"
 }
 
 get_wifi_state() {
@@ -48,7 +60,7 @@ get_wifi_local_config() {
 	local _password_50="$(uci -q get wireless.default_radio1.key)"
 	local _channel_50="$(uci -q get wireless.radio1.channel)"
 	local _hwmode_50="$(uci -q get wireless.radio1.hwmode)"
-	local _htmode_50="$(uci -q get wireless.radio1.htmode)"
+	local _htmode_50="$(get_htmode_50)"
 	local _state_50="$(get_wifi_state '1')"
 	local _txpower_50="$(uci -q get wireless.radio1.txpower)"
 	local _ft_50="$(uci -q get wireless.default_radio1.ieee80211r)"
@@ -90,6 +102,7 @@ save_wifi_parameters() {
 	json_add_string state_24 "$(get_wifi_state '0')"
 	json_add_string txpower_24 "$(uci -q get wireless.radio0.txpower)"
 	json_add_string hidden_24 "$(uci -q get wireless.default_radio0.hidden)"
+	json_add_string noscan_24 "$(uci -q get wireless.radio0.noscan)"
 
 	if [ "$(is_5ghz_capable)" == "1" ]
 	then
@@ -101,6 +114,7 @@ save_wifi_parameters() {
 		json_add_string state_50 "$(get_wifi_state '1')"
 		json_add_string txpower_50 "$(uci -q get wireless.radio1.txpower)"
 		json_add_string hidden_50 "$(uci -q get wireless.default_radio1.hidden)"
+		json_add_string noscan_50 "$(uci -q get wireless.radio1.noscan)"
 	fi
 	json_dump > /root/flashbox_config.json
 	json_close_object
@@ -184,9 +198,9 @@ set_wifi_local_config() {
 		local _newht=$(uci -q get wireless.radio0.htmode)
 		if [ "$_newht" != "NOHT" ]
 		then
-			uci set wireless.radio0.htmode="$_remote_htmode_24"
-			[ "$_remote_htmode_24" = "HT40" ] && uci set wireless.radio0.noscan="1"
-			[ "$_remote_htmode_24" = "HT20" ] && uci set wireless.radio0.noscan="0"
+			[ "$_remote_htmode_24" = "HT40" ] && uci set wireless.radio0.htmode="HT40"  && uci set wireless.radio0.noscan="1"
+			[ "$_remote_htmode_24" = "HT20" ] && uci set wireless.radio0.htmode="HT20" && uci set wireless.radio0.noscan="1"
+			[ "$_remote_htmode_24" = "auto" ] && uci set wireless.radio0.htmode="HT40" && uci set wireless.radio0.noscan="0"
 			_do_reload=1
 		fi
 	fi
@@ -275,13 +289,19 @@ set_wifi_local_config() {
 		if [ "$_remote_htmode_50" != "" ] && \
 			 [ "$_remote_htmode_50" != "$_local_htmode_50" ]
 		then
-			uci set wireless.radio1.htmode="$_remote_htmode_50"
-			if [ ! "$(is_5ghz_vht)" ]
+			if [ "$_remote_htmode_50" == "auto" ]
 			then
-				if [ "$_remote_htmode_50" != "HT40" ] ||
-					[ "$_remote_htmode_50" != "HT20" ]
+				uci set wireless.radio1.noscan="0"
+				[ ! "$(is_5ghz_vht)" ] && uci set wireless.radio1.htmode="HT40"
+				[ "$(is_5ghz_vht)" ] && uci set wireless.radio1.htmode="VHT80"
+			else
+				uci set wireless.radio1.noscan="1"
+				if [ "$_remote_htmode_50" == "VHT80" ]
 				then
-					uci set wireless.radio1.htmode="HT40"
+					[ ! "$(is_5ghz_vht)" ] && uci set wireless.radio1.htmode="HT40"
+					[ "$(is_5ghz_vht)" ] && uci set wireless.radio1.htmode="VHT80"
+				else
+					uci set wireless.radio1.htmode="$_remote_htmode_50"
 				fi
 			fi
 			_do_reload=1

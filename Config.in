@@ -50,7 +50,7 @@ config FLASHMAN_WIFI_CHANNEL
 
 config FLASHMAN_WIFI_BAND
 	string "WiFi router AP 2.4GHz bandwidth."
-	default "HT40"
+	default "auto"
 
 config FLASHMAN_WIFI_5GHZ_CHANNEL
 	string "WiFi router AP 5.0GHz channel."
