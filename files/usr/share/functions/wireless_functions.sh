@@ -137,9 +137,9 @@ set_wifi_local_config() {
 	local _remote_htmode_50="$13"
 	local _remote_state_50="$14"
 	local _remote_txpower_50="$15"
-	local _remote_hidden_50="$15"
+	local _remote_hidden_50="$16"
 
-	local _mesh_mode="$16"
+	local _mesh_mode="$17"
 
 	json_cleanup
 	json_load "$(get_wifi_local_config)"
