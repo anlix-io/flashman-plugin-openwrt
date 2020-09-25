@@ -102,7 +102,6 @@ save_wifi_parameters() {
 	json_add_string state_24 "$(get_wifi_state '0')"
 	json_add_string txpower_24 "$(uci -q get wireless.radio0.txpower)"
 	json_add_string hidden_24 "$(uci -q get wireless.default_radio0.hidden)"
-	json_add_string noscan_24 "$(uci -q get wireless.radio0.noscan)"
 
 	if [ "$(is_5ghz_capable)" == "1" ]
 	then
@@ -114,7 +113,6 @@ save_wifi_parameters() {
 		json_add_string state_50 "$(get_wifi_state '1')"
 		json_add_string txpower_50 "$(uci -q get wireless.radio1.txpower)"
 		json_add_string hidden_50 "$(uci -q get wireless.default_radio1.hidden)"
-		json_add_string noscan_50 "$(uci -q get wireless.radio1.noscan)"
 	fi
 	json_dump > /root/flashbox_config.json
 	json_close_object
