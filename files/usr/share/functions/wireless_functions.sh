@@ -201,8 +201,6 @@ set_wifi_local_config() {
 			[ "$_remote_htmode_24" = "auto" ] && uci set wireless.radio0.htmode="HT40" && uci set wireless.radio0.noscan="0"
 			_do_reload=1
 		fi
-		local _newht=$(uci -q get wireless.radio0.htmode)
-		echo "NEWHT = $_newht" > /tmp/ucilog5
 	fi
 
 	if [ -n "$_mesh_mode" ]
