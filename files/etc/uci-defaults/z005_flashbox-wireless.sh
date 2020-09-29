@@ -22,8 +22,8 @@ json_get_var _password_24 password_24
 json_get_var _channel_24 channel_24
 json_get_var _htmode_24 htmode_24
 json_get_var _state_24 state_24
-json_get_var _txpower_24 txpower_24
-json_get_var _hidden_24 hidden_24
+json_get_var _txpower_24 txpower_24 "100"
+json_get_var _hidden_24 hidden_24 "0"
 if [ "$(is_5ghz_capable)" == "1" ]
 then
 	json_get_var _ssid_50 ssid_50
@@ -31,8 +31,8 @@ then
 	json_get_var _channel_50 channel_50
 	json_get_var _htmode_50 htmode_50
 	json_get_var _state_50 state_50
-	json_get_var _txpower_50 txpower_50
-	json_get_var _hidden_50 hidden_50
+	json_get_var _txpower_50 txpower_50 "100"
+	json_get_var _hidden_50 hidden_50 "0"
 fi
 json_close_object
 
@@ -53,7 +53,7 @@ then
 	_channel_24="$FLM_24_CHANNEL"
 	_htmode_24="$([ "$FLM_24_BAND" = "HT40" ] && echo "HT40" || echo "HT20")"
 	_state_24="1"
-	_txpower_24="17"
+	_txpower_24="100"
 	_hidden_24="0"
 
 	_ssid_50="$setssid$SUFFIX_5"
@@ -61,7 +61,7 @@ then
 	_channel_50="$FLM_50_CHANNEL"
 	_htmode_50="$([ "$(is_5ghz_vht)" ] && echo "VHT80" || echo "HT40")"
 	_state_50="1"
-	_txpower_50="17"
+	_txpower_50="100"
 	_hidden_50="0"
 fi
 
@@ -83,7 +83,7 @@ then
 	uci reorder wireless.default_radio1=3
 fi
 
-uci set wireless.radio0.txpower="$([ "$(type -t custom_wifi_24_txpower)"  ] && custom_wifi_24_txpower || echo "$_txpower_24")"
+uci set wireless.radio0.txpower="$(convert_txpower "24" "$_channel_24" "$_txpower_24")"
 uci set wireless.radio0.htmode="$_htmode_24"
 uci set wireless.radio0.noscan="0"
 [ "$_htmode_24" = "HT40" ] && uci set wireless.radio0.noscan="1"
@@ -102,7 +102,7 @@ uci set wireless.default_radio0.wps_pushbutton='1'
 
 if [ "$(is_5ghz_capable)" == "1" ]
 then
-	uci set wireless.radio1.txpower="$_tx_power_50"
+	uci set wireless.radio1.txpower="$(convert_txpower "50" "$_channel_50" "$_txpower_50")"
 	uci set wireless.radio1.channel="$_channel_50"
 	[ "$_channel_50" == "auto" ] && uci set wireless.radio1.channels="36 40 44 153 157 161"
 	uci set wireless.radio1.country="BR"

@@ -52,7 +52,3 @@ anlix_force_clean_memory() {
 custom_wan_port() {
 	[ $1 == 1 ] && echo "switch0" || echo "4"
 }
-
-custom_wifi_24_txpower(){
-	echo "22"
-}

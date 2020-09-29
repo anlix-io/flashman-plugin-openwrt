@@ -146,7 +146,7 @@ wifi_channel=$_local_channel_24&\
 wifi_band=$_local_htmode_24&\
 wifi_mode=$_local_hwmode_24&\
 wifi_state=$_local_state_24&\
-wifi_txpower=$_local_txpower_24&\
+wifi_power=$_local_txpower_24&\
 wifi_hidden=$_local_hidden_24&\
 wifi_5ghz_capable=$_local_5ghz_capable&\
 wifi_ssid_5ghz=$_local_ssid_50&\
@@ -155,7 +155,7 @@ wifi_channel_5ghz=$_local_channel_50&\
 wifi_band_5ghz=$_local_htmode_50&\
 wifi_mode_5ghz=$_local_hwmode_50&\
 wifi_state_5ghz=$_local_state_50&\
-wifi_txpower_5ghz=$_local_txpower_50&\
+wifi_power_5ghz=$_local_txpower_50&\
 wifi_hidden_5ghz=$_local_hidden_50&\
 connection_type=$_local_wan_type&\
 ntp=$(ntp_anlix)&\
@@ -202,7 +202,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		json_get_var _wifi_channel_24 wifi_channel
 		json_get_var _wifi_htmode_24 wifi_band
 		json_get_var _wifi_hwmode_24 wifi_mode
-		json_get_var _wifi_txpower_24 wifi_txpower
+		json_get_var _wifi_txpower_24 wifi_power
 		json_get_var _wifi_hidden_24 wifi_hidden
 		json_get_var _wifi_state wifi_state
 		json_get_var _wifi_ssid_50 wifi_ssid_5ghz
@@ -211,7 +211,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		json_get_var _wifi_htmode_50 wifi_band_5ghz
 		json_get_var _wifi_hwmode_50 wifi_mode_5ghz
 		json_get_var _wifi_state_50 wifi_state_5ghz
-		json_get_var _wifi_txpower_50 wifi_txpower_5ghz
+		json_get_var _wifi_txpower_50 wifi_power_5ghz
 		json_get_var _wifi_hidden_50 wifi_hidden_5ghz
 		json_get_var _app_password app_password
 		json_get_var _forward_index forward_index
