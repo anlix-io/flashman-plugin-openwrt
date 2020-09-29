@@ -13,7 +13,8 @@ redo_connections() {
 	renew_dhcp
 }
 
-log "IMALIVE" "ROUTER STARTED!"
+_anlix_version="$(cat /etc/anlix_version)"
+log "IMALIVE" "ROUTER STARTED (v$_anlix_version)!"
 
 connected=false
 _num_ntptests=0
@@ -58,7 +59,7 @@ done
 
 MQTTSEC=$(set_mqtt_secret)
 
-log "IMALIVE" "Start main loop"
+log "IMALIVE" "Start main loop (v$_anlix_version)"
 
 numbacks=1
 while true
@@ -69,7 +70,7 @@ do
 		log "IMALIVE" "Empty MQTT Secret... Waiting..."
 	else
 		[ "$(type -t anlix_force_clean_memory)" ] && anlix_force_clean_memory
-		log "IMALIVE" "Running MQTT client"
+		log "IMALIVE" "Running MQTT client (v$_anlix_version)"
 		anlix-mqtt flashman/update/$(get_mac) --clientid $(get_mac) \
 		--host $FLM_SVADDR --port $MQTT_PORT \
 		--cafile /etc/ssl/certs/ca-certificates.crt \

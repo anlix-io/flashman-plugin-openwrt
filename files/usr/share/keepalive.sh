@@ -12,6 +12,7 @@
 _need_update=0
 _force_update=0
 _cert_error=0
+_anlix_version="$(cat /etc/anlix_version)"
 while true
 do
 	sleep 300
@@ -49,7 +50,7 @@ do
 			json_close_object
 		fi
 
-		log "KEEPALIVE" "Ping Flashman ..."
+		log "KEEPALIVE" "Ping Flashman (v$_anlix_version) ..."
 		#
 		# WARNING! No spaces or tabs inside the following string!
 		#
