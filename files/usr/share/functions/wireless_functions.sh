@@ -281,7 +281,7 @@ set_wifi_local_config() {
 	fi
 	if [ "$_remote_hidden_24" != "" ] && [ "$_remote_hidden_24" != "$_local_hidden_24" ]
 	then
-		uci set wireless.default_radio0.hidden="$_remote_hidden_24"i
+		uci set wireless.default_radio0.hidden="$_remote_hidden_24"
 		_do_reload=1
 	fi
 
