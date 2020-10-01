@@ -207,9 +207,7 @@ get_vlan_ports() {
 }
 
 get_wan_device() {
-	config_load network
-	config_get iface wan ifname
-	echo "$iface"
+	ubus call network.interface.wan status|jsonfilter -e "@.device"
 }
 
 get_switch_device() {
