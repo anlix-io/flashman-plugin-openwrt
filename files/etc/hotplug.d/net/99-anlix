@@ -1,5 +1,7 @@
 #!/bin/sh
 
+[ "$(type -t hostapd_cli)" ] || exit 0
+
 if [ "$ACTION" = add ]
 then
 	if [ "$INTERFACE" = wlan0 ]
