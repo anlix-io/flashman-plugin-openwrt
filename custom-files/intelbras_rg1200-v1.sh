@@ -53,8 +53,12 @@ set_switch_bridge_mode_on_boot() {
 	fi
 }
 
-custom_wan_port() {
-	[ $1 == 1 ] && echo "switch0" || echo "3"
+custom_switch_ports() {
+	case $1 in 
+		1) echo "switch0" ;;
+		2) echo "3" ;;
+		3) echo "0 1 2" ;;
+	esac
 }
 
 get_custom_leds_blink() {

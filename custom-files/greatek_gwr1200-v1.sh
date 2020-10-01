@@ -50,6 +50,10 @@ set_switch_bridge_mode_on_boot() {
 	fi
 }
 
-custom_wan_port() {
-	[ $1 == 1 ] && echo "switch0" || echo "0"
+custom_switch_ports() {
+	case $1 in 
+		1) echo "switch0" ;;
+		2) echo "0" ;;
+		3) echo "1 2 3 4" ;;
+	esac
 }
