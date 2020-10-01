@@ -569,6 +569,11 @@ set_wps_push_button() {
 
 	_state=$1
 
+	if [ ! "$(type -t hostapd_cli)" ]
+	then
+		return 1
+	fi
+
 	if [ "$_state" = "1" ]
 	then
 		# Push button will last 2 min active or until first conn succeeds
@@ -578,6 +583,7 @@ set_wps_push_button() {
 		then
 			hostapd_cli -i wlan1 wps_pbc
 		fi
+		return 0
 	else
 		hostapd_cli -i wlan0 wps_cancel
 
@@ -585,6 +591,7 @@ set_wps_push_button() {
 		then
 			hostapd_cli -i wlan1 wps_cancel
 		fi
+		return 0
 	fi
 }
 
