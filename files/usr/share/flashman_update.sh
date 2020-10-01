@@ -113,6 +113,8 @@ then
 		_local_bridge_switch_disable=0
 	fi
 
+	_local_enabled_ipv6="$(get_ipv6_enabled)"
+
 	# Report if a hard reset has occured
 	if [ "$_hard_reset_info" = "1" ]
 	then
@@ -140,6 +142,7 @@ wan_negociated_duplex=$(get_wan_negotiated_duplex)&\
 lan_addr=$(get_lan_ipaddr)&\
 lan_netmask=$(get_lan_netmask)&\
 lan_no_dns_proxy=$(get_use_dns_proxy)&\
+ipv6_enabled=$_local_enabled_ipv6&\
 wifi_ssid=$_local_ssid_24&\
 wifi_password=$_local_password_24&\
 wifi_channel=$_local_channel_24&\
@@ -197,6 +200,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		json_get_var _lan_addr lan_addr
 		json_get_var _lan_netmask lan_netmask
 		json_get_var _lan_no_dns_proxy lan_no_dns_proxy
+		json_get_var _ipv6_enabled ipv6_enabled
 		json_get_var _wifi_ssid_24 wifi_ssid
 		json_get_var _wifi_password_24 wifi_password
 		json_get_var _wifi_channel_24 wifi_channel
@@ -320,6 +324,18 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 			log "FLASHMAN UPDATER" "Sending BOOT log"
 			send_boot_log "boot"
 			echo "0" > /tmp/boot_completed
+		fi
+
+		if [ "$_ipv6_enabled" ] && [ "$_local_enabled_ipv6" != "$_ipv6_enabled" ]
+		then
+			if [ "$_ipv6_enabled" = "1" ]
+			then
+				enable_ipv6 
+			else
+				disable_ipv6
+			fi
+			/etc/init.d/network restart
+			/etc/init.d/miniupnpd reload
 		fi
 
 		# Ignore changes if in bridge mode

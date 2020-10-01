@@ -197,7 +197,7 @@ update_blocked_devices() {
 				/etc/firewall.user
 	done
 	/etc/init.d/firewall restart
-	/etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
+	[ "$(get_ipv6_enabled)" != "0" ] && /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
 
 	# Save index
 	json_update_index "$_blocked_devices_index" "blocked_devices_index"
