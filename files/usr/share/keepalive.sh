@@ -12,6 +12,7 @@
 _need_update=0
 _force_update=0
 _cert_error=0
+_anlix_version="$(cat /etc/anlix_version)"
 while true
 do
 	sleep 300
@@ -39,7 +40,17 @@ do
 		json_get_var _local_state_50 local_state_50
 		json_close_object
 
-		log "KEEPALIVE" "Ping Flashman ..."
+		# Get WPS state if exists
+		_local_wps_state="0"
+		if [ -f "/tmp/wps_state.json" ]
+		then
+			json_cleanup
+			json_load_file /tmp/wps_state.json
+			json_get_var _local_wps_state wps_content
+			json_close_object
+		fi
+
+		log "KEEPALIVE" "Ping Flashman (v$_anlix_version) ..."
 		#
 		# WARNING! No spaces or tabs inside the following string!
 		#
@@ -72,7 +83,8 @@ wifi_state_5ghz=$_local_state_50&\
 connection_type=$(get_wan_type)&\
 ntp=$(ntp_anlix)&\
 sysuptime=$(sys_uptime)&\
-wanuptime=$(wan_uptime)"
+wanuptime=$(wan_uptime)&\
+wpsstate=$_local_wps_state"
 		_url="deviceinfo/syn/"
 		_res=$(rest_flashman "$_url" "$_data")
 

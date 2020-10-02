@@ -23,7 +23,7 @@ get_custom_mac() {
 	local _mac_address_tag=""
 	local _p1
 
-	_p1=$(mtd_get_mac_binary boot 131079 | awk '{print toupper($1)}')
+	_p1=$(mtd_get_mac_binary config 7 | awk '{print toupper($1)}')
 	[ ! -z "$_p1" ] && _mac_address_tag=$_p1
 
 	echo "$_mac_address_tag"
@@ -46,6 +46,10 @@ set_switch_bridge_mode_on_boot() {
 	fi
 }
 
-custom_wan_port() {
-	[ $1 == 1 ] && echo "switch0" || echo "4"
+custom_switch_ports() {
+	case $1 in 
+		1) echo "switch0" ;;
+		2) echo "4" ;;
+		3) echo "0 1 2 3" ;;
+	esac
 }

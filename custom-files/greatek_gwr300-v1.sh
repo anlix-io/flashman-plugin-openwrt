@@ -49,10 +49,10 @@ anlix_force_clean_memory() {
 	echo 3 > /proc/sys/vm/drop_caches
 }
 
-custom_wan_port() {
-	[ $1 == 1 ] && echo "switch0" || echo "4"
-}
-
-custom_wifi_24_txpower(){
-	echo "22"
+custom_switch_ports() {
+	case $1 in 
+		1) echo "switch0" ;;
+		2) echo "4" ;;
+		3) echo "0 1 2 3" ;;
+	esac
 }

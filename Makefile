@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=flasman-plugin
-PKG_VERSION:=0.29.3
+PKG_VERSION:=0.30.0
 PKG_RELEASE:=1
 
 PKG_LICENSE:=GPL
@@ -157,6 +157,8 @@ CUSTOM_FILE_ARQ=
 		CUSTOM_FILE_ARQ="intelbras_rf1200-v1"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_ACTIONRG1200), y)
 		CUSTOM_FILE_ARQ="intelbras_rg1200-v1"
+	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_GF1200), y)
+		CUSTOM_FILE_ARQ="intelbras_gf1200-v1"
 	endif
 
 WAN_PROTO=

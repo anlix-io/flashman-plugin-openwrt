@@ -53,6 +53,8 @@ then
 	json_get_var _local_hwmode_24 local_hwmode_24
 	json_get_var _local_htmode_24 local_htmode_24
 	json_get_var _local_state_24 local_state_24
+	json_get_var _local_txpower_24 local_txpower_24
+	json_get_var _local_hidden_24 local_hidden_24
 	json_get_var _local_5ghz_capable local_5ghz_capable
 	json_get_var _local_ssid_50 local_ssid_50
 	json_get_var _local_password_50 local_password_50
@@ -60,6 +62,8 @@ then
 	json_get_var _local_hwmode_50 local_hwmode_50
 	json_get_var _local_htmode_50 local_htmode_50
 	json_get_var _local_state_50 local_state_50
+	json_get_var _local_txpower_50 local_txpower_50
+	json_get_var _local_hidden_50 local_hidden_50
 	json_close_object
 	# Get config data
 	json_cleanup
@@ -75,6 +79,16 @@ then
 	json_get_var _local_did_change_wan did_change_wan_local
 	json_get_var _local_mesh_mode mesh_mode
 	json_close_object
+
+	# Get WPS state if exists
+	_local_wps_state="0"
+	if [ -f "/tmp/wps_state.json" ]
+	then
+		json_cleanup
+		json_load_file /tmp/wps_state.json
+		json_get_var _local_wps_state wps_content
+		json_close_object
+	fi
 
 	[ ! "$_local_mesh_mode" ] && _local_mesh_mode="0"
 
@@ -98,6 +112,8 @@ then
 	else
 		_local_bridge_switch_disable=0
 	fi
+
+	_local_enabled_ipv6="$(get_ipv6_enabled)"
 
 	# Report if a hard reset has occured
 	if [ "$_hard_reset_info" = "1" ]
@@ -126,12 +142,15 @@ wan_negociated_duplex=$(get_wan_negotiated_duplex)&\
 lan_addr=$(get_lan_ipaddr)&\
 lan_netmask=$(get_lan_netmask)&\
 lan_no_dns_proxy=$(get_use_dns_proxy)&\
+ipv6_enabled=$_local_enabled_ipv6&\
 wifi_ssid=$_local_ssid_24&\
 wifi_password=$_local_password_24&\
 wifi_channel=$_local_channel_24&\
 wifi_band=$_local_htmode_24&\
 wifi_mode=$_local_hwmode_24&\
 wifi_state=$_local_state_24&\
+wifi_power=$_local_txpower_24&\
+wifi_hidden=$_local_hidden_24&\
 wifi_5ghz_capable=$_local_5ghz_capable&\
 wifi_ssid_5ghz=$_local_ssid_50&\
 wifi_password_5ghz=$_local_password_50&\
@@ -139,12 +158,15 @@ wifi_channel_5ghz=$_local_channel_50&\
 wifi_band_5ghz=$_local_htmode_50&\
 wifi_mode_5ghz=$_local_hwmode_50&\
 wifi_state_5ghz=$_local_state_50&\
+wifi_power_5ghz=$_local_txpower_50&\
+wifi_hidden_5ghz=$_local_hidden_50&\
 connection_type=$_local_wan_type&\
 ntp=$(ntp_anlix)&\
 hardreset=$_hard_reset_info&\
 upgfirm=$_has_upgraded_version&\
 sysuptime=$(sys_uptime)&\
-wanuptime=$(wan_uptime)"
+wanuptime=$(wan_uptime)&\
+wpsstate=$_local_wps_state"
 	if [ "$_local_bridge_did_reset" = "y" ] || [ "$_local_did_change_wan" = "y" ]
 	then
 		_data="$_data&\
@@ -178,11 +200,14 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		json_get_var _lan_addr lan_addr
 		json_get_var _lan_netmask lan_netmask
 		json_get_var _lan_no_dns_proxy lan_no_dns_proxy
+		json_get_var _ipv6_enabled ipv6_enabled
 		json_get_var _wifi_ssid_24 wifi_ssid
 		json_get_var _wifi_password_24 wifi_password
 		json_get_var _wifi_channel_24 wifi_channel
 		json_get_var _wifi_htmode_24 wifi_band
 		json_get_var _wifi_hwmode_24 wifi_mode
+		json_get_var _wifi_txpower_24 wifi_power
+		json_get_var _wifi_hidden_24 wifi_hidden
 		json_get_var _wifi_state wifi_state
 		json_get_var _wifi_ssid_50 wifi_ssid_5ghz
 		json_get_var _wifi_password_50 wifi_password_5ghz
@@ -190,6 +215,8 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		json_get_var _wifi_htmode_50 wifi_band_5ghz
 		json_get_var _wifi_hwmode_50 wifi_mode_5ghz
 		json_get_var _wifi_state_50 wifi_state_5ghz
+		json_get_var _wifi_txpower_50 wifi_power_5ghz
+		json_get_var _wifi_hidden_50 wifi_hidden_5ghz
 		json_get_var _app_password app_password
 		json_get_var _forward_index forward_index
 		json_get_var _blocked_devices_index blocked_devices_index
@@ -299,6 +326,18 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 			echo "0" > /tmp/boot_completed
 		fi
 
+		if [ "$_ipv6_enabled" ] && [ "$_local_enabled_ipv6" != "$_ipv6_enabled" ]
+		then
+			if [ "$_ipv6_enabled" = "1" ]
+			then
+				enable_ipv6 
+			else
+				disable_ipv6
+			fi
+			/etc/init.d/network restart
+			/etc/init.d/miniupnpd reload
+		fi
+
 		# Ignore changes if in bridge mode
 		if [ "$_local_bridge_enabled" != "y" ]
 		then
@@ -345,9 +384,11 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		set_wifi_local_config "$_wifi_ssid_24" "$_wifi_password_24" \
 									"$_wifi_channel_24" "$_wifi_hwmode_24" \
 									"$_wifi_htmode_24" "$_wifi_state" \
+									"$_wifi_txpower_24" "$_wifi_hidden_24" \
 									"$_wifi_ssid_50" "$_wifi_password_50" \
 									"$_wifi_channel_50" "$_wifi_hwmode_50" \
 									"$_wifi_htmode_50" "$_wifi_state_50" \
+									"$_wifi_txpower_50" "$_wifi_hidden_50" \
 									"$_mesh_mode" && _need_wifi_reload=1
 		[ $_need_wifi_reload -eq 1 ] && wifi reload 
 		[ $_need_wifi_reload -eq 1 ] || [ $_need_sapo_reload -eq 1 ] && /etc/init.d/minisapo reload

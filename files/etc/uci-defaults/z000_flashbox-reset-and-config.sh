@@ -94,6 +94,8 @@ then
 		json_add_string hwmode_24 "$(uci -q get wireless.@wifi-device[0].hwmode)"
 		json_add_string htmode_24 "$(uci -q get wireless.@wifi-device[0].htmode)"
 		json_add_string state_24 "1"
+		json_add_string txpower_24 "100"
+		json_add_string hidden_24 "0"
 
 		SSID_VALUE=$(uci -q get wireless.@wifi-iface[1].ssid)
 		if [ "$SSID_VALUE" != "OpenWrt" ] && [ "$SSID_VALUE" != "LEDE" ] && [ -n "$SSID_VALUE" ]
@@ -104,6 +106,8 @@ then
 			json_add_string hwmode_50 "$(uci -q get wireless.@wifi-device[1].hwmode)"
 			json_add_string htmode_50 "$(uci -q get wireless.@wifi-device[1].htmode)"
 			json_add_string state_50 "1"
+			json_add_string txpower_50 "100"
+			json_add_string hidden_50 "0"
 		fi
 		json_dump > /root/flashbox_config.json
 	fi

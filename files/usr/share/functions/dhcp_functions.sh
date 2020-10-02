@@ -133,9 +133,11 @@ check_dev_online_status() {
 }
 
 get_online_devices() {
-	local _dhcp_ipv6=$(get_ipv6_dhcp)
+	local _dhcp_ipv6=""
+	[ "$(get_ipv6_enabled)" != "0" ] && _dhcp_ipv6=$(get_ipv6_dhcp)
 	local _ipv4_neigh="$(ip -4 neigh | grep lladdr | awk '{ if($3 == "br-lan") print $5, $1}')"
-	local _ipv6_neigh="$(ip -6 neigh | grep lladdr | awk '{ if($3 == "br-lan") print $5, $1}')"
+	local _ipv6_neigh=""
+	[ "$(get_ipv6_enabled)" != "0" ] &&_ipv6_neigh="$(ip -6 neigh | grep lladdr | awk '{ if($3 == "br-lan") print $5, $1}')"
 	local _macs_v4="$(echo "$_ipv4_neigh" | awk '{ print $1 }')"
 	local _macs_v6="$(echo "$_ipv6_neigh" | awk '{ print $1 }')"
 	local _macs="$(printf %s\\n%s "$_macs_v4" "$_macs_v6" | sort | uniq)"
@@ -180,7 +182,9 @@ get_online_devices() {
 	for _mac in $_macs
 	do
 		local _ipv4="$(echo "$_ipv4_neigh" | grep "$_mac" | awk '{ print $2 }')"
-		local _ipv6="$(echo "$_ipv6_neigh" | grep "$_mac" | awk '{ print $2 }')"
+
+		local _ipv6=""
+		[ "$(get_ipv6_enabled)" != "0" ] && _ipv6="$(echo "$_ipv6_neigh" | grep "$_mac" | awk '{ print $2 }')"
 
 		local _hostname=""
 		local _conn_type="$(get_device_conn_type $_mac $_online)"
@@ -241,10 +245,13 @@ get_online_devices() {
 		done
 		json_close_array
 		json_add_array "dhcpv6"
-		for _i6 in $(echo  "$_dhcp_ipv6" | grep $_mac | awk '{print $3}')
-		do
-			json_add_string "" "$_i6"
-		done
+		if [ "$(get_ipv6_enabled)" != "0" ]
+		then
+			for _i6 in $(echo  "$_dhcp_ipv6" | grep $_mac | awk '{print $3}')
+			do
+				json_add_string "" "$_i6"
+			done
+		fi
 		json_close_array
 		json_add_string "hostname" "$_hostname"
 		json_add_string "conn_type" "$_conn_type"

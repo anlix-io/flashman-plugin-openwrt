@@ -207,9 +207,16 @@ get_vlan_ports() {
 }
 
 get_wan_device() {
-	config_load network
-	config_get iface wan ifname
-	echo $iface
+	ubus call network.interface.wan status|jsonfilter -e "@.device"
+}
+
+get_switch_device() {
+	local _switch
+	for i in $(swconfig list)
+	do 
+		[ -z "${i%switch*}" ] && _switch="$i" 
+	done
+	echo "$_switch"
 }
 
 is_device_vlan() {
@@ -224,14 +231,14 @@ get_device_vlan() {
 
 get_wan_negotiated_speed() {
 	local _wan=$(get_wan_device)
-	if [ "$(type -t custom_wan_port)" ] || [ "$(is_device_vlan $_wan)" ]
+	if [ "$(type -t custom_switch_ports)" ] || [ "$(is_device_vlan $_wan)" ]
 	then
 		local _switch
 		local _port
-		if [ "$(type -t custom_wan_port)" ]
+		if [ "$(type -t custom_switch_ports)" ]
 		then
-			_switch="$(custom_wan_port 1)"
-			_port="$(custom_wan_port 2)"
+			_switch="$(custom_switch_ports 1)"
+			_port="$(custom_switch_ports 2)"
 		else
 			local _vport=$(get_device_vlan $_wan)
 			_switch="$(get_vlan_device $_vport)"
@@ -245,14 +252,14 @@ get_wan_negotiated_speed() {
 
 get_wan_negotiated_duplex() {
 	local _wan=$(get_wan_device)
-	if [ "$(type -t custom_wan_port)" ] || [ "$(is_device_vlan $_wan)" ]
+	if [ "$(type -t custom_switch_ports)" ] || [ "$(is_device_vlan $_wan)" ]
 	then
 		local _switch
 		local _port
-		if [ "$(type -t custom_wan_port)" ]
+		if [ "$(type -t custom_switch_ports)" ]
 		then
-			_switch="$(custom_wan_port 1)"
-			_port="$(custom_wan_port 2)"
+			_switch="$(custom_switch_ports 1)"
+			_port="$(custom_switch_ports 2)"
 		else
 			local _vport=$(get_device_vlan $_wan)
 			_switch="$(get_vlan_device $_vport)"
@@ -267,8 +274,25 @@ get_wan_negotiated_duplex() {
 get_lan_dev_negotiated_speed() {
 	local _speed="0"
 	local _switch="$(get_vlan_device 1)"
+	[ -z "$_switch" ] && _switch="$(get_switch_device)"
+	[ -z "$_switch" ] && (
+		log "get_lan_dev_speed" "Cant get lan switch device!"
+		return
+	)
 
-	for _port in $(get_vlan_ports 1); do
+	local _switch_ports
+	if [ "$(type -t custom_switch_ports)" ]
+	then
+		_switch_ports="$(custom_switch_ports 3)"
+	else
+		_switch_ports="$(get_vlan_ports 1)"
+	fi
+	[ -z "$_switch_ports" ] && (
+		log "get_lan_dev_speed" "Cant get lan switch ports!"
+		return
+	)
+
+	for _port in $_switch_ports; do
 		local _speed_tmp="$(swconfig dev $_switch port $_port get link|sed -ne 's/.*speed:\([0-9]*\)*.*/\1/p')"
 		if [ "$_speed_tmp" != "" ]
 		then
