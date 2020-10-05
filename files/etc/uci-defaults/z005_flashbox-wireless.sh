@@ -97,7 +97,7 @@ uci set wireless.default_radio0.ssid="$_ssid_24"
 uci set wireless.default_radio0.encryption="$([ "$(grep RTL8196E /proc/cpuinfo)" ] && echo "psk2+tkip+ccmp" || echo "psk2")"
 uci set wireless.default_radio0.key="$_password_24"
 uci set wireless.default_radio0.hidden="$_hidden_24"
-uci set wireless.default_radio0.wps_pushbutton='1'
+[ "$(type -t hostapd_cli)" ] && uci set wireless.default_radio0.wps_pushbutton='1'
 [ "$IS_REALTEK" ] && uci set wireless.default_radio0.macaddr="$(macaddr_add $MAC_ADDR -1)"
 
 if [ "$(is_5ghz_capable)" == "1" ]
@@ -115,7 +115,7 @@ then
 	uci set wireless.default_radio1.encryption="psk2"
 	uci set wireless.default_radio1.key="$_password_50"
 	uci set wireless.default_radio1.hidden="$_hidden_50"
-	uci set wireless.default_radio1.wps_pushbutton='1'
+	[ "$(type -t hostapd_cli)" ] && uci set wireless.default_radio1.wps_pushbutton='1'
 	[ "$IS_REALTEK" ] && uci set wireless.default_radio1.macaddr="$(macaddr_add $MAC_ADDR -2)"
 fi
 
