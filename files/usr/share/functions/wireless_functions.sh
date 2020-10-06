@@ -42,7 +42,13 @@ convert_txpower() {
 		[ "$_freq" = "24" ] && echo "20" || echo "30"
 		return
 	fi
-	local _phy=$([ "$_freq" = "24" ] && get_24ghz_phy || get_5ghz_phy)
+	local _phy
+	if [ "$_freq" = "24" ]
+	then
+		_phy=$(get_24ghz_phy)
+	else
+		_phy=$(get_5ghz_phy)
+	fi
 	local _maxpwr=$(iw $_phy info | awk '/\['$_channel'\]/{ print substr($5,2,2) }')
 
 	echo $(( ((_maxpwr * _txprct)+50) / 100 ))
@@ -58,7 +64,13 @@ get_txpower() {
 		echo "100" 
 		return
 	fi
-	local _phy=$([ "$_freq" = "0" ] && get_24ghz_phy || get_5ghz_phy)
+	local _phy
+	if [ "$_freq" = "0" ]
+	then
+		_phy=$(get_24ghz_phy)
+	else
+		_phy=$(get_5ghz_phy)
+	fi
 	local _maxpwr=$(iw $_phy info | awk '/\['$_channel'\]/{ print substr($5,2,2) }')
 	local _txprct="$(( (_txpower * 100) / _maxpwr ))"
 	if   [ $_txprct -ge 100 ]; then echo "100"
