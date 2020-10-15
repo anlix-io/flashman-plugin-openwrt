@@ -186,6 +186,10 @@ ifneq ($(CUSTOM_FILE_DIR),)
 endif
 ifneq ($(CUSTOM_FILE_ARQ),)
 	$(CP) ./custom-files/$(CUSTOM_FILE_ARQ).sh $(1)/usr/share/functions/custom_device.sh
+	if [ -d ./calibration/$(CUSTOM_FILE_ARQ) ]; then \
+		mkdir -p $(1)/lib/firmware ; \
+		$(CP) ./calibration/$(CUSTOM_FILE_ARQ)/* $(1)/lib/firmware/ ; \
+	fi
 endif
 
 	$(INSTALL_DIR) $(1)/usr/bin
