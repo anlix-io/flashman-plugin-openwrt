@@ -131,6 +131,8 @@ CUSTOM_FILE_ARQ=
 		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v5-v6"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v6), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v5-v6"
+	else ifeq ($(CONFIG_TARGET_ath79_tiny_DEVICE_tplink_tl-wr940n-v5), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wr940n-v5"
 	else ifeq ($(CONFIG_TARGET_ath79_tiny_DEVICE_tplink_tl-wr940n-v6), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr94Xn-v6"
 	else ifeq ($(CONFIG_TARGET_ath79_tiny_DEVICE_tplink_tl-wr949n-v6), y)
