@@ -8,6 +8,9 @@
 
 clean_memory() {
 	[ -d /tmp/opkg-lists/ ] && rm -r /tmp/opkg-lists/
+	/etc/init.d/uhttpd stop 2> /dev/null
+	wifi down
+	sleep 5
 	echo 3 > /proc/sys/vm/drop_caches
 }
 
@@ -137,9 +140,7 @@ run_reflash() {
 				/etc/init.d/flashman stop
 				/etc/init.d/netstats stop
 				/etc/init.d/minisapo stop
-				/etc/init.d/uhttpd stop
 				/etc/init.d/miniupnpd stop
-				wifi down
 				/etc/init.d/network stop
 				clean_memory
 				sysupgrade --force -f /tmp/config.tar.gz \
@@ -148,10 +149,14 @@ run_reflash() {
 				lock -u /tmp/lock_firmware
 				lupg "CANCEL: Cancel by flashman"
 				rm "/tmp/"$_vendor"_"$_model"_"$_ver"_"$_release_id".bin"
+				/etc/init.d/uhttpd start
+				wifi up
 			fi
 		else
 			lock -u /tmp/lock_firmware
 			_res=$(rest_flashman "deviceinfo/ack/" "id=$(get_mac)&status=2")
+			/etc/init.d/uhttpd start
+			wifi up
 		fi
 	else
 		lupg "FAIL: Error in number of args"
