@@ -38,7 +38,7 @@ resync_ntp() {
 		if [ "$_need_update" = "1" ]
 		then
 			log "NTP_FLASHMAN" "Change date to $_new_date"
-			date +%s -s "@$_new_date" > /dev/null
+			date "@$_new_date" > /dev/null
 			echo "flash_sync" > /tmp/anlixntp
 		else
 			log "NTP_FLASHMAN" "No need to change date (Server clock $_new_date)"
