@@ -19,15 +19,23 @@ get_ipv6_enabled() {
 }
 
 enable_ipv6() {
-	uci set network.wan.ipv6="auto"
-	uci set network.lan.ipv6="auto"
-	uci set network.wan6.proto="dhcpv6"
-	if [ -z "$(uci -q get network.lan6)" ]
+	if [ "$(get_bridge_mode_status)" != "y" ]
 	then
-		uci set network.lan6=interface
-		uci set network.lan6.ifname='@lan'
+		uci set network.wan.ipv6="auto"
+		uci set network.wan6.proto="dhcpv6"
+		[ "$(uci -q get network.lan.ipv6)" ] && uci delete network.lan.ipv6
+		[ "$(uci -q get network.lan6)" ] && uci delete network.lan6
+	else
+		uci set network.wan.ipv6="auto"
+		uci set network.wan6.proto="none"
+		uci set network.lan.ipv6="auto"
+		if [ -z "$(uci -q get network.lan6)" ]
+		then
+			uci set network.lan6=interface
+			uci set network.lan6.ifname='@lan'
+		fi
+		uci set network.lan6.proto='dhcpv6'
 	fi
-	uci set network.lan6.proto='dhcpv6'
 	uci commit network
 	json_cleanup
 	json_load_file /root/flashbox_config.json
@@ -38,9 +46,9 @@ enable_ipv6() {
 
 disable_ipv6() {
 	uci set network.wan.ipv6="0"
-	uci set network.lan.ipv6="0"
 	uci set network.wan6.proto='none'
-	[ "$(uci -q get network.lan6)" ] && uci set network.lan6.proto='none'
+	uci set network.lan.ipv6="0"
+	[ "$(uci -q get network.lan6)" ] && uci delete network.lan6
 	uci commit network
 	json_cleanup
 	json_load_file /root/flashbox_config.json
@@ -702,6 +710,7 @@ enable_bridge_mode() {
 	# Write bridge mode to config.json so it persists between flashes
 	json_cleanup
 	json_load_file /root/flashbox_config.json
+	json_get_var _enable_ipv6 enable_ipv6
 	json_add_string bridge_mode "y"
 	json_add_string bridge_lan_backup "$_lan_ifnames"
 	json_add_string bridge_lan_ip_backup "$_lan_ip"
@@ -714,6 +723,21 @@ enable_bridge_mode() {
 	# Disable wan and bridge interfaces in lan
 	uci set network.wan.proto="none"
 	uci set network.wan6.proto="none"
+
+	if [ "$_enable_ipv6" = "1" ]
+	then
+		uci set network.lan.ipv6="auto"
+		if [ -z "$(uci -q get network.lan6)" ]
+		then
+			uci set network.lan6=interface
+			uci set network.lan6.ifname='@lan'
+		fi
+		uci set network.lan6.proto='dhcpv6'
+	else
+		uci set network.lan.ipv6="0"
+		[ "$(uci -q get network.lan6)" ] && uci delete network.lan6
+	fi
+
 	if [ "$_fixed_ip" != "" ]
 	then
 		uci set network.lan.ipaddr="$_fixed_ip"
@@ -934,6 +958,7 @@ disable_bridge_mode() {
 	# Clear bridge mode from config.json so it doesn't persist between flashes
 	json_cleanup
 	json_load_file /root/flashbox_config.json
+	json_get_var _enable_ipv6 enable_ipv6
 	json_get_var _wan_conn_type wan_conn_type
 	json_get_var _lan_ifnames bridge_lan_backup
 	json_get_var _lan_ip bridge_lan_ip_backup
@@ -959,7 +984,19 @@ disable_bridge_mode() {
 	uci set network.lan.ipaddr="$_lan_ip"
 	# Set wan and lan back to proper values
 	uci set network.wan.proto="$_wan_conn_type"
-	[ "$(get_ipv6_enabled)" = "1" ] && uci set network.wan6.proto="dhcpv6"
+
+	if [ "$_enable_ipv6" = "1" ]
+	then
+		uci set network.wan.ipv6="auto"
+		uci set network.wan6.proto="dhcpv6"
+		[ "$(uci -q get network.lan.ipv6)" ] && uci delete network.lan.ipv6
+	else
+		uci set network.wan.ipv6="0"
+		uci set network.wan6.proto='none'
+		uci set network.lan.ipv6="0"
+	fi
+	[ "$(uci -q get network.lan6)" ] && uci delete network.lan6
+
 	uci set network.lan.proto="static"
 	uci delete network.lan.gateway
 	uci delete network.lan.dns
@@ -970,7 +1007,7 @@ disable_bridge_mode() {
 	/etc/init.d/firewall start
 	/etc/init.d/dnsmasq enable
 	/etc/init.d/dnsmasq start
-	if [ "$(get_ipv6_enabled)" = "1" ]
+	if [ "$_enable_ipv6" = "1" ]
 	then
 		/etc/init.d/odhcpd enable
 		/etc/init.d/odhcpd start
