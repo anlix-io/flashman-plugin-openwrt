@@ -92,15 +92,27 @@ get_wifi_local_config() {
 	local _hidden_24="$(uci -q get wireless.default_radio0.hidden)"
 
 	local _is_5ghz_capable="$(is_5ghz_capable)"
-	local _ssid_50="$(uci -q get wireless.default_radio1.ssid)"
-	local _password_50="$(uci -q get wireless.default_radio1.key)"
-	local _channel_50="$(uci -q get wireless.radio1.channel)"
-	local _hwmode_50="$(uci -q get wireless.radio1.hwmode)"
-	local _htmode_50="$(uci -q get wireless.radio1.htmode)"
-	local _state_50="$(get_wifi_state '1')"
-	local _txpower_50="$(get_txpower 1)"
-	local _ft_50="$(uci -q get wireless.default_radio1.ieee80211r)"
-	local _hidden_50="$(uci -q get wireless.default_radio1.hidden)"
+	local _ssid_50=""
+	local _password_50=""
+	local _channel_50=""
+	local _hwmode_50=""
+	local _htmode_50=""
+	local _state_50=""
+	local _txpower_50=""
+	local _ft_50=""
+	local _hidden_50=""
+	if [ "$_is_5ghz_capable" = "1" ]
+	then
+		_ssid_50="$(uci -q get wireless.default_radio1.ssid)"
+		_password_50="$(uci -q get wireless.default_radio1.key)"
+		_channel_50="$(uci -q get wireless.radio1.channel)"
+		_hwmode_50="$(uci -q get wireless.radio1.hwmode)"
+		_htmode_50="$(uci -q get wireless.radio1.htmode)"
+		_state_50="$(get_wifi_state '1')"
+		_txpower_50="$(get_txpower 1)"
+		_ft_50="$(uci -q get wireless.default_radio1.ieee80211r)"
+		_hidden_50="$(uci -q get wireless.default_radio1.hidden)"
+	fi
 
 	json_cleanup
 	json_init
@@ -123,7 +135,7 @@ get_wifi_local_config() {
 	json_add_string "local_state_50" "$_state_50"
 	json_add_string "local_txpower_50" "$_txpower_50"
 	json_add_string "local_hidden_50" "$_hidden_50"
-	echo "$(json_dump)"
+	json_dump
 	json_close_object
 }
 
