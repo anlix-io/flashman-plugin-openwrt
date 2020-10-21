@@ -36,20 +36,34 @@ convert_txpower() {
 	local _freq="$1"
 	local _channel="$2"
 	local _txprct="$3"
+	local _maxpwr
+
+	if [ "$_freq" = "24" ] 
+	then
+		_maxpwr=20
+		[ "$(type -t custom_wifi_24_txpower)" ] && _maxpwr="$(custom_wifi_24_txpower)"
+	else
+		_maxpwr=30
+		[ "$(type -t custom_wifi_50_txpower)" ] && _maxpwr="$(custom_wifi_50_txpower)"
+	fi
 
 	if [ "$_channel" = "auto" ] 
 	then
-		[ "$_freq" = "24" ] && echo "20" || echo "30"
+		echo "$_maxpwr"
 		return
 	fi
+
 	local _phy
+	local _reload=0
 	if [ "$_freq" = "24" ]
 	then
 		_phy=$(get_24ghz_phy)
+		[ ! "$(type -t custom_wifi_24_txpower)" ] && _reload=1
 	else
 		_phy=$(get_5ghz_phy)
+		[ ! "$(type -t custom_wifi_50_txpower)" ] && _reload=1
 	fi
-	local _maxpwr=$(iw $_phy info | awk '/\['$_channel'\]/{ print substr($5,2,2) }')
+	[ $_reload = 1 ] && _maxpwr=$(iw $_phy info | awk '/\['$_channel'\]/{ print substr($5,2,2) }')
 
 	echo $(( ((_maxpwr * _txprct)+50) / 100 ))
 }
@@ -64,14 +78,19 @@ get_txpower() {
 		echo "100" 
 		return
 	fi
+	
 	local _phy
+	local _maxpwr="0"
 	if [ "$_freq" = "0" ]
 	then
 		_phy=$(get_24ghz_phy)
+		[ "$(type -t custom_wifi_24_txpower)" ] && _maxpwr="$(custom_wifi_24_txpower)"
 	else
 		_phy=$(get_5ghz_phy)
+		[ "$(type -t custom_wifi_50_txpower)" ] && _maxpwr="$(custom_wifi_50_txpower)"
 	fi
-	local _maxpwr=$(iw $_phy info | awk '/\['$_channel'\]/{ print substr($5,2,2) }')
+	[ "$_maxpwr" = "0" ] && _maxpwr=$(iw $_phy info | awk '/\['$_channel'\]/{ print substr($5,2,2) }')
+
 	local _txprct="$(( (_txpower * 100) / _maxpwr ))"
 	if   [ $_txprct -ge 100 ]; then echo "100"
 	elif [ $_txprct -ge 75 ]; then echo "75"

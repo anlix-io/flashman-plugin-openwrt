@@ -64,3 +64,11 @@ custom_switch_ports() {
 get_custom_leds_blink() {
 	echo "$(ls -d /sys/class/leds/*blue*)"
 }
+
+custom_wifi_24_txpower(){
+	echo "16"
+}
+
+custom_wifi_50_txpower(){
+	echo "14"
+}

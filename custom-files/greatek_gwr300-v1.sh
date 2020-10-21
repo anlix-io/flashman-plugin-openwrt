@@ -56,3 +56,7 @@ custom_switch_ports() {
 		3) echo "0 1 2 3" ;;
 	esac
 }
+
+custom_wifi_24_txpower(){
+	echo "22"
+}
