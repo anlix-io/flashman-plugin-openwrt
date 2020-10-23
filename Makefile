@@ -161,6 +161,8 @@ CUSTOM_FILE_ARQ=
 		CUSTOM_FILE_ARQ="intelbras_rg1200-v1"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_GF1200), y)
 		CUSTOM_FILE_ARQ="intelbras_gf1200-v1"
+	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_W51200F), y)
+		CUSTOM_FILE_ARQ="intelbras_w51200f-v1"
 	endif
 
 WAN_PROTO=
