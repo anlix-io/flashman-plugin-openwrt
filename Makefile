@@ -101,6 +101,8 @@ CUSTOM_FILE_ARQ=
 		CUSTOM_FILE_ARQ="tbs"
 	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_archer-c60-v2), y)
 		CUSTOM_FILE_ARQ="tplink_archer-c60-v2"
+	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_archer-c60-v3), y)
+		CUSTOM_FILE_ARQ="tplink_archer-c60-v3"
 	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_archer-c6-v2-us), y)
 		CUSTOM_FILE_ARQ="tplink_archer-c6-v2US"
 	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_dlink_covr-c1200-a1), y)
