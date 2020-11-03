@@ -68,3 +68,7 @@ get_custom_leds_blink() {
 custom_wifi_24_txpower(){
 	echo "22"
 }
+
+custom_wifi_50_channels(){
+	echo "40"
+}

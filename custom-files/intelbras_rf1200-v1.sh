@@ -72,3 +72,7 @@ custom_wifi_24_txpower(){
 custom_wifi_50_txpower(){
 	echo "14"
 }
+
+custom_wifi_50_channels(){
+	echo "40"
+}

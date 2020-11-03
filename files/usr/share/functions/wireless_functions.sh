@@ -27,7 +27,7 @@ auto_channel_selection() {
 			echo "6"
 		;;
 		wlan1)
-			echo "44"
+			echo "40"
 		;;
 	esac
 }
@@ -78,7 +78,7 @@ get_txpower() {
 		echo "100" 
 		return
 	fi
-	
+
 	local _phy
 	local _maxpwr="0"
 	if [ "$_freq" = "0" ]
@@ -198,15 +198,15 @@ set_wifi_local_config() {
 	local _remote_hidden_24="$8"
 
 	local _remote_ssid_50="$9"
-	local _remote_password_50="$10"
-	local _remote_channel_50="$11"
-	local _remote_hwmode_50="$12"
-	local _remote_htmode_50="$13"
-	local _remote_state_50="$14"
-	local _remote_txpower_50="$15"
-	local _remote_hidden_50="$16"
+	local _remote_password_50="${10}"
+	local _remote_channel_50="${11}"
+	local _remote_hwmode_50="${12}"
+	local _remote_htmode_50="${13}"
+	local _remote_state_50="${14}"
+	local _remote_txpower_50="${15}"
+	local _remote_hidden_50="${16}"
 
-	local _mesh_mode="$17"
+	local _mesh_mode="${17}"
 
 	json_cleanup
 	json_load "$(get_wifi_local_config)"
@@ -246,8 +246,19 @@ set_wifi_local_config() {
 	if [ "$_remote_channel_24" != "" ] && \
 		 [ "$_remote_channel_24" != "$_local_channel_24" ]
 	then
-		uci set wireless.radio0.channel="$_remote_channel_24"
-		_do_reload=1
+		local _newchan="$_remote_channel_24"
+		if [ "$(type -t custom_wifi_24_channels)" ] && \
+			[ "$(custom_wifi_24_channels|grep -c ' ')" = 0 ] && \
+			[ "$_newchan" = "auto" ]
+		then
+			_newchan="$(custom_wifi_24_channels)"
+		fi
+
+		if [ "$_newchan" != "$_local_channel_24" ]
+		then
+			uci set wireless.radio0.channel="$_newchan"
+			_do_reload=1
+		fi
 	fi
 	if [ "$_remote_hwmode_24" != "" ] && \
 		 [ "$_remote_hwmode_24" != "$_local_hwmode_24" ]
@@ -318,7 +329,7 @@ set_wifi_local_config() {
 	fi
 	if [ "$_remote_txpower_24" != "" ] && [ "$_remote_txpower_24" != "$_local_txpower_24" ]
 	then
-		_conv_channel=$([ "$_remote_txpower_24" ] && echo "$_remote_channel_24" || echo "$_local_channel_24")
+		_conv_channel=$([ "$_remote_channel_24" ] && echo "$_remote_channel_24" || echo "$_local_channel_24")
 		uci set wireless.radio0.txpower="$(convert_txpower "24" "$_conv_channel" "$_remote_txpower_24")"
 		_do_reload=1
 	fi
@@ -346,8 +357,19 @@ set_wifi_local_config() {
 		if [ "$_remote_channel_50" != "" ] && \
 			 [ "$_remote_channel_50" != "$_local_channel_50" ]
 		then
-			uci set wireless.radio1.channel="$_remote_channel_50"
-			_do_reload=1
+			local _newchan="$_remote_channel_50"
+			if [ "$(type -t custom_wifi_50_channels)" ] && \
+				[ "$(custom_wifi_50_channels|grep -c ' ')" = 0 ] && \
+				[ "$_newchan" = "auto" ]
+			then
+				_newchan="$(custom_wifi_50_channels)"
+			fi
+
+			if [ "$_newchan" != "$_local_channel_50" ]
+			then
+				uci set wireless.radio1.channel="$_newchan"
+				_do_reload=1
+			fi
 		fi
 
 		if [ "$_remote_htmode_50" != "" ] && \
@@ -356,7 +378,7 @@ set_wifi_local_config() {
 			uci set wireless.radio1.htmode="$_remote_htmode_50"
 			if [ ! "$(is_5ghz_vht)" ]
 			then
-				if [ "$_remote_htmode_50" != "HT40" ] ||
+				if [ "$_remote_htmode_50" != "HT40" ] &&
 					[ "$_remote_htmode_50" != "HT20" ]
 				then
 					uci set wireless.radio1.htmode="HT40"
