@@ -51,7 +51,7 @@ then
 	_ssid_24=$setssid
 	_password_24="$FLM_PASSWD"
 	_channel_24="$FLM_24_CHANNEL"
-	_htmode_24="$([ "$FLM_24_BAND" = "HT40" ] && echo "HT40" || echo "HT20")"
+	_htmode_24="$FLM_24_BAND"
 	_state_24="1"
 	_txpower_24="100"
 	_hidden_24="0"
@@ -59,7 +59,7 @@ then
 	_ssid_50="$setssid$SUFFIX_5"
 	_password_50="$FLM_PASSWD"
 	_channel_50="$FLM_50_CHANNEL"
-	_htmode_50="$([ "$(is_5ghz_vht)" ] && echo "VHT80" || echo "HT40")"
+	_htmode_50="auto"
 	_state_50="1"
 	_txpower_50="100"
 	_hidden_50="0"
@@ -99,9 +99,10 @@ then
 fi
 
 uci set wireless.radio0.txpower="$(convert_txpower "24" "$_channel_24" "$_txpower_24")"
-uci set wireless.radio0.htmode="$_htmode_24"
-uci set wireless.radio0.noscan="0"
-[ "$_htmode_24" = "HT40" ] && uci set wireless.radio0.noscan="1"
+uci set wireless.default_radio0.hidden="$_hidden_24"
+uci set wireless.radio0.noscan="1"
+[ "$_htmode_24" = "auto" ] && uci set wireless.radio0.htmode="HT40" && \
+        uci set wireless.radio0.noscan="0" || uci set wireless.radio0.htmode="$_htmode_24"
 uci set wireless.radio0.country="BR"
 uci set wireless.radio0.channel="$_channel_24"
 uci set wireless.radio0.channels="$DEFAULT_24_CHANNELS"
@@ -121,8 +122,15 @@ then
 	uci set wireless.radio1.channel="$_channel_50"
 	uci set wireless.radio1.channels="$DEFAULT_50_CHANNELS"
 	uci set wireless.radio1.country="BR"
-	uci set wireless.radio1.htmode="$_htmode_50"
 	uci set wireless.radio1.noscan="1"
+	[ "$_htmode_50" == "auto" ]
+        then
+                uci set wireless.radio1.noscan="0"
+		[ "$(is_5ghz_vht)" ] && uci set wireless.radio1.htmode="VHT80" || uci set wireless.radio1.htmode="HT40"
+        else
+                [ "$_htmode_50" = "VHT80" ] && [ ! "$(is_5ghz_vht)" ] && uci set wireless.radio1.htmode="HT40" || \
+                        uci set wireless.radio1.htmode="$_htmode_50"
+        fi
 	uci set wireless.radio1.disabled='0'
 	uci set wireless.default_radio1.disabled="$([ "$_state_50" = "1" ] && echo "0" || echo "1")"
 	uci set wireless.default_radio1.ifname='wlan1'
