@@ -51,7 +51,7 @@ then
 	_ssid_24=$setssid
 	_password_24="$FLM_PASSWD"
 	_channel_24="$FLM_24_CHANNEL"
-	_htmode_24="$FLM_24_BAND"
+	_htmode_24="$([ "$FLM_24_BAND" = "auto" ] && echo "auto" || [ "$FLM_24_BAND" = "HT40" ] && echo "HT40" || echo "HT20")"
 	_state_24="1"
 	_txpower_24="100"
 	_hidden_24="0"
