@@ -50,6 +50,7 @@ then
 	json_get_var _local_ssid_24 local_ssid_24
 	json_get_var _local_password_24 local_password_24
 	json_get_var _local_channel_24 local_channel_24
+	json_get_var _local_auto_channel_24 local_auto_channel_24
 	json_get_var _local_hwmode_24 local_hwmode_24
 	json_get_var _local_htmode_24 local_htmode_24
 	json_get_var _local_state_24 local_state_24
@@ -59,6 +60,7 @@ then
 	json_get_var _local_ssid_50 local_ssid_50
 	json_get_var _local_password_50 local_password_50
 	json_get_var _local_channel_50 local_channel_50
+	json_get_var _local_auto_channel_50 local_auto_channel_50
 	json_get_var _local_hwmode_50 local_hwmode_50
 	json_get_var _local_htmode_50 local_htmode_50
 	json_get_var _local_state_50 local_state_50
@@ -146,6 +148,7 @@ ipv6_enabled=$_local_enabled_ipv6&\
 wifi_ssid=$_local_ssid_24&\
 wifi_password=$_local_password_24&\
 wifi_channel=$_local_channel_24&\
+wifi_auto_channel=$_local_auto_channel_24&\
 wifi_band=$_local_htmode_24&\
 wifi_mode=$_local_hwmode_24&\
 wifi_state=$_local_state_24&\
@@ -155,6 +158,7 @@ wifi_5ghz_capable=$_local_5ghz_capable&\
 wifi_ssid_5ghz=$_local_ssid_50&\
 wifi_password_5ghz=$_local_password_50&\
 wifi_channel_5ghz=$_local_channel_50&\
+wifi_auto_channel_5ghz=$_local_auto_channel_50&\
 wifi_band_5ghz=$_local_htmode_50&\
 wifi_mode_5ghz=$_local_hwmode_50&\
 wifi_state_5ghz=$_local_state_50&\
