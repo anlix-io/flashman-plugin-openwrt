@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=flasman-plugin
-PKG_VERSION:=0.30.1
+PKG_VERSION:=0.30.2
 PKG_RELEASE:=1
 
 PKG_LICENSE:=GPL
@@ -101,6 +101,8 @@ CUSTOM_FILE_ARQ=
 		CUSTOM_FILE_ARQ="tbs"
 	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_archer-c60-v2), y)
 		CUSTOM_FILE_ARQ="tplink_archer-c60-v2"
+	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_archer-c60-v3), y)
+		CUSTOM_FILE_ARQ="tplink_archer-c60-v3"
 	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_archer-c6-v2-us), y)
 		CUSTOM_FILE_ARQ="tplink_archer-c6-v2US"
 	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_dlink_covr-c1200-a1), y)
@@ -131,6 +133,8 @@ CUSTOM_FILE_ARQ=
 		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v5-v6"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v6), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v5-v6"
+	else ifeq ($(CONFIG_TARGET_ath79_tiny_DEVICE_tplink_tl-wr940n-v5), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wr940n-v5"
 	else ifeq ($(CONFIG_TARGET_ath79_tiny_DEVICE_tplink_tl-wr940n-v6), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr94Xn-v6"
 	else ifeq ($(CONFIG_TARGET_ath79_tiny_DEVICE_tplink_tl-wr949n-v6), y)
@@ -159,6 +163,8 @@ CUSTOM_FILE_ARQ=
 		CUSTOM_FILE_ARQ="intelbras_rg1200-v1"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_GF1200), y)
 		CUSTOM_FILE_ARQ="intelbras_gf1200-v1"
+	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_W51200F), y)
+		CUSTOM_FILE_ARQ="intelbras_w51200f-v1"
 	endif
 
 WAN_PROTO=
@@ -186,6 +192,10 @@ ifneq ($(CUSTOM_FILE_DIR),)
 endif
 ifneq ($(CUSTOM_FILE_ARQ),)
 	$(CP) ./custom-files/$(CUSTOM_FILE_ARQ).sh $(1)/usr/share/functions/custom_device.sh
+	if [ -d ./calibration/$(CUSTOM_FILE_ARQ) ]; then \
+		mkdir -p $(1)/lib/firmware ; \
+		$(CP) ./calibration/$(CUSTOM_FILE_ARQ)/* $(1)/lib/firmware/ ; \
+	fi
 endif
 
 	$(INSTALL_DIR) $(1)/usr/bin

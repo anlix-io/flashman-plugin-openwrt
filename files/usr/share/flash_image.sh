@@ -111,6 +111,7 @@ run_reflash() {
 		fi
 
 		clean_memory
+		[ "$(type -t anlix_upgrade_clean_memory)" ] && anlix_upgrade_clean_memory
 		if get_image "$_release_id" "$_vendor" "$_model" "$_ver"
 		then
 			_res=$(rest_flashman "deviceinfo/ack/" "id=$(get_mac)&status=1")
@@ -137,8 +138,8 @@ run_reflash() {
 				/etc/init.d/flashman stop
 				/etc/init.d/netstats stop
 				/etc/init.d/minisapo stop
-				/etc/init.d/uhttpd stop
 				/etc/init.d/miniupnpd stop
+				/etc/init.d/uhttpd stop
 				wifi down
 				/etc/init.d/network stop
 				clean_memory
@@ -153,6 +154,7 @@ run_reflash() {
 			lock -u /tmp/lock_firmware
 			_res=$(rest_flashman "deviceinfo/ack/" "id=$(get_mac)&status=2")
 		fi
+		[ "$(type -t anlix_upgrade_restore_memory)" ] && anlix_upgrade_restore_memory
 	else
 		lupg "FAIL: Error in number of args"
 		return 1

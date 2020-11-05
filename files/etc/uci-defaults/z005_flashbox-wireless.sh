@@ -65,6 +65,21 @@ then
 	_hidden_50="0"
 fi
 
+DEFAULT_24_CHANNELS="1 6 11 3 9 2 4 5 7 8 10"
+DEFAULT_50_CHANNELS="36 40 44 153 157 161"
+
+if [ "$(type -t custom_wifi_24_channels)" ]
+then
+	DEFAULT_24_CHANNELS="$(custom_wifi_24_channels)"
+	[ "$(echo $DEFAULT_24_CHANNELS|grep -c ' ')" = 0 ] && _channel_24=$DEFAULT_24_CHANNELS
+fi
+
+if [ "$(type -t custom_wifi_50_channels)" ] 
+then
+	DEFAULT_50_CHANNELS="$(custom_wifi_50_channels)"
+	[ "$(echo $DEFAULT_50_CHANNELS|grep -c ' ')" = 0 ] && _channel_50=$DEFAULT_50_CHANNELS
+fi
+
 _phy0=$(get_radio_phy "0")
 if [ "$(get_phy_type $_phy0)" -eq "2" ]
 then
@@ -89,7 +104,7 @@ uci set wireless.radio0.noscan="0"
 [ "$_htmode_24" = "HT40" ] && uci set wireless.radio0.noscan="1"
 uci set wireless.radio0.country="BR"
 uci set wireless.radio0.channel="$_channel_24"
-uci set wireless.radio0.channels="1-11"
+uci set wireless.radio0.channels="$DEFAULT_24_CHANNELS"
 uci set wireless.radio0.disabled='0'
 uci set wireless.default_radio0.disabled="$([ "$_state_24" = "1" ] && echo "0" || echo "1")"
 uci set wireless.default_radio0.ifname='wlan0'
@@ -104,7 +119,7 @@ if [ "$(is_5ghz_capable)" == "1" ]
 then
 	uci set wireless.radio1.txpower="$(convert_txpower "50" "$_channel_50" "$_txpower_50")"
 	uci set wireless.radio1.channel="$_channel_50"
-	[ "$_channel_50" == "auto" ] && uci set wireless.radio1.channels="36 40 44 153 157 161"
+	uci set wireless.radio1.channels="$DEFAULT_50_CHANNELS"
 	uci set wireless.radio1.country="BR"
 	uci set wireless.radio1.htmode="$_htmode_50"
 	uci set wireless.radio1.noscan="1"

@@ -1,7 +1,7 @@
 #!/bin/sh
 
 get_custom_leds_blink() {
-	echo "$(ls -d /sys/class/leds/*orange*)"
+	echo "$(ls -d /sys/class/leds/*blue*)"
 }
 
 #Force a memory cleanup to avoid processor usage in network
