@@ -11,42 +11,57 @@ get_hwmode_24() {
 }
 
 get_htmode_24() {
-        local _htmode_24="$(uci -q get wireless.radio0.htmode)"
-        local _noscan_24="$(uci -q get wireless.radio0.noscan)"
-        if [ "$_noscan_24" == "0" ]
-        then
-                [ "$_htmode_24" = "HT40" ] && echo "auto" || echo "HT20"
-        else
-                [ "$_htmode_24" = "HT40" ] && echo "HT40" || echo "HT20"
-        fi
+	local _htmode_24="$(uci -q get wireless.radio0.htmode)"
+	local _noscan_24="$(uci -q get wireless.radio0.noscan)"
+	if [ "$_noscan_24" == "0" ]
+	then
+		[ "$_htmode_24" = "HT40" ] && echo "auto" || echo "HT20"
+	else
+		[ "$_htmode_24" = "HT40" ] && echo "HT40" || echo "HT20"
+	fi
 }
 
 get_htmode_50() {
-        local _htmode_50="$(uci -q get wireless.radio1.htmode)"
-        local _noscan_50="$(uci -q get wireless.radio1.htmode)"
-        [ "$_noscan_50" == "0" ] && echo "auto" || echo "$_htmode_50"
+	local _htmode_50="$(uci -q get wireless.radio1.htmode)"
+	local _noscan_50="$(uci -q get wireless.radio1.noscan)"
+	[ "$_noscan_50" == "0" ] && echo "auto" || echo "$_htmode_50"
 }
 
 get_auto_htmode(){
-        if [ "$1" == '0' ]
-        then
-                if [ "$(get_htmode_24)" == "auto" ]
-                then
-                        local _auto_htmode="$(iw dev wlan0 info | grep width | awk '{print $6}')"
-                        [ "$_auto_htmode" = "20" ] && echo "HT20" || [ "$_auto_htmode" = "40" ] && echo "HT40"
+	if [ "$1" == '0' ]
+	then
+		if [ "$(get_htmode_24)" == "auto" ]
+		then
+			local _auto_htmode="$(iw dev wlan0 info | grep width | awk '{print $6}')"
+			if [ "$_auto_htmode" = "20" ]
+			then
+				echo "HT20"
+			elif [ "$_auto_htmode" = "40" ]
+			then
+				echo "HT40"
+			fi
 			return
-                fi
-        elif [ "$1" == '1' ]
-        then
-                if [ "$(get_htmode_50)" == "auto" ]
-                then
-                        local _auto_htmode="$(iw dev wlan1 info | grep width | awk '{print $6}')"
-                        [ "$_auto_htmode" = "20" ] && echo "HT20" || [ "$_auto_htmode" = "40" ] && echo "HT40" || [ "$_auto_htmode" = "80" ] && echo "HT80"
+		fi
+	elif [ "$1" == '1' ]
+	then
+		if [ "$(get_htmode_50)" == "auto" ]
+		then
+			local _auto_htmode="$(iw dev wlan1 info | grep width | awk '{print $6}')"
+			if [ "$_auto_htmode" = "20" ]
+			then
+				echo "HT20"
+			elif [ "$_auto_htmode" = "40" ]
+			then
+				echo "HT40"
+			elif [ "$_auto_htmode" = "80" ]
+			then
+				echo "HT80"
+			fi
 			return
-                fi
-        else
-                echo ""
-        fi
+		fi
+	else
+		echo ""
+	fi
 }
 
 get_wifi_state() {
@@ -352,8 +367,8 @@ set_wifi_local_config() {
 		if [ "$_newht" != "NOHT" ]
 		then
 			[ "$_remote_htmode_24" = "HT40" ] && uci set wireless.radio0.htmode="HT40"  && uci set wireless.radio0.noscan="1"
-                        [ "$_remote_htmode_24" = "HT20" ] && uci set wireless.radio0.htmode="HT20" && uci set wireless.radio0.noscan="1"
-                        [ "$_remote_htmode_24" = "auto" ] && uci set wireless.radio0.htmode="HT40" && uci set wireless.radio0.noscan="0"
+			[ "$_remote_htmode_24" = "HT20" ] && uci set wireless.radio0.htmode="HT20" && uci set wireless.radio0.noscan="1"
+			[ "$_remote_htmode_24" = "auto" ] && uci set wireless.radio0.htmode="HT40" && uci set wireless.radio0.noscan="0"
 			_do_reload=1
 		fi
 	fi
@@ -447,20 +462,20 @@ set_wifi_local_config() {
 			 [ "$_remote_htmode_50" != "$_local_htmode_50" ]
 		then
 			if [ "$_remote_htmode_50" == "auto" ]
-                        then
-                                uci set wireless.radio1.noscan="0"
-                                [ ! "$(is_5ghz_vht)" ] && uci set wireless.radio1.htmode="HT40"
-                                [ "$(is_5ghz_vht)" ] && uci set wireless.radio1.htmode="VHT80"
-                        else
-                                uci set wireless.radio1.noscan="1"
-                                if [ "$_remote_htmode_50" == "VHT80" ]
-                                then
-                                        [ ! "$(is_5ghz_vht)" ] && uci set wireless.radio1.htmode="HT40"
-                                        [ "$(is_5ghz_vht)" ] && uci set wireless.radio1.htmode="VHT80"
-                                else
-                                        uci set wireless.radio1.htmode="$_remote_htmode_50"
-                                fi
-                        fi
+			then
+				uci set wireless.radio1.noscan="0"
+				[ ! "$(is_5ghz_vht)" ] && uci set wireless.radio1.htmode="HT40"
+				[ "$(is_5ghz_vht)" ] && uci set wireless.radio1.htmode="VHT80"
+			else
+				uci set wireless.radio1.noscan="1"
+				if [ "$_remote_htmode_50" == "VHT80" ]
+				then
+					[ ! "$(is_5ghz_vht)" ] && uci set wireless.radio1.htmode="HT40"
+					[ "$(is_5ghz_vht)" ] && uci set wireless.radio1.htmode="VHT80"
+				else
+					uci set wireless.radio1.htmode="$_remote_htmode_50"
+				fi
+			fi
 			_do_reload=1
 		fi
 
