@@ -8,6 +8,21 @@ log() {
 	logger -t "$1 " "$2"
 }
 
+sh_timeout() {
+	cmd="$1"
+	timeout="$2"
+	(
+		eval "$cmd" &
+		child=$!
+		trap -- "" SIGTERM
+		(
+			sleep "$timeout"
+			kill $child 2> /dev/null
+		) &
+		wait $child
+	)
+}
+
 get_flashbox_version() {
 	echo "$(cat /etc/anlix_version)"
 }

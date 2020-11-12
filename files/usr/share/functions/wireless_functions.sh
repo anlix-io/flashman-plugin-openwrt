@@ -584,8 +584,9 @@ change_wifi_state() {
 auto_change_mesh_slave_channel() {
 	scan_channel(){
 		local _new_NCh=""
+		local _iface="$1"
 		local _mesh_id="$2"
-		A=$(iw dev $1 scan -u);
+		A=$(iw dev $_iface scan -u);
 		while [ "$A" ]
 		do
 			AP=${A##*BSS }
@@ -606,12 +607,12 @@ auto_change_mesh_slave_channel() {
 	if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
 	then
 		log "AUTOCHANNEL" "Scanning MESH channel for mesh0..."
-		iw dev mesh0 info 1>/dev/null 2> /dev/null && _NCh2=$(scan_channel mesh0 $_mesh_id)
+		iw dev mesh0 info 1>/dev/null 2> /dev/null && _NCh2=$(sh_timeout "scan_channel mesh0 $_mesh_id" 10)
 	fi
 	if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
 	then
 		log "AUTOCHANNEL" "Scanning MESH channel for mesh1..."
-		iw dev mesh1 info 1>/dev/null 2> /dev/null && _NCh5=$(scan_channel mesh1 $_mesh_id)
+		iw dev mesh1 info 1>/dev/null 2> /dev/null && _NCh5=$(sh_timeout "scan_channel mesh1 $_mesh_id" 10)
 	fi
 
 	if [ "$_NCh2" ] || [ "$_NCh5" ]
@@ -626,6 +627,35 @@ auto_change_mesh_slave_channel() {
 		fi
 	else
 		log "AUTOCHANNEL" "No MESH signal found"
+	fi
+}
+
+set_mesh_rrm() {
+	local _need_change=0
+	[ "$(get_wifi_state 0)" = "1" ] && ubus -t 15 wait_for hostapd.wlan0 2>/dev/null && _need_change=1
+	[ "$(is_5ghz_capable)" = "1" ] && [ "$(get_wifi_state 1)" = "1" ] && \
+		ubus -t 15 wait_for hostapd.wlan1 2>/dev/null && _need_change=1
+
+	if [ $_need_change -eq 1 ]
+	then
+		local rrm_list
+		local radios=$(ubus list | grep hostapd.wlan)
+		A=$'\n'$(ubus call anlix_sapo get_meshids | jsonfilter -e "@.list[*]")
+		while [ "$A" ]
+		do
+			B=${A##*$'\n'}
+			A=${A%$'\n'*}
+			rrm_list=$rrm_list",$B"
+		done
+		for value in ${radios}
+		do
+			rrm_list=${rrm_list}",$(ubus call ${value} rrm_nr_get_own | jsonfilter -e '$.value')"
+		done
+		for value in ${radios}
+		do
+			ubus call ${value} bss_mgmt_enable '{"neighbor_report": true}'
+			eval "ubus call ${value} rrm_nr_set '{ \"list\": [ ${rrm_list:1} ] }'"
+		done
 	fi
 }
 
