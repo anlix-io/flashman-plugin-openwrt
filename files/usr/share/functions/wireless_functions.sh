@@ -582,8 +582,8 @@ change_wifi_state() {
 	fi
 	[ "$_itf_num" = "0" ] && _wifi_state_50=""
 	[ "$_itf_num" = "1" ] && _wifi_state=""
-	set_wifi_local_config "" "" "" "" "" "$_wifi_state" \
-					"" "" "" "" "" "$_wifi_state_50" \
+	set_wifi_local_config "" "" "" "" "" "$_wifi_state" "" "" \
+					"" "" "" "" "" "$_wifi_state_50" "" "" \
 					"" && wifi reload && /etc/init.d/minisapo reload
 }
 
@@ -624,7 +624,7 @@ auto_change_mesh_slave_channel() {
 	if [ "$_NCh2" ] || [ "$_NCh5" ]
 	then
 		if set_wifi_local_config "" "" "$_NCh2" "" "" "" "" "" \
-			"$_NCh5" "" "" "" "$_mesh_mode"
+			"" "" "$_NCh5" "" "" "" "" "" "$_mesh_mode"
 		then
 			log "AUTOCHANNEL" "MESH Channel change ($_NCh2) ($_NCh5)"
 			wifi reload
