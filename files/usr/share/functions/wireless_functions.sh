@@ -99,6 +99,24 @@ get_txpower() {
 	fi
 }
 
+change_fast_transition() {
+	local _radio="$1"
+	local _enabled="$2"
+	if [ "$_enabled" = "1" ]
+	then
+		# Enable Fast Transition
+		uci set wireless.default_radio$_radio.ieee80211r="1"
+		uci set wireless.default_radio$_radio.ieee80211v="1"
+		uci set wireless.default_radio$_radio.bss_transition="1"
+		uci set wireless.default_radio$_radio.ieee80211k="1"
+	else
+		uci delete wireless.default_radio$_radio.ieee80211r
+		uci delete wireless.default_radio$_radio.ieee80211v
+		uci delete wireless.default_radio$_radio.bss_transition
+		uci delete wireless.default_radio$_radio.ieee80211k
+	fi
+}
+
 get_wifi_local_config() {
 	local _ssid_24="$(uci -q get wireless.default_radio0.ssid)"
 	local _password_24="$(uci -q get wireless.default_radio0.key)"
@@ -296,10 +314,7 @@ set_wifi_local_config() {
 		if [ "$_mesh_mode" != "0" ] && \
 			 [ "$_local_ft_24" != "1" ]
 		then
-			uci set wireless.default_radio0.ieee80211r="1"
-			uci set wireless.default_radio0.ieee80211v="1"
-			uci set wireless.default_radio0.bss_transition="1"
-			uci set wireless.default_radio0.ieee80211k="1"
+			change_fast_transition "0" "1"
 			_do_reload=1
 		fi
 
@@ -307,10 +322,7 @@ set_wifi_local_config() {
 		if [ "$_mesh_mode" == "0" ] && \
 			 [ "$_local_ft_24" == "1" ]
 		then
-			uci delete wireless.default_radio0.ieee80211r
-			uci delete wireless.default_radio0.ieee80211v
-			uci delete wireless.default_radio0.bss_transition
-			uci delete wireless.default_radio0.ieee80211k
+			change_fast_transition "0" "0"
 			_do_reload=1
 		fi 
 	fi
@@ -402,10 +414,7 @@ set_wifi_local_config() {
 			if [ "$_mesh_mode" != "0" ] && \
 				 [ "$_local_ft_50" != "1" ]
 			then
-				uci set wireless.default_radio1.ieee80211r="1"
-				uci set wireless.default_radio1.ieee80211v="1"
-				uci set wireless.default_radio1.bss_transition="1"
-				uci set wireless.default_radio1.ieee80211k="1"
+				change_fast_transition "1" "1"
 				_do_reload=1
 			fi
 
@@ -413,10 +422,7 @@ set_wifi_local_config() {
 			if [ "$_mesh_mode" == "0" ] && \
 				 [ "$_local_ft_50" == "1" ]
 			then
-				uci delete wireless.default_radio1.ieee80211r
-				uci delete wireless.default_radio1.ieee80211v
-				uci delete wireless.default_radio1.bss_transition
-				uci delete wireless.default_radio1.ieee80211k
+				change_fast_transition "1" "0"
 				_do_reload=1
 			fi
 		fi

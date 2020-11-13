@@ -142,6 +142,14 @@ then
 	else
 		set_mesh_slave_mode "$_mesh_mode" "$_mesh_master"
 	fi
+
+	# Enable Fast Transition
+	change_fast_transition "0" "1"
+	if [ "$(is_5ghz_capable)" = "1" ]
+	then
+		change_fast_transition "1" "1"
+	fi
+
 	enable_mesh_routing "$_mesh_mode"
 fi
 
