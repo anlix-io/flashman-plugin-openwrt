@@ -117,6 +117,17 @@ change_fast_transition() {
 	fi
 }
 
+change_wps_state() {
+	local _radio="$1"
+	local _enabled="$2"
+	if [ "$_enabled" = "1" ]
+	then
+		uci set wireless.default_radio$_radio.wps_pushbutton='1'
+		uci set wireless.default_radio$_radio.wps_manufacturer='FlashBox AP'
+		uci set wireless.default_radio$_radio.wps_device_name='anlix.io'
+	fi
+}
+
 get_wifi_local_config() {
 	local _ssid_24="$(uci -q get wireless.default_radio0.ssid)"
 	local _password_24="$(uci -q get wireless.default_radio0.key)"
