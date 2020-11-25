@@ -108,9 +108,14 @@ fi
 
 uci set wireless.radio0.txpower="$(convert_txpower "24" "$_channel_24" "$_txpower_24")"
 uci set wireless.default_radio0.hidden="$_hidden_24"
-uci set wireless.radio0.noscan="1"
-[ "$_htmode_24" = "auto" ] && uci set wireless.radio0.htmode="HT40" && \
-	uci set wireless.radio0.noscan="0" || uci set wireless.radio0.htmode="$_htmode_24"
+if [ "$_htmode_24" = "auto" ] 
+then
+	uci set wireless.radio0.htmode="HT40"
+	uci set wireless.radio0.noscan="0"
+else
+	uci set wireless.radio0.htmode="$_htmode_24"
+	uci set wireless.radio0.noscan="1"
+fi
 uci set wireless.radio0.country="BR"
 uci set wireless.radio0.channel="$_channel_24"
 uci set wireless.radio0.channels="$DEFAULT_24_CHANNELS"
@@ -130,13 +135,23 @@ then
 	uci set wireless.radio1.channel="$_channel_50"
 	uci set wireless.radio1.channels="$DEFAULT_50_CHANNELS"
 	uci set wireless.radio1.country="BR"
-	uci set wireless.radio1.noscan="1"
-	if [ "$_htmode_50" == "auto" ]
+	if [ "$_htmode_50" = "auto" ]
 	then
 		uci set wireless.radio1.noscan="0"
-		[ "$(is_5ghz_vht)" ] && uci set wireless.radio1.htmode="VHT80" || uci set wireless.radio1.htmode="HT40"
+		if [ "$(is_5ghz_vht)" ] 
+		then
+			uci set wireless.radio1.htmode="VHT80"
+		else
+			uci set wireless.radio1.htmode="HT40"
+		fi
 	else
-		[ "$_htmode_50" = "VHT80" ] && [ ! "$(is_5ghz_vht)" ] && uci set wireless.radio1.htmode="HT40" || uci set wireless.radio1.htmode="$_htmode_50"
+		uci set wireless.radio1.noscan="1"
+		if [ "$_htmode_50" = "VHT80" ] && [ ! "$(is_5ghz_vht)" ]
+		then
+			uci set wireless.radio1.htmode="HT40"
+		else
+			uci set wireless.radio1.htmode="$_htmode_50"
+		fi
 	fi
 	uci set wireless.radio1.disabled='0'
 	uci set wireless.default_radio1.disabled="$([ "$_state_50" = "1" ] && echo "0" || echo "1")"
