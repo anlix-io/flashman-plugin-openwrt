@@ -3,7 +3,7 @@
 . /usr/share/functions/data_collecting_functions.sh
 
 dataCollectingDir="/tmp/influx_data_collecting"
-rawData="${dataCollectingDir}/raw"
+rawDataFile="${dataCollectingDir}/raw"
 compressedDataDir="${dataCollectingDir}/compressed"
 
 # prints the name of all available wireless interfaces, separated by new lines.
@@ -79,7 +79,6 @@ collectPingForInflux() {
 	local pingNumber pingTime unreachable
 
 	local pingResult=$(ping -i 0.01 -c 100 "$FLM_SVADDR") # 100 pings in burst.
-	local pingSummary=${pingResult##* ---} # the summary that appears in the last lines.
 
 	# as numerical characters are small than letters, the icmp request numbers 
 	# are written first to string, then the letters charactered fields are 
@@ -99,12 +98,13 @@ collectPingForInflux() {
 		string="${string}$pingNumber=$pingTime," # concatenate to $string.
 	done
 	echo $string)) # prints final $string in this sub shell back to $string.
-
-	local loss=${pingSummary%\% packet loss*} # removes everything after, and including, '% packet loss'.
+	
+	pingResult=${pingResult##* ---} # the summary that appears in the last lines.
+	local loss=${pingResult%\% packet loss*} # removes everything after, and including, '% packet loss'.
 	loss=${loss##* } # removes everything after first space.
 	if [ $loss -ne 100 ]; then # if $loss is not '100'.
 		# takes average after removing everything until, and including first digit followed by '/'.
-		local average=${pingSummary#*[0-9]/}
+		local average=${pingResult#*[0-9]/}
 		average=${average%%/*} # removes everything after first '/'.
 		string="${string}avg=$average," # append average information.
 	fi # when loss is 100%, no rtt information is present in ping result, which means there is no average, min or max info.
@@ -124,7 +124,7 @@ fileSize() {
 
 # prints the sum of the sizes of all files inside given directory path.
 sumFileSizesInPath() {
-	anyFile=false # boolean that marks that at least one file exists inside given directory.
+	local anyFile=false # boolean that marks that at least one file exists inside given directory.
 	for i in "$1"/*; do # for each file in that directory.
 		[ -f "$i" ] || continue # if that pattern expansion exists as a file.
 		anyFile=true # set boolean to true.
@@ -204,17 +204,17 @@ collectData() {
 	mac=${mac//:/} # removing all colons in mac address.
 
 	# echo collecting all data
-	collectDevicesWifiDataForInflux "$rawData" "$mac"
-	collectWanStatisticsForInflux "$rawData" "$mac"
-	collectPingForInflux "$rawData" "$mac"
+	collectDevicesWifiDataForInflux "$rawDataFile" "$mac"
+	collectWanStatisticsForInflux "$rawDataFile" "$mac"
+	collectPingForInflux "$rawDataFile" "$mac"
 
 	# $(zipFile) returns 0 only if any amount of files has been compressed 
 	# and, consequently, moved to the directory of compressed files. So
 	# $(removeOldFiles) is only executed if any new compressed file was 
 	# created.
 	mkdir -p "$compressedDataDir"
-	zipFile "$rawData" "$compressedDataDir" $((32*1024)) && \
-	removeOldFiles "$compressedDataDir" $((24*1024))
+	zipFile "$rawDataFile" "$compressedDataDir" $((32*1024)) && \
+		removeOldFiles "$compressedDataDir" $((24*1024))
 	# the difference between the cap size sent to $(zipFile) and 
 	# $(removeOldFiles) is the size left as a minimum amount for raw data 
 	# before compressing it. This means that, if there are no compressed files, 
@@ -327,7 +327,7 @@ sendUncompressedData() {
 	# remove temporary file. a new temporary should be created, with more content, if we couldn't send data this time.
 	rm "$compressedTempFile"
 	trap - SIGTERM # clean trap
-	# echo removed compressed final file
+	# echo removed compressed final file.
 
 	if [ "$sentResult" -eq 0 ]; then # if send was successful
 		# echo removing uncompressed files
@@ -399,7 +399,7 @@ sendData() {
 		local lastServerState=$(getLastServerState "$dataCollectingDir/serverState")
 		checkLastServerState "$lastServerState" "$dataCollectingFqdn" && \
 		sendCompressedData "${compressedDataDir}/*" "$dataCollectingFqdn" && \
-		sendUncompressedData "$rawData" "$dataCollectingFqdn"
+		sendUncompressedData "$rawDataFile" "$dataCollectingFqdn"
 		local currentServerState="$?"
 		# if server stops before sending some data, current server state will differ from last server state.
 		# $currentServerState get the exit code of the first of these 3 functions above that returns anything other than 0.
