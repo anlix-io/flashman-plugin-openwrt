@@ -10,39 +10,51 @@
 . /usr/share/functions/api_functions.sh
 
 _need_update=0
+_force_update=0
 _cert_error=0
+_anlix_version="$(cat /etc/anlix_version)"
 while true
 do
-  sleep 300
+	sleep 300
 
-  _rand=$(head /dev/urandom | tr -dc "012345")
-  _number=${_rand:0:1}
+	_rand=$(head /dev/urandom | tr -dc "012345")
+	_number=${_rand:0:1}
 
-  if [ "$_number" -eq 3 ] || [ "$1" == "now" ]
-  then
-    # Get WiFi data
-    json_cleanup
-    json_load "$(get_wifi_local_config)"
-    json_get_var _local_ssid_24 local_ssid_24
-    json_get_var _local_password_24 local_password_24
-    json_get_var _local_channel_24 local_channel_24
-    json_get_var _local_hwmode_24 local_hwmode_24
-    json_get_var _local_htmode_24 local_htmode_24
-    json_get_var _local_state_24 local_state_24
-    json_get_var _local_5ghz_capable local_5ghz_capable
-    json_get_var _local_ssid_50 local_ssid_50
-    json_get_var _local_password_50 local_password_50
-    json_get_var _local_channel_50 local_channel_50
-    json_get_var _local_hwmode_50 local_hwmode_50
-    json_get_var _local_htmode_50 local_htmode_50
-    json_get_var _local_state_50 local_state_50
-    json_close_object
+	if [ "$_number" -eq 3 ] || [ "$1" == "now" ]
+	then
+		# Get WiFi data
+		json_cleanup
+		json_load "$(get_wifi_local_config)"
+		json_get_var _local_ssid_24 local_ssid_24
+		json_get_var _local_password_24 local_password_24
+		json_get_var _local_channel_24 local_channel_24
+		json_get_var _local_hwmode_24 local_hwmode_24
+		json_get_var _local_htmode_24 local_htmode_24
+		json_get_var _local_state_24 local_state_24
+		json_get_var _local_5ghz_capable local_5ghz_capable
+		json_get_var _local_ssid_50 local_ssid_50
+		json_get_var _local_password_50 local_password_50
+		json_get_var _local_channel_50 local_channel_50
+		json_get_var _local_hwmode_50 local_hwmode_50
+		json_get_var _local_htmode_50 local_htmode_50
+		json_get_var _local_state_50 local_state_50
+		json_close_object
 
-    log "KEEPALIVE" "Ping Flashman ..."
-    #
-    # WARNING! No spaces or tabs inside the following string!
-    #
-    _data="id=$(get_mac)&\
+		# Get WPS state if exists
+		_local_wps_state="0"
+		if [ -f "/tmp/wps_state.json" ]
+		then
+			json_cleanup
+			json_load_file /tmp/wps_state.json
+			json_get_var _local_wps_state wps_content
+			json_close_object
+		fi
+
+		log "KEEPALIVE" "Ping Flashman (v$_anlix_version) ..."
+		#
+		# WARNING! No spaces or tabs inside the following string!
+		#
+		_data="id=$(get_mac)&\
 flm_updater=0&\
 version=$(get_flashbox_version)&\
 model=$(get_hardware_model)&\
@@ -71,68 +83,86 @@ wifi_state_5ghz=$_local_state_50&\
 connection_type=$(get_wan_type)&\
 ntp=$(ntp_anlix)&\
 sysuptime=$(sys_uptime)&\
-wanuptime=$(wan_uptime)"
-    _url="deviceinfo/syn/"
-    _res=$(rest_flashman "$_url" "$_data")
+wanuptime=$(wan_uptime)&\
+wpsstate=$_local_wps_state"
+		_url="deviceinfo/syn/"
+		_res=$(rest_flashman "$_url" "$_data")
 
-    _retstatus=$?
-    if [ $_retstatus -eq 0 ]
-    then
-      _cert_error=0
-      json_cleanup
-      json_load "$_res"
-      json_get_var _do_update do_update
-      json_get_var _do_newprobe do_newprobe
-      json_get_var _mqtt_status mqtt_status
-      json_close_object
+		_retstatus=$?
+		if [ $_retstatus -eq 0 ]
+		then
+			_cert_error=0
+			json_cleanup
+			json_load "$_res"
+			json_get_var _do_update do_update
+			json_get_var _do_newprobe do_newprobe
+			json_get_var _mqtt_status mqtt_status
+			json_close_object
 
-      if [ "$_do_newprobe" = "1" ]
-      then
-        log "KEEPALIVE" "Router Registred in Flashman Successfully!"
-        # On a new probe, force a new registry in mqtt secret
-        reset_mqtt_secret > /dev/null
-        sh /usr/share/flashman_update.sh
-      fi
+			if [ "$_do_newprobe" = "1" ]
+			then
+				log "KEEPALIVE" "Router Registred in Flashman Successfully!"
+				# On a new probe, force a new registry in mqtt secret
+				reset_mqtt_secret > /dev/null
+				sh /usr/share/flashman_update.sh
+			fi
 
-      if [ "$_do_update" = "1" ]
-      then
-        _need_update=$(( _need_update + 1 ))
-      else
-        _need_update=0
-      fi
+			if [ "$_do_update" = "1" ]
+			then
+				_need_update=$(( _need_update + 1 ))
+			else
+				_need_update=0
+			fi
 
-      if [ $_need_update -gt 7 ]
-      then
-        # More than 7 checks (>20 min), force a firmware update
-        log "KEEPALIVE" "Running update ..."
-        sh /usr/share/flashman_update.sh
-      fi
+			if [ $_need_update -gt 7 ]
+			then
+				if [ $_force_update -eq 1 ] 
+				then
+					_force_update=0
+				else
+					lock -n /tmp/lock_firmware || _force_update=1
+				fi
 
-      if [ "$_mqtt_status" = "0" ]
-      then
-        # Check is mqtt is running
-        mqttpid=$(pgrep anlix-mqtt)
-        if [ "$mqttpid" ] && [ $mqttpid -gt 0 ]
-        then
-          log "KEEPALIVE" "MQTT not connected to Flashman! Restarting..."
-          kill -9 $mqttpid
-        fi
-      fi
-    elif [ $_retstatus -eq 2 ]
-    then
-      log "KEEPALIVE" "Fail in Flashman Certificate! Retry $_cert_error"
-      # Certificate problems are related to desync dates
-      # Wait NTP, or correct if we can...
-      _cert_error=$(( _cert_error + 1 ))
-      if [ $_cert_error -gt 7 ]
-      then
-        # More than 7 checks (>20 min), force a date update
-        log "KEEPALIVE" "Try resync date with Flashman!"
-        resync_ntp
-        _cert_error=0
-      fi
-    else
-      log "KEEPALIVE" "Fail in Rest Flashman! Aborting..."
-    fi
-  fi
+				if [ $_force_update -eq 0 ]
+				then
+					lock -u /tmp/lock_firmware
+					# More than 7 checks (>20 min), force a firmware update
+					log "KEEPALIVE" "Running update ..."
+					sh /usr/share/flashman_update.sh
+				fi
+				_need_update=0
+			fi
+
+			if [ "$_mqtt_status" = "0" ]
+			then
+				# Check is mqtt is running
+				mqttpid=$(pgrep anlix-mqtt)
+				if [ "$mqttpid" ] && [ $mqttpid -gt 0 ]
+				then
+					log "KEEPALIVE" "MQTT not connected to Flashman! Restarting..."
+					kill -9 $mqttpid
+				fi
+			fi
+		elif [ $_retstatus -eq 2 ]
+		then
+			log "KEEPALIVE" "Fail in Flashman Certificate! Retry $_cert_error"
+			# Certificate problems are related to desync dates
+			# Wait NTP, or correct if we can...
+			_cert_error=$(( _cert_error + 1 ))
+			if [ $_cert_error -gt 7 ]
+			then
+				# More than 7 checks (>20 min), force a date update
+				log "KEEPALIVE" "Try resync date with Flashman!"
+				resync_ntp
+				_cert_error=0
+			fi
+		else
+			log "KEEPALIVE" "Fail in Rest Flashman! Aborting..."
+		fi
+
+		#always keep the updater locker free
+		lock -u /tmp/lock_updater
+
+		[ "$(type -t anlix_force_clean_memory)" ] && anlix_force_clean_memory
+	fi
 done

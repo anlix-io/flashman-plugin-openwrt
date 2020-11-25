@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=flasman-plugin
-PKG_VERSION:=0.24.0
+PKG_VERSION:=0.30.2
 PKG_RELEASE:=1
 
 PKG_LICENSE:=GPL
@@ -47,19 +47,18 @@ define Package/flashman-plugin
 	DEPENDS:=+curl \
 			+iputils-ping \
 			+iputils-ping6 \
-			+wireless-tools \
 			+uhttpd \
 			+uhttpd-mod-lua \
 			+px5g-mbedtls \
 			+libustream-mbedtls \
 			+libuuid \
-			+libcares \
 			+rpcd \
 			+libuci-lua \
 			+libubus-lua \
 			+libmbedtls \
 			+iptables-mod-conntrack-extra \
 			+anlix-miniupnpd \
+			+anlix-minisapo \
 			+flash-measure
 	MENU:=1
 endef
@@ -81,88 +80,93 @@ FILE_DIR=
 	endif
 
 CUSTOM_FILE_DIR=
-	ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_archer-c20-v4), y)
-		CUSTOM_FILE_DIR="custom-files/archer-c20-v4"
-	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_archer-c20-v5), y)
-		CUSTOM_FILE_DIR="custom-files/archer-c20-v5"
-	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_archer-c20-v5preset), y)
-		CUSTOM_FILE_DIR="custom-files/archer-c20-v5preset"
-	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_ArcherC5v4), y)
-		CUSTOM_FILE_DIR="custom-files/archer-c5-v4"
-	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_archer-c50-v3), y)
-		CUSTOM_FILE_DIR="custom-files/archer-c50-v3"
-	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_archer-c50-v4), y)
-		CUSTOM_FILE_DIR="custom-files/archer-c50-v4"
-	else ifeq ($(CONFIG_TARGET_ar71xx_generic_DEVICE_archer-c60-v2), y)
-		CUSTOM_FILE_DIR="custom-files/archer-c60-v2"
-	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_dl-dwr116-a3), y)
-		CUSTOM_FILE_DIR="custom-files/dl-dwr116-a3"
+CUSTOM_FILE_ARQ=
+	ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_tplink_c2-v1), y)
+		CUSTOM_FILE_ARQ="tplink_archer-c2-v1"
+	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_tplink_c20-v1), y)
+		CUSTOM_FILE_ARQ="tplink_archer-c20-v1"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tplink_c20-v4), y)
+		CUSTOM_FILE_ARQ="tplink_archer-c20-v4"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tplink_c20-v5), y)
+		CUSTOM_FILE_ARQ="tplink_archer-c20-v5"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tplink_c20-v5w), y)
+		CUSTOM_FILE_ARQ="tplink_archer-c20-v5W"
+	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_tplink_c5-v4), y)
+		CUSTOM_FILE_ARQ="tplink_archer-c5-v4"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tplink_c50-v3), y)
+		CUSTOM_FILE_ARQ="tplink_archer-c50-v3"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tplink_c50-v4), y)
+		CUSTOM_FILE_ARQ="tplink_archer-c50-v4"
+	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_zyxel_emg1702-t10a-a1), y)
+		CUSTOM_FILE_ARQ="tbs"
+	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_archer-c60-v2), y)
+		CUSTOM_FILE_ARQ="tplink_archer-c60-v2"
+	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_archer-c60-v3), y)
+		CUSTOM_FILE_ARQ="tplink_archer-c60-v3"
+	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_archer-c6-v2-us), y)
+		CUSTOM_FILE_ARQ="tplink_archer-c6-v2US"
+	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_archer-c7-v5), y)
+		CUSTOM_FILE_ARQ="tplink_archer-c7-v5"
+	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_dlink_covr-c1200-a1), y)
+		CUSTOM_FILE_ARQ="dlink_covr-c1200-a1"
+	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_dlink_dir-819-a1), y)
+		CUSTOM_FILE_ARQ="tbs"
+	else ifeq ($(CONFIG_TARGET_ath79_tiny_DEVICE_tplink_tl-wr740n-v4), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wr740n"
+	else ifeq ($(CONFIG_TARGET_ath79_tiny_DEVICE_tplink_tl-wr740n-v5), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wr740n"
+	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr740n-v6), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wr740n"
+	else ifeq ($(CONFIG_TARGET_ath79_tiny_DEVICE_tplink_tl-wr741nd-v4), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wr741n"
+	else ifeq ($(CONFIG_TARGET_ath79_tiny_DEVICE_tplink_tl-wr841-v7), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wr841n"
+	else ifeq ($(CONFIG_TARGET_ath79_tiny_DEVICE_tplink_tl-wr841-v8), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wr841n"
+	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_tl-wr842n-v3), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wr842n"
+	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_tl-wr2543-v1), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wr2543nd"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v5), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v5-v6"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v6), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v5-v6"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v5), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v5-v6"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v6), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v5-v6"
+	else ifeq ($(CONFIG_TARGET_ath79_tiny_DEVICE_tplink_tl-wr940n-v5), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wr940n-v5"
+	else ifeq ($(CONFIG_TARGET_ath79_tiny_DEVICE_tplink_tl-wr940n-v6), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wr94Xn-v6"
+	else ifeq ($(CONFIG_TARGET_ath79_tiny_DEVICE_tplink_tl-wr949n-v6), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wr94Xn-v6"
+	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_tl-wdr3500-v1), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wdr3500"
+	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_dlink_dwr-116-a1), y)
+		CUSTOM_FILE_ARQ="dlink_dl-dwr116-a3"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_itlb-ncloud-v1), y)
 		CUSTOM_FILE_DIR="custom-files/itlb-ncloud-v1"
-	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_ACTIONRF1200), y)
-		CUSTOM_FILE_DIR="custom-files/actionrf1200-v1"
-	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_ACTIONRG1200), y)
-		CUSTOM_FILE_DIR="custom-files/actionrg1200-v1"
-	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_dir-819-a1), y)
-		CUSTOM_FILE_DIR="custom-files/dir-819-a1"
-	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_emg1702-t10a-a1), y)
-		CUSTOM_FILE_DIR="custom-files/emg1702-t10a-a1"
-	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr741nd-v4), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wr741nd-v4"
-	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr841-v7), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wr841-v7"
-	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr841-v8), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wr841-v8"
-	else ifeq ($(CONFIG_TARGET_ar71xx_generic_DEVICE_tl-wr842n-v3), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wr842n-v3"
-	else ifeq ($(CONFIG_TARGET_ar71xx_generic_DEVICE_tl-wdr3500-v1), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wdr3500-v1"
-	else ifeq ($(CONFIG_TARGET_ar71xx_generic_DEVICE_tl-wdr3600-v1), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wdr3600-v1"
-	else ifeq ($(CONFIG_TARGET_ar71xx_generic_DEVICE_tl-wdr4300-v1), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wdr4300-v1"
-	else ifeq ($(CONFIG_TARGET_ar71xx_generic_DEVICE_tl-wr2543-v1), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wr2543-v1"
-	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v4), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wr840n-v4"
-	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v5preset), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wr840n-v5preset"
-	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v5), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wr840n-v5"
-	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v6), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wr840n-v6"
-	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v62), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wr840n-v62"
-	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v6preset), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wr840n-v6preset"
-	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr845n-v3), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wr845n-v3"
-	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr845n-v4), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wr845n-v4"
-	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v4), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wr849n-v4"
-	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v5), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wr849n-v5"
-	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v6), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wr849n-v6"
-	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v62), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wr849n-v62"
-	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr940n-v6), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wr940n-v6"
-	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr949n-v6), y)
-		CUSTOM_FILE_DIR="custom-files/tl-wr949n-v6"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8197d_DEVICE_DIR815D1), y)
 		CUSTOM_FILE_DIR="custom-files/dir-815-d1"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8196e_DEVICE_GWR300N), y)
-		CUSTOM_FILE_DIR="custom-files/gwr-300-v1"
-	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_GWR1200AC), y)
-		CUSTOM_FILE_DIR="custom-files/gwr-1200-v1"
+		CUSTOM_FILE_ARQ="greatek_gwr300-v1"
+	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_GWR1200AC-V1), y)
+		CUSTOM_FILE_ARQ="greatek_gwr1200-v1"
+	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_GWR1200AC-V2), y)
+		CUSTOM_FILE_ARQ="greatek_gwr1200-v2"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8196e_DEVICE_RE172), y)
-		CUSTOM_FILE_DIR="custom-files/re172-v1"
+		CUSTOM_FILE_ARQ="multilaser_re172-v1"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_RE708), y)
-		CUSTOM_FILE_DIR="custom-files/re708-v1"
-	else
-		CUSTOM_FILE_DIR="custom-files/default"
+		CUSTOM_FILE_ARQ="multilaser_re708-v1"
+	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_ACTIONRF1200), y)
+		CUSTOM_FILE_ARQ="intelbras_rf1200-v1"
+	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_ACTIONRG1200), y)
+		CUSTOM_FILE_ARQ="intelbras_rg1200-v1"
+	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_GF1200), y)
+		CUSTOM_FILE_ARQ="intelbras_gf1200-v1"
+	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_W51200F), y)
+		CUSTOM_FILE_ARQ="intelbras_w51200f-v1"
 	endif
 
 WAN_PROTO=
@@ -185,10 +189,20 @@ SSID_SUFFIX=
 
 define Package/flashman-plugin/install
 	$(CP) ./$(FILE_DIR)/* $(1)/
+ifneq ($(CUSTOM_FILE_DIR),)
 	$(CP) ./$(CUSTOM_FILE_DIR)/* $(1)/
+endif
+ifneq ($(CUSTOM_FILE_ARQ),)
+	$(CP) ./custom-files/$(CUSTOM_FILE_ARQ).sh $(1)/usr/share/functions/custom_device.sh
+	if [ -d ./calibration/$(CUSTOM_FILE_ARQ) ]; then \
+		mkdir -p $(1)/lib/firmware ; \
+		$(CP) ./calibration/$(CUSTOM_FILE_ARQ)/* $(1)/lib/firmware/ ; \
+	fi
+endif
 
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/anlix-mqtt $(1)/usr/bin/
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/pk $(1)/usr/bin/
 
 	mkdir -p $(1)/usr/share
 	echo 'FLM_SSID_SUFFIX=$(SSID_SUFFIX)' >>$(1)/usr/share/flashman_init.conf
@@ -212,12 +226,9 @@ define Package/flashman-plugin/install
 	echo 'FLM_DHCP_NOPROXY=$(CONFIG_FLASHMAN_DHCP_NOPROXY)' >>$(1)/usr/share/flashman_init.conf
 	echo 'MQTT_PORT=$(CONFIG_MQTT_PORT)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_CLIENT_ORG=$(CONFIG_FLASHMAN_CLIENT_ORG)' >>$(1)/usr/share/flashman_init.conf
-
-ifeq ($(WAN_PROTO), "pppoe")
 	echo 'FLM_WAN_PPPOE_USER=$(CONFIG_FLASHMAN_PPPOE_USER)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_WAN_PPPOE_PASSWD=$(CONFIG_FLASHMAN_PPPOE_PASSWD)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_WAN_PPPOE_SERVICE=$(CONFIG_FLASHMAN_PPPOE_SERVICE)' >>$(1)/usr/share/flashman_init.conf
-endif
 
 	echo 'FLM_USE_AUTH_SVADDR=$(CONFIG_FLASHMAN_USE_AUTH_SERVER)' >>$(1)/usr/share/flashman_init.conf
 
@@ -233,6 +244,9 @@ endif
 	mkdir -p $(1)/etc/dropbear
 	cat $(CONFIG_FLASHMAN_KEYS_PATH)/$(CONFIG_FLASHMAN_PUBKEY_FNAME) >>$(1)/etc/dropbear/authorized_keys
 	chmod 0600 $(1)/etc/dropbear/authorized_keys
+
+	cat $(CONFIG_FLASHMAN_KEYS_PATH)/$(CONFIG_PROVIDER_PUBKEY_FNAME) >>$(1)/etc/provider.pubkey
+	chmod 0600 $(1)/etc/provider.pubkey
 
 endef
 

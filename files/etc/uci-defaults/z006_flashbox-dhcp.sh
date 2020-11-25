@@ -6,7 +6,7 @@
 A=$(uci get dhcp.@dnsmasq[0].interface)
 if [ "$A" ]
 then
-  uci delete dhcp.@dnsmasq[0].interface
+	uci delete dhcp.@dnsmasq[0].interface
 fi
 
 uci add_list dhcp.@dnsmasq[0].interface='lan'
@@ -31,9 +31,9 @@ uci set dhcp.dmz.force='1'
 
 if [ "$FLM_DHCP_NOPROXY" == "1" ]
 then
-  uci set dhcp.@dnsmasq[0].noproxy='1'
+	uci set dhcp.@dnsmasq[0].noproxy='1'
 else
-  uci set dhcp.@dnsmasq[0].noproxy='0'
+	uci set dhcp.@dnsmasq[0].noproxy='0'
 fi
 
 uci commit dhcp
