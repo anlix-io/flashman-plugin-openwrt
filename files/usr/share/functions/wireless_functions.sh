@@ -27,41 +27,8 @@ get_htmode_50() {
 	[ "$_noscan_50" == "0" ] && echo "auto" || echo "$_htmode_50"
 }
 
-get_auto_htmode(){
-	if [ "$1" == '0' ]
-	then
-		if [ "$(get_htmode_24)" == "auto" ]
-		then
-			local _auto_htmode="$(iw dev wlan0 info | grep width | awk '{print $6}')"
-			if [ "$_auto_htmode" = "20" ]
-			then
-				echo "HT20"
-			elif [ "$_auto_htmode" = "40" ]
-			then
-				echo "HT40"
-			fi
-			return
-		fi
-	elif [ "$1" == '1' ]
-	then
-		if [ "$(get_htmode_50)" == "auto" ]
-		then
-			local _auto_htmode="$(iw dev wlan1 info | grep width | awk '{print $6}')"
-			if [ "$_auto_htmode" = "20" ]
-			then
-				echo "HT20"
-			elif [ "$_auto_htmode" = "40" ]
-			then
-				echo "HT40"
-			elif [ "$_auto_htmode" = "80" ]
-			then
-				echo "HT80"
-			fi
-			return
-		fi
-	else
-		echo ""
-	fi
+get_wifi_htmode(){
+	iw dev wlan$1 info 2>/dev/null|grep width|awk '{print $6}'
 }
 
 get_wifi_state() {
@@ -188,7 +155,7 @@ get_wifi_local_config() {
 	local _curr_channel_24="$(get_wifi_channel '0')"
 	local _hwmode_24="$(get_hwmode_24)"
 	local _htmode_24="$(get_htmode_24)"
-	local _auto_htmode_24="$(get_auto_htmode '0')"
+	local _curr_htmode_24="$(get_wifi_htmode '0')"
 	local _state_24="$(get_wifi_state '0')"
 	local _txpower_24="$(get_txpower 0)"
 	local _ft_24="$(uci -q get wireless.default_radio0.ieee80211r)"
@@ -201,7 +168,7 @@ get_wifi_local_config() {
 	local _curr_channel_50=""
 	local _hwmode_50=""
 	local _htmode_50=""
-	local _auto_htmode_50=""
+	local _curr_htmode_50=""
 	local _state_50=""
 	local _txpower_50=""
 	local _ft_50=""
@@ -214,7 +181,7 @@ get_wifi_local_config() {
 		_curr_channel_50="$(get_wifi_channel '1')"
 		_hwmode_50="$(uci -q get wireless.radio1.hwmode)"
 		_htmode_50="$(uci -q get wireless.radio1.htmode)"
-		_auto_htmode_50="$(get_auto_htmode '1')"
+		_curr_htmode_50="$(get_wifi_htmode '1')"
 		_state_50="$(get_wifi_state '1')"
 		_txpower_50="$(get_txpower 1)"
 		_ft_50="$(uci -q get wireless.default_radio1.ieee80211r)"

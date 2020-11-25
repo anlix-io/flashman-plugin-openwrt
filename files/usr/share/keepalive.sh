@@ -31,6 +31,7 @@ do
 		json_get_var _local_curr_channel_24 local_curr_channel_24
 		json_get_var _local_hwmode_24 local_hwmode_24
 		json_get_var _local_htmode_24 local_htmode_24
+		json_get_var _local_curr_htmode_24 local_curr_htmode_24
 		json_get_var _local_state_24 local_state_24
 		json_get_var _local_txpower_24 local_txpower_24
 		json_get_var _local_hidden_24 local_hidden_24
@@ -41,6 +42,7 @@ do
 		json_get_var _local_curr_channel_50 local_curr_channel_50
 		json_get_var _local_hwmode_50 local_hwmode_50
 		json_get_var _local_htmode_50 local_htmode_50
+		json_get_var _local_curr_htmode_50 local_curr_htmode_50
 		json_get_var _local_state_50 local_state_50
 		json_get_var _local_txpower_50 local_txpower_50
 		json_get_var _local_hidden_50 local_hidden_50
@@ -78,6 +80,7 @@ wifi_password=$_local_password_24&\
 wifi_channel=$_local_channel_24&\
 wifi_curr_channel=$_local_curr_channel_24&\
 wifi_band=$_local_htmode_24&\
+wifi_curr_band=$_local_curr_htmode_24&\
 wifi_mode=$_local_hwmode_24&\
 wifi_state=$_local_state_24&\
 wifi_power=$_local_txpower_24&\
@@ -88,6 +91,7 @@ wifi_password_5ghz=$_local_password_50&\
 wifi_channel_5ghz=$_local_channel_50&\
 wifi_curr_channel_5ghz=$_local_curr_channel_50&\
 wifi_band_5ghz=$_local_htmode_50&\
+wifi_curr_band_5ghz=$_local_curr_htmode_50&\
 wifi_mode_5ghz=$_local_hwmode_50&\
 wifi_state_5ghz=$_local_state_50&\
 wifi_power_5ghz=$_local_txpower_50&\
