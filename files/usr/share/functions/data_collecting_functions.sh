@@ -33,6 +33,7 @@ set_data_collecting_parameters() {
 	# save config json.
 	json_dump > /root/flashbox_config.json
 	json_close_object
+	json_cleanup
 
 	# "true" boolean value is translated as string "1" by jshn.sh
 	# "false" boolean value is translated as string "0" by jshn.sh
@@ -65,6 +66,7 @@ is_data_colleting_license_available() {
 			if [ "$?" == 0 ]; then
 				json_get_var _is_available is_available
 				json_close_object
+				json_cleanup
 			else
 				log "DATA COLLECTING" "Invalid answer from controller when requesting data collecting license"
 			fi
@@ -83,4 +85,5 @@ get_data_collecting_fqdn () {
 	json_get_var saved_data_collecting_fqdn data_collecting_fqdn
 	echo $data_collecting_fqdn
 	json_close_object
+	json_cleanup
 }
