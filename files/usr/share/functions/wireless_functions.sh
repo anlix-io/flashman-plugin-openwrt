@@ -20,14 +20,8 @@ get_wifi_state() {
 	[ "$_q" ] && [ "$_q" = "1" ] && echo "0" || echo "1"
 }
 
-get_auto_channel(){
-        if [ "$(uci -q get wireless.radio$1.channel)" == "auto" ]
-        then
-                local _auto_channel="$(iw dev wlan$1 info | grep channel | awk '{print $2}')"
-                echo "$_auto_channel" && return
-        else
-                echo ""
-        fi
+get_wifi_channel(){
+	iw dev wlan$1 info 2>/dev/null|grep channel|awk '{print $2}'
 }
 
 auto_channel_selection() {
@@ -142,7 +136,7 @@ get_wifi_local_config() {
 	local _ssid_24="$(uci -q get wireless.default_radio0.ssid)"
 	local _password_24="$(uci -q get wireless.default_radio0.key)"
 	local _channel_24="$(uci -q get wireless.radio0.channel)"
-	local _auto_channel_24="$(get_auto_channel '0')"
+	local _curr_channel_24="$(get_wifi_channel '0')"
 	local _hwmode_24="$(get_hwmode_24)"
 	local _htmode_24="$(get_htmode_24)"
 	local _state_24="$(get_wifi_state '0')"
@@ -154,7 +148,7 @@ get_wifi_local_config() {
 	local _ssid_50=""
 	local _password_50=""
 	local _channel_50=""
-	local _auto_channel_50=""
+	local _curr_channel_50=""
 	local _hwmode_50=""
 	local _htmode_50=""
 	local _state_50=""
@@ -166,7 +160,7 @@ get_wifi_local_config() {
 		_ssid_50="$(uci -q get wireless.default_radio1.ssid)"
 		_password_50="$(uci -q get wireless.default_radio1.key)"
 		_channel_50="$(uci -q get wireless.radio1.channel)"
-		_auto_channel_50="$(get_auto_channel '1')"
+		_curr_channel_50="$(get_wifi_channel '1')"
 		_hwmode_50="$(uci -q get wireless.radio1.hwmode)"
 		_htmode_50="$(uci -q get wireless.radio1.htmode)"
 		_state_50="$(get_wifi_state '1')"
@@ -180,7 +174,7 @@ get_wifi_local_config() {
 	json_add_string "local_ssid_24" "$_ssid_24"
 	json_add_string "local_password_24" "$_password_24"
 	json_add_string "local_channel_24" "$_channel_24"
-	json_add_string "local_auto_channel_24" "$_auto_channel_24"
+	json_add_string "local_curr_channel_24" "$_curr_channel_24"
 	json_add_string "local_hwmode_24" "$_hwmode_24"
 	json_add_string "local_htmode_24" "$_htmode_24"
 	json_add_string "local_ft_24" "$_ft_24"
@@ -191,7 +185,7 @@ get_wifi_local_config() {
 	json_add_string "local_ssid_50" "$_ssid_50"
 	json_add_string "local_password_50" "$_password_50"
 	json_add_string "local_channel_50" "$_channel_50"
-	json_add_string "local_auto_channel_50" "$_auto_channel_50"
+	json_add_string "local_curr_channel_50" "$_curr_channel_50"
 	json_add_string "local_hwmode_50" "$_hwmode_50"
 	json_add_string "local_htmode_50" "$_htmode_50"
 	json_add_string "local_ft_50" "$_ft_50"
