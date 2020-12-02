@@ -161,6 +161,8 @@ CUSTOM_FILE_ARQ=
 		CUSTOM_FILE_ARQ="multilaser_re172-v1"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_RE708), y)
 		CUSTOM_FILE_ARQ="multilaser_re708-v1"
+	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_MAXLINK-AC1200G-V1), y)
+		CUSTOM_FILE_ARQ="maxprint_ac1200g-v1"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_ACTIONRF1200), y)
 		CUSTOM_FILE_ARQ="intelbras_rf1200-v1"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_ACTIONRG1200), y)
