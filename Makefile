@@ -107,6 +107,8 @@ CUSTOM_FILE_ARQ=
 		CUSTOM_FILE_ARQ="tplink_archer-c6-v2US"
 	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_archer-c7-v5), y)
 		CUSTOM_FILE_ARQ="tplink_archer-c7-v5"
+	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_tplink_ec220-g5-v2), y)
+		CUSTOM_FILE_ARQ="tplink_ec220-g5-v2"
 	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_dlink_covr-c1200-a1), y)
 		CUSTOM_FILE_ARQ="dlink_covr-c1200-a1"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_dlink_dir-819-a1), y)
