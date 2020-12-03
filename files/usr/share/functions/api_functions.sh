@@ -340,3 +340,128 @@ send_wps_status() {
 		return 0
 	fi
 }
+
+send_site_survey() {
+	local _res
+
+	A0="$(iw dev wlan0 scan | grep 'freq:\|BSS \|SSID:\|signal:\|last seen:\|width:\|offset:')"
+	A1="$(iw dev wlan1 scan | grep 'freq:\|BSS \|SSID:\|signal:\|last seen:\|width:\|offset:')"
+
+	json_cleanup
+	json_init
+
+	erro_24=1
+
+	json_add_array "metricas_24"
+
+	if [ ! -z "$A0" ]; then
+		erro_24=0
+		local _is_first_round=true
+
+		IFS=$'\n'
+		for s in $A0 ; do
+			case $s in
+				*BSS*)
+					if [ "$_is_first_round" = false ]; then
+						json_close_object
+					fi
+					_is_first_round=false
+					json_add_object ""
+					json_add_string "MAC" "$(echo $s | sed 's/.*BSS //g' | sed -e 's/(.*//')";
+					;;
+				*freq:*)
+					json_add_int "freq" "$( echo $s | sed 's/.*: //g' | sed 's/ .*//')"
+					;;
+				*signal:*)
+					json_add_int "signal" "$( echo $s | sed 's/.*: //g' | sed 's/ .*//')"
+					;;
+				*STA\ channel\ width:*)
+					json_add_string "largura_HT" "$( echo $s | sed 's/.*: //g' | sed 's/ .*//')"
+					;;
+				*\*\ channel\ width:*)
+					json_add_int "largura_VHT" "$( echo $s | sed 's/.*: //g' | sed 's/ .*//')"
+					;;
+				*offset:*)
+					json_add_string "offset" "$( echo $s | sed 's/.*: //g')"
+					;;
+				*last\ *)
+					json_add_int "last_seen" "$( echo $s | sed 's/.*: //g' | sed 's/ .*//')"
+					;;
+				*SSID:*)
+					json_add_string "SSID" "$( echo $s | sed 's/.*: //g')"
+					;;
+			esac
+		done
+
+		json_close_object
+	fi
+
+	json_close_array
+
+	json_add_int "erro_24" "$erro_24"
+
+	erro_5=1
+
+	json_add_array "metricas_5"
+
+	if [ ! -z "$A1" ]; then
+		erro_5=0
+		local _is_first_round=true
+
+		IFS=$'\n'
+		for s in $A1 ; do
+			case $s in
+				*BSS*)
+					if [ "$_is_first_round" = false ]; then
+						json_close_object
+					fi
+					_is_first_round=false
+					json_add_object ""
+					json_add_string "MAC" "$(echo $s | sed 's/.*BSS //g' | sed -e 's/(.*//')";
+					;;
+				*freq:*)
+					json_add_int "freq" "$( echo $s | sed 's/.*: //g' | sed 's/ .*//')"
+					;;
+				*signal:*)
+					json_add_int "signal" "$( echo $s | sed 's/.*: //g' | sed 's/ .*//')"
+					;;
+				*STA\ channel\ width:*)
+					json_add_string "largura_HT" "$( echo $s | sed 's/.*: //g' | sed 's/ .*//')"
+					;;
+				*\*\ channel\ width:*)
+					json_add_int "largura_VHT" "$( echo $s | sed 's/.*: //g' | sed 's/ .*//')"
+					;;
+				*offset:*)
+					json_add_string "offset" "$( echo $s | sed 's/.*: //g')"
+					;;
+				*last\ *)
+					json_add_int "last_seen" "$( echo $s | sed 's/.*: //g' | sed 's/ .*//')"
+					;;
+				*SSID:*)
+					json_add_string "SSID" "$( echo $s | sed 's/.*: //g')"
+					;;
+			esac
+		done
+
+		json_close_object
+	fi
+
+	json_close_array
+
+	json_add_int "erro_5" "$erro_5"
+
+	_res=$(json_dump | curl -s --tlsv1.2 --connect-timeout 5 \
+				--retry 1 \
+				-H "Content-Type: application/json" \
+				-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
+				--data @- "https://$FLM_SVADDR/deviceinfo/receive/sitesurvey")
+
+	json_close_object
+
+	json_cleanup
+	json_load "$_res"
+	json_get_var _processed processed
+	json_close_object
+
+	return $_processed
+}
