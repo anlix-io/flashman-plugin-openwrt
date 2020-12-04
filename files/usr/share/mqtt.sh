@@ -36,6 +36,14 @@ onlinedev)
 		lock -u /tmp/get_online_devs.lock
 	fi
 	;;
+sitesurvey)
+	if lock -n /tmp/get_site_survey.lock
+	then
+		log "MQTTMSG" "Sending Site Survey..."
+		send_site_survey
+		lock -u /tmp/get_site_survey.lock
+	fi
+	;;
 ping)
 	log "MQTTMSG" "Running ping test"
 	run_ping_ondemand_test
