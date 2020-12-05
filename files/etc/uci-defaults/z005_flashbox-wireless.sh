@@ -67,7 +67,7 @@ then
 	_ssid_50="$setssid$SUFFIX_5"
 	_password_50="$FLM_PASSWD"
 	_channel_50="$FLM_50_CHANNEL"
-	_htmode_50="auto"
+	_htmode_50="VHT80"
 	_state_50="1"
 	_txpower_50="100"
 	_hidden_50="0"
