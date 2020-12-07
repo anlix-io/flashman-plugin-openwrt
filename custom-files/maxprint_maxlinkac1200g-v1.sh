@@ -53,7 +53,7 @@ set_switch_bridge_mode_on_boot() {
 }
 
 custom_switch_ports() {
-	case $1 in 
+	case $1 in
 		1) echo "switch0" ;;
 		2) echo "0" ;;
 		3) echo "1 2 3 4" ;;
