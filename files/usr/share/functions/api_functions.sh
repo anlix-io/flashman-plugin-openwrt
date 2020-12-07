@@ -350,7 +350,7 @@ send_site_survey() {
 
 	json_cleanup
 	json_init
-	json_add_array "survey"
+	json_add_object "survey"
 	if [ -n "$A" ]; then
 		local _is_first_round=true
 
@@ -389,7 +389,7 @@ send_site_survey() {
 		done
 		json_close_object
 	fi
-	json_close_array
+	json_close_object
 
 	_res=$(json_dump | curl -s --tlsv1.2 --connect-timeout 5 --retry 1 \
 				-H "Content-Type: application/json" \
