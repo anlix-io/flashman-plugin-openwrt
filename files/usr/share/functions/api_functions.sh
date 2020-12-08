@@ -387,6 +387,7 @@ send_site_survey() {
 					;;
 			esac
 		done
+		IFS=" "
 		json_close_object
 	fi
 	json_close_object
@@ -395,8 +396,6 @@ send_site_survey() {
 				-H "Content-Type: application/json" \
 				-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
 				--data @- "https://$FLM_SVADDR/deviceinfo/receive/sitesurvey")
-
-	json_close_object
 
 	json_cleanup
 	json_load "$_res"
