@@ -12,12 +12,32 @@ get_hwmode_24() {
 
 get_htmode_24() {
 	local _htmode_24="$(uci -q get wireless.radio0.htmode)"
-	[ "$_htmode_24" = "NOHT" ] && echo "HT20" || echo "$_htmode_24"
+	local _noscan_24="$(uci -q get wireless.radio0.noscan)"
+	if [ "$_noscan_24" == "0" ]
+	then
+		[ "$_htmode_24" = "HT40" ] && echo "auto" || echo "HT20"
+	else
+		[ "$_htmode_24" = "HT40" ] && echo "HT40" || echo "HT20"
+	fi
+}
+
+get_htmode_50() {
+	local _htmode_50="$(uci -q get wireless.radio1.htmode)"
+	local _noscan_50="$(uci -q get wireless.radio1.noscan)"
+	[ "$_noscan_50" == "0" ] && echo "auto" || echo "$_htmode_50"
+}
+
+get_wifi_htmode(){
+	iw dev wlan$1 info 2>/dev/null|grep width|awk '{print $6}'
 }
 
 get_wifi_state() {
 	local _q=$(uci -q get wireless.default_radio$1.disabled)
 	[ "$_q" ] && [ "$_q" = "1" ] && echo "0" || echo "1"
+}
+
+get_wifi_channel(){
+	iw dev wlan$1 info 2>/dev/null|grep channel|awk '{print $2}'
 }
 
 auto_channel_selection() {
@@ -132,8 +152,10 @@ get_wifi_local_config() {
 	local _ssid_24="$(uci -q get wireless.default_radio0.ssid)"
 	local _password_24="$(uci -q get wireless.default_radio0.key)"
 	local _channel_24="$(uci -q get wireless.radio0.channel)"
+	local _curr_channel_24="$(get_wifi_channel '0')"
 	local _hwmode_24="$(get_hwmode_24)"
 	local _htmode_24="$(get_htmode_24)"
+	local _curr_htmode_24="$(get_wifi_htmode '0')"
 	local _state_24="$(get_wifi_state '0')"
 	local _txpower_24="$(get_txpower 0)"
 	local _ft_24="$(uci -q get wireless.default_radio0.ieee80211r)"
@@ -143,8 +165,10 @@ get_wifi_local_config() {
 	local _ssid_50=""
 	local _password_50=""
 	local _channel_50=""
+	local _curr_channel_50=""
 	local _hwmode_50=""
 	local _htmode_50=""
+	local _curr_htmode_50=""
 	local _state_50=""
 	local _txpower_50=""
 	local _ft_50=""
@@ -154,8 +178,10 @@ get_wifi_local_config() {
 		_ssid_50="$(uci -q get wireless.default_radio1.ssid)"
 		_password_50="$(uci -q get wireless.default_radio1.key)"
 		_channel_50="$(uci -q get wireless.radio1.channel)"
+		_curr_channel_50="$(get_wifi_channel '1')"
 		_hwmode_50="$(uci -q get wireless.radio1.hwmode)"
-		_htmode_50="$(uci -q get wireless.radio1.htmode)"
+		_htmode_50="$(get_htmode_50)"
+		_curr_htmode_50="$(get_wifi_htmode '1')"
 		_state_50="$(get_wifi_state '1')"
 		_txpower_50="$(get_txpower 1)"
 		_ft_50="$(uci -q get wireless.default_radio1.ieee80211r)"
@@ -167,8 +193,10 @@ get_wifi_local_config() {
 	json_add_string "local_ssid_24" "$_ssid_24"
 	json_add_string "local_password_24" "$_password_24"
 	json_add_string "local_channel_24" "$_channel_24"
+	json_add_string "local_curr_channel_24" "$_curr_channel_24"
 	json_add_string "local_hwmode_24" "$_hwmode_24"
 	json_add_string "local_htmode_24" "$_htmode_24"
+	json_add_string "local_curr_htmode_24" "$_curr_htmode_24"
 	json_add_string "local_ft_24" "$_ft_24"
 	json_add_string "local_state_24" "$_state_24"
 	json_add_string "local_txpower_24" "$_txpower_24"
@@ -177,8 +205,10 @@ get_wifi_local_config() {
 	json_add_string "local_ssid_50" "$_ssid_50"
 	json_add_string "local_password_50" "$_password_50"
 	json_add_string "local_channel_50" "$_channel_50"
+	json_add_string "local_curr_channel_50" "$_curr_channel_50"
 	json_add_string "local_hwmode_50" "$_hwmode_50"
 	json_add_string "local_htmode_50" "$_htmode_50"
+	json_add_string "local_curr_htmode_50" "$_curr_htmode_50"
 	json_add_string "local_ft_50" "$_ft_50"
 	json_add_string "local_state_50" "$_state_50"
 	json_add_string "local_txpower_50" "$_txpower_50"
@@ -194,7 +224,7 @@ save_wifi_parameters() {
 	json_add_string password_24 "$(uci -q get wireless.default_radio0.key)"
 	json_add_string channel_24 "$(uci -q get wireless.radio0.channel)"
 	json_add_string hwmode_24 "$(uci -q get wireless.radio0.hwmode)"
-	json_add_string htmode_24 "$(uci -q get wireless.radio0.htmode)"
+	json_add_string htmode_24 "$(get_htmode_24)"
 	json_add_string state_24 "$(get_wifi_state '0')"
 	json_add_string txpower_24 "$(get_txpower 0)"
 	json_add_string hidden_24 "$(uci -q get wireless.default_radio0.hidden)"
@@ -205,7 +235,7 @@ save_wifi_parameters() {
 		json_add_string password_50 "$(uci -q get wireless.default_radio1.key)"
 		json_add_string channel_50 "$(uci -q get wireless.radio1.channel)"
 		json_add_string hwmode_50 "$(uci -q get wireless.radio1.hwmode)"
-		json_add_string htmode_50 "$(uci -q get wireless.radio1.htmode)"
+		json_add_string htmode_50 "$(get_htmode_50)"
 		json_add_string state_50 "$(get_wifi_state '1')"
 		json_add_string txpower_50 "$(get_txpower 1)"
 		json_add_string hidden_50 "$(uci -q get wireless.default_radio1.hidden)"
@@ -303,9 +333,9 @@ set_wifi_local_config() {
 		local _newht=$(uci -q get wireless.radio0.htmode)
 		if [ "$_newht" != "NOHT" ]
 		then
-			uci set wireless.radio0.htmode="$_remote_htmode_24"
-			[ "$_remote_htmode_24" = "HT40" ] && uci set wireless.radio0.noscan="1"
-			[ "$_remote_htmode_24" = "HT20" ] && uci set wireless.radio0.noscan="0"
+			[ "$_remote_htmode_24" = "HT40" ] && uci set wireless.radio0.htmode="HT40"  && uci set wireless.radio0.noscan="1"
+			[ "$_remote_htmode_24" = "HT20" ] && uci set wireless.radio0.htmode="HT20" && uci set wireless.radio0.noscan="1"
+			[ "$_remote_htmode_24" = "auto" ] && uci set wireless.radio0.htmode="HT40" && uci set wireless.radio0.noscan="0"
 			_do_reload=1
 		fi
 	fi
@@ -398,13 +428,19 @@ set_wifi_local_config() {
 		if [ "$_remote_htmode_50" != "" ] && \
 			 [ "$_remote_htmode_50" != "$_local_htmode_50" ]
 		then
-			uci set wireless.radio1.htmode="$_remote_htmode_50"
-			if [ ! "$(is_5ghz_vht)" ]
+			if [ "$_remote_htmode_50" == "auto" ]
 			then
-				if [ "$_remote_htmode_50" != "HT40" ] &&
-					[ "$_remote_htmode_50" != "HT20" ]
+				uci set wireless.radio1.noscan="0"
+				[ ! "$(is_5ghz_vht)" ] && uci set wireless.radio1.htmode="HT40"
+				[ "$(is_5ghz_vht)" ] && uci set wireless.radio1.htmode="VHT80"
+			else
+				uci set wireless.radio1.noscan="1"
+				if [ "$_remote_htmode_50" == "VHT80" ]
 				then
-					uci set wireless.radio1.htmode="HT40"
+					[ ! "$(is_5ghz_vht)" ] && uci set wireless.radio1.htmode="HT40"
+					[ "$(is_5ghz_vht)" ] && uci set wireless.radio1.htmode="VHT80"
+				else
+					uci set wireless.radio1.htmode="$_remote_htmode_50"
 				fi
 			fi
 			_do_reload=1

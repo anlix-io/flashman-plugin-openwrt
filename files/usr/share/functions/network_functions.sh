@@ -818,7 +818,7 @@ enable_bridge_mode() {
 		else
 			/etc/init.d/network restart
 			/etc/init.d/uhttpd restart
-			/etc/init.d/minisapo reaload
+			/etc/init.d/minisapo reload
 		fi
 	fi
 }

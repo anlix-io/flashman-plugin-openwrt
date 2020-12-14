@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=flasman-plugin
-PKG_VERSION:=0.30.2
+PKG_VERSION:=0.31.0
 PKG_RELEASE:=1
 
 PKG_LICENSE:=GPL
@@ -105,21 +105,27 @@ CUSTOM_FILE_ARQ=
 		CUSTOM_FILE_ARQ="tplink_archer-c60-v3"
 	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_archer-c6-v2-us), y)
 		CUSTOM_FILE_ARQ="tplink_archer-c6-v2US"
+	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_archer-c7-v5), y)
+		CUSTOM_FILE_ARQ="tplink_archer-c7-v5"
+	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_tplink_ec220-g5-v2), y)
+		CUSTOM_FILE_ARQ="tplink_ec220-g5-v2"
 	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_dlink_covr-c1200-a1), y)
 		CUSTOM_FILE_ARQ="dlink_covr-c1200-a1"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_dlink_dir-819-a1), y)
 		CUSTOM_FILE_ARQ="tbs"
-	else ifeq ($(CONFIG_TARGET_ath79_tiny_DEVICE_tplink_tl-wr740n-v4), y)
+	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr740n-v4), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr740n"
-	else ifeq ($(CONFIG_TARGET_ath79_tiny_DEVICE_tplink_tl-wr740n-v5), y)
+	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr740n-v5), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr740n"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr740n-v6), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr740n"
-	else ifeq ($(CONFIG_TARGET_ath79_tiny_DEVICE_tplink_tl-wr741nd-v4), y)
+	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr741nd-v4), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr741n"
-	else ifeq ($(CONFIG_TARGET_ath79_tiny_DEVICE_tplink_tl-wr841-v7), y)
+	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr841-v7), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr841n"
-	else ifeq ($(CONFIG_TARGET_ath79_tiny_DEVICE_tplink_tl-wr841-v8), y)
+	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr841-v8), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wr841n"
+	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr841-v9), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr841n"
 	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_tl-wr842n-v3), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr842n"
@@ -133,13 +139,15 @@ CUSTOM_FILE_ARQ=
 		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v5-v6"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v6), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v5-v6"
-	else ifeq ($(CONFIG_TARGET_ath79_tiny_DEVICE_tplink_tl-wr940n-v5), y)
-		CUSTOM_FILE_ARQ="tplink_tl-wr940n-v5"
-	else ifeq ($(CONFIG_TARGET_ath79_tiny_DEVICE_tplink_tl-wr940n-v6), y)
+	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr940n-v4), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wr940n-v4-v5"
+	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr940n-v5), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wr940n-v4-v5"
+	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr940n-v6), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr94Xn-v6"
-	else ifeq ($(CONFIG_TARGET_ath79_tiny_DEVICE_tplink_tl-wr949n-v6), y)
+	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr949n-v6), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr94Xn-v6"
-	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_tl-wdr3500-v1), y)
+	else ifeq ($(CONFIG_TARGET_ar71xx_generic_DEVICE_tl-wdr3500-v1), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wdr3500"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_dlink_dwr-116-a1), y)
 		CUSTOM_FILE_ARQ="dlink_dl-dwr116-a3"
@@ -157,6 +165,8 @@ CUSTOM_FILE_ARQ=
 		CUSTOM_FILE_ARQ="multilaser_re172-v1"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_RE708), y)
 		CUSTOM_FILE_ARQ="multilaser_re708-v1"
+	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_MAXLINKAC1200G-V1), y)
+		CUSTOM_FILE_ARQ="maxprint_maxlinkac1200g-v1"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_ACTIONRF1200), y)
 		CUSTOM_FILE_ARQ="intelbras_rf1200-v1"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_ACTIONRG1200), y)
