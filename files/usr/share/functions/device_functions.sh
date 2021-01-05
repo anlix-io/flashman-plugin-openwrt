@@ -65,6 +65,7 @@ get_wifi_device_stats() {
 	local _cmd_res
 	local _wifi_itf="wlan0"
 	local _ap_freq="2.4"
+	local _base_noise="-92"
 
 	_cmd_res=$(command -v iw)
 	_retstatus=$?
@@ -93,6 +94,13 @@ get_wifi_device_stats() {
 			local _dev_rxbytes="$(echo "$_dev_info" | grep 'rx bytes:' | awk '{print $3}')"
 			local _dev_txpackets="$(echo "$_dev_info" | grep 'tx packets:' | awk '{print $3}')"
 			local _dev_rxpackets="$(echo "$_dev_info" | grep 'rx packets:' | awk '{print $3}')"
+			local _dev_conntime="$(echo "$_dev_info" | grep 'connected time:' | awk '{print $3}')"
+
+			_ap_noise=$([ "$_ap_noise" == "unknown" ] && echo "$_base_noise" || echo "$_ap_noise")
+			if [ "$_ap_noise" -lt "$_base_noise" ]
+			then
+				_ap_noise="$_base_noise"
+			fi
 
 			# Calculate SNR
 			local _dev_snr="$(($_dev_signal - $_ap_noise))"
@@ -104,12 +112,13 @@ get_wifi_device_stats() {
 			# Traffic data
 			_wifi_stats="$_wifi_stats $_dev_txbytes $_dev_rxbytes"
 			_wifi_stats="$_wifi_stats $_dev_txpackets $_dev_rxpackets"
+			_wifi_stats="$_wifi_stats $_dev_conntime"
 			echo "$_wifi_stats"
 		else
-			echo "0.0 0.0 0.0 0.0 0 Z 0 0 0 0"
+			echo "0.0 0.0 0.0 0.0 0 Z 0 0 0 0 0"
 		fi
 	else
-		echo "0.0 0.0 0.0 0.0 0 Z 0 0 0 0"
+		echo "0.0 0.0 0.0 0.0 0 Z 0 0 0 0 0"
 	fi
 }
 
@@ -198,9 +207,16 @@ get_vlan_ports() {
 }
 
 get_wan_device() {
-	config_load network
-	config_get iface wan ifname
-	echo $iface
+	ubus call network.interface.wan status|jsonfilter -e "@.device"
+}
+
+get_switch_device() {
+	local _switch
+	for i in $(swconfig list)
+	do 
+		[ -z "${i%switch*}" ] && _switch="$i" 
+	done
+	echo "$_switch"
 }
 
 is_device_vlan() {
@@ -215,11 +231,19 @@ get_device_vlan() {
 
 get_wan_negotiated_speed() {
 	local _wan=$(get_wan_device)
-	if [ "$(is_device_vlan $_wan)" ]
+	if [ "$(type -t custom_switch_ports)" ] || [ "$(is_device_vlan $_wan)" ]
 	then
-		local _vport=$(get_device_vlan $_wan)
-		local _switch="$(get_vlan_device $_vport)"
-		local _port="$(get_vlan_ports $_vport)"
+		local _switch
+		local _port
+		if [ "$(type -t custom_switch_ports)" ]
+		then
+			_switch="$(custom_switch_ports 1)"
+			_port="$(custom_switch_ports 2)"
+		else
+			local _vport=$(get_device_vlan $_wan)
+			_switch="$(get_vlan_device $_vport)"
+			_port="$(get_vlan_ports $_vport)"
+		fi
 		echo "$(swconfig dev $_switch port $_port get link|sed -ne 's/.*speed:\([0-9]*\)*.*/\1/p')"
 	else
 		cat /sys/class/net/$_wan/speed
@@ -228,11 +252,19 @@ get_wan_negotiated_speed() {
 
 get_wan_negotiated_duplex() {
 	local _wan=$(get_wan_device)
-	if [ "$(is_device_vlan $_wan)" ]
+	if [ "$(type -t custom_switch_ports)" ] || [ "$(is_device_vlan $_wan)" ]
 	then
-		local _vport=$(get_device_vlan $_wan)
-		local _switch="$(get_vlan_device $_vport)"
-		local _port="$(get_vlan_ports $_vport)"
+		local _switch
+		local _port
+		if [ "$(type -t custom_switch_ports)" ]
+		then
+			_switch="$(custom_switch_ports 1)"
+			_port="$(custom_switch_ports 2)"
+		else
+			local _vport=$(get_device_vlan $_wan)
+			_switch="$(get_vlan_device $_vport)"
+			_port="$(get_vlan_ports $_vport)"
+		fi
 		echo "$(swconfig dev $_switch port $_port get link|sed -ne 's/.* \([a-z]*\)-duplex*.*/\1/p')"
 	else
 		cat /sys/class/net/$_wan/duplex
@@ -242,8 +274,25 @@ get_wan_negotiated_duplex() {
 get_lan_dev_negotiated_speed() {
 	local _speed="0"
 	local _switch="$(get_vlan_device 1)"
+	[ -z "$_switch" ] && _switch="$(get_switch_device)"
+	[ -z "$_switch" ] && (
+		log "get_lan_dev_speed" "Cant get lan switch device!"
+		return
+	)
 
-	for _port in $(get_vlan_ports 1); do
+	local _switch_ports
+	if [ "$(type -t custom_switch_ports)" ]
+	then
+		_switch_ports="$(custom_switch_ports 3)"
+	else
+		_switch_ports="$(get_vlan_ports 1)"
+	fi
+	[ -z "$_switch_ports" ] && (
+		log "get_lan_dev_speed" "Cant get lan switch ports!"
+		return
+	)
+
+	for _port in $_switch_ports; do
 		local _speed_tmp="$(swconfig dev $_switch port $_port get link|sed -ne 's/.*speed:\([0-9]*\)*.*/\1/p')"
 		if [ "$_speed_tmp" != "" ]
 		then

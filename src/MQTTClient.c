@@ -293,9 +293,12 @@ int cycle(MQTTClient* c, Timer* timer)
                     len = MQTTSerialize_ack(c->buf, c->buf_size, PUBREC, 0, msg.id);
                 if (len <= 0)
                     rc = FAILURE;
-                else
+                else {
                     rc = sendPacket(c, len, timer);
-                if (rc == FAILURE)
+                    if(rc < 0)
+                        rc = SEND_ERROR;
+                }
+                if (rc < 0)
                     goto exit; // there was a problem
             }
             break;
@@ -311,8 +314,8 @@ int cycle(MQTTClient* c, Timer* timer)
                 (packet_type == PUBREC) ? PUBREL : PUBCOMP, 0, mypacketid)) <= 0)
                 rc = FAILURE;
             else if ((rc = sendPacket(c, len, timer)) != SUCCESS) // send the PUBREL packet
-                rc = FAILURE; // there was a problem
-            if (rc == FAILURE)
+                rc = SEND_ERROR; // there was a problem
+            if (rc < 0)
                 goto exit; // there was a problem
             break;
         }
@@ -326,7 +329,7 @@ int cycle(MQTTClient* c, Timer* timer)
 
     if (keepalive(c) != SUCCESS) {
         //check only keepalive FAILURE status so that previous FAILURE status can be considered as FAULT
-        rc = FAILURE;
+        rc = KEEALIVE_TIMEOUT;
     }
 
 exit:
@@ -341,6 +344,7 @@ exit:
 int MQTTYield(MQTTClient* c, int timeout_ms)
 {
   int rc = SUCCESS;
+  int tmprc;
   Timer timer;
 
   TimerInit(&timer);
@@ -348,9 +352,10 @@ int MQTTYield(MQTTClient* c, int timeout_ms)
 
   do
   {
-    if (cycle(c, &timer) < 0)
+    tmprc = cycle(c, &timer);
+    if (tmprc < 0)
     {
-        rc = FAILURE;
+        rc = tmprc;
         break;
     }
   } while (!TimerIsExpired(&timer));

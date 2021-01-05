@@ -137,8 +137,8 @@ run_reflash() {
 				/etc/init.d/flashman stop
 				/etc/init.d/netstats stop
 				/etc/init.d/minisapo stop
-				/etc/init.d/uhttpd stop
 				/etc/init.d/miniupnpd stop
+				/etc/init.d/uhttpd stop
 				wifi down
 				/etc/init.d/network stop
 				clean_memory

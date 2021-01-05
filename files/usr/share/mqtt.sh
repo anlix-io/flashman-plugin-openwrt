@@ -29,8 +29,20 @@ log)
 	send_boot_log "live"
 	;;
 onlinedev)
-	log "MQTTMSG" "Sending Online Devices..."
-	send_online_devices
+	if lock -n /tmp/get_online_devs.lock
+	then
+		log "MQTTMSG" "Sending Online Devices..."
+		send_online_devices
+		lock -u /tmp/get_online_devs.lock
+	fi
+	;;
+sitesurvey)
+	if lock -n /tmp/get_site_survey.lock
+	then
+		log "MQTTMSG" "Sending Site Survey..."
+		send_site_survey
+		lock -u /tmp/get_site_survey.lock
+	fi
 	;;
 ping)
 	log "MQTTMSG" "Running ping test"
@@ -41,19 +53,36 @@ datacollecting)
 	set_data_collecting_on_off "$2"
 	;;
 status)
-	log "MQTTMSG" "Collecting status information"
-	router_status
+	if lock -n /tmp/get_status.lock
+	then
+		log "MQTTMSG" "Collecting status information"
+		router_status
+		lock -u /tmp/get_status.lock
+	fi
 	;;
 wifistate)
 	log "MQTTMSG" "Changing wireless radio state"
 	change_wifi_state "$2" "$3"
 	;;
 speedtest)
-	log "MQTTMSG" "Starting speed test..."
-	run_speed_ondemand_test "$2" "$3" "$4" "$5"
+	if lock -n /tmp/set_speedtest.lock
+	then
+		log "MQTTMSG" "Starting speed test..."
+		run_speed_ondemand_test "$2" "$3" "$4" "$5"
+		lock -u /tmp/set_speedtest.lock
+	fi
+	;;
+wps)
+	if lock -n /tmp/set_wps.lock
+	then
+		log "MQTTMSG" "WPS push button pressed"
+		set_wps_push_button "$2"
+		lock -u /tmp/set_wps.lock
+	fi
 	;;
 *)
 	log "MQTTMSG" "Cant recognize message: $1"
 	;;
 esac
 
+[ "$(type -t anlix_force_clean_memory)" ] && anlix_force_clean_memory

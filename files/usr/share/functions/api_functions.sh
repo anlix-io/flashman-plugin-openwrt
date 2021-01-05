@@ -303,3 +303,104 @@ run_diagnostics_test() {
 	echo "$(json_dump)"
 	json_close_object
 }
+
+send_wps_status() {
+	local _res
+	local _processed
+	local _wps_inform="$1"
+	local _wps_content="$2"
+	local _out_file="/tmp/wps_info.json"
+	if [ "$_wps_inform" == "0" ]
+	then
+		_out_file="/tmp/wps_state.json"
+	fi
+
+	json_init
+	json_add_string "wps_inform" "$_wps_inform"
+	json_add_string "wps_content" "$_wps_content"
+	json_dump > "$_out_file"
+	json_cleanup
+
+	if [ -f "$_out_file" ]
+	then
+		log "WPS" "Sending $_wps_inform and $_wps_content to Flashman..."
+
+		_res=""
+		_res=$(cat "$_out_file" | curl -s --tlsv1.2 --connect-timeout 5 \
+			--retry 1 -H "Content-Type: application/json" \
+			-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
+			--data @- "https://$FLM_SVADDR/deviceinfo/receive/wps")
+		json_load "$_res"
+		json_get_var _processed processed
+		json_close_object
+
+		return $_processed
+	else
+		log "WPS" "Status file not created"
+		return 0
+	fi
+}
+
+send_site_survey() {
+	local _res
+
+	A="$(iw dev wlan0 scan 2> /dev/null | grep 'freq:\|BSS \|SSID:\|signal:\|last seen:\|width:\|offset:')"
+	[ "$(is_5ghz_capable)" = "1" ] && \
+		A=$A"$(iw dev wlan1 scan 2> /dev/null | grep 'freq:\|BSS \|SSID:\|signal:\|last seen:\|width:\|offset:')"
+
+	json_cleanup
+	json_init
+	json_add_object "survey"
+	if [ -n "$A" ]; then
+		local _is_first_round=true
+
+		IFS=$'\n'
+		for s in $A ; do
+			case $s in
+				*BSS*)
+					if [ "$_is_first_round" = false ]; then
+						json_close_object
+					fi
+					_is_first_round=false
+					json_add_object "$(echo "$s" | sed 's/.*BSS //g' | sed -e 's/(.*//')"
+					;;
+				*freq:*)
+					json_add_int "freq" "$( echo "$s" | sed 's/.*: //g' | sed 's/ .*//')"
+					;;
+				*signal:*)
+					json_add_int "signal" "$( echo "$s" | sed 's/.*: //g' | sed 's/ .*//')"
+					;;
+				*STA\ channel\ width:*)
+					json_add_string "largura_HT" "$( echo "$s" | sed 's/.*: //g' | sed 's/ .*//')"
+					;;
+				*\*\ channel\ width:*)
+					json_add_int "largura_VHT" "$( echo "$s" | sed 's/.*: //g' | sed 's/ .*//')"
+					;;
+				*offset:*)
+					json_add_string "offset" "$( echo "$s" | sed 's/.*: //g')"
+					;;
+				*last\ *)
+					json_add_int "last_seen" "$( echo "$s" | sed 's/.*: //g' | sed 's/ .*//')"
+					;;
+				*SSID:*)
+					json_add_string "SSID" "$( echo "$s" | sed 's/.*: //g')"
+					;;
+			esac
+		done
+		IFS=" "
+		json_close_object
+	fi
+	json_close_object
+
+	_res=$(json_dump | curl -s --tlsv1.2 --connect-timeout 5 --retry 1 \
+				-H "Content-Type: application/json" \
+				-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
+				--data @- "https://$FLM_SVADDR/deviceinfo/receive/sitesurvey")
+
+	json_cleanup
+	json_load "$_res"
+	json_get_var _processed processed
+	json_close_object
+
+	return $_processed
+}

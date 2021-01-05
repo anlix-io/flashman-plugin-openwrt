@@ -7,6 +7,57 @@
 . /lib/functions/network.sh
 . /usr/share/functions/device_functions.sh
 
+get_ipv6_enabled() {
+	local _ipv6_enabled=1
+	if [ "$(get_bridge_mode_status)" != "y" ]
+	then
+		[ "$(uci -q get network.wan.ipv6)" = "0" ] && _ipv6_enabled=0
+	else
+		[ "$(uci -q get network.lan.ipv6)" = "0" ] && _ipv6_enabled=0
+	fi
+	echo "$_ipv6_enabled"
+}
+
+enable_ipv6() {
+	if [ "$(get_bridge_mode_status)" != "y" ]
+	then
+		uci set network.wan.ipv6="auto"
+		uci set network.wan6.proto="dhcpv6"
+		[ "$(uci -q get network.lan.ipv6)" ] && uci delete network.lan.ipv6
+		[ "$(uci -q get network.lan6)" ] && uci delete network.lan6
+	else
+		uci set network.wan.ipv6="auto"
+		uci set network.wan6.proto="none"
+		uci set network.lan.ipv6="auto"
+		if [ -z "$(uci -q get network.lan6)" ]
+		then
+			uci set network.lan6=interface
+			uci set network.lan6.ifname='@lan'
+		fi
+		uci set network.lan6.proto='dhcpv6'
+	fi
+	uci commit network
+	json_cleanup
+	json_load_file /root/flashbox_config.json
+	json_add_string enable_ipv6 "1"
+	json_dump > /root/flashbox_config.json
+	json_close_object
+}
+
+disable_ipv6() {
+	uci set network.wan.ipv6="0"
+	uci set network.wan6.proto='none'
+	uci set network.lan.ipv6="0"
+	[ "$(uci -q get network.lan6)" ] && uci delete network.lan6
+	uci commit network
+	json_cleanup
+	json_load_file /root/flashbox_config.json
+	json_add_string enable_ipv6 "0"
+	json_dump > /root/flashbox_config.json
+	json_close_object
+}
+
+
 diagnose_wan_connectivity() {
 	local _status=""
 	local _ip=""
@@ -49,16 +100,16 @@ check_connectivity_ipv4() {
 
 check_connectivity_ipv6() {
 	local _ip="2001:4860:4860::8888"
-	if ping6 -q -c 1 -w 2 "$_ip" > /dev/null 2>&1
+	local _ipv6_connectivity=1
+
+	if [ "$(get_ipv6_enabled)" != "0" ]
 	then
-		# true
-		echo 0
-		return
+		if ping6 -q -c 1 -w 2 "$_ip" > /dev/null 2>&1
+		then
+			_ipv6_connectivity=0
+		fi
 	fi
-	# No successfull pings
-	# false
-	echo 1
-	return
+	echo $_ipv6_connectivity
 }
 
 check_connectivity_flashman() {
@@ -144,7 +195,7 @@ set_wan_type() {
 			uci commit network
 
 			/etc/init.d/network restart
-			/etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
+			[ "$(get_ipv6_enabled)" != "0" ] && /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
 
 			# This will persist connection type between firmware upgrades
 			json_cleanup
@@ -174,7 +225,7 @@ set_wan_type() {
 				uci commit network
 
 				/etc/init.d/network restart
-				/etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
+				[ "$(get_ipv6_enabled)" != "0" ] && /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
 
 				# This will persist connection type between firmware upgrades
 				json_cleanup
@@ -223,7 +274,7 @@ set_pppoe_credentials() {
 				uci commit network
 
 				/etc/init.d/network restart
-				/etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
+				[ "$(get_ipv6_enabled)" != "0" ] && /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
 
 				# This will persist connection type between firmware upgrades
 				json_cleanup
@@ -363,7 +414,7 @@ set_lan_subnet() {
 				sed -i 's/.*anlixrouter/'"$_lan_addr"' anlixrouter/' /etc/hosts
 
 				/etc/init.d/network restart
-				/etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
+				[ "$(get_ipv6_enabled)" != "0" ] && /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
 				/etc/init.d/dnsmasq reload
 				/etc/init.d/uhttpd restart # Must restart to update Flash App API
 				/etc/init.d/minisapo reload
@@ -443,23 +494,19 @@ add_static_ipv6() {
 
 	# no entry found, create new
 	local _dhcp_ipv6=$(get_ipv6_dhcp | grep "$_mac")
-	if [ ! -z "$_dhcp_ipv6" ]
+	if [ -n "$_dhcp_ipv6" ]
 	then
-		for _i6 in "$_dhcp_ipv6"
-		do
-			local _duid=$(echo $_i6 | awk '{print $1}')
-			local _addr=$(echo $_i6 | awk '{print $3}')
+		local _duid=$(echo "$_dhcp_ipv6" | awk '{print $1}')
+		local _addr=$(echo "$_dhcp_ipv6" | awk '{print $3}')
 
-			uci -q add dhcp host > /dev/null
-			uci -q set dhcp.@host[-1].mac="$_mac"
-			uci -q set dhcp.@host[-1].duid="$_duid"
-			uci -q set dhcp.@host[-1].hostid="${_addr#*::}"
-			uci -q commit dhcp
+		uci -q add dhcp host > /dev/null
+		uci -q set dhcp.@host[-1].mac="$_mac"
+		uci -q set dhcp.@host[-1].duid="$_duid"
+		uci -q set dhcp.@host[-1].hostid="${_addr#*::}"
+		uci -q commit dhcp
 
-			#return just the first
-			echo "${_addr#*::}"
-			return
-		done
+		#return just the first
+		echo "${_addr#*::}"
 	fi
 }
 
@@ -590,7 +637,7 @@ set_use_dns_proxy() {
 			fi
 			uci commit dhcp
 			/etc/init.d/dnsmasq reload
-			/etc/init.d/odhcpd reload
+			[ "$(get_ipv6_enabled)" != "0" ] && /etc/init.d/odhcpd reload
 		fi
 	fi
 
@@ -663,6 +710,7 @@ enable_bridge_mode() {
 	# Write bridge mode to config.json so it persists between flashes
 	json_cleanup
 	json_load_file /root/flashbox_config.json
+	json_get_var _enable_ipv6 enable_ipv6
 	json_add_string bridge_mode "y"
 	json_add_string bridge_lan_backup "$_lan_ifnames"
 	json_add_string bridge_lan_ip_backup "$_lan_ip"
@@ -675,6 +723,21 @@ enable_bridge_mode() {
 	# Disable wan and bridge interfaces in lan
 	uci set network.wan.proto="none"
 	uci set network.wan6.proto="none"
+
+	if [ "$_enable_ipv6" = "1" ]
+	then
+		uci set network.lan.ipv6="auto"
+		if [ -z "$(uci -q get network.lan6)" ]
+		then
+			uci set network.lan6=interface
+			uci set network.lan6.ifname='@lan'
+		fi
+		uci set network.lan6.proto='dhcpv6'
+	else
+		uci set network.lan.ipv6="0"
+		[ "$(uci -q get network.lan6)" ] && uci delete network.lan6
+	fi
+
 	if [ "$_fixed_ip" != "" ]
 	then
 		uci set network.lan.ipaddr="$_fixed_ip"
@@ -755,7 +818,7 @@ enable_bridge_mode() {
 		else
 			/etc/init.d/network restart
 			/etc/init.d/uhttpd restart
-			/etc/init.d/minisapo reaload
+			/etc/init.d/minisapo reload
 		fi
 	fi
 }
@@ -895,6 +958,7 @@ disable_bridge_mode() {
 	# Clear bridge mode from config.json so it doesn't persist between flashes
 	json_cleanup
 	json_load_file /root/flashbox_config.json
+	json_get_var _enable_ipv6 enable_ipv6
 	json_get_var _wan_conn_type wan_conn_type
 	json_get_var _lan_ifnames bridge_lan_backup
 	json_get_var _lan_ip bridge_lan_ip_backup
@@ -920,19 +984,34 @@ disable_bridge_mode() {
 	uci set network.lan.ipaddr="$_lan_ip"
 	# Set wan and lan back to proper values
 	uci set network.wan.proto="$_wan_conn_type"
-	uci set network.wan6.proto="dhcpv6"
+
+	if [ "$_enable_ipv6" = "1" ]
+	then
+		uci set network.wan.ipv6="auto"
+		uci set network.wan6.proto="dhcpv6"
+		[ "$(uci -q get network.lan.ipv6)" ] && uci delete network.lan.ipv6
+	else
+		uci set network.wan.ipv6="0"
+		uci set network.wan6.proto='none'
+		uci set network.lan.ipv6="0"
+	fi
+	[ "$(uci -q get network.lan6)" ] && uci delete network.lan6
+
 	uci set network.lan.proto="static"
 	uci delete network.lan.gateway
 	uci delete network.lan.dns
+	uci commit network
 	/etc/init.d/miniupnpd enable
 	/etc/init.d/miniupnpd start
 	/etc/init.d/firewall enable
 	/etc/init.d/firewall start
 	/etc/init.d/dnsmasq enable
 	/etc/init.d/dnsmasq start
-	/etc/init.d/odhcpd enable
-	/etc/init.d/odhcpd start
-	uci commit network
+	if [ "$_enable_ipv6" = "1" ]
+	then
+		/etc/init.d/odhcpd enable
+		/etc/init.d/odhcpd start
+	fi
 	if [ "$_skip_network_restart" != "y" ]
 	then
 		# Some targets need to reboot the whole router after changing mode
@@ -941,7 +1020,7 @@ disable_bridge_mode() {
 			needs_reboot_bridge_mode
 		else
 			/etc/init.d/network restart
-			/etc/init.d/odhcpd restart
+			[ "$(get_ipv6_enabled)" = "1" ] && /etc/init.d/odhcpd restart
 		fi
 	fi
 }
@@ -1005,7 +1084,6 @@ set_mesh_master_mode() {
 	then
 		log "MESH" "Enabling mesh mode $_mesh_mode"
 		uci add_list dhcp.lan.dhcp_option="vendor:ANLIX02,43,$_mesh_mode"
-		_need_restart=1
 	else
 		log "MESH" "Mesh mode disabled"
 	fi
@@ -1017,7 +1095,10 @@ set_mesh_master_mode() {
 	json_close_object
 
 	uci commit dhcp
-	/etc/init.d/dnsmasq reload
+	if [ "$(get_bridge_mode_status)" != "y" ]
+	then
+		/etc/init.d/dnsmasq reload
+	fi
 }
 
 set_mesh_slave_mode() {
@@ -1080,25 +1161,3 @@ set_mesh_slaves() {
 		json_close_object
 	fi
 }
-
-set_mesh_rrm() {
-	local rrm_list
-	local radios=$(ubus list | grep hostapd.wlan)
-	A=$'\n'$(ubus call anlix_sapo get_meshids | jsonfilter -e "@.list[*]")
-	while [ "$A" ]
-	do
-		B=${A##*$'\n'}
-		A=${A%$'\n'*}
-		rrm_list=$rrm_list",$B"
-	done
-	for value in ${radios}
-	do
-		rrm_list=${rrm_list}",$(ubus call ${value} rrm_nr_get_own | jsonfilter -e '$.value')"
-	done
-	for value in ${radios}
-	do
-		ubus call ${value} bss_mgmt_enable '{"neighbor_report": true}'
-		eval "ubus call ${value} rrm_nr_set '{ \"list\": [ ${rrm_list:1} ] }'"
-	done
-}
-

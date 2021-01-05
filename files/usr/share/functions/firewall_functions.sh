@@ -66,7 +66,7 @@ update_port_forward() {
 			json_get_var _dmz dmz
 			local _static_ip
 			# Check if device has already a fixed ip due to upnp
-			grep -q -i "$_mac" /etc/ethers_upnp_devices
+			grep -q -i "$_mac" /etc/ethers_upnp_devices 2>/dev/null
 			_retstatus=$?
 			if [ ! $_retstatus -eq 0 ]
 			then
@@ -150,6 +150,7 @@ update_port_forward() {
 		done
 		json_close_object
 
+		touch /etc/ethers
 		# Restore ethers file
 		if [ -f /etc/ethers_port_forward ]
 		then
@@ -196,7 +197,7 @@ update_blocked_devices() {
 				/etc/firewall.user
 	done
 	/etc/init.d/firewall restart
-	/etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
+	[ "$(get_ipv6_enabled)" != "0" ] && /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
 
 	# Save index
 	json_update_index "$_blocked_devices_index" "blocked_devices_index"
@@ -235,7 +236,7 @@ update_upnp_devices() {
 			then
 				local _static_ip
 				# Check if device has already a fixed ip due to port forward
-				grep -q -i "$_mac" /etc/ethers_port_forward > /dev/null 2>&1
+				grep -q -i "$_mac" /etc/ethers_port_forward 2>/dev/null
 				_retstatus=$?
 				if [ ! $_retstatus -eq 0 ]
 				then
@@ -261,6 +262,7 @@ update_upnp_devices() {
 		done
 		json_close_object
 
+		touch /etc/ethers
 		# Restore ethers file
 		if [ -f /etc/ethers_upnp_devices ]
 		then

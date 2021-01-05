@@ -5,8 +5,6 @@
 . /usr/share/functions/network_functions.sh
 . /usr/share/functions/device_functions.sh
 
-_wan_proto_value=$(uci get network.wan.proto)
-
 json_cleanup
 json_load_file /root/flashbox_config.json
 json_get_var _bridge_mode bridge_mode
@@ -20,7 +18,10 @@ json_get_var _pppoe_pass pppoe_pass
 json_get_var _lan_addr lan_addr
 json_get_var _lan_netmask lan_netmask
 json_get_var _lan_ipv6prefix lan_ipv6prefix
+json_get_var _enable_ipv6 enable_ipv6 
 json_close_object
+
+[ -z "$_enable_ipv6" ] && [ "$FLM_WAN_IPV6_ENABLED" = "y" ] && _enable_ipv6="1" || _enable_ipv6="0"
 
 if [ "$_lan_addr" = "" ] || [ "$_lan_netmask" = "" ]
 then
@@ -107,15 +108,11 @@ then
 	uci set network.wan.password="$_pppoe_pass"
 fi
 # Check if IPv6 enabled
-if [ "$FLM_WAN_IPV6_ENABLED" == "y" ]
+if [ "$_enable_ipv6" = "1" ]
 then
-	uci set network.wan.ipv6="auto"
-	uci set network.lan6=interface
-	uci set network.lan6.ifname='@lan'
-	uci set network.lan6.proto='dhcpv6'
+	enable_ipv6
 else
-	uci set network.wan.ipv6="0"
-	uci set network.lan.ipv6="0"
+	disable_ipv6
 fi
 
 # Remove IPv6 ULA prefix to avoid phone issues
