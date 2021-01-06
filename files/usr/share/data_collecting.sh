@@ -204,8 +204,8 @@ collectData() {
 	mac=${mac//:/} # removing all colons in mac address.
 
 	# echo collecting all data
-	collectDevicesWifiDataForInflux "$rawDataFile" "$mac"
-	collectWanStatisticsForInflux "$rawDataFile" "$mac"
+	# collectDevicesWifiDataForInflux "$rawDataFile" "$mac"
+	# collectWanStatisticsForInflux "$rawDataFile" "$mac"
 	collectPingForInflux "$rawDataFile" "$mac"
 
 	# $(zipFile) returns 0 only if any amount of files has been compressed 
