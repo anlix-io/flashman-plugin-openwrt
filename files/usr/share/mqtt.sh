@@ -49,7 +49,7 @@ ping)
 	run_ping_ondemand_test
 	;;
 datacollecting)
-	log "MQTTMSG" "Changing Measure settings"
+	log "MQTTMSG" "Changing data collecting settings"
 	set_data_collecting_on_off "$2"
 	;;
 status)
