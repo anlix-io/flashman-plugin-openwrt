@@ -39,7 +39,7 @@ set_data_collecting_parameters() {
 	# "false" boolean value is translated as string "0" by jshn.sh
 	if [ "$data_collecting_is_active" = "1" && data_collecting_is_running -eq 1]; then
 		data_collecting_service start
-	else if [ "$data_collecting_is_active" = "0" && data_collecting_is_running -eq 0]; then
+	elif [ "$data_collecting_is_active" = "0" && data_collecting_is_running -eq 0]; then
 		data_collecting_service stop
 	fi	
 }
