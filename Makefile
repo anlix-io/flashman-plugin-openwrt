@@ -23,6 +23,7 @@ PKG_CONFIG_DEPENDS:= \
 	CONFIG_FLASHMAN_WIFI_CHANNEL \
 	CONFIG_FLASHMAN_WIFI_BAND \
 	CONFIG_FLASHMAN_WIFI_5GHZ_CHANNEL \
+	CONFIG_FLASHMAN_WIFI_DISASSOC_LOW_ACK \
 	CONFIG_FLASHMAN_RELEASE_ID \
 	CONFIG_FLASHMAN_CLIENT_ORG
 
@@ -219,6 +220,7 @@ endif
 	echo 'FLM_24_CHANNEL=$(CONFIG_FLASHMAN_WIFI_CHANNEL)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_24_BAND=$(CONFIG_FLASHMAN_WIFI_BAND)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_50_CHANNEL=$(CONFIG_FLASHMAN_WIFI_5GHZ_CHANNEL)' >>$(1)/usr/share/flashman_init.conf
+	echo 'FLM_DISASSOC_LOW_ACK=$(CONFIG_FLASHMAN_WIFI_DISASSOC_LOW_ACK)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_RELID=$(CONFIG_FLASHMAN_RELEASE_ID)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_SVADDR=$(CONFIG_FLASHMAN_SERVER_ADDR)' >>$(1)/usr/share/flashman_init.conf
 	echo 'NTP_SVADDR=$(CONFIG_NTP_SERVER_ADDR)' >>$(1)/usr/share/flashman_init.conf
