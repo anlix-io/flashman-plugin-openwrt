@@ -6,112 +6,169 @@ dataCollectingDir="/tmp/influx_data_collecting"
 rawDataFile="${dataCollectingDir}/raw"
 compressedDataDir="${dataCollectingDir}/compressed"
 
-# prints the name of all available wireless interfaces, separated by new lines.
-getAllInterfaceNames() {
-	local index=0 name
-	while true; do
-		name=$(uci -q get wireless.default_radio$index.ifname)
-		if [ "$?" -ne 0 ]; then break; fi
-		echo $name
-		index=$(($index + 1))
-	done
-}
+# # prints the name of all available wireless interfaces, separated by new lines.
+# getAllInterfaceNames() {
+# 	local index=0 name
+# 	while true; do
+# 		name=$(uci -q get wireless.default_radio$index.ifname)
+# 		if [ "$?" -ne 0 ]; then break; fi
+# 		echo $name
+# 		index=$(($index + 1))
+# 	done
+# }
 
+# # extract data from devices in wifi, builds a string in influx line protocol 
+# # format, which uses the router's mac address ($2) to identify the router 
+# # each device belongs to, and append that string to file given as first 
+# # argument ($1).
+# collectDevicesWifiDataForInflux() {
+# 	local filepath="$1" mac="$2"
 
-# extract data from devices in wifi, builds a string in influx line protocol 
-# format, which uses the router's mac address ($2) to identify the router 
-# each device belongs to, and append that string to file given as first 
-# argument ($1).
-collectDevicesWifiDataForInflux() {
-	local filename="$1" mac="$2"
+# 	local timestamp=$(date +%s) # getting current unix time in seconds.
+# 	local allDevices oneDevice snr
+
+# 	for interface in $(getAllInterfaceNames); do # for each interface in the router;
+# 		# extracting the signal to noise ratio value from the interface.
+# 		snr=$(iwinfo ${interface} assoclist) # interface info where we will take the snr value.
+# 		snr=${snr#*\(SNR } # removes everything until "(SNR " including it.
+# 		snr=${snr%%\)*} # removes everything past "\)" including it.
+
+# 		allDevices=$(iw dev ${interface} station dump); # this prints only if there is any device connected to wifi.
+# 		while [ "$allDevices" ]; do
+# 			oneDevice=${allDevices##*Station }; # removes, from $allDevices, the biggest match before and including "Station ".
+# 			allDevices=${allDevices%Station *}; # removes, from $allDevices, the smallest match after and including "Station ".
+
+# 			# following command extract fields from one device and builds a 
+# 			# string as influx line protocol format and append that to a file.
+# 			echo $oneDevice | sed "
+# 			s/\([0-9a-f:]*\).* rx bytes: \([0-9]*\).*rx packets: \([0-9]*\).*tx bytes: \([0-9]*\).*tx packets: \([0-9]*\).*signal:\s*\([-0-9]*\)\s.*dBm.*tx bitrate: \([0-9]*\.[0-9]*\).*rx bitrate: \([0-9]*\.[0-9]*\).*/wifi,d=\1,r=${mac} rx=\8,rxb=\2i,rxp=\3i,sig=\6i,snr=${snr}i,tx=\7,txb=\4i,txp=\5i ${timestamp}/
+# 			s/://g" >> "$filepath";
+# 		done
+# 	done
+# }
+
+# # gets wan info from /sys/class/net/$wanName/statistics/ and builds a string 
+# # in influx line protocol format, which uses the router's mac address, given 
+# # as second argument ($2), to identify the router, and append that string to 
+# # file given as first argument ($1).
+# collectWanStatisticsForInflux() {
+# 	local filepath="$1" mac="$2"
+
+# 	local timestamp=$(date +%s) # getting current unix time in seconds.
+# 	local wanName=$(ifstatus wan | jsonfilter -e '@.device') # name of the wan interface.
+# 	local rxBytes=$(cat /sys/class/net/$wanName/statistics/rx_bytes)
+# 	local txBytes=$(cat /sys/class/net/$wanName/statistics/tx_bytes)
+# 	local rxPackets=$(cat /sys/class/net/$wanName/statistics/rx_packets)
+# 	local txPackets=$(cat /sys/class/net/$wanName/statistics/tx_packets)
+# 	local string="wan,r=$mac rxb=${rxBytes}i,rxp=${rxPackets}i,txb=${txBytes}i,txp=${txPackets}i $timestamp"
+# 	# echo s$string
+# 	echo "$string" >> "$filepath"
+# }
+
+# # executes 100 pings, in burst, to flashman server, extracts the individual 
+# # icmp request number and its respective ping time and builds a string in
+# # influx line protocol format, which uses the router's mac address, given 
+# # as second argument ($2), to identify the router, and append that string 
+# # to file given as first argument ($1).
+# collectPingForInflux() {
+# 	local filepath="$1" mac="$2"
+
+# 	local timestamp=$(date +%s) # getting current unix time in seconds.
+# 	local string="ping,r=$mac " # beginning of influx line protocol string.
+# 	local pingNumber pingTime unreachable
+
+# 	local pingResult=$(ping -i 0.01 -c 100 "$FLM_SVADDR") # 100 pings in burst.
+
+# 	# as numerical characters are small than letters, the icmp request numbers 
+# 	# are written first to string, then the letters charactered fields are 
+# 	# written.
+
+# 	# removing the first line and the last 4 lines. only the ping lines remain.
+# 	string=$(printf "%s" "$pingResult" | head -n -4 | sed '1d' | (while read line; do # for each ping line.
+# 		reached=${line%time=*} # removes 'time=' part if it exists.
+# 		# if "time=" has actually been removed, it means that line 
+# 		# contains it, which also means the icmp request was fulfilled.
+# 		[ ${#reached} -lt ${#line} ] || continue # if line doesn't contain 'time=', skip this line.
+
+# 		pingNumber=${line#*icmp_req=} # from the whole line, removes everything until, and including, "icmp_req=".
+# 		pingNumber=${pingNumber%% *} # removes everything after the first space.
+# 		pingTime=${line#*time=} # from the whole line, removes everything until, and including, "time=".
+# 		pingTime=${pingTime%% *} # removes everything after the first space.
+# 		string="${string}$pingNumber=$pingTime," # concatenate to $string.
+# 	done
+# 	echo $string)) # prints final $string in this sub shell back to $string.
+	
+# 	pingResult=${pingResult##* ---} # the summary that appears in the last lines.
+# 	local loss=${pingResult%\% packet loss*} # removes everything after, and including, '% packet loss'.
+# 	loss=${loss##* } # removes everything after first space.
+# 	if [ $loss -ne 100 ]; then # if $loss is not '100'.
+# 		# takes average after removing everything until, and including first digit followed by '/'.
+# 		local average=${pingResult#*[0-9]/}
+# 		average=${average%%/*} # removes everything after first '/'.
+# 		string="${string}avg=$average," # append average information.
+# 	fi # when loss is 100%, no rtt information is present in ping result, which means there is no average, min or max info.
+# 	string="${string}loss=${loss}i ${timestamp}" # append loss information and $timestamp to string.
+
+# 	# printf "string is: '%s'\n" "$string"
+# 	echo "$string" >> "$filepath" # appending string to file.
+# }
+
+collect_QoE_Monitor_data() {
+	local filepath="$1" mac="$2"
 
 	local timestamp=$(date +%s) # getting current unix time in seconds.
-	local allDevices oneDevice snr
-
-	for interface in $(getAllInterfaceNames); do # for each interface in the router;
-		# extracting the signal to noise ratio value from the interface.
-		snr=$(iwinfo ${interface} assoclist) # interface info where we will take the snr value.
-		snr=${snr#*\(SNR } # removes everything until "(SNR " including it.
-		snr=${snr%%\)*} # removes everything past "\)" including it.
-
-		allDevices=$(iw dev ${interface} station dump); # this prints only if there is any device connected to wifi.
-		while [ "$allDevices" ]; do
-			oneDevice=${allDevices##*Station }; # removes, from $allDevices, the biggest match before and including "Station ".
-			allDevices=${allDevices%Station *}; # removes, from $allDevices, the smallest match after and including "Station ".
-
-			# following command extract fields from one device and builds a 
-			# string as influx line protocol format and append that to a file.
-			echo $oneDevice | sed "
-			s/\([0-9a-f:]*\).* rx bytes: \([0-9]*\).*rx packets: \([0-9]*\).*tx bytes: \([0-9]*\).*tx packets: \([0-9]*\).*signal:\s*\([-0-9]*\)\s.*dBm.*tx bitrate: \([0-9]*\.[0-9]*\).*rx bitrate: \([0-9]*\.[0-9]*\).*/wifi,d=\1,r=${mac} rx=\8,rxb=\2i,rxp=\3i,sig=\6i,snr=${snr}i,tx=\7,txb=\4i,txp=\5i ${timestamp}/
-			s/://g" >> "$filename";
-		done
-	done
-}
-
-# gets wan info from /sys/class/net/$wanName/statistics/ and builds a string 
-# in influx line protocol format, which uses the router's mac address, given 
-# as second argument ($2), to identify the router, and append that string to 
-# file given as first argument ($1).
-collectWanStatisticsForInflux() {
-	local filename="$1" mac="$2"
-
-	local timestamp=$(date +%s) # getting current unix time in seconds.
-	local wanName=$(uci get network.wan.ifname) # name of the wan interface.
-	local rxBytes=$(cat /sys/class/net/$wanName/statistics/rx_bytes)
-	local txBytes=$(cat /sys/class/net/$wanName/statistics/tx_bytes)
-	local rxPackets=$(cat /sys/class/net/$wanName/statistics/rx_packets)
-	local txPackets=$(cat /sys/class/net/$wanName/statistics/tx_packets)
-	local string="wan,r=$mac rxb=${rxBytes}i,rxp=${rxPackets}i,txb=${txBytes}i,txp=${txPackets}i $timestamp"
-	# echo s$string
-	echo "$string" >> "$filename"
-}
-
-# executes 100 pings, in burst, to flashman server, extracts the individual 
-# icmp request number and its respective ping time and builds a string in
-# influx line protocol format, which uses the router's mac address, given 
-# as second argument ($2), to identify the router, and append that string 
-# to file given as first argument ($1).
-collectPingForInflux() {
-	local filename="$1" mac="$2"
-
-	local timestamp=$(date +%s) # getting current unix time in seconds.
-	local string="ping,r=$mac " # beginning of influx line protocol string.
-	local pingNumber pingTime unreachable
-
 	local pingResult=$(ping -i 0.01 -c 100 "$FLM_SVADDR") # 100 pings in burst.
 
-	# as numerical characters are small than letters, the icmp request numbers 
-	# are written first to string, then the letters charactered fields are 
-	# written.
-
-	# removing the first line and the last 4 lines. only the ping lines remain.
-	string=$(printf "%s" "$pingResult" | head -n -4 | sed '1d' | (while read line; do # for each ping line.
-		reached=${line%time=*} # removes 'time=' part if it exists.
-		# if "time=" has actually been removed, it means that line 
-		# contains it, which also means the icmp request was fulfilled.
-		[ ${#reached} -lt ${#line} ] || continue # if line doesn't contain 'time=', skip this line.
-
-		pingNumber=${line#*icmp_req=} # from the whole line, removes everything until, and including, "icmp_req=".
-		pingNumber=${pingNumber%% *} # removes everything after the first space.
-		pingTime=${line#*time=} # from the whole line, removes everything until, and including, "time=".
-		pingTime=${pingTime%% *} # removes everything after the first space.
-		string="${string}$pingNumber=$pingTime," # concatenate to $string.
-	done
-	echo $string)) # prints final $string in this sub shell back to $string.
-	
 	pingResult=${pingResult##* ---} # the summary that appears in the last lines.
 	local loss=${pingResult%\% packet loss*} # removes everything after, and including, '% packet loss'.
 	loss=${loss##* } # removes everything after first space.
-	if [ $loss -ne 100 ]; then # if $loss is not '100'.
-		# takes average after removing everything until, and including first digit followed by '/'.
-		local average=${pingResult#*[0-9]/}
-		average=${average%%/*} # removes everything after first '/'.
-		string="${string}avg=$average," # append average information.
-	fi # when loss is 100%, no rtt information is present in ping result, which means there is no average, min or max info.
-	string="${string}loss=${loss}i ${timestamp}" # append loss information and $timestamp to string.
+
+	local wanName=$(ifstatus wan | jsonfilter -e '@.device') # name of the wan interface.
+	local rxBytes=$(cat /sys/class/net/$wanName/statistics/rx_bytes)
+	local txBytes=$(cat /sys/class/net/$wanName/statistics/tx_bytes)
+	local max_bytes=4294967295
+	
+	# this means that if $last_rxBytes is undefined, we will use the current bytes ass last bytes, 
+	# therefore the difference will be 0.
+	local rx=${last_rxBytes:=$rxBytes}
+	local tx=${last_txBytes:=$txBytes}
+
+	rx=$(($rxBytes - $last_rxBytes))
+	if [ $rx -lt 0 ]; then rx=$(($rx + $max_bytes)); fi
+	last_rxBytes=$rxBytes
+	tx=$(($txBytes - $last_txBytes))
+	if [ $tx -lt 0 ]; then tx=$(($tx + $max_bytes)); fi
+	last_txBytes=$txBytes
+
+	local string="$mac $timestamp $loss $rx $tx"
+
+	# removing the first line and the last 4 lines. only the ping lines remain.
+	if [ $(get_flashman_parameter "collect_latencies") = "1" ]; then
+		local latencies=$(printf "%s" "$pingResult" | head -n -4 | sed '1d' | (
+		firstLine=true
+		while read line; do # for each ping line.
+			reached=${line%time=*} # removes 'time=' part if it exists.
+			# if "time=" has actually been removed, it means that line 
+			# contains it, which also means the icmp request was fulfilled.
+			[ ${#reached} -lt ${#line} ] || continue # if line doesn't contain 'time=', skip this line.
+
+			pingNumber=${line#*icmp_*eq=} # from the whole line, removes everything until, and including, "icmp_req=".
+			pingNumber=${pingNumber%% *} # removes everything after the first space.
+			pingTime=${line#*time=} # from the whole line, removes everything until, and including, "time=".
+			pingTime=${pingTime%% *} # removes everything after the first space.
+			if [ $firstLine = true ]; then
+				firstLine=false
+			else
+				string="${string},"
+			fi
+			string="${string}${pingNumber}=${pingTime}" # concatenate to $string.
+		done
+		echo $string)) # prints final $string in this sub shell back to $string.
+		string="${string};${latencies}"
+	fi
 
 	# printf "string is: '%s'\n" "$string"
-	echo "$string" >> "$filename" # appending string to file.
+	echo "$string" >> "$filepath" # appending string to file.
 }
 
 # prints the size of a file, using 'ls', where full file 
@@ -197,16 +254,15 @@ removeOldFiles() {
 # files. if the size of the files is this directory is too big, join all files 
 # in a new file in a directory for compressed files and compress it.
 collectData() {
-	local time="$1"
-
-	# getting router's mac address used to identify the router.
-	local mac=$(get_mac); # defined in /usr/share/functions/device_functions.sh
-	mac=${mac//:/} # removing all colons in mac address.
+	# # getting router's mac address used to identify the router.
+	# local mac=$(get_mac); # defined in /usr/share/functions/device_functions.sh
+	# mac=${mac//:/} # removing all colons in mac address.
 
 	# echo collecting all data
 	# collectDevicesWifiDataForInflux "$rawDataFile" "$mac"
-	collectWanStatisticsForInflux "$rawDataFile" "$mac"
-	collectPingForInflux "$rawDataFile" "$mac"
+	# collectWanStatisticsForInflux "$rawDataFile" "$mac"
+	# collectPingForInflux "$rawDataFile" "$mac"
+	collect_QoE_Monitor_data "$rawDataFile"
 
 	# $(zipFile) returns 0 only if any amount of files has been compressed 
 	# and, consequently, moved to the directory of compressed files. So
@@ -234,7 +290,7 @@ getLastServerState() {
 	if [ -f "$lastServerStateFilePath" ]; then # if file exists.
 		echo $(cat "$lastServerStateFilePath")
 	else
-		echo 1
+		echo 1 # printing '1' will force us to check the server state.
 	fi
 }
 
@@ -245,7 +301,7 @@ checkLastServerState() {
 	local lastState=$1 serverAddress=$2
 	if [ $lastState -ne 0 ]; then
 		# echo pinging influx
-		curl -sl -I "http://$serverAddress:8086/ping" > /dev/null # check if server is alive.
+		curl -sl -I "http://$serverAddress:7890/ping" > /dev/null # check if server is alive.
 		lastState="$?" #return $(curl) exit code.
 		# echo ping found state $currentState
 	fi
@@ -263,15 +319,20 @@ writeCurrentServerState() {
 	fi
 }
 
+
 # sends file at given path ($1) to influxdb at given address ($2) using $(curl) 
 # and returns $(curl) exit code.
-sendToStorageServer() {
+sendToServer() {
 	local filepath="$1" serverAddress="$2"
+
+	local mac=$(get_mac); # defined in /usr/share/functions/device_functions.sh
+	mac=${mac//:/} # removing all colons in mac address.
+
 	# echo sending curl
 	curl -s -m 20 --connect-timeout 5 \
-	-XPOST "http://$serverAddress:8086/write?db=$FLM_CLIENT_ORG&precision=s" \
-	-H 'Content-Encoding: gzip' \
-	-H 'Content-Type: application/octet-stream' \
+	-XPOST "https://$serverAddress:7980/w/$mac" \
+	-H 'Content-Encoding: gzip' -H 'Content-Type: application/octet-stream' \
+	-H "X-ANLIX-ID: $mac" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
 	--data-binary @"$1"
 	return "$?"
 }
@@ -290,7 +351,7 @@ sendCompressedData() {
 		# echo checking existence of file $i
 		[ -f "$i" ] || continue # check if file still exists.
 		# echo sending file $i
-		sendToStorageServer "$i" "$serverAddress" # send file to influx.
+		sendToServer "$i" "$serverAddress" # send file to influx.
 		sentResult="$?" # store $(curl) exit code.
 		if [ "$sentResult" -eq 0 ]; then # if $(curl) exit code is equal to 0.
 			# echo finished sending, now removing.
@@ -322,14 +383,14 @@ sendUncompressedData() {
 	gzip -k "$uncompressedFile" # compress to a temporary file and keep original, uncompressed, intact.
 
 	# echo sending compressed final file
-	sendToStorageServer "$compressedTempFile" "$serverAddress" # send compressed file to influx.
+	sendToServer "$compressedTempFile" "$serverAddress" # send compressed file to influx.
 	local sentResult="$?" # store $(curl) exit code.
 	# remove temporary file. a new temporary should be created, with more content, if we couldn't send data this time.
 	rm "$compressedTempFile"
-	trap - SIGTERM # clean trap
+	trap - SIGTERM # clean trap.
 	# echo removed compressed final file.
 
-	if [ "$sentResult" -eq 0 ]; then # if send was successful
+	if [ "$sentResult" -eq 0 ]; then # if send was successful.
 		# echo removing uncompressed files
 		rm $uncompressedFile # remove original file.
 	fi
@@ -337,38 +398,38 @@ sendUncompressedData() {
 }
 
 
-# gets written in file given as first argument ($1) is and subtract by 1. if 
-# that subtraction results in any number that isn't zero, writes that results 
-# to the same file and returns 1. returning 1 means it's not time to send data.
-# If file doesn't exist, use number given as second argument ($2).
-checkBackoff() {
-	local backoffCounterPath=$1 defaultBackoff=$2
-	local counter
-	if [ -f  "$backoffCounterPath" ]; then # if file exists.
-		counter=$(cat "$backoffCounterPath") # take number written in that file.
-	else # if file doesn't exist.
-		counter=$defaultBackoff # use default value
-	fi
-	counter=$((counter - 1)) # subtract number found on file by 1.
-	# echo new backoff is $counter
-	if [ $counter -ne 0 ]; then # if subtraction result is not zero.
-		echo $counter > "$backoffCounterPath" # write result to file.
-		return 1 # return 1 means we remain in backoff.
-	fi
-	# return 0 means we can send data.
-}
+# # reads number written in file, given as first argument ($1), and subtract it by 1. 
+# # If that subtraction results in any number that isn't zero, writes that results 
+# # to the same file and returns 1. returning 1 means it's not time to send data. 
+# # If file doesn't exist, use number given as second argument ($2).
+# checkBackoff() {
+# 	local backoffCounterPath=$1 defaultBackoff=$2
+# 	local counter
+# 	if [ -f  "$backoffCounterPath" ]; then # if file exists.
+# 		counter=$(cat "$backoffCounterPath") # take number written in that file.
+# 	else # if file doesn't exist.
+# 		counter=$defaultBackoff # use default value
+# 	fi
+# 	counter=$(($counter - 1)) # subtract number found on file by 1.
+# 	# echo new backoff is $counter
+# 	if [ $counter -ne 0 ]; then # if subtraction result is not zero.
+# 		echo $counter > "$backoffCounterPath" # write result to file.
+# 		return 1 # return 1 means we remain in backoff.
+# 	fi
+# 	# return 0 means we can send data.
+# }
 
-# given an exit code as first argument ($1), if it's 0, the second argument 
-# ($2) is written to file at path given in forth argument (4), but if it's not 
-# 0, the third argument ($3) is written instead.
-writeBackoff() {
-	local currentServerState=$1 normalBackoff=$2 changedBackoff=$3 backoffCounterPath=$4
-	if [ "$currentServerState" -ne 0 ]; then
-		normalBackoff=$changedBackoff
-	fi
-	# echo writting backoff $normalBackoff
-	echo $normalBackoff > "$backoffCounterPath"
-}
+# # given an exit code as first argument ($1), if it's 0, the second argument ($2)
+# # is written to file at path given in forth argument ($4), but if it's not 0, the 
+# # third argument ($3) is written instead.
+# writeBackoff() {
+# 	local currentServerState=$1 normalBackoff=$2 changedBackoff=$3 backoffCounterPath=$4
+# 	if [ "$currentServerState" -ne 0 ]; then
+# 		normalBackoff=$changedBackoff
+# 	fi
+# 	# echo writting backoff.
+# 	echo $normalBackoff > "$backoffCounterPath"
+# }
 
 
 # prints a number between 1 and 9.
@@ -377,20 +438,52 @@ random1To9() {
 	echo ${_rand:0:1}
 }
 
-# check if it's time to send data, check if last time that data was sent the 
-# server was alive and then send all compressed files and all uncompressed 
-# files. if everything went ok, it will only send data again after as many 
-# calls, to this function, as $defaultBackoff.
-sendData() {
-	local defaultBackOff=5 # amount of calls needed to trigger the sending of data.
+# # check if it's time to send data, check if last time that data was sent the 
+# # server was alive and then send all compressed files and all uncompressed 
+# # files. if everything went ok, it will only send data again after as many 
+# # calls, to this function, as $defaultBackoff.
+# sendData() {
+# 	local defaultBackOff=5 # amount of calls needed to trigger the sending of data.
 
-	# check if we will send data this time and returns 0 if true. this controls if we will send data at this call.
-	checkBackoff "${dataCollectingDir}/backoffCounter" $defaultBackOff
-	if [ "$?" -eq 0 ]; then # if $(checkBackoff) returned 0.
+# 	# check if we will send data this time and returns 0 if true. this controls if we will send data at this call.
+# 	checkBackoff "$dataCollectingDir/backoffCounter" $defaultBackOff
+# 	if [ "$?" -eq 0 ]; then # if $(checkBackoff) returned 0.
 
+# 		# getting fqdn every time we need to send data, this way we don't have to 
+# 		# restart the service if fqdn changes.
+# 		local dataCollectingFqdn=$(get_data_collecting_fqdn)
+
+# 		# check if the last time, data was sent, server was alive. if it was, 
+# 		# send compressed data, if everything was sent, send uncompressed 
+# 		# data. If server wasn't alive last time, ping it and if it's alive 
+# 		# now, then send all data, but if it's still dead, do nothing.
+# 		local lastServerState=$(getLastServerState "$dataCollectingDir/serverState")
+# 		checkLastServerState "$lastServerState" "$dataCollectingFqdn" && \
+# 		sendCompressedData "${compressedDataDir}/*" "$dataCollectingFqdn" && \
+# 		sendUncompressedData "$rawDataFile" "$dataCollectingFqdn"
+# 		local currentServerState="$?"
+# 		# if server stops before sending some data, current server state will differ from last server state.
+# 		# $currentServerState get the exit code of the first of these 3 functions above that returns anything other than 0.
+
+# 		# writes the $(curl) exit code if it has changed since last attempt to send data.
+# 		writeCurrentServerState $currentServerState $lastServerState "$dataCollectingDir/serverState"
+# 		# sets a random uniform backoff if $(curl) exit code wasn't equal 0 or default value.
+# 		writeBackoff $currentServerState $defaultBackOff $((1 + $(random1To9))) "$dataCollectingDir/backoffCounter"
+# 	fi
+# }
+
+# check if there aren't other calls to this function running in background. If there's one, 
+# it exists. If there's none, it will send data and keep retrying in case of an unsuccessful 
+# transmission.
+sendData2() {
+	local retryfile="$dataCollectingDir/retrysend"
+	[ -f "$retryfile" ] && return 0 # if $retry file exists, leave this function.
+	touch "$retryfile" # file that marks that the retry procedure is running.
+
+	while true; do
 		# getting fqdn every time we need to send data, this way we don't have to 
 		# restart the service if fqdn changes.
-		local dataCollectingFqdn=$(get_data_collecting_fqdn)
+		local dataCollectingFqdn=$(get_flashman_parameter data_collecting_fqdn)
 
 		# check if the last time, data was sent, server was alive. if it was, 
 		# send compressed data, if everything was sent, send uncompressed 
@@ -406,9 +499,14 @@ sendData() {
 
 		# writes the $(curl) exit code if it has changed since last attempt to send data.
 		writeCurrentServerState $currentServerState $lastServerState "$dataCollectingDir/serverState"
-		# sets a random backoff if $(curl) exit code wasn't equal 0 or default value.
-		writeBackoff $currentServerState $defaultBackOff $((1 + $(random1To9))) "${dataCollectingDir}/backoffCounter"
-	fi
+
+		if [ $currentServerState -ne 0 ]; then # if data wasn't sent.
+			sleep $((1 + $(random1To9))) # sleep for a random amount of seconds before retrying.
+		else # if data was sent successfully, we stop retrying.
+			rm $retryfile # deletes file that marks that the retry procedure was running.
+			break # breaks out of retry loop.
+		fi
+	done
 }
 
 # prints the timestamp written in file at path given in first argument ($1). 
@@ -431,9 +529,9 @@ getStartTime() {
 		startTime=$(( $startTime + (($currentTime - $startTime) / $interval) * $interval + $interval))
 		# that division does not produce a float number. ex: (7/2)*2 = 6.
 		# $startTime + (($currentTime - $startTime) / $interval) * $interval 
-		# results in the closest time to $currentTtime that $interval could 
+		# results in the closest time to $currentTime that $interval could 
 		# produce, starting from $startTime, that is smaller than $currentTime. 
-		# By adding $interval, we get the closest time to $currentTtime that 
+		# By adding $interval, we get the closest time to $currentTime that 
 		# $interval could produce that is bigger than $currentTtime.
 		sleep $(($startTime - $currentTime)) # sleep for the amount of time left to next interval.
 		# this makes us always start at the same second, even if the process is shut down for a long time.
@@ -444,7 +542,15 @@ getStartTime() {
 	echo $startTime # print start time found, or current time.
 }
 
+# deletes files, marking process state, from previous process.
+cleanFiles() {
+	rm "$dataCollectingDir/serverState"
+	rm "$dataCollectingDir/backoffCounter"
+	rm "$dataCollectingDir/retrysend"
+}
+
 loop() {
+	cleanFiles # deletes files, marking process state, from previous process.
 	local interval=60 # interval between beginnings of data collecting.
 	mkdir -p "$dataCollectingDir" # making sure directory exists every time.
 	local time=$(getStartTime "$dataCollectingDir/startTime" $interval) # time when we will start executing.
@@ -452,15 +558,15 @@ loop() {
 	while true; do # infinite loop where we execute all procedures over and over again until the end of times.
 		# echo startTime $time
 
-		collectData "$time" # does everything related to collecting and storing data.
-		sendData # does everything related to sending data and deletes data sent.
+		collectData # does everything related to collecting and storing data.
+		sendData2 & # does everything related to sending data and deletes data sent.
 
 		local endTime=$(date +%s) # time after all procedures are finished.
 		local timeLeftForNextRun="-1" # this will hold the time left until we should run the next iteration of this loop
 		# while time left is negative, which could happen if $(($time - $endTime)) is bigger than $interval.
 		while [ $timeLeftForNextRun -lt 0 ]; do
-			time=$((time + $interval)) # advance time when current data collecting has started by one interval.
-			timeLeftForNextRun=$(($time - $endTime)) # calculate time left to next data collecting.
+			time=$(($time + $interval)) # advance time, when current data collecting has started, by one interval.
+			timeLeftForNextRun=$(($time - $endTime)) # calculate time left to collect data again.
 		done
 		sleep $timeLeftForNextRun # sleep for the time remaining until next data collecting.
 	done

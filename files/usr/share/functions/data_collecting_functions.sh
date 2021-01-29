@@ -24,24 +24,25 @@ set_data_collecting_parameters() {
 	json_load_file /root/flashbox_config.json
 	json_get_var saved_data_collecting_fqdn data_collecting_fqdn
 
-	# Update value if $data_collecting_fqdn has changed.
+	# Updating value if $data_collecting_fqdn has changed.
 	if [ "$saved_data_collecting_fqdn" != "$data_collecting_fqdn" ]; then
-		log "DATA COLLECTING" "Updating data_collecting_fqdn parameter"
+		log "DATA COLLECTING" "Updated data_collecting_fqdn parameter to $data_collecting_fqdn"
 		json_add_string data_collecting_fqdn "$data_collecting_fqdn"
+		json_dump > /root/flashbox_config.json # saving config json.
 	fi
 
-	# save config json.
-	json_dump > /root/flashbox_config.json
 	json_close_object
 	json_cleanup
 
 	# "true" boolean value is translated as string "1" by jshn.sh
 	# "false" boolean value is translated as string "0" by jshn.sh
-	if [ "$data_collecting_is_active" = "1" && data_collecting_is_running -eq 1]; then
+	if [ "$data_collecting_is_active" = "1" ] && data_collecting_is_running; then
+		# if data collecting is already running, no need to turn on.
 		data_collecting_service start
-	elif [ "$data_collecting_is_active" = "0" && data_collecting_is_running -eq 0]; then
+	elif [ "$data_collecting_is_active" = "0" ] && ! data_collecting_is_running; then
+		# if data collecting is already not running, no need to turn off.
 		data_collecting_service stop
-	fi	
+	fi
 }
 
 set_data_collecting_on_off() {
@@ -79,11 +80,32 @@ is_data_colleting_license_available() {
 	return $_is_available
 }
 
-get_data_collecting_fqdn () {
+get_flashman_parameter() {
+	local parameterName=$1
+
+	local saved_value
 	json_cleanup
 	json_load_file /root/flashbox_config.json
+	json_get_var saved_value "$parameterName"
+	echo $saved_value
+	json_close_object
+	json_cleanup
+}
+
+set_collect_latencies() {
+	local collect_latencies="$1"
+
+	local saved_data_collecting_fqdn
+	json_cleanup
+	json_load_file /root/flashbox_config.json # opening json file.
 	json_get_var saved_data_collecting_fqdn data_collecting_fqdn
-	echo $data_collecting_fqdn
+
+	# Updating value if $collect_latencies has changed.
+	if [ $saved_data_collecting_fqdn != $collect_latencies ]; then
+		log "DATA COLLECTING" "Updated collect_latencies parameter to $collect_latencies"
+		json_add_string collect_latencies "$collect_latencies"
+		json_dump > /root/flashbox_config.json # saving config json.
+	fi
 	json_close_object
 	json_cleanup
 }
