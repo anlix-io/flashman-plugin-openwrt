@@ -56,6 +56,10 @@ config FLASHMAN_WIFI_5GHZ_CHANNEL
 	string "WiFi router AP 5.0GHz channel."
 	default "auto"
 
+config FLASHMAN_WIFI_DISASSOC_LOW_ACK
+	string "Disassociate devices with frequent ACK loss (poor signal)"
+	default "1"
+
 config FLASHMAN_RELEASE_ID
 	string "FlashMan image release identification"
 	default "0000-flm"
