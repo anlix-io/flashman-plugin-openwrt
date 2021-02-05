@@ -143,7 +143,7 @@ collect_QoE_Monitor_data() {
 	local string="$mac $timestamp $loss $rx $tx"
 
 	# removing the first line and the last 4 lines. only the ping lines remain.
-	if [ $(get_flashman_parameter "collect_latencies") = "1" ]; then
+	if [ $(get_flashman_parameter "data_collecting_latency_is_active") = "1" ]; then
 		local latencies=$(printf "%s" "$pingResult" | head -n -4 | sed '1d' | (
 		firstLine=true
 		while read line; do # for each ping line.
@@ -168,7 +168,9 @@ collect_QoE_Monitor_data() {
 	fi
 
 	# printf "string is: '%s'\n" "$string"
-	echo "$string" >> "$filepath" # appending string to file.
+	lock -w "${filepath}.lock"
+	echo "$string" >> "$filepath"; # appending string to file.
+	lock -u "${filepath}.lock"
 }
 
 # prints the size of a file, using 'ls', where full file 
@@ -216,13 +218,16 @@ zipFile() {
 
 	local size=$(fileSize "$fileToCompress") # size of file with raw data.
 	local dirSize=$(sumFileSizesInPath "$compressedFilesDir") # sum of file sizes in directory for compressed files.
-	
-	# echo zipping files found $size and total size $(($size + $dirSize))
+
 	# if sum is smaller than $capSize, do nothing.
 	if [ $(($size + $dirSize)) -lt $capSize ]; then return 1; fi # a return of 1 means nothing will be gzipped.
 
-	gzip "$fileToCompress" # compress file with raw data.
-	mv "${fileToCompress}.gz" "$compressedFilesDir/$(date +%s).gz" # move newly compressed file to directory for compressed files.
+	# compress file where raw data is held.
+	lock -w "${fileToCompress}.lock"
+	gzip "$fileToCompress"
+	lock -u "${fileToCompress}.lock"
+	# move newly compressed file to directory where compressed files should be.
+	mv "${fileToCompress}.gz" "$compressedFilesDir/$(date +%s).gz"
 
 }
 
@@ -237,15 +242,17 @@ removeOldFiles() {
 
 	local dirSize=$(sumFileSizesInPath "$dirPath")
 
-	# if $sumSize is more than given $capSize, remove oldest file. which is 
+	# if $dirSize is more than given $capSize, remove oldest file. which is 
 	# the file that shell orders as first.
 	for i in "$filesPaths"/*; do
-		# echo removing files found "dirSize=$dirSize"
-		if [ $dirSize -lt $capSize ]; then break; fi;
-		rm "$i" # remove that file.
-		# echo removed file "$i"
+		[ $dirSize -lt $capSize ] && break; # if we are under $capSize. do nothing.
+
+		lock -w "${i}.lock"
+		rm "$i" 2> /dev/null; # removes that file.
+		lock -u "${i}.lock"
+		rm "${i}.lock"
+
 		dirSize=$(($dirSize - $(fileSize "$i"))) # subtract that file's size from sum.
-		# echo new dirSize is $dirSize
 	done
 }
 
@@ -294,16 +301,14 @@ getLastServerState() {
 	fi
 }
 
-# if number given as first argument ($1) isn't 0, ping influx at address given 
+# if number given as first argument ($1) isn't 0, ping server at address given 
 # in second argument ($2) and returns the exit code of $(curl), but if that 
 # number is zero, return that number.
 checkLastServerState() {
 	local lastState=$1 serverAddress=$2
 	if [ $lastState -ne 0 ]; then
-		# echo pinging influx
-		curl -sl -I "http://$serverAddress:7890/ping" > /dev/null # check if server is alive.
+		curl -sl -I "https://$serverAddress:7890/ping" > /dev/null # check if server is alive.
 		lastState="$?" #return $(curl) exit code.
-		# echo ping found state $currentState
 	fi
 	return $lastState
 }
@@ -312,15 +317,13 @@ checkLastServerState() {
 # second argument ($2).
 writeCurrentServerState() {
 	local currentState=$1 lastState=$2 serverStateFilePath="$3"
-	# echo current influx state is $currentState and last state $lastState
 	if [ $currentState -ne $lastState ]; then # if server state has changed.
-		# echo writing current server state $currentState
 		echo $currentState > "$serverStateFilePath" # write server state to file.
 	fi
 }
 
 
-# sends file at given path ($1) to influxdb at given address ($2) using $(curl) 
+# sends file at given path ($1) to server at given address ($2) using $(curl) 
 # and returns $(curl) exit code.
 sendToServer() {
 	local filepath="$1" serverAddress="$2"
@@ -328,7 +331,10 @@ sendToServer() {
 	local mac=$(get_mac); # defined in /usr/share/functions/device_functions.sh
 	mac=${mac//:/} # removing all colons in mac address.
 
-	# echo sending curl
+	# if file doesn't exist anymore, returns success. no need to send anything.
+	[ -f "$filepath" ] || return 0
+
+	# locking file to be sent.
 	curl -s -m 20 --connect-timeout 5 \
 	-XPOST "https://$serverAddress:7980/w/$mac" \
 	-H 'Content-Encoding: gzip' -H 'Content-Type: application/octet-stream' \
@@ -350,14 +356,19 @@ sendCompressedData() {
 	for i in $compressedFilesPaths; do # for each compressed file in the pattern expansion.
 		# echo checking existence of file $i
 		[ -f "$i" ] || continue # check if file still exists.
+
 		# echo sending file $i
-		sendToServer "$i" "$serverAddress" # send file to influx.
+		lock -w "${i}.lock"
+		trap "rm ${i}.lock" SIGTERM
+		sendToServer "$i" "$serverAddress" # sends file.
 		sentResult="$?" # store $(curl) exit code.
+		lock -u "${i}.lock" 2> /dev/null
+		rm "${i}.lock" 2> /dev/null
+		trap - SIGTERM
+
 		if [ "$sentResult" -eq 0 ]; then # if $(curl) exit code is equal to 0.
-			# echo finished sending, now removing.
-			rm "$i" # remove file.
+			rm "$i" 2> /dev/null; # remove file.
 		else # but if $(curl) exit code isn't equal to 0.
-			# echo could not send.
 			return "$sentResult" # return $(curl) exit code without deleting the file we tried to send.
 		fi
 	done
@@ -379,21 +390,23 @@ sendUncompressedData() {
 	# remove old file if it exists. it should never be left there.
 	if [ -f "$compressedTempFile" ]; then rm "$compressedTempFile"; fi
 
-	trap "rm $compressedTempFile" SIGTERM # in case the process is interrupted, delete compressed file.
+	# trap "rm $compressedTempFile" SIGTERM # in case the process is interrupted, delete compressed file.
+	trap "rm $compressedTempFile; rm ${uncompressedFile}.lock" SIGTERM
+	lock -w "${uncompressedFile}.lock"
 	gzip -k "$uncompressedFile" # compress to a temporary file and keep original, uncompressed, intact.
 
-	# echo sending compressed final file
-	sendToServer "$compressedTempFile" "$serverAddress" # send compressed file to influx.
-	local sentResult="$?" # store $(curl) exit code.
-	# remove temporary file. a new temporary should be created, with more content, if we couldn't send data this time.
-	rm "$compressedTempFile"
-	trap - SIGTERM # clean trap.
-	# echo removed compressed final file.
+	sendToServer "$compressedTempFile" "$serverAddress" # sends compressed file.
+	local sentResult="$?" # storing $(curl) exit code.
 
 	if [ "$sentResult" -eq 0 ]; then # if send was successful.
-		# echo removing uncompressed files
-		rm $uncompressedFile # remove original file.
+		rm $uncompressedFile # removes original file.
 	fi
+	lock -u "${uncompressedFile}.lock" 2> /dev/null
+
+	# removes temporary file. a new temporary will be created, with more content, if we couldn't send data this time.
+	rm "$compressedTempFile"
+	trap - SIGTERM # cleans trap.
+
 	return $sentResult # Returns #(curl) exit code.
 }
 
@@ -475,10 +488,11 @@ random1To9() {
 # check if there aren't other calls to this function running in background. If there's one, 
 # it exists. If there's none, it will send data and keep retrying in case of an unsuccessful 
 # transmission.
-sendData2() {
-	local retryfile="$dataCollectingDir/retrysend"
-	[ -f "$retryfile" ] && return 0 # if $retry file exists, leave this function.
-	touch "$retryfile" # file that marks that the retry procedure is running.
+sendData() {
+	local retryfile="$dataCollectingDir/retryingsend.lock"
+	lock -n "$retryfile" 2> /dev/null || return 1;
+	# [ -f "$retryfile" ] && return 1; # if $retry file exists, leave this function.
+	# touch "$retryfile" # file that marks that the retry procedure is running.
 
 	while true; do
 		# getting fqdn every time we need to send data, this way we don't have to 
@@ -503,10 +517,11 @@ sendData2() {
 		if [ $currentServerState -ne 0 ]; then # if data wasn't sent.
 			sleep $((1 + $(random1To9))) # sleep for a random amount of seconds before retrying.
 		else # if data was sent successfully, we stop retrying.
-			rm $retryfile # deletes file that marks that the retry procedure was running.
+			# rm $retryfile # deletes file that marks that the retry procedure was running.
 			break # breaks out of retry loop.
 		fi
 	done
+	lock -u "$retryfile"
 }
 
 # prints the timestamp written in file at path given in first argument ($1). 
@@ -542,11 +557,14 @@ getStartTime() {
 	echo $startTime # print start time found, or current time.
 }
 
-# deletes files, marking process state, from previous process.
+# deletes files, marking process state, from previous process and deletes temporary files that 
+# could be hanging if process is terminated in some critical part.
 cleanFiles() {
-	rm "$dataCollectingDir/serverState"
-	rm "$dataCollectingDir/backoffCounter"
-	rm "$dataCollectingDir/retrysend"
+	rm "${dataCollectingDir}/serverState" 2> /dev/null
+	rm "${dataCollectingDir}/backoffCounter" 2> /dev/null
+	rm "${rawDataFile}.gz" 2> /dev/null
+	rm "${dataCollectingDir}/*.lock" 2> /dev/null
+	rm "${compressedDataDir}/*.lock" 2> /dev/null
 }
 
 loop() {
@@ -559,7 +577,7 @@ loop() {
 		# echo startTime $time
 
 		collectData # does everything related to collecting and storing data.
-		sendData2 & # does everything related to sending data and deletes data sent.
+		sendData & # does everything related to sending data and deletes data sent.
 
 		local endTime=$(date +%s) # time after all procedures are finished.
 		local timeLeftForNextRun="-1" # this will hold the time left until we should run the next iteration of this loop
