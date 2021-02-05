@@ -113,6 +113,9 @@ wpsstate=$_local_wps_state"
 			json_get_var _do_update do_update
 			json_get_var _do_newprobe do_newprobe
 			json_get_var _mqtt_status mqtt_status
+			json_get_var _data_collecting_fqdn data_collecting_fqdn
+			json_get_var _data_collecting_is_active data_collecting_is_active
+			json_get_var _data_collecting_latency data_collecting_latency
 			json_close_object
 
 			if [ "$_do_newprobe" = "1" ]
@@ -159,6 +162,11 @@ wpsstate=$_local_wps_state"
 					kill -9 $mqttpid
 				fi
 			fi
+
+			# updates data collecting parameters.
+			set_data_collecting_parameters "$_data_collecting_fqdn" "$_data_collecting_is_active" \
+			                               "$_data_collecting_latency"
+
 		elif [ $_retstatus -eq 2 ]
 		then
 			log "KEEPALIVE" "Fail in Flashman Certificate! Retry $_cert_error"
