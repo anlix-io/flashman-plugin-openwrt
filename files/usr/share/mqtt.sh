@@ -52,9 +52,9 @@ datacollecting)
 	log "MQTTMSG" "Changing data collecting settings"
 	set_data_collecting_on_off "$2"
 	;;
-collectlatencies)
+collectlatency)
 	log "MQTTMSG" "Changing the collecting of latencies when collecting data"
-	set_collect_latencies "$2"
+	set_collect_latency "$2"
 	;;
 status)
 	if lock -n /tmp/get_status.lock
