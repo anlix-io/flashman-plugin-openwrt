@@ -19,7 +19,7 @@ data_collecting_service() {
 	start) local time=$(random0To59); log "DATA COLLECTING" "Sleeping for $time seconds"; sleep $time && \
 	       /etc/init.d/data_collecting start;;
 	restart) /etc/init.d/data_collecting stop; /etc/init.d/data_collecting start;;
-	*) /etc/init.d/data_collecting "$1";; # stop fall to this case.
+	*) /etc/init.d/data_collecting "$1";; # stop falls to this case.
 	esac
 }
 
@@ -29,12 +29,12 @@ data_collecting_is_running() {
 
 set_data_collecting_parameters() {
 	local data_collecting_fqdn="$1" data_collecting_is_active="$2"
-	local data_collecting_latency_is_active "$3"
+	local data_collecting_latency "$3"
 
 	json_cleanup
 	json_load_file /root/flashbox_config.json
 	json_get_var saved_data_collecting_fqdn data_collecting_fqdn
-	json_get_var saved_data_collecting_latency_is_active data_collecting_latency_is_active
+	json_get_var saved_data_collecting_latency data_collecting_latency
 
 	local anyChange=false
 	# Updating value if $data_collecting_fqdn has changed.
@@ -44,11 +44,11 @@ set_data_collecting_parameters() {
 		json_add_string data_collecting_fqdn "$data_collecting_fqdn"
 	fi
 
-	# Updating value if $data_collecting_latency_is_active has changed.
-	if [ "$saved_data_collecting_latency_is_active" != "$data_collecting_latency_is_active" ]; then
+	# Updating value if $data_collecting_latency has changed.
+	if [ "$saved_data_collecting_latency" != "$data_collecting_latency" ]; then
 		anyChange=true
-		log "DATA COLLECTING" "Updated 'data_collecting_latency_is_active' parameter to $data_collecting_latency_is_active"
-		json_add_string data_collecting_latency_is_active "$data_collecting_latency_is_active"
+		log "DATA COLLECTING" "Updated 'data_collecting_latency' parameter to $data_collecting_latency"
+		json_add_string data_collecting_latency "$data_collecting_latency"
 	fi
 
 	# saving config json if any parameter has changed.
@@ -112,16 +112,16 @@ get_flashman_parameter() {
 }
 
 set_collect_latency() {
-	local data_collecting_latency_is_active="$1"
+	local data_collecting_latency="$1"
 
 	json_cleanup
 	json_load_file /root/flashbox_config.json # opening json file.
 	json_get_var saved_data_collecting_fqdn data_collecting_fqdn
 
-	# Updating value if $data_collecting_latency_is_active has changed.
-	if [ $saved_data_collecting_fqdn != $data_collecting_latency_is_active ]; then
-		log "DATA COLLECTING" "Updated data_collecting_latency_is_active parameter to $data_collecting_latency_is_active"
-		json_add_string data_collecting_latency_is_active "$data_collecting_latency_is_active"
+	# Updating value if $data_collecting_latency has changed.
+	if [ $saved_data_collecting_fqdn != $data_collecting_latency ]; then
+		log "DATA COLLECTING" "Updated data_collecting_latency parameter to $data_collecting_latency"
+		json_add_string data_collecting_latency "$data_collecting_latency"
 		json_dump > /root/flashbox_config.json # saving config json.
 	fi
 	json_close_object
