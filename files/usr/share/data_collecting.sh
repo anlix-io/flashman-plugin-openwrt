@@ -541,7 +541,7 @@ getStartTime() {
 # could be hanging if process is terminated in some critical part.
 cleanFiles() {
 	rm "${dataCollectingDir}/serverState" 2> /dev/null
-	rm "${dataCollectingDir}/backoffCounter" 2> /dev/null
+	# rm "${dataCollectingDir}/backoffCounter" 2> /dev/null
 	rm "${rawDataFile}.gz" 2> /dev/null
 }
 
