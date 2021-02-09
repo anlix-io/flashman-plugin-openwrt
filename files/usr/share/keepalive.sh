@@ -8,6 +8,7 @@
 . /usr/share/functions/wireless_functions.sh
 . /usr/share/functions/network_functions.sh
 . /usr/share/functions/api_functions.sh
+. /usr/share/functions/data_collecting_functions.sh
 
 _need_update=0
 _force_update=0
