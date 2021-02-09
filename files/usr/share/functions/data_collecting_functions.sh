@@ -28,8 +28,7 @@ data_collecting_is_running() {
 }
 
 set_data_collecting_parameters() {
-	local data_collecting_fqdn="$1" data_collecting_is_active="$2"
-	local data_collecting_latency "$3"
+	local data_collecting_fqdn="$1" data_collecting_is_active="$2" data_collecting_latency="$3"
 
 	json_cleanup
 	json_load_file /root/flashbox_config.json
