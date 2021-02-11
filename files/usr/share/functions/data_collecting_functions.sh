@@ -16,15 +16,16 @@ data_collecting_service() {
 	case "$1" in
 	# start) is_data_colleting_license_available && /etc/init.d/data_collecting "$1";;
 	# restart) /etc/init.d/data_collecting stop; is_data_colleting_license_available && /etc/init.d/data_collecting start;;
-	start) local time=$(random0To59); log "DATA COLLECTING" "Sleeping for $time seconds"; sleep $time && \
-	       /etc/init.d/data_collecting start;;
+	start) local time=$(random0To59); log "DATA COLLECTING" "Sleeping for $time seconds"; 
+		sleep $time
+	    /etc/init.d/data_collecting start;;
 	restart) /etc/init.d/data_collecting stop; /etc/init.d/data_collecting start;;
-	*) /etc/init.d/data_collecting "$1";; # stop falls to this case.
+	*) /etc/init.d/data_collecting "$1";; # 'stop' falls to this case.
 	esac
 }
 
 data_collecting_is_running() {
-	if [ -f /var/run/data_collecting.pid ]; then return 0; else return 1; fi
+	[ -f /var/run/data_collecting.pid ] && return 0; return 1
 }
 
 set_data_collecting_parameters() {
