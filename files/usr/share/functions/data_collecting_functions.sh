@@ -66,7 +66,7 @@ set_data_collecting_parameters() {
 	if [ "$data_collecting_is_active" = "1" ] && [ "$data_collecting_fqdn" != "" ] && ! data_collecting_is_running; then
 		# if data collecting is already running, no need to turn on.
 		data_collecting_service start
-	elif [ "$data_collecting_is_active" = "0" ] && data_collecting_is_running; then
+	elif [ "$data_collecting_is_active" != "1" ] && data_collecting_is_running; then
 		# if data collecting is already not running, no need to turn off.
 		data_collecting_service stop
 	fi
