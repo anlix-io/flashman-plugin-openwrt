@@ -3,6 +3,7 @@
 . /usr/share/functions/device_functions.sh
 . /usr/share/flashman_init.conf
 
+# echoes a random number between 0 and 59 (inclusive).
 random0To59() {
 	local rand=$(head /dev/urandom | tr -dc "0123456789")
 	rand=${rand:0:2} # taking the first 2 digits.
@@ -11,6 +12,7 @@ random0To59() {
 	# our Ash has not been compiled to work with floats.
 }
 
+# start, stop or restart the data collecting service. When starting, sleep for a random time between 0 and 59  seconds.
 data_collecting_service() {
 	log "DATA COLLECTING" "$1"
 	case "$1" in
@@ -24,10 +26,13 @@ data_collecting_service() {
 	esac
 }
 
+# returns good exit code if data collecting service is running, bases on the existence of its pid file.
 data_collecting_is_running() {
 	[ -f /var/run/data_collecting.pid ] && return 0; return 1
 }
 
+# saves 'data_collecting_fqdn' and 'data_collecting_latency' if they have changed and starts the
+# data collecting service if not already running or stops it if it's running.
 set_data_collecting_parameters() {
 	local data_collecting_fqdn="$1" data_collecting_is_active="$2" data_collecting_latency="$3"
 
@@ -67,6 +72,7 @@ set_data_collecting_parameters() {
 	fi
 }
 
+# given 'on' or 'off' as first argument, start or stops the data collecting service.
 set_data_collecting_on_off() {
 	if [ "$1" = "on" ]; then
 		data_collecting_service start
@@ -102,6 +108,7 @@ set_data_collecting_on_off() {
 # 	return $_is_available
 # }
 
+# opens json '/root/flashbox_config.json' and echoes the attribute with given name as first argument.
 get_flashman_parameter() {
 	json_cleanup
 	json_load_file /root/flashbox_config.json
@@ -111,6 +118,8 @@ get_flashman_parameter() {
 	json_cleanup
 }
 
+# sets 'data_collecting_latency' given as first argument in file '/root/flashbox_config.json' if 
+# given value is different from the value that is currently in it.
 set_collect_latency() {
 	local data_collecting_latency="$1"
 
