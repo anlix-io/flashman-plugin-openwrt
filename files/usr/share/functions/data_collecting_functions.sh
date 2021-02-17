@@ -31,29 +31,51 @@ data_collecting_is_running() {
 	[ -f /var/run/data_collecting.pid ] && return 0; return 1
 }
 
-# saves 'data_collecting_fqdn' and 'data_collecting_latency' if they have changed and starts the
+# saves 'data_collecting_ping_fqdn' and 'data_collecting_latency' if they have changed and starts the
 # data collecting service if not already running or stops it if it's running.
 set_data_collecting_parameters() {
-	local data_collecting_fqdn="$1" data_collecting_is_active="$2" data_collecting_latency="$3"
+	local data_collecting_is_active="$1" data_collecting_latency="$2"
+	local data_collecting_alarm_fqdn="$3" data_collecting_ping_fqdn="$4" 
+	local data_collecting_ping_packets="$5"
 
 	json_cleanup
 	json_load_file /root/flashbox_config.json
-	json_get_var saved_data_collecting_fqdn data_collecting_fqdn
 	json_get_var saved_data_collecting_latency data_collecting_latency
+	json_get_var saved_data_collecting_alarm_fqdn data_collecting_alarm_fqdn
+	json_get_var saved_data_collecting_ping_fqdn data_collecting_ping_fqdn
+	json_get_var saved_data_collecting_ping_packets data_collecting_ping_packets
 
 	local anyChange=false
-	# Updating value if $data_collecting_fqdn has changed.
-	if [ "$saved_data_collecting_fqdn" != "$data_collecting_fqdn" ]; then
-		anyChange=true
-		log "DATA COLLECTING" "Updated 'data_collecting_fqdn' parameter to $data_collecting_fqdn"
-		json_add_string data_collecting_fqdn "$data_collecting_fqdn"
-	fi
-
+	[ "$data_collecting_latency" = "" ] && data_collecting_latency=0 # default value.
 	# Updating value if $data_collecting_latency has changed.
 	if [ "$saved_data_collecting_latency" != "$data_collecting_latency" ]; then
 		anyChange=true
-		log "DATA COLLECTING" "Updated 'data_collecting_latency' parameter to $data_collecting_latency"
 		json_add_string data_collecting_latency "$data_collecting_latency"
+		log "DATA COLLECTING" "Updated 'data_collecting_latency' parameter to $data_collecting_latency"
+	fi
+
+	[ "$data_collecting_alarm_fqdn" = "" ] && data_collecting_alarm_fqdn="$FLM_SVADDR" # default value.
+	# Updating value if $data_collecting_alarm_fqdn has changed.
+	if [ "$saved_data_collecting_alarm_fqdn" != "$data_collecting_alarm_fqdn" ]; then
+		anyChange=true
+		json_add_string data_collecting_alarm_fqdn "$data_collecting_alarm_fqdn"
+		log "DATA COLLECTING" "Updated 'data_collecting_alarm_fqdn' parameter to $data_collecting_alarm_fqdn"
+	fi
+
+	[ "$data_collecting_ping_fqdn" = "" ] && data_collecting_ping_fqdn="$FLM_SVADDR" # default value.
+	# Updating value if $data_collecting_ping_fqdn has changed.
+	if [ "$saved_data_collecting_ping_fqdn" != "$data_collecting_ping_fqdn" ]; then
+		anyChange=true
+		json_add_string data_collecting_ping_fqdn "$data_collecting_ping_fqdn"
+		log "DATA COLLECTING" "Updated 'data_collecting_ping_fqdn' parameter to $data_collecting_ping_fqdn"
+	fi
+
+	[ "$data_collecting_ping_packets" = "" ] && data_collecting_ping_packets=100 # default value.
+	# Updating value if $data_collecting_alarm_fqdn has changed.
+	if [ "$saved_data_collecting_ping_packets" != "$data_collecting_ping_packets" ]; then
+		anyChange=true
+		json_add_string data_collecting_ping_packets "$data_collecting_ping_packets"
+		log "DATA COLLECTING" "Updated 'data_collecting_ping_packets' parameter to $data_collecting_ping_packets"
 	fi
 
 	# saving config json if any parameter has changed.
@@ -61,12 +83,13 @@ set_data_collecting_parameters() {
 	json_close_object
 	json_cleanup
 
+
 	# "true" boolean value is translated as string "1" by jshn.sh
 	# "false" boolean value is translated as string "0" by jshn.sh
-	if [ "$data_collecting_is_active" = "1" ] && [ "$data_collecting_fqdn" != "" ] && ! data_collecting_is_running; then
+	if [ "$data_collecting_is_active" = "1" ] && [ "$data_collecting_ping_fqdn" != "" ] && ! data_collecting_is_running; then
 		# if data collecting is already running, no need to turn on.
 		data_collecting_service start
-	elif [ "$data_collecting_is_active" != "1" ] && data_collecting_is_running; then
+	elif [ "$data_collecting_is_active" != "1" ] && data_collecting_is_running; then # being != "1" means empty string works.
 		# if data collecting is already not running, no need to turn off.
 		data_collecting_service stop
 	fi
@@ -108,14 +131,18 @@ set_data_collecting_on_off() {
 # 	return $_is_available
 # }
 
-# opens json '/root/flashbox_config.json' and echoes the attribute with given name as first argument.
-get_flashman_parameter() {
+# opens json '/root/flashbox_config.json' and echoes the attributes values which names are given as arguments.
+get_flashman_parameters() {
 	json_cleanup
 	json_load_file /root/flashbox_config.json
-	json_get_var saved_value "$1"
-	echo $saved_value
+	local output="local"
+	for varname in "$@"; do
+		json_get_var saved_value "$varname"
+		output="$output $varname='$saved_value'"
+	done
 	json_close_object
 	json_cleanup
+	echo $output
 }
 
 # sets 'data_collecting_latency' given as first argument in file '/root/flashbox_config.json' if 
@@ -125,13 +152,13 @@ set_collect_latency() {
 
 	json_cleanup
 	json_load_file /root/flashbox_config.json # opening json file.
-	json_get_var saved_data_collecting_fqdn data_collecting_fqdn
+	json_get_var saved_data_collecting_latency data_collecting_latency
 
 	# Updating value if $data_collecting_latency has changed.
-	if [ $saved_data_collecting_fqdn != $data_collecting_latency ]; then
-		log "DATA COLLECTING" "Updated data_collecting_latency parameter to $data_collecting_latency"
+	if [ $saved_data_collecting_latency != $data_collecting_latency ]; then
 		json_add_string data_collecting_latency "$data_collecting_latency"
 		json_dump > /root/flashbox_config.json # saving config json.
+		log "DATA COLLECTING" "Updated data_collecting_latency parameter to $data_collecting_latency"
 	fi
 	json_close_object
 	json_cleanup

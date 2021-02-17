@@ -1,6 +1,6 @@
 #!/bin/sh
 . /usr/share/functions/device_functions.sh
-. /usr/share/functions/data_collecting_functions.sh
+. /usr/share/flashman_init.conf
 
 dataCollectingDir="/tmp/data_collecting"
 rawDataFile="${dataCollectingDir}/raw"
@@ -120,12 +120,10 @@ compressedDataDir="${dataCollectingDir}/compressed"
 # respective ping times to build a string with all this information and write 
 # them to file given as first argument ($1).
 collect_QoE_Monitor_data() {
-	local filepath="$1"
-
-	# echo collecting data and writing to file $filepath
+	# echo collecting data and writing to file
 
 	local timestamp=$(date +%s) # getting current unix time in seconds.
-	local pingResult=$(ping -i 0.01 -c 100 "$FLM_SVADDR") # 100 pings in burst.
+	local pingResult=$(ping -i 0.01 -c "$pingPackets" "$pingServerAddress") # 100 pings in burst.
 
 	pingResult=${pingResult##* ---} # the summary that appears in the last lines.
 	local loss=${pingResult%\% packet loss*} # removes everything after, and including, '% packet loss'.
@@ -151,7 +149,7 @@ collect_QoE_Monitor_data() {
 	local string="$timestamp $loss $rx $tx" # data to be sent.
 
 	# if latency collecting is enabled.
-	if [ "$(get_flashman_parameter data_collecting_latency)" = "1" ]; then
+	if [ "$collectLatency" = "1" ]; then
 		# echo collecting latencies
 		# removing the first line and the last 4 lines. only the ping lines remain.
 		local latencies=$(printf "%s" "$pingResult" | head -n -4 | sed '1d' | (
@@ -178,7 +176,7 @@ collect_QoE_Monitor_data() {
 	fi
 
 	# printf "string is: '%s'\n" "$string"
-	echo "$string" >> "$filepath"; # appending string to file.
+	echo "$string" >> "$rawDataFile"; # appending string to file.
 }
 
 # prints the size of a file, using 'ls', where full file path is given as 
@@ -219,22 +217,22 @@ sumFileSizesInPath() {
 # in second argument ($2). if that sum is bigger than number given in third 
 # argument ($3), compress that file and move it to that directory.
 zipFile() {
-	local fileToCompress="$1" compressedFilesDir="$2" capSize="$3"
+	local capSize="$1"
 
 	# if file doesn't exist, we won't have to compressed anything.
-	[ -f "$fileToCompress" ] || return 1 # a return of 1 means nothing has been be gzipped.
+	[ -f "$rawDataFile" ] || return 1 # a return of 1 means nothing has been be gzipped.
 
-	local size=$(fileSize "$fileToCompress") # size of file with raw data.
-	local dirSize=$(sumFileSizesInPath "$compressedFilesDir") # sum of file sizes in directory for compressed files.
+	local size=$(fileSize "$rawDataFile") # size of file with raw data.
+	local dirSize=$(sumFileSizesInPath "$compressedDataDir") # sum of file sizes in directory for compressed files.
 
 	# if sum is smaller than $capSize, do nothing.
 	# echo checking file size to zip
 	if [ $(($size + $dirSize)) -lt $capSize ]; then return 1; fi # a return of 1 means nothing will be gzipped.
 
 	# compressing file where raw data is held.
-	gzip "$fileToCompress"
+	gzip "$rawDataFile"
 	# move newly compressed file to directory where compressed files should be.
-	mv "${fileToCompress}.gz" "$compressedFilesDir/$(date +%s).gz"
+	mv "${rawDataFile}.gz" "$compressedDataDir/$(date +%s).gz"
 }
 
 # given file paths in first argument ($1), starting from first to last, files 
@@ -244,13 +242,13 @@ zipFile() {
 # so we don't have to sort files by date ourselves. we let shell do the 
 # sorting.
 removeOldFiles() {
-	local dirPath="$1" capSize="$2"
+	local capSize="$1"
 
-	local dirSize=$(sumFileSizesInPath "$dirPath")
+	local dirSize=$(sumFileSizesInPath "$compressedDataDir")
 
 	# if $dirSize is more than given $capSize, remove oldest file. which is 
 	# the file that shell orders as first.
-	for i in "$filesPaths"/*; do
+	for i in "$compressedDataDir"/*; do
 		[ $dirSize -lt $capSize ] && break; # if we are under $capSize. do nothing.
 		rm "$i" # removes that file.
 		dirSize=$(($dirSize - $(fileSize "$i"))) # subtract that file's size from sum.
@@ -261,15 +259,14 @@ removeOldFiles() {
 # too big, compress it and move it to a directory of compressed files. If 
 # directory of compressed files grows too big delete old compressed files.
 collectData() {
-	collect_QoE_Monitor_data "$rawDataFile"
+	collect_QoE_Monitor_data
 
 	# $(zipFile) returns 0 only if any amount of files has been compressed 
 	# and, consequently, moved to the directory of compressed files. So
 	# $(removeOldFiles) is only executed if any new compressed file was 
 	# created.
-	mkdir -p "$compressedDataDir"
-	zipFile "$rawDataFile" "$compressedDataDir" $((32*1024)) && \
-		removeOldFiles "$compressedDataDir" $((24*1024))
+	mkdir -p "$compressedDataDir" # creates directory of for compressed files, if it doesn't already exists.
+	zipFile $((32*1024)) && removeOldFiles $((24*1024))
 	# the difference between the cap size sent to $(zipFile) and 
 	# $(removeOldFiles) is the size left as a minimum amount for raw data 
 	# before compressing it. This means that, if there are no compressed files, 
@@ -286,12 +283,12 @@ collectData() {
 # in second argument ($2) and returns the exit code of $(curl), but if that 
 # number is zero, return that number.
 checkServerState() {
-	local lastState=$1 serverAddress=$2
+	local lastState="$1" serverAddress="$2"
 	if [ "$lastState" != "0" ]; then
 		curl -sl -I "https://$serverAddress:7890/ping" > /dev/null # check if server is alive.
 		lastState="$?" #return $(curl) exit code.
 	fi
-	# echo last state it $lastState
+	# echo last state is $lastState
 	return $lastState
 }
 
@@ -315,25 +312,12 @@ sendToServer() {
 # server at address given in second argument ($2). If any sending is 
 # unsuccessful, stops sending files and return it's exit code.
 sendCompressedData() {
-	local compressedFilesPaths="$1" serverAddress="$2"
-
 	# echo going to send compressed data
-	# echo $compressedFilesPaths
-
-	local sentResult
-	for i in $compressedFilesPaths; do # for each compressed file in the pattern expansion.
-		# echo checking existence of file $i
-		[ -f "$i" ] || continue # check if file still exists.
-
-		# echo sending file $i
-		sendToServer "$i" "$serverAddress" # sends file.
-		sentResult="$?" # store $(curl) exit code.
-
-		if [ "$sentResult" -eq 0 ]; then # if $(curl) exit code is equal to 0.
-			rm "$i" # remove file.
-		else # but if $(curl) exit code isn't equal to 0.
-			return "$sentResult" # return $(curl) exit code without deleting the file we tried to send.
-		fi
+	# echo "$compressedDataDir"/*
+	for i in "$compressedDataDir"/*; do # for each compressed file in the pattern expansion.
+		# if file exists, sends file and if $(curl) exit code isn't equal to 0, returns $(curl) exit code 
+		# without deleting the file we tried to send. if $(curl) exit code is equal to 0, removes file
+		[ -f "$i" ] && (sendToServer "$i" "$alarmServerAddress" || return "$?") && rm "$i"
 	done
 }
 
@@ -341,25 +325,22 @@ sendCompressedData() {
 # address given in second argument ($3) and deletes it. If send was successful, 
 # remove original files, if not, keeps it. Returns the return of $(curl).
 sendUncompressedData() {
-	local uncompressedFile="$1" serverAddress="$2"
-
 	# if no uncompressed file, nothing wrong, but there's nothing to do in this function.
-	[ -f "$uncompressedFile" ] || return 0
+	[ -f "$rawDataFile" ] || return 0
 
 	# echo going to send uncompressed files
-	local compressedTempFile="${uncompressedFile}.gz" # the name the compressed file will have.
+	local compressedTempFile="${rawDataFile}.gz" # the name the compressed file will have.
 	# remove old file if it exists. it should never be left there.
-	if [ -f "$compressedTempFile" ]; then rm "$compressedTempFile"; fi
+	[ -f "$compressedTempFile" ] && rm "$compressedTempFile"
 
 	trap "rm $compressedTempFile" SIGTERM # in case the process is interrupted, delete compressed file.
-	gzip -k "$uncompressedFile" # compressing to a temporary file but keeping original, uncompressed, intact.
+	gzip -k "$rawDataFile" # compressing to a temporary file but keeping original, uncompressed, intact.
 
-	sendToServer "$compressedTempFile" "$serverAddress" # sends compressed file.
+	sendToServer "$compressedTempFile" "$alarmServerAddress" # sends compressed file.
 	local sentResult="$?" # storing $(curl) exit code.
 
-	[ "$sentResult" -eq 0 ] && rm "$uncompressedFile" # if send was successful, removes original file.
+	[ "$sentResult" -eq 0 ] && rm "$rawDataFile" # if send was successful, removes original file.
 	rm "$compressedTempFile" # removes temporary file. a new temporary will be created next time, with more content, 
-		# if we couldn't send data this time.
 	trap - SIGTERM # cleans trap.
 
 	return $sentResult # Returns #(curl) exit code.
@@ -404,24 +385,17 @@ sendUncompressedData() {
 sendData() {
 	# echo going to send data
 	local tries=4
+
 	while true; do
-		# getting fqdn every time we need to send data, this way we don't have to 
-		# restart the service if fqdn changes.
-		local dataCollectingFqdn=$(get_flashman_parameter data_collecting_fqdn)
-
-		local 
-
-		="$dataCollectingDir/serverState"
 		# check if the last time, data was sent, server was alive. if it was, 
 		# send compressed data, if everything was sent, send uncompressed 
 		# data. If server wasn't alive last time, ping it and if it's alive 
 		# now, then send all data, but if it's still dead, do nothing.
+		local lastServerStateFilePath="$dataCollectingDir/serverState"
 		local lastServerState="1"
 		[ -f "$lastServerStateFilePath" ] && lastServerState=$(cat "$lastServerStateFilePath")
 
-		checkServerState "$lastServerState" "$dataCollectingFqdn" && \
-		sendCompressedData "${compressedDataDir}/*" "$dataCollectingFqdn" && \
-		sendUncompressedData "$rawDataFile" "$dataCollectingFqdn"
+		checkServerState "$lastServerState" && sendCompressedData && sendUncompressedData
 		local currentServerState="$?"
 		# if server stops before sending some data, current server state will differ from last server state.
 		# $currentServerState get the exit code of the first of these 3 functions above that returns anything other than 0.
@@ -451,8 +425,8 @@ getStartTime() {
 
 	local currentTime=$(date +%s)
 	local startTime
-	if [ -f $startTimeFilePath ]; then # if file holding start time exists.
-		startTime=$(cat $startTimeFilePath) # get the timestamp inside that file.
+	if [ -f "$startTimeFilePath" ]; then # if file holding start time exists.
+		startTime=$(cat "$startTimeFilePath") # get the timestamp inside that file.
 		# advance timestamp to the closest time after current time that the given interval could produce.
 		startTime=$(($startTime + (($currentTime - $startTime) / $interval) * $interval + $interval))
 		# that division does not produce a float number. ex: (7/2)*2 = 6.
@@ -483,10 +457,18 @@ cleanFiles() {
 loop() {
 	local interval=60 # interval between beginnings of data collecting.
 	mkdir -p "$dataCollectingDir" # making sure directory exists every time.
-	local time=$(getStartTime "$dataCollectingDir/startTime" $interval) # time when we will start executing.
+	local time=$(getStartTime "${dataCollectingDir}/startTime" $interval) # time when we will start executing.
 
 	while true; do # infinite loop where we execute all procedures over and over again until the end of times.
 		# echo startTime $time
+
+		# getting FQDNs every time we need to send data, this way we don't have to 
+		# restart the service if a fqdn changes.
+		eval $(cat /root/flashbox_config.json | jsonfilter \
+			-e "collectLatency=@.data_collecting_latency" \
+			-e "alarmServerAddress=@.data_collecting_alarm_fqdn" \
+			-e "pingServerAddress=@.data_collecting_ping_fqdn" \
+			-e "pingPackets=@.data_collecting_ping_packets")
 
 		collectData # does everything related to collecting and storing data.
 		sendData # does everything related to sending data and deletes data sent.
