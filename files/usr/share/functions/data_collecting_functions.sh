@@ -31,27 +31,37 @@ data_collecting_is_running() {
 	[ -f /var/run/data_collecting.pid ] && return 0; return 1
 }
 
-# saves 'data_collecting_ping_fqdn' and 'data_collecting_latency' if they have changed and starts the
-# data collecting service if not already running or stops it if it's running.
+# saves data collecting parameters if they have changed, saved files only if at least one parameter has changed
+# and starts the data collecting service if not already running or stops it if it's running.
 set_data_collecting_parameters() {
-	local data_collecting_is_active="$1" data_collecting_latency="$2"
+	local data_collecting_is_active="$1" data_collecting_has_latency="$2"
 	local data_collecting_alarm_fqdn="$3" data_collecting_ping_fqdn="$4" 
 	local data_collecting_ping_packets="$5"
 
 	json_cleanup
 	json_load_file /root/flashbox_config.json
-	json_get_var saved_data_collecting_latency data_collecting_latency
+	json_get_var saved_data_collecting_is_active data_collecting_is_active
+	json_get_var saved_data_collecting_has_latency data_collecting_has_latency
 	json_get_var saved_data_collecting_alarm_fqdn data_collecting_alarm_fqdn
 	json_get_var saved_data_collecting_ping_fqdn data_collecting_ping_fqdn
 	json_get_var saved_data_collecting_ping_packets data_collecting_ping_packets
 
 	local anyChange=false
-	[ "$data_collecting_latency" = "" ] && data_collecting_latency=0 # default value.
-	# Updating value if $data_collecting_latency has changed.
-	if [ "$saved_data_collecting_latency" != "$data_collecting_latency" ]; then
+
+	[ "$data_collecting_is_active" = "" ] && data_collecting_is_active=0 # default value.
+	# Updating value if $data_collecting_is_active has changed.
+	if [ "$saved_data_collecting_is_active" != "$data_collecting_is_active" ]; then
 		anyChange=true
-		json_add_string data_collecting_latency "$data_collecting_latency"
-		log "DATA COLLECTING" "Updated 'data_collecting_latency' parameter to $data_collecting_latency"
+		json_add_string data_collecting_is_active "$data_collecting_is_active"
+		log "DATA COLLECTING" "Updated 'data_collecting_is_active' parameter to $data_collecting_is_active"
+	fi
+
+	[ "$data_collecting_has_latency" = "" ] && data_collecting_has_latency=0 # default value.
+	# Updating value if $data_collecting_has_latency has changed.
+	if [ "$saved_data_collecting_has_latency" != "$data_collecting_has_latency" ]; then
+		anyChange=true
+		json_add_string data_collecting_has_latency "$data_collecting_has_latency"
+		log "DATA COLLECTING" "Updated 'data_collecting_has_latency' parameter to $data_collecting_has_latency"
 	fi
 
 	[ "$data_collecting_alarm_fqdn" = "" ] && data_collecting_alarm_fqdn="$FLM_SVADDR" # default value.
@@ -145,20 +155,20 @@ get_flashman_parameters() {
 	echo $output
 }
 
-# sets 'data_collecting_latency' given as first argument in file '/root/flashbox_config.json' if 
+# sets 'data_collecting_has_latency', given as first argument ($1), in file '/root/flashbox_config.json' if 
 # given value is different from the value that is currently in it.
 set_collect_latency() {
-	local data_collecting_latency="$1"
+	local data_collecting_has_latency="$1"
 
 	json_cleanup
 	json_load_file /root/flashbox_config.json # opening json file.
-	json_get_var saved_data_collecting_latency data_collecting_latency
+	json_get_var saved_data_collecting_has_latency data_collecting_has_latency
 
-	# Updating value if $data_collecting_latency has changed.
-	if [ $saved_data_collecting_latency != $data_collecting_latency ]; then
-		json_add_string data_collecting_latency "$data_collecting_latency"
+	# Updating value if $data_collecting_has_latency has changed.
+	if [ $saved_data_collecting_has_latency != $data_collecting_has_latency ]; then
+		json_add_string data_collecting_has_latency "$data_collecting_has_latency"
 		json_dump > /root/flashbox_config.json # saving config json.
-		log "DATA COLLECTING" "Updated data_collecting_latency parameter to $data_collecting_latency"
+		log "DATA COLLECTING" "Updated data_collecting_has_latency parameter to $data_collecting_has_latency"
 	fi
 	json_close_object
 	json_cleanup

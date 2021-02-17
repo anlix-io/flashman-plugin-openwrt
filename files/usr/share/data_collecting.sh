@@ -149,7 +149,7 @@ collect_QoE_Monitor_data() {
 	local string="$timestamp $loss $rx $tx" # data to be sent.
 
 	# if latency collecting is enabled.
-	if [ "$collectLatency" = "1" ]; then
+	if [ "$hasLatency" = "1" ]; then
 		# echo collecting latencies
 		# removing the first line and the last 4 lines. only the ping lines remain.
 		local latencies=$(printf "%s" "$pingResult" | head -n -4 | sed '1d' | (
@@ -465,7 +465,7 @@ loop() {
 		# getting FQDNs every time we need to send data, this way we don't have to 
 		# restart the service if a fqdn changes.
 		eval $(cat /root/flashbox_config.json | jsonfilter \
-			-e "collectLatency=@.data_collecting_latency" \
+			-e "hasLatency=@.data_collecting_has_latency" \
 			-e "alarmServerAddress=@.data_collecting_alarm_fqdn" \
 			-e "pingServerAddress=@.data_collecting_ping_fqdn" \
 			-e "pingPackets=@.data_collecting_ping_packets")

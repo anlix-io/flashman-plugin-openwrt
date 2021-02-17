@@ -230,7 +230,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		json_get_var _blocked_devices_index blocked_devices_index
 		json_get_var _upnp_devices_index upnp_devices_index
 		json_get_var _data_collecting_is_active data_collecting_is_active
-		json_get_var _data_collecting_latency data_collecting_latency
+		json_get_var _data_collecting_has_latency data_collecting_has_latency
 		json_get_var _data_collecting_alarm_fqdn data_collecting_alarm_fqdn
 		json_get_var _data_collecting_ping_fqdn data_collecting_ping_fqdn
 		json_get_var _data_collecting_ping_packets data_collecting_ping_packets
@@ -423,7 +423,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		fi
 
 		# updates data collecting parameters.
-		set_data_collecting_parameters "$_data_collecting_is_active" "$_data_collecting_latency" \
+		set_data_collecting_parameters "$_data_collecting_is_active" "$_data_collecting_has_latency" \
 			                           "$_data_collecting_alarm_fqdn" "$_data_collecting_ping_fqdn" \
 			                           "$_data_collecting_ping_packets"
 
