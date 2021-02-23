@@ -2,9 +2,9 @@
 . /usr/share/functions/device_functions.sh
 . /usr/share/flashman_init.conf
 
-dataCollectingDir="/tmp/data_collecting"
-rawDataFile="${dataCollectingDir}/raw"
-compressedDataDir="${dataCollectingDir}/compressed"
+dataCollectingDir="/tmp/data_collecting" # directory where all data related to data collecting will be stored.
+rawDataFile="${dataCollectingDir}/raw" # file collected data will be stored before being compressed.
+compressedDataDir="${dataCollectingDir}/compressed" # directory where data will be stored if compressing old data is necessary.
 
 # # prints the name of all available wireless interfaces, separated by new lines.
 # getAllInterfaceNames() {
@@ -113,43 +113,41 @@ compressedDataDir="${dataCollectingDir}/compressed"
 # 	echo "$string" >> "$filepath" # appending string to file.
 # }
 
-# takes current unis timestamp, executes 100 pings, in burst, to flashman 
-# server, gets current rx and tx bytes from wlan interface and compares then 
-# with values from previous calls to calculate cross traffic, if latency 
-# collecting is enabled, extracts the individual icmp request numbers and their 
-# respective ping times to build a string with all this information and write 
-# them to file given as first argument ($1).
+# takes current unix timestamp, executes ping, in burst, to $pingServerAddress server, gets current 
+# rx and tx bytes from wan interface and compares then with values from previous calls to calculate 
+# cross traffic. If latency collecting is enabled, extracts the individual icmp request numbers and 
+# their respective ping times. Builds a string with all this information and write them to file.
 collect_QoE_Monitor_data() {
-	# echo collecting data and writing to file
+	echo collecting data and writing to file
 
 	local timestamp=$(date +%s) # getting current unix time in seconds.
-	local pingResult=$(ping -i 0.01 -c "$pingPackets" "$pingServerAddress") # 100 pings in burst.
-
-	pingResult=${pingResult##* ---} # the summary that appears in the last lines.
-	local loss=${pingResult%\% packet loss*} # removes everything after, and including, '% packet loss'.
-	loss=${loss##* } # removes everything after first space.
+	local pingResult=$(ping -i 0.01 -c "$pingPackets" "$pingServerAddress") # burst ping with $pingPackets amount of packets.
 
 	local wanName=$(ifstatus wan | jsonfilter -e '@.device') # name of the wan interface.
 	local rxBytes=$(cat /sys/class/net/$wanName/statistics/rx_bytes) # bytes received by the interface.
 	local txBytes=$(cat /sys/class/net/$wanName/statistics/tx_bytes) # bytes sent by the interface.
 	local max_bytes=4294967295 # max number possible with 32 bits. (2^32 - 1).
-	
-	
-	local rx=${last_rxBytes:=$rxBytes} # if '$last_rxBytes' is undefined, we will use the current value as last value.
-		# this means the difference, between current value and last value, will be 0 in the first execution.
-	rx=$(($rxBytes - $last_rxBytes)) # subtract previous interface value from the current value.
-	if [ $rx -lt 0 ]; then rx=$(($rx + $max_bytes)); fi # if subtraction created a negative value, it means it has overflown.
-	last_rxBytes=$rxBytes # save current interface value as last value.
+	# if last bytes are not defined. get current want interface bytes and define them. then it returns.
+	if [ -z ${last_rxBytes+x} ] || [ -z ${last_txBytes+x} ]; then
+		echo last bytes are undefined
+		last_rxBytes="$rxBytes" # bytes received by the interface. will be used next time.
+		last_txBytes="$txBytes" # bytes sent by the interface. will be used next time.
+		return # don't write data this round. we need a full minute of bytes to calculate cross traffic.
+	fi
+	local rx=$(($rxBytes - $last_rxBytes)) # subtract previous interface value from the current value.
+	local tx=$(($txBytes - $last_txBytes)) # subtract previous interface value from the current value.
+	[ "$rx" -lt 0 ] && rx=$(($rx + $max_bytes)) # if subtraction created a negative value, it means it has overflown.
+	[ "$tx" -lt 0 ] && tx=$(($tx + $max_bytes)) # if subtraction created a negative value, it means it has overflown.
+	last_rxBytes=$rxBytes # saves current interface bytes value as last value.
+	last_txBytes=$txBytes # saves current interface bytes value as last value.
 
-	local tx=${last_txBytes:=$txBytes}
-	tx=$(($txBytes - $last_txBytes))
-	if [ $tx -lt 0 ]; then tx=$(($tx + $max_bytes)); fi
-	last_txBytes=$txBytes
+	pingResult=${pingResult##* ---} # the summary that appears in the last lines.
+	local loss=${pingResult%\% packet loss*} # removes everything after, and including, '% packet loss'.
+	loss=${loss##* } # removes everything after first space.
 
 	local string="$timestamp $loss $rx $tx" # data to be sent.
 
-	# if latency collecting is enabled.
-	if [ "$hasLatency" = "1" ]; then
+	if [ "$hasLatency" = "1" ]; then # if latency collecting is enabled.
 		# echo collecting latencies
 		# removing the first line and the last 4 lines. only the ping lines remain.
 		local latencies=$(printf "%s" "$pingResult" | head -n -4 | sed '1d' | (
@@ -212,10 +210,8 @@ sumFileSizesInPath() {
 	fi
 }
 
-# sum the size of the file, given in first argument ($1), where raw data is 
-# written to, with the size of all compressed files inside the directory given 
-# in second argument ($2). if that sum is bigger than number given in third 
-# argument ($3), compress that file and move it to that directory.
+# sum the size $rawDataFile with the size of all compressed files inside the $compressedDataDir. if that 
+# sum is bigger than number given in first argument ($1), compress that file and move it to $compressedDataDir.
 zipFile() {
 	local capSize="$1"
 
@@ -235,16 +231,14 @@ zipFile() {
 	mv "${rawDataFile}.gz" "$compressedDataDir/$(date +%s).gz"
 }
 
-# given file paths in first argument ($1), starting from first to last, files 
-# are removed until all data remaining is below number given in second 
-# argument ($2). As files are named using a formatted date, pattern expansion 
-# of file names will always order oldest files first. This was done this way 
-# so we don't have to sort files by date ourselves. we let shell do the 
-# sorting.
+# files are removed from $compressedDataDir until all data remaining is below number given in first 
+# argument ($1) as bytes. As files are named using a formatted date, pattern expansion of file 
+# names will always order oldest files first. This was done this way so we don't have to sort files 
+# by date ourselves. we let shell do the sorting.
 removeOldFiles() {
 	local capSize="$1"
 
-	local dirSize=$(sumFileSizesInPath "$compressedDataDir")
+	local dirSize=$(sumFileSizesInPath "$compressedDataDir") # get the sum of sizes of all files in bytes.
 
 	# if $dirSize is more than given $capSize, remove oldest file. which is 
 	# the file that shell orders as first.
@@ -257,7 +251,7 @@ removeOldFiles() {
 
 # collect every data and stores in '$rawDataFile'. if the size of the file is 
 # too big, compress it and move it to a directory of compressed files. If 
-# directory of compressed files grows too big delete old compressed files.
+# directory of compressed files grows too big delete oldest compressed files.
 collectData() {
 	collect_QoE_Monitor_data
 
@@ -285,6 +279,7 @@ collectData() {
 checkServerState() {
 	local lastState="$1" serverAddress="$2"
 	if [ "$lastState" != "0" ]; then
+		echo pinging alarm server
 		curl -sl -I "https://$serverAddress:7890/ping" > /dev/null # check if server is alive.
 		lastState="$?" #return $(curl) exit code.
 	fi
@@ -295,40 +290,39 @@ checkServerState() {
 # sends file at given path ($1) to server at given address ($2) using $(curl) 
 # and returns $(curl) exit code.
 sendToServer() {
-	local filepath="$1" serverAddress="$2"
+	local filepath="$1" serverAddress="$2" oldData="$3"
 
 	local mac=$(get_mac); # defined in /usr/share/functions/device_functions.sh
 	mac=${mac//:/} # removing all colons in mac address.
 
 	curl -s -m 20 --connect-timeout 5 \
-	-XPOST "https://$serverAddress:7980/w/$mac" \
+	-XPOST "https://$serverAddress:7980/data" \
 	-H 'Content-Encoding: gzip' -H 'Content-Type: application/octet-stream' \
 	-H "X-ANLIX-ID: $mac" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
+	-H "Only-old: $oldData"
 	--data-binary @"$filepath"
 	return "$?"
 }
 
-# for each compressed file given in first argument ($1), send that file to a 
-# server at address given in second argument ($2). If any sending is 
-# unsuccessful, stops sending files and return it's exit code.
+# for each compressed file given in $compressedDataDir, send that file to a $alarmServerAddress. 
+# If any sending is unsuccessful, stops sending files and return it's exit code.
 sendCompressedData() {
-	# echo going to send compressed data
+	echo going to send compressed data
 	# echo "$compressedDataDir"/*
 	for i in "$compressedDataDir"/*; do # for each compressed file in the pattern expansion.
 		# if file exists, sends file and if $(curl) exit code isn't equal to 0, returns $(curl) exit code 
 		# without deleting the file we tried to send. if $(curl) exit code is equal to 0, removes file
-		[ -f "$i" ] && (sendToServer "$i" "$alarmServerAddress" || return "$?") && rm "$i"
+		[ -f "$i" ] && (sendToServer "$i" "$alarmServerAddress" "1" || return "$?") && rm "$i"
 	done
 }
 
-# compresses file given in first argument ($1), sends it to a server at 
-# address given in second argument ($3) and deletes it. If send was successful, 
-# remove original files, if not, keeps it. Returns the return of $(curl).
+# compresses $rawDataFile, sends it to $alarmServerAddress and deletes it. If send was 
+# successful, remove original files, if not, keeps it. Returns the return of $(curl).
 sendUncompressedData() {
 	# if no uncompressed file, nothing wrong, but there's nothing to do in this function.
 	[ -f "$rawDataFile" ] || return 0
 
-	# echo going to send uncompressed files
+	echo going to send uncompressed files
 	local compressedTempFile="${rawDataFile}.gz" # the name the compressed file will have.
 	# remove old file if it exists. it should never be left there.
 	[ -f "$compressedTempFile" ] && rm "$compressedTempFile"
@@ -336,7 +330,7 @@ sendUncompressedData() {
 	trap "rm $compressedTempFile" SIGTERM # in case the process is interrupted, delete compressed file.
 	gzip -k "$rawDataFile" # compressing to a temporary file but keeping original, uncompressed, intact.
 
-	sendToServer "$compressedTempFile" "$alarmServerAddress" # sends compressed file.
+	sendToServer "$compressedTempFile" "$alarmServerAddress" "0" # sends compressed file.
 	local sentResult="$?" # storing $(curl) exit code.
 
 	[ "$sentResult" -eq 0 ] && rm "$rawDataFile" # if send was successful, removes original file.
@@ -380,10 +374,9 @@ sendUncompressedData() {
 # 	echo $normalBackoff > "$backoffCounterPath"
 # }
 
-# gets server fqdn where data should be sent to and attempts to send data some 
-# times with 10 seconds of sleep time between tries.
+# Attempts to send data some times with 10 seconds of sleep time between tries.
 sendData() {
-	# echo going to send data
+	echo going to send data
 	local tries=4
 
 	while true; do
@@ -397,6 +390,7 @@ sendData() {
 
 		checkServerState "$lastServerState" && sendCompressedData && sendUncompressedData
 		local currentServerState="$?"
+		echo currentServerState=$currentServerState
 		# if server stops before sending some data, current server state will differ from last server state.
 		# $currentServerState get the exit code of the first of these 3 functions above that returns anything other than 0.
 
@@ -406,8 +400,8 @@ sendData() {
 
 		tries=$(($tries - 1))
 		[ "$tries" -eq 0 ] && break # leaves retry loop when $retries reaches zero.
-		# echo retrying in 10 seconds
-		sleep 10 # sleeps before retrying.
+		echo retrying in 10 seconds
+		sleep 10 # sleeps before retrying. this time must take the 60 second interval into consideration.
 	done
 }
 
@@ -421,7 +415,7 @@ sendData() {
 # interval, given in second argument ($2), would make it fall into, and sleep
 # for the amount of time left to that second.
 getStartTime() {
-	local startTimeFilePath="$1" interval=$2
+	local startTimeFilePath="$1" interval="$2"
 
 	local currentTime=$(date +%s)
 	local startTime
@@ -444,9 +438,8 @@ getStartTime() {
 	echo $startTime # print start time found, or current time.
 }
 
-# deletes files, marking process state, from previous process and deletes 
-# temporary files that could be hanging if process is terminated in a critical 
-# part.
+# deletes files, marking process state, from previous process and deletes temporary
+# files that could be hanging if process is terminated in a critical part.
 cleanFiles() {
 	rm "${dataCollectingDir}/serverState" 2> /dev/null
 	# rm "${dataCollectingDir}/backoffCounter" 2> /dev/null
@@ -456,11 +449,12 @@ cleanFiles() {
 # collects and sends data forever.
 loop() {
 	local interval=60 # interval between beginnings of data collecting.
-	mkdir -p "$dataCollectingDir" # making sure directory exists every time.
+	mkdir -p "$dataCollectingDir" # making sure directory exists.
 	local time=$(getStartTime "${dataCollectingDir}/startTime" $interval) # time when we will start executing.
 
 	while true; do # infinite loop where we execute all procedures over and over again until the end of times.
 		# echo startTime $time
+		mkdir -p "$dataCollectingDir" # making sure directory exists every time.
 
 		# getting FQDNs every time we need to send data, this way we don't have to 
 		# restart the service if a fqdn changes.
@@ -469,6 +463,9 @@ loop() {
 			-e "alarmServerAddress=@.data_collecting_alarm_fqdn" \
 			-e "pingServerAddress=@.data_collecting_ping_fqdn" \
 			-e "pingPackets=@.data_collecting_ping_packets")
+		echo json variables: \
+			hasLatency="$hasLatency", alarmServerAddress="$alarmServerAddress", \
+			pingServerAddress="$pingServerAddress", pingPackets="$pingPackets"
 
 		collectData # does everything related to collecting and storing data.
 		sendData # does everything related to sending data and deletes data sent.
@@ -480,7 +477,11 @@ loop() {
 			time=$(($time + $interval)) # advance time, when current data collecting has started, by one interval.
 			timeLeftForNextRun=$(($time - $endTime)) # calculate time left to collect data again.
 		done
+		echo timeLeftForNextRun=$timeLeftForNextRun
 		sleep $timeLeftForNextRun # sleep for the time remaining until next data collecting.
+
+		# writing next loop time to file that, at this line, matches current time.
+		echo $time > "${dataCollectingDir}/startTime"
 	done
 }
 
