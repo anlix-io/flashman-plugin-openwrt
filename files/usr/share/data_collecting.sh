@@ -118,7 +118,7 @@ compressedDataDir="${dataCollectingDir}/compressed" # directory where data will 
 # cross traffic. If latency collecting is enabled, extracts the individual icmp request numbers and 
 # their respective ping times. Builds a string with all this information and write them to file.
 collect_QoE_Monitor_data() {
-	echo collecting data and writing to file
+	# echo collecting data and writing to file
 
 	local timestamp=$(date +%s) # getting current unix time in seconds.
 	local pingResult=$(ping -i 0.01 -c "$pingPackets" "$pingServerAddress") # burst ping with $pingPackets amount of packets.
@@ -129,7 +129,7 @@ collect_QoE_Monitor_data() {
 	local max_bytes=4294967295 # max number possible with 32 bits. (2^32 - 1).
 	# if last bytes are not defined. get current want interface bytes and define them. then it returns.
 	if [ -z ${last_rxBytes+x} ] || [ -z ${last_txBytes+x} ]; then
-		echo last bytes are undefined
+		# echo last bytes are undefined
 		last_rxBytes="$rxBytes" # bytes received by the interface. will be used next time.
 		last_txBytes="$txBytes" # bytes sent by the interface. will be used next time.
 		return # don't write data this round. we need a full minute of bytes to calculate cross traffic.
@@ -279,7 +279,7 @@ collectData() {
 checkServerState() {
 	local lastState="$1" serverAddress="$2"
 	if [ "$lastState" != "0" ]; then
-		echo pinging alarm server
+		# echo pinging alarm server
 		curl -sl -I "https://$serverAddress:7890/ping" > /dev/null # check if server is alive.
 		lastState="$?" #return $(curl) exit code.
 	fi
@@ -307,7 +307,7 @@ sendToServer() {
 # for each compressed file given in $compressedDataDir, send that file to a $alarmServerAddress. 
 # If any sending is unsuccessful, stops sending files and return it's exit code.
 sendCompressedData() {
-	echo going to send compressed data
+	# echo going to send compressed data
 	# echo "$compressedDataDir"/*
 	for i in "$compressedDataDir"/*; do # for each compressed file in the pattern expansion.
 		# if file exists, sends file and if $(curl) exit code isn't equal to 0, returns $(curl) exit code 
@@ -322,7 +322,7 @@ sendUncompressedData() {
 	# if no uncompressed file, nothing wrong, but there's nothing to do in this function.
 	[ -f "$rawDataFile" ] || return 0
 
-	echo going to send uncompressed files
+	# echo going to send uncompressed files
 	local compressedTempFile="${rawDataFile}.gz" # the name the compressed file will have.
 	# remove old file if it exists. it should never be left there.
 	[ -f "$compressedTempFile" ] && rm "$compressedTempFile"
@@ -376,7 +376,7 @@ sendUncompressedData() {
 
 # Attempts to send data some times with 10 seconds of sleep time between tries.
 sendData() {
-	echo going to send data
+	# echo going to send data
 	local tries=4
 
 	while true; do
@@ -390,7 +390,7 @@ sendData() {
 
 		checkServerState "$lastServerState" && sendCompressedData && sendUncompressedData
 		local currentServerState="$?"
-		echo currentServerState=$currentServerState
+		# echo currentServerState=$currentServerState
 		# if server stops before sending some data, current server state will differ from last server state.
 		# $currentServerState get the exit code of the first of these 3 functions above that returns anything other than 0.
 
@@ -400,7 +400,7 @@ sendData() {
 
 		tries=$(($tries - 1))
 		[ "$tries" -eq 0 ] && break # leaves retry loop when $retries reaches zero.
-		echo retrying in 10 seconds
+		# echo retrying in 10 seconds
 		sleep 10 # sleeps before retrying. this time must take the 60 second interval into consideration.
 	done
 }
@@ -463,9 +463,9 @@ loop() {
 			-e "alarmServerAddress=@.data_collecting_alarm_fqdn" \
 			-e "pingServerAddress=@.data_collecting_ping_fqdn" \
 			-e "pingPackets=@.data_collecting_ping_packets")
-		echo json variables: \
-			hasLatency="$hasLatency", alarmServerAddress="$alarmServerAddress", \
-			pingServerAddress="$pingServerAddress", pingPackets="$pingPackets"
+		# echo json variables: \
+		# 	hasLatency="$hasLatency", alarmServerAddress="$alarmServerAddress", \
+		# 	pingServerAddress="$pingServerAddress", pingPackets="$pingPackets"
 
 		collectData # does everything related to collecting and storing data.
 		sendData # does everything related to sending data and deletes data sent.
@@ -477,7 +477,7 @@ loop() {
 			time=$(($time + $interval)) # advance time, when current data collecting has started, by one interval.
 			timeLeftForNextRun=$(($time - $endTime)) # calculate time left to collect data again.
 		done
-		echo timeLeftForNextRun=$timeLeftForNextRun
+		# echo timeLeftForNextRun=$timeLeftForNextRun
 		sleep $timeLeftForNextRun # sleep for the time remaining until next data collecting.
 
 		# writing next loop time to file that, at this line, matches current time.
