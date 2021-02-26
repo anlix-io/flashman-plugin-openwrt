@@ -215,6 +215,27 @@ get_number_vlan_ports() {
 	echo "$i"
 }
 
+set_bridge_mode_swconfig() {
+	local _disable_lan_ports="$1"
+
+	local _wan_port=$(custom_switch_ports 2)
+	local _lan_ports=$(custom_switch_ports 3)
+	local _cpu_port=$(custom_switch_ports 4)
+
+	if [ "$_disable_lan_ports" = "y" ]
+	then
+		# eth0
+		swconfig dev switch0 vlan 9 set ports ''
+		# eth1
+		swconfig dev switch0 vlan 8 set ports "$(echo "$_wan_port $_cpu_port")"
+		else
+		# eth0
+		swconfig dev switch0 vlan 9 set ports ''
+		# eth1
+		swconfig dev switch0 vlan 8 set ports "$(echo "$_lan_ports $_wan_port $_cpu_port")"
+	fi
+}
+
 get_wan_device() {
 	ubus call network.interface.wan status|jsonfilter -e "@.device"
 }

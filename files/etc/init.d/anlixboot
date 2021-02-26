@@ -1,11 +1,10 @@
 #!/bin/sh /etc/rc.common
 
 . /usr/share/libubox/jshn.sh
+. /usr/share/functions/device_functions.sh
 if [ -e /usr/share/functions/custom_device.sh ]
 then
 	. /usr/share/functions/custom_device.sh
-else
-	. /usr/share/functions/device_functions.sh
 fi
 
 START=17
@@ -25,6 +24,6 @@ boot() {
 		json_close_object
 
 		# ONLY RELEVANT TO TARGETS THAT SWITCH CONFIG BY UCI IS USELESS
-		[ "$_bridge_mode" = "y" ] && set_switch_bridge_mode_on_boot "$_disable_lan_ports"
+		[ "$_bridge_mode" = "y" ] && set_bridge_mode_swconfig "$_disable_lan_ports"
 	fi
 }
