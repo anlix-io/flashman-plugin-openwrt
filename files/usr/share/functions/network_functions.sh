@@ -771,7 +771,7 @@ enable_bridge_mode() {
 	# Some routers need to change port mapping on software switch
 	if [ "$(type -t set_switch_bridge_mode)" ]
 	then
-		set_switch_bridge_mode "y" "$_disable_lan_ports"
+		map_switch_ports_bridge_mode "y" "$_disable_lan_ports"
 	fi
 
 	# Disable dns, dhcp and dhcp6
@@ -905,7 +905,7 @@ update_bridge_mode() {
 		# Some routers need to change port mapping on software switch
 		if [ "$(type -t set_switch_bridge_mode)" ]
 		then
-			set_switch_bridge_mode "y" "$_disable_lan_ports"
+			map_switch_ports_bridge_mode "y" "$_disable_lan_ports"
 		fi
 	fi
 	json_dump > /root/flashbox_config.json
@@ -975,11 +975,11 @@ disable_bridge_mode() {
 		# Get ifname to remove from the bridge
 		uci set network.lan.ifname="$_lan_ifnames"
 	fi
-  # Some routers need to change back port mapping on software switch
-  if [ "$(type -t set_switch_bridge_mode)" ]
-  then
-    set_switch_bridge_mode "n" "$_disable_lan_ports"
-  fi
+	# Some routers need to change back port mapping on software switch
+	if [ "$(type -t set_switch_bridge_mode)" ]
+	then
+		map_switch_ports_bridge_mode "n" "$_disable_lan_ports"
+	fi
 	uci set network.lan.proto="static"
 	uci set network.lan.ipaddr="$_lan_ip"
 	# Set wan and lan back to proper values
