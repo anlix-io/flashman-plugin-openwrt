@@ -207,35 +207,6 @@ get_vlan_ports() {
 	echo "$(for i in $_port; do [ "${i:1}" != "t" ] && echo $i; done)"
 }
 
-get_number_vlan_ports() {
-	local _switch="$(get_vlan_device $1)"
-	local _ports=$(swconfig dev $_switch vlan $1 get ports)
-	local i=0
-	for port in $_ports; do [ "${port:1}" != "t" ] && i=$(( i + 1 )); done
-	echo "$i"
-}
-
-set_bridge_mode_swconfig() {
-	local _disable_lan_ports="$1"
-
-	local _wan_port=$(custom_switch_ports 2)
-	local _lan_ports=$(custom_switch_ports 3)
-	local _cpu_port=$(custom_switch_ports 4)
-
-	if [ "$_disable_lan_ports" = "y" ]
-	then
-		# eth0
-		swconfig dev switch0 vlan 9 set ports ''
-		# eth1
-		swconfig dev switch0 vlan 8 set ports "$(echo "$_wan_port $_cpu_port")"
-		else
-		# eth0
-		swconfig dev switch0 vlan 9 set ports ''
-		# eth1
-		swconfig dev switch0 vlan 8 set ports "$(echo "$_lan_ports $_wan_port $_cpu_port")"
-	fi
-}
-
 get_wan_device() {
 	ubus call network.interface.wan status|jsonfilter -e "@.device"
 }
@@ -257,61 +228,6 @@ is_device_vlan() {
 get_device_vlan() {
 	local _iface=$1
 	echo "${_iface:5:1}"
-}
-
-map_switch_ports_bridge_mode() {
-	local _enable_bridge="$1"
-	local _disable_lan_ports="$2"
-
-	json_init
-	json_load_file /etc/board.json
-	json_select switch
-	json_select $(get_switch_device)
-	json_select roles
-	local _idx=1
-	local _lan_ports=''
-	local _wan_port=''
-	local _role=''
-	while json_is_a ${_idx} object; do
-		json_select ${_idx}
-		json_get_var _role role
-		[ $_role = 'lan' ] && json_get_var _lan_ports ports
-		[ $_role = 'wan' ] && json_get_var _wan_port ports
-		json_select ..
-		_idx=$(( _idx + 1 ))
-	done
-	local _cpu_port=''
-	local _lan_ports_no_cpu=''
-	local _wan_port_no_cpu=''
-	local _counter=1
-	for port in $_wan_port; do
-		[ "${port:1}" = "t" ] && _cpu_port=$port
-		[ "${port:1}" != "t" ] && _wan_port_no_cpu=$port
-	done
-	for port in $_lan_ports; do
-		if [ $_counter = 1 ]; then
-			[ "${port:1}" != "t" ] &&  _lan_ports_no_cpu="$port"
-		else
-			[ "${port:1}" != "t" ] && _lan_ports_no_cpu="$_lan_ports_no_cpu $port"
-		fi
-		_counter=$(( _counter + 1 ))
-	done
-	json_select ..
-	json_select ..
-	json_select ..
-	json_close_object
-
-	if [ "$_enable_bridge" = "y" ]; then
-		if [ "$_disable_lan_ports" = "y" ]; then
-			uci set network.@switch_vlan[0].ports="$(echo "$_wan_port_no_cpu $_cpu_port")"
-		else
-			uci set network.@switch_vlan[0].ports="$(echo "$_wan_port_no_cpu $_lan_ports_no_cpu $_cpu_port")"
-		fi
-		uci set network.@switch_vlan[1].ports=''
-	else
-		uci set network.@switch_vlan[0].ports="$(echo "$_lan_ports_no_cpu $_cpu_port")"
-		uci set network.@switch_vlan[1].ports="$(echo "$_wan_port_no_cpu $_cpu_port")"
-	fi
 }
 
 get_wan_negotiated_speed() {
@@ -402,6 +318,6 @@ get_wifi_device_signature() {
 	echo "$_q"
 }
 
-needs_reboot_bridge_mode() {
+needs_reboot_change_vlan() {
 	reboot
 }

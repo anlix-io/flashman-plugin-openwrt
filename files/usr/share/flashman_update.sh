@@ -174,7 +174,8 @@ hardreset=$_hard_reset_info&\
 upgfirm=$_has_upgraded_version&\
 sysuptime=$(sys_uptime)&\
 wanuptime=$(wan_uptime)&\
-wpsstate=$_local_wps_state"
+wpsstate=$_local_wps_state&\
+vlan=$(get_vlan)"
 	if [ "$_local_bridge_did_reset" = "y" ] || [ "$_local_did_change_wan" = "y" ]
 	then
 		_data="$_data&\
@@ -237,6 +238,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		json_get_var _bridge_mode_ip bridge_mode_ip
 		json_get_var _bridge_mode_gateway bridge_mode_gateway
 		json_get_var _bridge_mode_dns bridge_mode_dns
+		json_get_var _did_change_vlan did_change_vlan
 		json_get_var _mesh_mode mesh_mode
 		json_get_var _mesh_master mesh_master
 		json_get_var _mesh_id mesh_id
@@ -283,6 +285,19 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 			exit 1
 		fi
 
+		if [ "$_did_change_vlan" = "y" ]
+		then
+			_vlan=${_res#*\"vlan\": }
+			_vlan=${_vlan%%\}*}
+			_vlan="$_vlan}"
+			_config="$(cat /root/flashbox_config.json)"
+			_before=${_config%\"vlan\"*}
+			_before="$_before\"vlan\": "
+			_after=${_config#*\"vlan\": }
+			_after=${_after#*\}}
+			_new_config="$_before$_vlan$_after"
+			echo "$_new_config" > /root/flashbox_config.json
+		fi
 		# Reset the reset flags when we receive syn reply
 		if [ "$_local_bridge_did_reset" = "y" ]
 		then
@@ -444,22 +459,28 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 			echo "$COMMANDHASH" >> /root/done_hashes
 		fi
 
+		local _update_vlan=0
+		[ "$_did_change_vlan" = "y" ] && _update_vlan=1
 		# Update bridge mode information
 		if [ "$_bridge_mode_enabled" = "y" ] && [ "$_local_bridge_enabled" != "y" ]
 		then
 			log "FLASHMAN UPDATER" "Enabling bridge mode..."
 			enable_bridge_mode "y" "n" "$_bridge_mode_switch_disable" "$_bridge_mode_ip" \
 												 "$_bridge_mode_gateway" "$_bridge_mode_dns"
+			_update_vlan=0
 		elif [ "$_bridge_mode_enabled" = "y" ] && [ "$_local_bridge_enabled" = "y" ]
 		then
 			log "FLASHMAN UPDATER" "Updating bridge mode parameters..."
 			update_bridge_mode "n" "$_bridge_mode_switch_disable" "$_bridge_mode_ip" \
 												"$_bridge_mode_gateway" "$_bridge_mode_dns"
+			_update_vlan=0
 		elif [ "$_bridge_mode_enabled" = "n" ] && [ "$_local_bridge_enabled" = "y" ]
 		then
 			log "FLASHMAN UPDATER" "Disabling bridge mode..."
 			disable_bridge_mode
 		fi
+		[ $_update_vlan ] && [ "$(type -t set_vlan_on_boot)" == "" ] && update_vlan
+		
 	fi
 else
 	log "FLASHMAN UPDATER" "Fail Authenticating device!"
