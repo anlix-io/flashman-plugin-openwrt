@@ -805,6 +805,12 @@ update_vlan() {
 
 	json_select ..
 	json_close_object
+
+	if [ "$(type -t set_vlan_on_boot)" ]; then
+		swconfig dev switch0 set apply
+	else
+		uci commit network
+	fi
 }
 
 enable_bridge_mode() {
