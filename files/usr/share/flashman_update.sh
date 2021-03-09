@@ -459,7 +459,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 			echo "$COMMANDHASH" >> /root/done_hashes
 		fi
 
-		local _update_vlan=0
+		_update_vlan=0
 		[ "$_did_change_vlan" = "y" ] && _update_vlan=1
 		# Update bridge mode information
 		if [ "$_bridge_mode_enabled" = "y" ] && [ "$_local_bridge_enabled" != "y" ]
