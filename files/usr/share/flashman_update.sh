@@ -292,9 +292,15 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 			_vlan="$_vlan}"
 			_config="$(cat /root/flashbox_config.json)"
 			_before=${_config%\"vlan\"*}
-			_before="$_before\"vlan\": "
-			_after=${_config#*\"vlan\": }
-			_after=${_after#*\}}
+			if [ $(( ${#_before} < ${#_vlans} )) = 1 ]; then
+				_before="$_before\"vlan\": "
+				_after=${_config#*\"vlan\": }
+				_after=${_after#*\}}
+			else
+				_before=${_config% \}}
+				_before="$_before, \"vlan\": "
+				_after=" }"
+			fi
 			_new_config="$_before$_vlan$_after"
 			echo "$_new_config" > /root/flashbox_config.json
 		fi
