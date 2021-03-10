@@ -127,7 +127,7 @@ collect_QoE_Monitor_data() {
 	local rxBytes=$(cat /sys/class/net/$wanName/statistics/rx_bytes) # bytes received by the interface.
 	local txBytes=$(cat /sys/class/net/$wanName/statistics/tx_bytes) # bytes sent by the interface.
 	local max_bytes=4294967295 # max number possible with 32 bits. (2^32 - 1).
-	# if last bytes are not defined. get current want interface bytes and define them. then it returns.
+	# if last bytes are not defined. get current wan interface bytes and define them. then it returns.
 	if [ -z ${last_rxBytes+x} ] || [ -z ${last_txBytes+x} ]; then
 		# echo last bytes are undefined
 		last_rxBytes="$rxBytes" # bytes received by the interface. will be used next time.
@@ -142,10 +142,14 @@ collect_QoE_Monitor_data() {
 	last_txBytes=$txBytes # saves current interface bytes value as last value.
 
 	pingResult=${pingResult##* ---} # the summary that appears in the last lines.
-	local loss=${pingResult%\% packet loss*} # removes everything after, and including, '% packet loss'.
-	loss=${loss##* } # removes everything after first space.
+	local transmitted=${pingResult% packets transmitted*} # removes everything after, and including, ' packets transmitted'.
+	local received=${pingResult% received*} # removes everything after, and including, ' received'.
+	received=${received##* } # removes everything before first space.
+	local loss=$(($transmitted - $received)) # integer representing the amount of packets not received.
+	# local loss=${pingResult%\% packet loss*} # removes everything after, and including, '% packet loss'.
+	# loss=${loss##* } # removes everything before first space.
 
-	local string="$timestamp $loss $rx $tx" # data to be sent.
+	local string="$timestamp $loss $transmitted $rx $tx" # data to be sent.
 
 	if [ "$hasLatency" = "1" ]; then # if latency collecting is enabled.
 		# echo collecting latencies
