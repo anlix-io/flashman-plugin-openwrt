@@ -287,12 +287,12 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 
 		if [ "$_did_change_vlan" = "y" ]
 		then
-			_vlan=${_res#*\"vlan\": }
+			_vlan=${_res#*\"vlan\":}
 			_vlan=${_vlan%%\}*}
 			_vlan="$_vlan}"
 			_config="$(cat /root/flashbox_config.json)"
 			_before=${_config%\"vlan\"*}
-			if [ $(( ${#_before} < ${#_vlans} )) = 1 ]; then
+			if [ $(( ${#_before} < ${#_config} )) = 1 ]; then
 				_before="$_before\"vlan\": "
 				_after=${_config#*\"vlan\": }
 				_after=${_after#*\}}

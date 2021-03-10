@@ -743,6 +743,8 @@ update_vlan() {
 	json_get_keys _vlans vlan
 	json_select vlan
 
+	local _input=""
+
 	if [ "$(type -t set_vlan_on_boot)" ]; then
 		_input="$(swconfig dev switch0 show | grep info:)"
 	else
@@ -751,19 +753,19 @@ update_vlan() {
 
 	IFS=$'\n'
 
-	_vids=''
+	local _vids=''
 
-	_idx=0
+	local _idx=0
 
 	for _vlan in $_input; do
 		if [ "$(type -t set_vlan_on_boot)" ]; then
-			_vid=${_vlan#*VLAN }
+			local _vid=${_vlan#*VLAN }
 			_vid=${_vid%: Ports*}
 		else
 			_vid=${_vlan#*\'}
 			_vid=${_vid%\'}
 		fi
-		_test=${_vlans#*$_vid}
+		local _test=${_vlans#*$_vid}
 		if [ $(( ${#_test} < ${#_vlans} )) = 1 ]; then
 			json_get_var _ports $_vid
 			if [ "$(type -t set_vlan_on_boot)" ]; then
@@ -776,6 +778,7 @@ update_vlan() {
 				swconfig dev switch0 vlan $_vid set ports ""
 			else
 				uci delete network.@switch_vlan[$_idx]
+				_idx=$(( _idx - 1 ))
 			fi
 		fi
 		if [ "$_vids" = '' ]; then
@@ -796,9 +799,9 @@ update_vlan() {
 				swconfig dev switch0 vlan $_vlan set ports "$_ports"
 			else
 				uci add network switch_vlan
-				uci set network.@switch_vlan[-1].device='switch0'
-				uci set network.@switch_vlan[-1].vlan='$_vlan'
-				uci set network.@switch_vlan[-1].ports='$_ports'
+				uci set network.@switch_vlan[-1].device="switch0"
+				uci set network.@switch_vlan[-1].vlan="$_vlan"
+				uci set network.@switch_vlan[-1].ports="$_ports"
 			fi
 		fi
 	done
