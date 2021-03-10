@@ -689,54 +689,6 @@ get_bridge_mode_status() {
 	echo "$_status"
 }
 
-get_vlan() {
-	json_init
-
-	if [ "$(type -t set_vlan_on_boot)" ]; then
-		_input="$(swconfig dev switch0 show | grep info:)"
-
-		IFS=$'\n'
-
-		for _vlan in $_input; do
-			_vid=${_vlan#*VLAN }
-			_vid=${_vid%: Ports*}
-			_ports=${_vlan#*Ports: \'}
-			_ports=${_ports%\', members*}
-			_ports_parsed=''
-			while [ -n "$_ports" ]; do
-				_rest="${_ports#?}"
-				_first="${_ports%"$_rest"}"
-				if [ "$_ports_parsed" = '' ]; then
-					_ports_parsed="$_first"
-				elif [ "$_first" = 't' ]; then
-					_ports_parsed="$_ports_parsed$_first"
-				else
-					_ports_parsed="$_ports_parsed $_first"
-				fi
-				_ports="$_rest"
-			done
-			json_add_string "$_vid" "$_ports_parsed"
-		done
-
-		IFS=$' '
-	else
-		_idix=0
-		while [ 1 ]; do
-			_vlan="$(uci get network.@switch_vlan[$_idx].vlan)"
-			if [ ${#_vlan} -eq 0 ]; then
-				break
-			fi
-			_ports="$(uci get network.@switch_vlan[$_idx].ports)"
-			json_add_string "$_vlan" "$_ports"
-			_idx=$(( _idx + 1 ))
-		done
-	fi
-
-	json_close_object
-	msg=`json_dump`
-	echo $msg
-}
-
 update_vlan() {
 	json_cleanup
 	json_load_file /root/flashbox_config.json
