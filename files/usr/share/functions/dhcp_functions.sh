@@ -323,11 +323,10 @@ get_online_mesh_routers() {
 
 send_online_devices() {
 	local _res
-	local _mesh_mode=$(cat /root/flashbox_config.json | jsonfilter -e '@.mesh_mode')
 
 	json_init
 	get_online_devices
-	[ "$_mesh_mode" -gt 1 ] && get_online_mesh_routers
+	[ "$(get_mesh_mode)" -gt 1 ] && get_online_mesh_routers
 
 	_res=$(json_dump | curl -s --tlsv1.2 --connect-timeout 5 \
 				--retry 1 -H "Content-Type: application/json" \
