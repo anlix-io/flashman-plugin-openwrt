@@ -301,7 +301,7 @@ sendToServer() {
 
 	curl -s -m 20 --connect-timeout 5 \
 	-XPOST "https://$serverAddress:7980/data" \
-	-H 'Content-Encoding: gzip' -H 'Content-Type: application/octet-stream' \
+	-H 'Content-Encoding: gzip' -H 'Content-Type: text/plain' \
 	-H "X-ANLIX-ID: $mac" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
 	-H "Only-old: $oldData"
 	--data-binary @"$filepath"
