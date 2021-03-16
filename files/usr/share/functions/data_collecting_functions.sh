@@ -40,15 +40,14 @@ set_data_collecting_parameters() {
 
 	json_cleanup
 	json_load_file /root/flashbox_config.json
-	json_get_var saved_data_collecting_is_active data_collecting_is_active
-	json_get_var saved_data_collecting_has_latency data_collecting_has_latency
-	json_get_var saved_data_collecting_alarm_fqdn data_collecting_alarm_fqdn
-	json_get_var saved_data_collecting_ping_fqdn data_collecting_ping_fqdn
-	json_get_var saved_data_collecting_ping_packets data_collecting_ping_packets
+	json_get_var saved_data_collecting_is_active data_collecting_is_active 0
+	json_get_var saved_data_collecting_has_latency data_collecting_has_latency 0
+	json_get_var saved_data_collecting_alarm_fqdn data_collecting_alarm_fqdn "$FLM_SVADDR"
+	json_get_var saved_data_collecting_ping_fqdn data_collecting_ping_fqdn "$FLM_SVADDR"
+	json_get_var saved_data_collecting_ping_packets data_collecting_ping_packets 100
 
 	local anyChange=false
 
-	[ "$data_collecting_is_active" = "" ] && data_collecting_is_active=0 # default value.
 	# Updating value if $data_collecting_is_active has changed.
 	if [ "$saved_data_collecting_is_active" != "$data_collecting_is_active" ]; then
 		anyChange=true
@@ -56,7 +55,6 @@ set_data_collecting_parameters() {
 		log "DATA COLLECTING" "Updated 'data_collecting_is_active' parameter to $data_collecting_is_active"
 	fi
 
-	[ "$data_collecting_has_latency" = "" ] && data_collecting_has_latency=0 # default value.
 	# Updating value if $data_collecting_has_latency has changed.
 	if [ "$saved_data_collecting_has_latency" != "$data_collecting_has_latency" ]; then
 		anyChange=true
@@ -64,7 +62,6 @@ set_data_collecting_parameters() {
 		log "DATA COLLECTING" "Updated 'data_collecting_has_latency' parameter to $data_collecting_has_latency"
 	fi
 
-	[ "$data_collecting_alarm_fqdn" = "" ] && data_collecting_alarm_fqdn="$FLM_SVADDR" # default value.
 	# Updating value if $data_collecting_alarm_fqdn has changed.
 	if [ "$saved_data_collecting_alarm_fqdn" != "$data_collecting_alarm_fqdn" ]; then
 		anyChange=true
@@ -72,7 +69,6 @@ set_data_collecting_parameters() {
 		log "DATA COLLECTING" "Updated 'data_collecting_alarm_fqdn' parameter to $data_collecting_alarm_fqdn"
 	fi
 
-	[ "$data_collecting_ping_fqdn" = "" ] && data_collecting_ping_fqdn="$FLM_SVADDR" # default value.
 	# Updating value if $data_collecting_ping_fqdn has changed.
 	if [ "$saved_data_collecting_ping_fqdn" != "$data_collecting_ping_fqdn" ]; then
 		anyChange=true
@@ -80,7 +76,6 @@ set_data_collecting_parameters() {
 		log "DATA COLLECTING" "Updated 'data_collecting_ping_fqdn' parameter to $data_collecting_ping_fqdn"
 	fi
 
-	[ "$data_collecting_ping_packets" = "" ] && data_collecting_ping_packets=100 # default value.
 	# Updating value if $data_collecting_alarm_fqdn has changed.
 	if [ "$saved_data_collecting_ping_packets" != "$data_collecting_ping_packets" ]; then
 		anyChange=true
