@@ -229,6 +229,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		json_get_var _forward_index forward_index
 		json_get_var _blocked_devices_index blocked_devices_index
 		json_get_var _upnp_devices_index upnp_devices_index
+		json_get_var _vlan_index vlan_index
 		json_get_var _zabbix_psk zabbix_psk
 		json_get_var _zabbix_fqdn zabbix_fqdn
 		json_get_var _zabbix_active zabbix_active
@@ -237,7 +238,6 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		json_get_var _bridge_mode_ip bridge_mode_ip
 		json_get_var _bridge_mode_gateway bridge_mode_gateway
 		json_get_var _bridge_mode_dns bridge_mode_dns
-		json_get_var _did_change_vlan did_change_vlan
 		json_get_var _mesh_mode mesh_mode
 		json_get_var _mesh_master mesh_master
 		json_get_var _mesh_id mesh_id
@@ -284,7 +284,8 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 			exit 1
 		fi
 
-		if [ "$_did_change_vlan" = "y" ]
+		_local_vlan_index=$(get_indexes "vlan_index")
+		if [ "$_local_vlan_index" != "$_vlan_index" ]
 		then
 			_vlan=${_res#*\"vlan\":}
 			_vlan=${_vlan%%\}*}
@@ -432,7 +433,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		# Ignore changes if in bridge mode
 		if [ "$_local_bridge_enabled" != "y" ]
 		then
-			_local_dindex=$(get_forward_indexes "blocked_devices_index")
+			_local_dindex=$(get_indexes "blocked_devices_index")
 			if [ "$_local_dindex" != "$_blocked_devices_index" ]
 			then
 				update_blocked_devices "$_blocked_devices" "$_blocked_macs" \
@@ -450,11 +451,11 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		# Ignore changes if in bridge mode
 		if [ "$_local_bridge_enabled" != "y" ]
 		then
-			_local_findex=$(get_forward_indexes "forward_index")
+			_local_findex=$(get_indexes "forward_index")
 			[ "$_local_findex" != "$_forward_index" ] && update_port_forward
 
 			# Check for updates in upnp allowed devices mapping
-			_local_uindex=$(get_forward_indexes "upnp_devices_index")
+			_local_uindex=$(get_indexes "upnp_devices_index")
 			[ "$_local_uindex" != "$_upnp_devices_index" ] && update_upnp_devices
 		fi
 
@@ -465,7 +466,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		fi
 
 		_update_vlan=0
-		[ "$_did_change_vlan" = "y" ] && _update_vlan=1
+		[ "$_local_vlan_index" != "$_vlan_index" ] && _update_vlan=1 && json_update_index "$_vlan_index" "vlan_index"
 		# Update bridge mode information
 		if [ "$_bridge_mode_enabled" = "y" ] && [ "$_local_bridge_enabled" != "y" ]
 		then
@@ -483,6 +484,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		then
 			log "FLASHMAN UPDATER" "Disabling bridge mode..."
 			disable_bridge_mode
+			_update_vlan=0
 		fi
 		[ $_update_vlan ] && [ "$(type -t set_vlan_on_boot)" == "" ] && update_vlan
 		

@@ -5,31 +5,6 @@
 . /usr/share/functions/network_functions.sh
 . /usr/share/libubox/jshn.sh
 
-json_update_index() {
-	_index=$1
-	_json_var=$2
-
-	json_init
-	[ -f /etc/anlix_indexes ] && json_load_file /etc/anlix_indexes
-	json_add_string "$_json_var" "$_index"
-	json_close_object
-	json_dump > /etc/anlix_indexes
-}
-
-get_forward_indexes() {
-	local _index=$1
-	local _idx_val=""
-
-	if [ -f /etc/anlix_indexes ]
-	then
-		json_cleanup
-		json_load_file /etc/anlix_indexes
-		json_get_var _idx_val "$_index"
-		json_close_object
-	fi
-	echo "$_idx_val"
-}
-
 update_port_forward() {
 	log "PORT FORWARD" "Requesting Flashman ..."
 	local _data="id=$(get_mac)"
