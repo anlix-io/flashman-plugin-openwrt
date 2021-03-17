@@ -34,17 +34,19 @@ data_collecting_is_running() {
 # saves data collecting parameters if they have changed, saved files only if at least one parameter has changed
 # and starts the data collecting service if not already running or stops it if it's running.
 set_data_collecting_parameters() {
-	local data_collecting_is_active="$1" data_collecting_has_latency="$2"
-	local data_collecting_alarm_fqdn="$3" data_collecting_ping_fqdn="$4" 
-	local data_collecting_ping_packets="$5"
+	local data_collecting_is_active="${1:-0}"
+	local data_collecting_has_latency="${2:-0}"
+	local data_collecting_alarm_fqdn="${3:-$FLM_SVADDR}"
+	local data_collecting_ping_fqdn="${4:-$FLM_SVADDR}"
+	local data_collecting_ping_packets="${5:-100}"
 
 	json_cleanup
 	json_load_file /root/flashbox_config.json
-	json_get_var saved_data_collecting_is_active data_collecting_is_active 0
-	json_get_var saved_data_collecting_has_latency data_collecting_has_latency 0
-	json_get_var saved_data_collecting_alarm_fqdn data_collecting_alarm_fqdn "$FLM_SVADDR"
-	json_get_var saved_data_collecting_ping_fqdn data_collecting_ping_fqdn "$FLM_SVADDR"
-	json_get_var saved_data_collecting_ping_packets data_collecting_ping_packets 100
+	json_get_var saved_data_collecting_is_active data_collecting_is_active
+	json_get_var saved_data_collecting_has_latency data_collecting_has_latency
+	json_get_var saved_data_collecting_alarm_fqdn data_collecting_alarm_fqdn
+	json_get_var saved_data_collecting_ping_fqdn data_collecting_ping_fqdn
+	json_get_var saved_data_collecting_ping_packets data_collecting_ping_packets
 
 	local anyChange=false
 
