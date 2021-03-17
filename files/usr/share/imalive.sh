@@ -6,7 +6,6 @@
 . /usr/share/functions/device_functions.sh
 . /usr/share/functions/network_functions.sh
 . /usr/share/functions/wireless_functions.sh
-. /usr/share/functions/zabbix_functions.sh
 
 redo_connections() {
 	[ "$(get_mesh_mode)" -gt "1" ] && [ "$(is_mesh_slave)" = "1" ] && [ ! "$(is_mesh_connected)" ] && auto_change_mesh_slave_channel
@@ -36,11 +35,6 @@ do
 			fi
 		else
 			_num_ntptests=0
-			if [ "$ZBX_SUPPORT" == "y" ]
-			then
-				log "IMALIVE" "Checking zabbix..."
-				check_zabbix_startup "false"
-			fi
 			log "IMALIVE" "Running update..."
 			sh /usr/share/flashman_update.sh
 			if [ $? == 1 ]
@@ -94,11 +88,6 @@ do
 		do
 			if [ "$(check_connectivity_flashman)" -eq 0 ]
 			then
-				if [ "$ZBX_SUPPORT" == "y" ]
-				then
-					log "IMALIVE" "Checking zabbix..."
-					check_zabbix_startup "true"
-				fi
 				log "IMALIVE" "Running update..."
 				sh /usr/share/flashman_update.sh
 				if [ $? == 1 ]

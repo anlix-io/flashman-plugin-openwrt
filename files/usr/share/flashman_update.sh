@@ -10,7 +10,7 @@
 . /usr/share/functions/network_functions.sh
 . /usr/share/functions/firewall_functions.sh
 . /usr/share/functions/api_functions.sh
-. /usr/share/functions/zabbix_functions.sh
+. /usr/share/functions/data_collecting_functions.sh
 
 lock /tmp/lock_updater
 
@@ -229,9 +229,11 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		json_get_var _forward_index forward_index
 		json_get_var _blocked_devices_index blocked_devices_index
 		json_get_var _upnp_devices_index upnp_devices_index
-		json_get_var _zabbix_psk zabbix_psk
-		json_get_var _zabbix_fqdn zabbix_fqdn
-		json_get_var _zabbix_active zabbix_active
+		json_get_var _data_collecting_is_active data_collecting_is_active
+		json_get_var _data_collecting_has_latency data_collecting_has_latency
+		json_get_var _data_collecting_alarm_fqdn data_collecting_alarm_fqdn
+		json_get_var _data_collecting_ping_fqdn data_collecting_ping_fqdn
+		json_get_var _data_collecting_ping_packets data_collecting_ping_packets
 		json_get_var _bridge_mode_enabled bridge_mode_enabled
 		json_get_var _bridge_mode_switch_disable bridge_mode_switch_disable
 		json_get_var _bridge_mode_ip bridge_mode_ip
@@ -420,11 +422,10 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 			fi
 		fi
 
-		# Update zabbix parameters as necessary
-		if [ "$ZBX_SUPPORT" == "y" ]
-		then
-			set_zabbix_params "$_zabbix_psk" "$_zabbix_fqdn" "$_zabbix_active"
-		fi
+		# updates data collecting parameters.
+		set_data_collecting_parameters "$_data_collecting_is_active" "$_data_collecting_has_latency" \
+			                           "$_data_collecting_alarm_fqdn" "$_data_collecting_ping_fqdn" \
+			                           "$_data_collecting_ping_packets"
 
 		# Check for updates in port forward mapping
 		# Ignore changes if in bridge mode
