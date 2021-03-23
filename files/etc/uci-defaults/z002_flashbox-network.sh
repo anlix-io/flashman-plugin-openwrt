@@ -131,6 +131,8 @@ if [ "$_bridge_mode" = "y" ]
 then
 	enable_bridge_mode "n" "n" "$_bridge_disable_switch" "$_bridge_fix_ip" \
 			"$_bridge_fix_gateway" "$_bridge_fix_dns"
+else
+	[ "$(type -t set_vlan_on_boot)" == "" ] && update_vlan
 fi
 
 exit 0
