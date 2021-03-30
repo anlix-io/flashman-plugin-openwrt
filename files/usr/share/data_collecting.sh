@@ -1,6 +1,7 @@
 #!/bin/sh
 . /usr/share/functions/device_functions.sh
 . /usr/share/flashman_init.conf
+. /usr/share/functions/common_functions.sh
 
 dataCollectingDir="/tmp/data_collecting" # directory where all data related to data collecting will be stored.
 rawDataFile="${dataCollectingDir}/raw" # file collected data will be stored before being compressed.
@@ -304,7 +305,8 @@ sendToServer() {
 	-H 'Content-Type: text/plain' -H "X-ANLIX-ID: $mac" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
 	-H "Only-old: $oldData" --data-binary @"$filepath")
 	curlCode="$?"
-	[ "$curlCode" -ne 0 ] && return "$curlCode"
+	[ "$curlCode" -ne 0 ] && log "DATA_COLLECTING" "Data sent with curl exit code $curlCode" && return "$curlCode"
+	log "DATA_COLLECTING" "Data sent with response status code $status"
 	[ "$status" -ge 200 ] && [ "$status" -lt 300 ] && return 0
 	return 1
 }
