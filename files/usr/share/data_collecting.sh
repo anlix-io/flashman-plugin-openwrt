@@ -141,7 +141,7 @@ collect_QoE_Monitor_data() {
 	last_rxBytes=$rxBytes # saves current interface bytes value as last value.
 	last_txBytes=$txBytes # saves current interface bytes value as last value.
 
-	pingResult=${pingResult##* ---} # the summary that appears in the last lines.
+	pingResult=${pingResult##* ---[$'\r\n']} # removes everything behind the summary that appears in the last lines.
 	local transmitted=${pingResult% packets transmitted*} # removes everything after, and including, ' packets transmitted'.
 	local received=${pingResult% received*} # removes everything after, and including, ' received'.
 	received=${received##* } # removes everything before first space.
