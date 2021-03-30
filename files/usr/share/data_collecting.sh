@@ -151,7 +151,7 @@ collect_QoE_Monitor_data() {
 
 	local string="$timestamp $loss $transmitted $rx $tx" # data to be sent.
 
-	if [ "$hasLatency" = "1" ]; then # if latency collecting is enabled.
+	if [ "$hasLatency" -eq 1 ]; then # if latency collecting is enabled.
 		# echo collecting latencies
 		# removing the first line and the last 4 lines. only the ping lines remain.
 		local latencies=$(printf "%s" "$pingResult" | head -n -4 | sed '1d' | (
@@ -282,7 +282,7 @@ collectData() {
 # number is zero, return that number.
 checkServerState() {
 	local lastState="$1"
-	if [ "$lastState" != "0" ]; then
+	if [ "$lastState" -ne "0" ]; then
 		# echo pinging alarm server to check if it's alive.
 		curl -s -m 10 "https://$alarmServerAddress:7890/ping" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" > /dev/null
 		lastState="$?" #return $(curl) exit code.
@@ -299,13 +299,14 @@ sendToServer() {
 	local mac=$(get_mac); # defined in /usr/share/functions/device_functions.sh
 	mac=${mac//:/} # removing all colons in mac address.
 
-	curl -s -m 20 --connect-timeout 5 \
-	-XPOST "https://$alarmServerAddress:7890/data" \
-	-H 'Content-Encoding: gzip' -H 'Content-Type: text/plain' \
-	-H "X-ANLIX-ID: $mac" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
-	-H "Only-old: $oldData" \
-	--data-binary @"$filepath"
-	return "$?"
+	status=$(curl --write-out '%{http_code}' -s -m 20 --connect-timeout 5 --output /dev/null \
+	-XPOST "https://$alarmServerAddress:7890/data" -H 'Content-Encoding: gzip' \
+	-H 'Content-Type: text/plain' -H "X-ANLIX-ID: $mac" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
+	-H "Only-old: $oldData" --data-binary @"$filepath")
+	curlCode="$?"
+	[ "$curlCode" -ne 0 ] && return "$curlCode"
+	[ "$status" -ge 200 ] && [ "$status" -lt 300 ] && return 0
+	return 1
 }
 
 # for each compressed file given in $compressedDataDir, send that file to a $alarmServerAddress. 
@@ -401,7 +402,7 @@ sendData() {
 		# $currentServerState get the exit code of the first of these 3 functions above that returns anything other than 0.
 
 		# writes the $(curl) exit code if it has changed since last attempt to send data.
-		[ "$currentServerState" != "$lastServerState" ] && echo "$currentServerState" > "$lastServerStateFilePath"
+		[ "$currentServerState" -ne "$lastServerState" ] && echo "$currentServerState" > "$lastServerStateFilePath"
 		[ "$currentServerState" -eq 0 ] && break # if data was sent successfully, we stop retrying.
 
 		tries=$(($tries - 1))
