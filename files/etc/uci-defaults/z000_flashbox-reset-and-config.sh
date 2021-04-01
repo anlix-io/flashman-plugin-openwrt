@@ -72,7 +72,6 @@ then
 	json_add_string "pppoe_user" "$_tmp_pppoe_user"
 	json_add_string "pppoe_pass" "$_tmp_pppoe_pass"
 	json_add_string "flashapp_pass" "$_tmp_flashapp_pass"
-	json_add_string "zabbix_send_data" "n"
 	json_add_string "has_upgraded_version" "$_tmp_has_upgraded_version"
 	json_add_string "hard_reset_info" "$_tmp_hard_reset_info"
 	json_dump > /root/flashbox_config.json

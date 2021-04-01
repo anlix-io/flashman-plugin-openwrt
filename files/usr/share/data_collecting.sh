@@ -1,6 +1,7 @@
 #!/bin/sh
 . /usr/share/functions/device_functions.sh
 . /usr/share/flashman_init.conf
+. /usr/share/functions/common_functions.sh
 
 dataCollectingDir="/tmp/data_collecting" # directory where all data related to data collecting will be stored.
 rawDataFile="${dataCollectingDir}/raw" # file collected data will be stored before being compressed.
@@ -141,7 +142,7 @@ collect_QoE_Monitor_data() {
 	last_rxBytes=$rxBytes # saves current interface bytes value as last value.
 	last_txBytes=$txBytes # saves current interface bytes value as last value.
 
-	pingResult=${pingResult##* ---} # the summary that appears in the last lines.
+	pingResult=${pingResult##* ---[$'\r\n']} # removes everything behind the summary that appears in the last lines.
 	local transmitted=${pingResult% packets transmitted*} # removes everything after, and including, ' packets transmitted'.
 	local received=${pingResult% received*} # removes everything after, and including, ' received'.
 	received=${received##* } # removes everything before first space.
@@ -151,7 +152,7 @@ collect_QoE_Monitor_data() {
 
 	local string="$timestamp $loss $transmitted $rx $tx" # data to be sent.
 
-	if [ "$hasLatency" = "1" ]; then # if latency collecting is enabled.
+	if [ "$hasLatency" -eq 1 ]; then # if latency collecting is enabled.
 		# echo collecting latencies
 		# removing the first line and the last 4 lines. only the ping lines remain.
 		local latencies=$(printf "%s" "$pingResult" | head -n -4 | sed '1d' | (
@@ -281,10 +282,10 @@ collectData() {
 # in second argument ($2) and returns the exit code of $(curl), but if that 
 # number is zero, return that number.
 checkServerState() {
-	local lastState="$1" serverAddress="$2"
-	if [ "$lastState" != "0" ]; then
-		# echo pinging alarm server
-		curl -sl -I "https://$serverAddress:7890/ping" > /dev/null # check if server is alive.
+	local lastState="$1"
+	if [ "$lastState" -ne "0" ]; then
+		# echo pinging alarm server to check if it's alive.
+		curl -s -m 10 "https://$alarmServerAddress:7890/ping" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" > /dev/null
 		lastState="$?" #return $(curl) exit code.
 	fi
 	# echo last state is $lastState
@@ -294,30 +295,33 @@ checkServerState() {
 # sends file at given path ($1) to server at given address ($2) using $(curl) 
 # and returns $(curl) exit code.
 sendToServer() {
-	local filepath="$1" serverAddress="$2" oldData="$3"
+	local filepath="$1" oldData="$2"
 
 	local mac=$(get_mac); # defined in /usr/share/functions/device_functions.sh
 	mac=${mac//:/} # removing all colons in mac address.
 
-	curl -s -m 20 --connect-timeout 5 \
-	-XPOST "https://$serverAddress:7980/data" \
-	-H 'Content-Encoding: gzip' -H 'Content-Type: text/plain' \
-	-H "X-ANLIX-ID: $mac" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
-	-H "Only-old: $oldData"
-	--data-binary @"$filepath"
-	return "$?"
+	status=$(curl --write-out '%{http_code}' -s -m 20 --connect-timeout 5 --output /dev/null \
+	-XPOST "https://$alarmServerAddress:7890/data" -H 'Content-Encoding: gzip' \
+	-H 'Content-Type: text/plain' -H "X-ANLIX-ID: $mac" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
+	-H "Only-old: $oldData" --data-binary @"$filepath")
+	curlCode="$?"
+	[ "$curlCode" -ne 0 ] && log "DATA_COLLECTING" "Data sent with curl exit code $curlCode" && return "$curlCode"
+	log "DATA_COLLECTING" "Data sent with response status code $status"
+	[ "$status" -ge 200 ] && [ "$status" -lt 300 ] && return 0
+	return 1
 }
 
 # for each compressed file given in $compressedDataDir, send that file to a $alarmServerAddress. 
 # If any sending is unsuccessful, stops sending files and return it's exit code.
 sendCompressedData() {
-	# echo going to send compressed data
+	# echo going to send compressed files
 	# echo "$compressedDataDir"/*
 	for i in "$compressedDataDir"/*; do # for each compressed file in the pattern expansion.
 		# if file exists, sends file and if $(curl) exit code isn't equal to 0, returns $(curl) exit code 
 		# without deleting the file we tried to send. if $(curl) exit code is equal to 0, removes file
-		[ -f "$i" ] && (sendToServer "$i" "$alarmServerAddress" "1" || return "$?") && rm "$i"
+		[ -f "$i" ] && (sendToServer "$i" "1" || return "$?") && rm "$i"
 	done
+	return 0
 }
 
 # compresses $rawDataFile, sends it to $alarmServerAddress and deletes it. If send was 
@@ -326,7 +330,7 @@ sendUncompressedData() {
 	# if no uncompressed file, nothing wrong, but there's nothing to do in this function.
 	[ -f "$rawDataFile" ] || return 0
 
-	# echo going to send uncompressed files
+	# echo going to send uncompressed file
 	local compressedTempFile="${rawDataFile}.gz" # the name the compressed file will have.
 	# remove old file if it exists. it should never be left there.
 	[ -f "$compressedTempFile" ] && rm "$compressedTempFile"
@@ -334,7 +338,7 @@ sendUncompressedData() {
 	trap "rm $compressedTempFile" SIGTERM # in case the process is interrupted, delete compressed file.
 	gzip -k "$rawDataFile" # compressing to a temporary file but keeping original, uncompressed, intact.
 
-	sendToServer "$compressedTempFile" "$alarmServerAddress" "0" # sends compressed file.
+	sendToServer "$compressedTempFile" "0" # sends compressed file.
 	local sentResult="$?" # storing $(curl) exit code.
 
 	[ "$sentResult" -eq 0 ] && rm "$rawDataFile" # if send was successful, removes original file.
@@ -391,6 +395,7 @@ sendData() {
 		local lastServerStateFilePath="$dataCollectingDir/serverState"
 		local lastServerState="1"
 		[ -f "$lastServerStateFilePath" ] && lastServerState=$(cat "$lastServerStateFilePath")
+		# echo lastServerState=$lastServerState
 
 		checkServerState "$lastServerState" && sendCompressedData && sendUncompressedData
 		local currentServerState="$?"
@@ -399,7 +404,7 @@ sendData() {
 		# $currentServerState get the exit code of the first of these 3 functions above that returns anything other than 0.
 
 		# writes the $(curl) exit code if it has changed since last attempt to send data.
-		[ "$currentServerState" != "$lastServerState" ] && echo "$currentState" > "$lastServerStateFilePath"
+		[ "$currentServerState" -ne "$lastServerState" ] && echo "$currentServerState" > "$lastServerStateFilePath"
 		[ "$currentServerState" -eq 0 ] && break # if data was sent successfully, we stop retrying.
 
 		tries=$(($tries - 1))
@@ -438,7 +443,7 @@ getStartTime() {
 	else # if file holding start time doesn't exist.
 		startTime=$currentTime # use current time.
 	fi
-	echo $startTime > $startTimeFilePath # substitute that time in file, or create a new file.
+	echo $startTime > "$startTimeFilePath" # substitute that time in file, or create a new file.
 	echo $startTime # print start time found, or current time.
 }
 
