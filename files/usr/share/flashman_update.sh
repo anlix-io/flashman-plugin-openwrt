@@ -487,7 +487,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 			disable_bridge_mode
 			_update_vlan=0
 		fi
-		[ $_update_vlan ] && [ "$(type -t set_vlan_on_boot)" == "" ] && update_vlan
+		[ $_update_vlan == 1 ] && [ "$(type -t set_vlan_on_boot)" == "" ] && update_vlan
 		
 	fi
 else
