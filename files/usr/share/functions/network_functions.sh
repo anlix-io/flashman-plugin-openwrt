@@ -691,7 +691,11 @@ get_bridge_mode_status() {
 
 update_vlan() {
 	json_cleanup
-	json_load_file /root/flashbox_config.json
+	if [ "$(type -t set_vlan_on_boot)" ] && [ -e /root/vlan_config.json ]; then
+		json_load_file /root/vlan_config.json
+	else
+		json_load_file /root/flashbox_config.json
+	fi
 	json_get_keys _vlans vlan
 	json_select vlan
 
@@ -763,6 +767,22 @@ update_vlan() {
 
 	if [ "$(type -t set_vlan_on_boot)" ]; then
 		swconfig dev $(get_switch_device) set apply
+		if [ -e /root/vlan_config.json ]; then
+			_vlan="$(cat /root/vlan_config.json)"
+			_config="$(cat /root/flashbox_config.json)"
+			_before=${_config%\"vlan\"*}
+			if [ $(( ${#_before} < ${#_config} )) = 1 ]; then
+				_after=${_config#*\"vlan\": }
+				_after=${_after#*\}}
+			else
+				_before=${_config% \}}
+				_before="$_before, "
+				_after=" }"
+			fi
+			_new_config="$_before$_vlan$_after"
+			echo "$_new_config" > /root/flashbox_config.json
+			rm /root/vlan_config.json
+		fi
 	else
 		uci commit network
 	fi

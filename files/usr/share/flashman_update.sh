@@ -289,22 +289,30 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		_local_vlan_index=$(get_indexes "vlan_index")
 		if [ "$_local_vlan_index" != "$_vlan_index" ]
 		then
-			_vlan=${_res#*\"vlan\":}
-			_vlan=${_vlan%%\}*}
-			_vlan="$_vlan}"
-			_config="$(cat /root/flashbox_config.json)"
-			_before=${_config%\"vlan\"*}
-			if [ $(( ${#_before} < ${#_config} )) = 1 ]; then
-				_before="$_before\"vlan\": "
-				_after=${_config#*\"vlan\": }
-				_after=${_after#*\}}
+			if [ "$(type -t set_vlan_on_boot)" ]; then
+				_vlan="{ \"vlan\": "
+				_suffix=${_res#*\"vlan\":}
+				_suffix=${_suffix%%\}*}
+				_vlan="$_vlan$_suffix} }"
+				echo "$_vlan" > /root/vlan_config.json
 			else
-				_before=${_config% \}}
-				_before="$_before, \"vlan\": "
-				_after=" }"
+				_vlan=${_res#*\"vlan\":}
+				_vlan=${_vlan%%\}*}
+				_vlan="$_vlan}"
+				_config="$(cat /root/flashbox_config.json)"
+				_before=${_config%\"vlan\"*}
+				if [ $(( ${#_before} < ${#_config} )) = 1 ]; then
+					_before="$_before\"vlan\": "
+					_after=${_config#*\"vlan\": }
+					_after=${_after#*\}}
+				else
+					_before=${_config% \}}
+					_before="$_before, \"vlan\": "
+					_after=" }"
+				fi
+				_new_config="$_before$_vlan$_after"
+				echo "$_new_config" > /root/flashbox_config.json
 			fi
-			_new_config="$_before$_vlan$_after"
-			echo "$_new_config" > /root/flashbox_config.json
 		fi
 		# Reset the reset flags when we receive syn reply
 		if [ "$_local_bridge_did_reset" = "y" ]
