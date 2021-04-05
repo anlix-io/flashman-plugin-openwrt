@@ -1,11 +1,10 @@
 #!/bin/sh /etc/rc.common
 
-. /usr/share/libubox/jshn.sh
+. /usr/share/functions/device_functions.sh
 if [ -e /usr/share/functions/custom_device.sh ]
 then
 	. /usr/share/functions/custom_device.sh
-else
-	. /usr/share/functions/device_functions.sh
+	. /usr/share/functions/network_functions.sh
 fi
 
 START=17
@@ -13,18 +12,8 @@ START=17
 boot() {
 	[ "$(type -t anlix_bootup_defaults)" ] && anlix_bootup_defaults
 
-	if [ "$(type -t set_switch_bridge_mode_on_boot)" ]
+	if [ "$(type -t set_vlan_on_boot)" ]
 	then
-		local _bridge_mode=""
-		local _disable_lan_ports=""
-
-		json_cleanup
-		json_load_file /root/flashbox_config.json
-		json_get_var _bridge_mode bridge_mode
-		json_get_var _disable_lan_ports bridge_disable_switch
-		json_close_object
-
-		# ONLY RELEVANT TO TARGETS THAT SWITCH CONFIG BY UCI IS USELESS
-		[ "$_bridge_mode" = "y" ] && set_switch_bridge_mode_on_boot "$_disable_lan_ports"
+		update_vlan
 	fi
 }

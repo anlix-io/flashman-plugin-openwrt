@@ -3,6 +3,7 @@
 [ -e /usr/share/functions/custom_device.sh ] && . /usr/share/functions/custom_device.sh
 . /lib/functions.sh
 . /lib/functions/leds.sh
+. /usr/share/libubox/jshn.sh
 
 get_radio_phy() {
 	echo "$(ls /sys/devices/$(uci get wireless.radio$1.path)/ieee80211)"
@@ -317,6 +318,6 @@ get_wifi_device_signature() {
 	echo "$_q"
 }
 
-needs_reboot_bridge_mode() {
+needs_reboot_change_vlan() {
 	reboot
 }

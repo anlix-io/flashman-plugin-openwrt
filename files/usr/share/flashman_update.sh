@@ -229,6 +229,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		json_get_var _forward_index forward_index
 		json_get_var _blocked_devices_index blocked_devices_index
 		json_get_var _upnp_devices_index upnp_devices_index
+		json_get_var _vlan_index vlan_index
 		json_get_var _data_collecting_is_active data_collecting_is_active
 		json_get_var _data_collecting_has_latency data_collecting_has_latency
 		json_get_var _data_collecting_alarm_fqdn data_collecting_alarm_fqdn
@@ -285,6 +286,34 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 			exit 1
 		fi
 
+		_local_vlan_index=$(get_indexes "vlan_index")
+		if [ "$_local_vlan_index" != "$_vlan_index" ]
+		then
+			if [ "$(type -t set_vlan_on_boot)" ]; then
+				_vlan="{ \"vlan\": "
+				_suffix=${_res#*\"vlan\":}
+				_suffix=${_suffix%%\}*}
+				_vlan="$_vlan$_suffix} }"
+				echo "$_vlan" > /root/vlan_config.json
+			else
+				_vlan=${_res#*\"vlan\":}
+				_vlan=${_vlan%%\}*}
+				_vlan="$_vlan}"
+				_config="$(cat /root/flashbox_config.json)"
+				_before=${_config%\"vlan\"*}
+				if [ $(( ${#_before} < ${#_config} )) = 1 ]; then
+					_before="$_before\"vlan\": "
+					_after=${_config#*\"vlan\": }
+					_after=${_after#*\}}
+				else
+					_before=${_config% \}}
+					_before="$_before, \"vlan\": "
+					_after=" }"
+				fi
+				_new_config="$_before$_vlan$_after"
+				echo "$_new_config" > /root/flashbox_config.json
+			fi
+		fi
 		# Reset the reset flags when we receive syn reply
 		if [ "$_local_bridge_did_reset" = "y" ]
 		then
@@ -414,7 +443,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		# Ignore changes if in bridge mode
 		if [ "$_local_bridge_enabled" != "y" ]
 		then
-			_local_dindex=$(get_forward_indexes "blocked_devices_index")
+			_local_dindex=$(get_indexes "blocked_devices_index")
 			if [ "$_local_dindex" != "$_blocked_devices_index" ]
 			then
 				update_blocked_devices "$_blocked_devices" "$_blocked_macs" \
@@ -431,11 +460,11 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		# Ignore changes if in bridge mode
 		if [ "$_local_bridge_enabled" != "y" ]
 		then
-			_local_findex=$(get_forward_indexes "forward_index")
+			_local_findex=$(get_indexes "forward_index")
 			[ "$_local_findex" != "$_forward_index" ] && update_port_forward
 
 			# Check for updates in upnp allowed devices mapping
-			_local_uindex=$(get_forward_indexes "upnp_devices_index")
+			_local_uindex=$(get_indexes "upnp_devices_index")
 			[ "$_local_uindex" != "$_upnp_devices_index" ] && update_upnp_devices
 		fi
 
@@ -445,22 +474,29 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 			echo "$COMMANDHASH" >> /root/done_hashes
 		fi
 
+		_update_vlan=0
+		[ "$_local_vlan_index" != "$_vlan_index" ] && _update_vlan=1 && json_update_index "$_vlan_index" "vlan_index"
 		# Update bridge mode information
 		if [ "$_bridge_mode_enabled" = "y" ] && [ "$_local_bridge_enabled" != "y" ]
 		then
 			log "FLASHMAN UPDATER" "Enabling bridge mode..."
 			enable_bridge_mode "y" "n" "$_bridge_mode_switch_disable" "$_bridge_mode_ip" \
 												 "$_bridge_mode_gateway" "$_bridge_mode_dns"
+			_update_vlan=0
 		elif [ "$_bridge_mode_enabled" = "y" ] && [ "$_local_bridge_enabled" = "y" ]
 		then
 			log "FLASHMAN UPDATER" "Updating bridge mode parameters..."
 			update_bridge_mode "n" "$_bridge_mode_switch_disable" "$_bridge_mode_ip" \
 												"$_bridge_mode_gateway" "$_bridge_mode_dns"
+			_update_vlan=0
 		elif [ "$_bridge_mode_enabled" = "n" ] && [ "$_local_bridge_enabled" = "y" ]
 		then
 			log "FLASHMAN UPDATER" "Disabling bridge mode..."
 			disable_bridge_mode
+			_update_vlan=0
 		fi
+		[ $_update_vlan == 1 ] && [ "$(type -t set_vlan_on_boot)" == "" ] && update_vlan
+		
 	fi
 else
 	log "FLASHMAN UPDATER" "Fail Authenticating device!"
