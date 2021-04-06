@@ -114,8 +114,8 @@ then
 
 	# reset /etc/config/wireless
 	rm /etc/config/wireless
-	wifi config
 fi
+[ ! -f /etc/config/wireless ] && wifi config
 
 # Create temporary file to differentiate between a boot after a upgrade
 echo "0" > /tmp/clean_boot

@@ -3,48 +3,29 @@
 [ -e /usr/share/functions/custom_device.sh ] && . /usr/share/functions/custom_device.sh
 . /lib/functions.sh
 . /lib/functions/leds.sh
-
-get_radio_phy() {
-	echo "$(ls /sys/devices/$(uci get wireless.radio$1.path)/ieee80211)"
-}
-
-get_phy_type() {
-	#1: 2.4 2: 5GHz
-	echo "$(iw phy $1 channels|grep Band|tail -1|cut -c6)"
-}
-
-get_24ghz_phy() {
-	for i in /sys/class/ieee80211/* 
-	do 
-		iface=`basename $i` 
-		[ "$(get_phy_type $iface)" -eq "1" ] && echo $iface
-	done
-}
-
-get_5ghz_phy() {
-	for i in /sys/class/ieee80211/* 
-	do 
-		iface=`basename $i` 
-		[ "$(get_phy_type $iface)" -eq "2" ] && echo $iface
-	done
-}
-
-is_5ghz_vht() {
-	local _5iface=$(get_5ghz_phy)
-	[ "$_5iface" ] && [ "$(iw phy $_5iface info|grep "VHT")" ] && echo "1"
-}
+. /usr/share/functions/custom_wireless_driver.sh
 
 is_5ghz_capable() {
 	[ "$(get_5ghz_phy)" ] && echo "1" || echo "0"
 }
 
+get_wifi_channel(){
+	local _phy=$(get_radio_phy $1)
+	iwinfo $_phy info | awk '/Channel/ { print $4 }'
+}
+
 is_mesh_routing_capable() {
 	local _ret=0
 	local _ret5=0
-	local _24iface=$(get_24ghz_phy)
-	local _5iface=$(get_5ghz_phy)
-	[ "$_24iface" ] && [ "$(iw phy $_24iface info|grep "mesh point")" ] && _ret=1
-	[ "$_5iface" ] && [ "$(iw phy $_5iface info|grep "mesh point")" ] && _ret5=1
+
+	if [ -f /usr/sbin/wpad ]
+	then
+		local _24iface=$(get_24ghz_phy)
+		local _5iface=$(get_5ghz_phy)
+		[ "$_24iface" ] && [ "$(iw phy $_24iface info|grep "mesh point")" ] && _ret=1
+		[ "$_5iface" ] && [ "$(iw phy $_5iface info|grep "mesh point")" ] && _ret5=1
+	fi
+
 	if [ "$_ret5" -eq "1" ] 
 	then
 		[ "$_ret" -eq "1" ] && echo "3" || echo "2"
@@ -307,14 +288,6 @@ get_lan_dev_negotiated_speed() {
 	done
 
 	echo "$_speed"
-}
-
-get_wifi_device_signature() {
-	local _dev_mac="$1"
-	local _q=""
-	_q="$(ubus -S call hostapd.wlan0 get_clients | jsonfilter -e '@.clients["'"$_dev_mac"'"].signature')"
-	[ -z "$_q" ] && [ "$(is_5ghz_capable)" -eq "1" ] && _q="$(ubus -S call hostapd.wlan1 get_clients | jsonfilter -e '@.clients["'"$_dev_mac"'"].signature')"
-	echo "$_q"
 }
 
 needs_reboot_bridge_mode() {

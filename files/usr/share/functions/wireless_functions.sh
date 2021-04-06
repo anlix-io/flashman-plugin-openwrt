@@ -27,17 +27,9 @@ get_htmode_50() {
 	[ "$_noscan_50" == "0" ] && echo "auto" || echo "$_htmode_50"
 }
 
-get_wifi_htmode(){
-	iw dev wlan$1 info 2>/dev/null|grep width|awk '{print $6}'
-}
-
 get_wifi_state() {
 	local _q=$(uci -q get wireless.default_radio$1.disabled)
 	[ "$_q" ] && [ "$_q" = "1" ] && echo "0" || echo "1"
-}
-
-get_wifi_channel(){
-	iw dev wlan$1 info 2>/dev/null|grep channel|awk '{print $2}'
 }
 
 auto_channel_selection() {
@@ -50,73 +42,6 @@ auto_channel_selection() {
 			echo "40"
 		;;
 	esac
-}
-
-convert_txpower() {
-	local _freq="$1"
-	local _channel="$2"
-	local _txprct="$3"
-	local _maxpwr
-
-	if [ "$_freq" = "24" ] 
-	then
-		_maxpwr=20
-		[ "$(type -t custom_wifi_24_txpower)" ] && _maxpwr="$(custom_wifi_24_txpower)"
-	else
-		_maxpwr=30
-		[ "$(type -t custom_wifi_50_txpower)" ] && _maxpwr="$(custom_wifi_50_txpower)"
-	fi
-
-	if [ "$_channel" = "auto" ] 
-	then
-		echo "$_maxpwr"
-		return
-	fi
-
-	local _phy
-	local _reload=0
-	if [ "$_freq" = "24" ]
-	then
-		_phy=$(get_24ghz_phy)
-		[ ! "$(type -t custom_wifi_24_txpower)" ] && _reload=1
-	else
-		_phy=$(get_5ghz_phy)
-		[ ! "$(type -t custom_wifi_50_txpower)" ] && _reload=1
-	fi
-	[ $_reload = 1 ] && _maxpwr=$(iw $_phy info | awk '/\['$_channel'\]/{ print substr($5,2,2) }')
-
-	echo $(( ((_maxpwr * _txprct)+50) / 100 ))
-}
-
-get_txpower() {
-	local _freq="$1"
-	local _txpower="$(uci -q get wireless.radio$_freq.txpower)"
-	local _channel="$(uci -q get wireless.radio$_freq.channel)"
-
-	if [ "$_channel" = "auto" ] 
-	then
-		echo "100" 
-		return
-	fi
-
-	local _phy
-	local _maxpwr="0"
-	if [ "$_freq" = "0" ]
-	then
-		_phy=$(get_24ghz_phy)
-		[ "$(type -t custom_wifi_24_txpower)" ] && _maxpwr="$(custom_wifi_24_txpower)"
-	else
-		_phy=$(get_5ghz_phy)
-		[ "$(type -t custom_wifi_50_txpower)" ] && _maxpwr="$(custom_wifi_50_txpower)"
-	fi
-	[ "$_maxpwr" = "0" ] && _maxpwr=$(iw $_phy info | awk '/\['$_channel'\]/{ print substr($5,2,2) }')
-
-	local _txprct="$(( (_txpower * 100) / _maxpwr ))"
-	if   [ $_txprct -ge 100 ]; then echo "100"
-	elif [ $_txprct -ge 75 ]; then echo "75"
-	elif [ $_txprct -ge 50 ]; then echo "50"
-	else echo "25"
-	fi
 }
 
 change_fast_transition() {

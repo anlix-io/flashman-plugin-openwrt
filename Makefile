@@ -82,6 +82,7 @@ FILE_DIR=
 
 CUSTOM_FILE_DIR=
 CUSTOM_FILE_ARQ=
+DRIVER_FILE_ARQ=mac80211
 	ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_tplink_c2-v1), y)
 		CUSTOM_FILE_ARQ="tplink_archer-c2-v1"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_tplink_c20-v1), y)
@@ -106,6 +107,8 @@ CUSTOM_FILE_ARQ=
 		CUSTOM_FILE_ARQ="tplink_archer-c60-v3"
 	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_archer-c6-v2-us), y)
 		CUSTOM_FILE_ARQ="tplink_archer-c6-v2US"
+	else ifeq ($(CONFIG_TARGET_ramips_mt7621_DEVICE_archer-c6-v3), y)
+		DRIVER_FILE_ARQ="rtwifi"
 	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_archer-c7-v5), y)
 		CUSTOM_FILE_ARQ="tplink_archer-c7-v5"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_tplink_ec220-g5-v2), y)
@@ -198,6 +201,7 @@ SSID_SUFFIX=
 
 define Package/flashman-plugin/install
 	$(CP) ./$(FILE_DIR)/* $(1)/
+	$(CP) ./driver/$(DRIVER_FILE_ARQ).sh $(1)/usr/share/functions/custom_wireless_driver.sh
 ifneq ($(CUSTOM_FILE_DIR),)
 	$(CP) ./$(CUSTOM_FILE_DIR)/* $(1)/
 endif
@@ -212,6 +216,10 @@ endif
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/anlix-mqtt $(1)/usr/bin/
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/pk $(1)/usr/bin/
+
+	$(INSTALL_DIR) $(1)/lib/wifi $(1)/lib/netifd/wireless
+	$(INSTALL_DATA) ./files/lib/wifi/rtwifi.sh $(1)/lib/wifi
+	$(INSTALL_BIN) ./files/lib/netifd/wireless/rtwifi.sh $(1)/lib/netifd/wireless
 
 	mkdir -p $(1)/usr/share
 	echo 'FLM_SSID_SUFFIX=$(SSID_SUFFIX)' >>$(1)/usr/share/flashman_init.conf
