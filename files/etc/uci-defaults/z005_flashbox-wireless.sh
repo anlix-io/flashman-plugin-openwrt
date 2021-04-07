@@ -187,4 +187,6 @@ fi
 
 uci commit wireless
 
+[ "$(type -t wireless_firmware)" ] && wireless_firmware
+
 exit 0

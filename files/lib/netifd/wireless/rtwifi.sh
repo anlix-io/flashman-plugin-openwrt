@@ -23,6 +23,8 @@ drv_rtwifi_init_device_config() {
 	config_add_int powersave
 	config_add_int maxassoc
 	config_add_boolean hidessid bndstrg
+	config_add_array ht_capab
+	config_add_array channels
 	
 	config_add_boolean \
 		rxldpc \
@@ -264,7 +266,7 @@ rtwifi_sta_vif_connect() {
 		#FIXME: need ra0 up before apcli0 start
 		ifconfig ra${RTWIFI_IFPREFIX}0 up
 		ifconfig $APCLI_IF up
-		iwpriv ra${RTWIFI_IFPREFIX}0 set DisConnectAllSta=1 2>/dev/null
+		#iwpriv ra${RTWIFI_IFPREFIX}0 set DisConnectAllSta=1 2>/dev/null
 		ifconfig ra${RTWIFI_IFPREFIX}0 down
 	}
 	let stacount+=1
@@ -446,7 +448,8 @@ drv_rtwifi_setup() {
 				channel=149
 				AutoChannelSelect=2
 			}
-			ACSSKIP="12;13;14;36;38;40;42;44;46;48;52;56;60;64;100;104;108;112;116;120;124;128;132;136;140;165;"
+			#fix that - respect channels
+			ACSSKIP="52;56;60;64;100;104;108;112;116;120;124;128;132;136;140;165;"
 		;;
 		g)
 			EXTCHA=0
@@ -488,12 +491,12 @@ RxAntenna=
 TxPreamble=1
 RTSThreshold=${rts:-2347}
 FragThreshold=${frag:-2346}
-TxBurst=${txburst:-0}
+TxBurst=${txburst:-1}
 PktAggregate=1
 AutoProvisionEn=0
 FreqDelta=0
 TurboRate=0
-WmmCapable=${wmm:-0}
+WmmCapable=${wmm:-1}
 APAifsn=3;7;1;1
 APCwmin=4;4;3;2
 APCwmax=6;10;4;3
@@ -593,10 +596,9 @@ MeshId=
 HSCounter=0
 HT_HTC=${HT_HTC}
 HT_RDG=1
-HT_LDPC=${ldpc:-1}
 HT_LinkAdapt=0
 HT_OpMode=${greenfield:-0}
-HT_MpduDensity=4
+HT_MpduDensity=5
 HT_EXTCHA=${EXTCHA}
 HT_BW=${HT_BW:-0}
 HT_AutoBA=1
@@ -613,8 +615,8 @@ VHT_STBC=${tx_stbc:-1}
 VHT_BW_SIGNAL=0
 VHT_DisallowNonVHT=${VHT_DisallowNonVHT:-0}
 VHT_LDPC=${ldpc:-1}
-#HT_TxStream=2
-#HT_RxStream=2
+HT_TxStream=2
+HT_RxStream=2
 HT_PROTECT=0
 HT_DisallowTKIP=${HT_DisallowTKIP:-0}
 HT_BSSCoexistence=${HT_CE:-1}

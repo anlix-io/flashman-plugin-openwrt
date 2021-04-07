@@ -95,6 +95,7 @@ DRIVER_FILE_ARQ=mac80211
 		CUSTOM_FILE_ARQ="tplink_archer-c20-v5W"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_tplink_c5-v4), y)
 		CUSTOM_FILE_ARQ="tplink_archer-c5-v4"
+		DRIVER_FILE_ARQ="rtwifi"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tplink_c50-v3), y)
 		CUSTOM_FILE_ARQ="tplink_archer-c50-v3"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tplink_c50-v4), y)
@@ -113,6 +114,7 @@ DRIVER_FILE_ARQ=mac80211
 		CUSTOM_FILE_ARQ="tplink_archer-c7-v5"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_tplink_ec220-g5-v2), y)
 		CUSTOM_FILE_ARQ="tplink_ec220-g5-v2"
+		DRIVER_FILE_ARQ="rtwifi"
 	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_dlink_covr-c1200-a1), y)
 		CUSTOM_FILE_ARQ="dlink_covr-c1200-a1"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_dlink_dir-819-a1), y)
