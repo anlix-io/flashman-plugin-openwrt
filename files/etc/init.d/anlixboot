@@ -3,7 +3,6 @@
 . /usr/share/functions/device_functions.sh
 if [ -e /usr/share/functions/custom_device.sh ]
 then
-	. /usr/share/functions/custom_device.sh
 	. /usr/share/functions/network_functions.sh
 fi
 
