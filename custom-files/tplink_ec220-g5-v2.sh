@@ -17,15 +17,15 @@ set_switch_bridge_mode() {
   then
     if [ "$_disable_lan_ports" = "y" ]
     then
-      uci set network.@switch_vlan[0].ports='3 5t'
+      uci set network.@switch_vlan[0].ports='4 5t'
       uci set network.@switch_vlan[1].ports=''
     else
-      uci set network.@switch_vlan[0].ports='0 1 2 3 5t'
+      uci set network.@switch_vlan[0].ports='0 1 2 3 4 5t'
       uci set network.@switch_vlan[1].ports=''
     fi
   else
-    uci set network.@switch_vlan[0].ports='0 1 2 5t'
-    uci set network.@switch_vlan[1].ports='3 5t'
+    uci set network.@switch_vlan[0].ports='0 1 2 3 5t'
+    uci set network.@switch_vlan[1].ports='4 5t'
   fi
 }
 
@@ -41,5 +41,5 @@ hw_offload_support() {
 wireless_firmware() {
   #Firmware files - Clean this in the future (use firmware api in driver)
   [ ! -e /lib/firmware/MT7620_AP_2T2R-4L_V15.BIN ] && dd if=/dev/mtd8ro of=/lib/firmware/MT7620_AP_2T2R-4L_V15.BIN bs=1 count=512
-  [ ! -e /lib/firmware/MT7612E_EEPROM.bin ] && dd if=/dev/mtd8ro of=/lib/firmware/MT7612E_EEPROM.bin bs=1k skip=32 count=32
+  [ ! -e /lib/firmware/MT7612E_EEPROM.bin ] && dd if=/dev/mtd8ro of=/lib/firmware/MT7612E_EEPROM.bin bs=1k skip=32 count=1
 }

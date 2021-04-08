@@ -1,11 +1,12 @@
 #!/bin/sh
+[ -e /usr/share/functions/custom_device.sh ] && . /usr/share/functions/custom_device.sh
 
 # Set firewall rules
 uci set firewall.@defaults[-1].input="ACCEPT"
 uci set firewall.@defaults[-1].output="ACCEPT"
 uci set firewall.@defaults[-1].forward="REJECT"
 uci set firewall.@defaults[-1].flow_offloading="1"
-[ "$(type -t hw_offload_support)" ] && uci set firewall.@defaults[-1].hw_flow_offloading="1"
+[ "$(type -t hw_offload_support)" ] && uci set firewall.@defaults[-1].flow_offloading_hw="1"
 # Lan
 uci set firewall.@zone[0].input="ACCEPT"
 uci set firewall.@zone[0].output="ACCEPT"
