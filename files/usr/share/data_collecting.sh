@@ -7,113 +7,6 @@ dataCollectingDir="/tmp/data_collecting" # directory where all data related to d
 rawDataFile="${dataCollectingDir}/raw" # file collected data will be stored before being compressed.
 compressedDataDir="${dataCollectingDir}/compressed" # directory where data will be stored if compressing old data is necessary.
 
-# # prints the name of all available wireless interfaces, separated by new lines.
-# getAllInterfaceNames() {
-# 	local index=0 name
-# 	while true; do
-# 		name=$(uci -q get wireless.default_radio$index.ifname)
-# 		if [ "$?" -ne 0 ]; then break; fi
-# 		echo $name
-# 		index=$(($index + 1))
-# 	done
-# }
-
-# # extract data from devices in wifi, builds a string in influx line protocol 
-# # format, which uses the router's mac address ($2) to identify the router 
-# # each device belongs to, and append that string to file given as first 
-# # argument ($1).
-# collectDevicesWifiDataForInflux() {
-# 	local filepath="$1" mac="$2"
-
-# 	local timestamp=$(date +%s) # getting current unix time in seconds.
-# 	local allDevices oneDevice snr
-
-# 	for interface in $(getAllInterfaceNames); do # for each interface in the router;
-# 		# extracting the signal to noise ratio value from the interface.
-# 		snr=$(iwinfo ${interface} assoclist) # interface info where we will take the snr value.
-# 		snr=${snr#*\(SNR } # removes everything until "(SNR " including it.
-# 		snr=${snr%%\)*} # removes everything past "\)" including it.
-
-# 		allDevices=$(iw dev ${interface} station dump); # this prints only if there is any device connected to wifi.
-# 		while [ "$allDevices" ]; do
-# 			oneDevice=${allDevices##*Station }; # removes, from $allDevices, the biggest match before and including "Station ".
-# 			allDevices=${allDevices%Station *}; # removes, from $allDevices, the smallest match after and including "Station ".
-
-# 			# following command extract fields from one device and builds a 
-# 			# string as influx line protocol format and append that to a file.
-# 			echo $oneDevice | sed "
-# 			s/\([0-9a-f:]*\).* rx bytes: \([0-9]*\).*rx packets: \([0-9]*\).*tx bytes: \([0-9]*\).*tx packets: \([0-9]*\).*signal:\s*\([-0-9]*\)\s.*dBm.*tx bitrate: \([0-9]*\.[0-9]*\).*rx bitrate: \([0-9]*\.[0-9]*\).*/wifi,d=\1,r=${mac} rx=\8,rxb=\2i,rxp=\3i,sig=\6i,snr=${snr}i,tx=\7,txb=\4i,txp=\5i ${timestamp}/
-# 			s/://g" >> "$filepath";
-# 		done
-# 	done
-# }
-
-# # gets wan info from /sys/class/net/$wanName/statistics/ and builds a string 
-# # in influx line protocol format, which uses the router's mac address, given 
-# # as second argument ($2), to identify the router, and append that string to 
-# # file given as first argument ($1).
-# collectWanStatisticsForInflux() {
-# 	local filepath="$1" mac="$2"
-
-# 	local timestamp=$(date +%s) # getting current unix time in seconds.
-# 	local wanName=$(ifstatus wan | jsonfilter -e '@.device') # name of the wan interface.
-# 	local rxBytes=$(cat /sys/class/net/$wanName/statistics/rx_bytes)
-# 	local txBytes=$(cat /sys/class/net/$wanName/statistics/tx_bytes)
-# 	local rxPackets=$(cat /sys/class/net/$wanName/statistics/rx_packets)
-# 	local txPackets=$(cat /sys/class/net/$wanName/statistics/tx_packets)
-# 	local string="wan,r=$mac rxb=${rxBytes}i,rxp=${rxPackets}i,txb=${txBytes}i,txp=${txPackets}i $timestamp"
-# 	# echo s$string
-# 	echo "$string" >> "$filepath"
-# }
-
-# # executes 100 pings, in burst, to flashman server, extracts the individual 
-# # icmp request number and its respective ping time and builds a string in
-# # influx line protocol format, which uses the router's mac address, given 
-# # as second argument ($2), to identify the router, and append that string 
-# # to file given as first argument ($1).
-# collectPingForInflux() {
-# 	local filepath="$1" mac="$2"
-
-# 	local timestamp=$(date +%s) # getting current unix time in seconds.
-# 	local string="ping,r=$mac " # beginning of influx line protocol string.
-# 	local pingNumber pingTime unreachable
-
-# 	local pingResult=$(ping -i 0.01 -c 100 "$FLM_SVADDR") # 100 pings in burst.
-
-# 	# as numerical characters are small than letters, the icmp request numbers 
-# 	# are written first to string, then the letters charactered fields are 
-# 	# written.
-
-# 	# removing the first line and the last 4 lines. only the ping lines remain.
-# 	string=$(printf "%s" "$pingResult" | head -n -4 | sed '1d' | (while read line; do # for each ping line.
-# 		reached=${line%time=*} # removes 'time=' part if it exists.
-# 		# if "time=" has actually been removed, it means that line 
-# 		# contains it, which also means the icmp request was fulfilled.
-# 		[ ${#reached} -lt ${#line} ] || continue # if line doesn't contain 'time=', skip this line.
-
-# 		pingNumber=${line#*icmp_req=} # from the whole line, removes everything until, and including, "icmp_req=".
-# 		pingNumber=${pingNumber%% *} # removes everything after the first space.
-# 		pingTime=${line#*time=} # from the whole line, removes everything until, and including, "time=".
-# 		pingTime=${pingTime%% *} # removes everything after the first space.
-# 		string="${string}$pingNumber=$pingTime," # concatenate to $string.
-# 	done
-# 	echo $string)) # prints final $string in this sub shell back to $string.
-	
-# 	pingResult=${pingResult##* ---} # the summary that appears in the last lines.
-# 	local loss=${pingResult%\% packet loss*} # removes everything after, and including, '% packet loss'.
-# 	loss=${loss##* } # removes everything after first space.
-# 	if [ $loss -ne 100 ]; then # if $loss is not '100'.
-# 		# takes average after removing everything until, and including first digit followed by '/'.
-# 		local average=${pingResult#*[0-9]/}
-# 		average=${average%%/*} # removes everything after first '/'.
-# 		string="${string}avg=$average," # append average information.
-# 	fi # when loss is 100%, no rtt information is present in ping result, which means there is no average, min or max info.
-# 	string="${string}loss=${loss}i ${timestamp}" # append loss information and $timestamp to string.
-
-# 	# printf "string is: '%s'\n" "$string"
-# 	echo "$string" >> "$filepath" # appending string to file.
-# }
-
 # takes current unix timestamp, executes ping, in burst, to $pingServerAddress server, gets current 
 # rx and tx bytes from wan interface and compares then with values from previous calls to calculate 
 # cross traffic. If latency collecting is enabled, extracts the individual icmp request numbers and 
@@ -306,7 +199,7 @@ sendToServer() {
 	-H "Only-old: $oldData" --data-binary @"$filepath")
 	curlCode="$?"
 	[ "$curlCode" -ne 0 ] && log "DATA_COLLECTING" "Data sent with curl exit code $curlCode" && return "$curlCode"
-	log "DATA_COLLECTING" "Data sent with response status code $status"
+	log "DATA_COLLECTING" "Data sent with response status code $status."
 	[ "$status" -ge 200 ] && [ "$status" -lt 300 ] && return 0
 	return 1
 }
@@ -385,7 +278,7 @@ sendUncompressedData() {
 # Attempts to send data some times with 10 seconds of sleep time between tries.
 sendData() {
 	# echo going to send data
-	local tries=4
+	local tries=3 # amount of attempts of sending data, to alarm server, before giving up.
 
 	while true; do
 		# check if the last time, data was sent, server was alive. if it was, 
@@ -414,22 +307,33 @@ sendData() {
 	done
 }
 
-# prints the timestamp written in file at path given in first argument ($1). 
-# that timestamp is used to mark the second when data collection has started, 
+# echoes a random number between 0 and 59 (inclusive).
+random0To59() {
+	local rand=$(head /dev/urandom | tr -dc "0123456789")
+	rand=${rand:0:2} # taking the first 2 digits.
+	[ ${rand:0:1} = "0" ] && rand=${rand:1:2} # "08" and "09" don't work for "$(())".
+	echo $(($rand * 6 / 10)) # $rand is a integer between 0 and 99 (inclusive), this makes it an integer between 0 and 59.
+	# our Ash has not been compiled to work with floats.
+}
+
+# prints the time stamp written in file at path given in first argument ($1). 
+# that time stamp is used to mark the second when data collecting has started, 
 # so we can keep collecting data always at the same interval, without care of 
 # how long the data collecting and sending procedures takes. If that files 
-# doesn't exist, we use current time and write a new file with that time. If 
-# it exists, its timestamp is probably of a long time ago, so we advance it 
-# forward to a time close to current time, maintaining the correct second the 
-# interval, given in second argument ($2), would make it fall into, and sleep
-# for the amount of time left to that second.
+# doesn't exist, we sleep for a random time, in order to distribute data 
+# collecting time, from all routers, through a minute window, take the current 
+# time and write a new file with that time. If it exists, its time stamp is 
+# probably from a long time ago, so we advance it forward to a time close to 
+# current time, maintaining the correct second the interval, given in second 
+# argument ($2), would make it fall into, and sleep for the amount of time 
+# left to that second.
 getStartTime() {
 	local startTimeFilePath="$1" interval="$2"
 
-	local currentTime=$(date +%s)
 	local startTime
 	if [ -f "$startTimeFilePath" ]; then # if file holding start time exists.
-		startTime=$(cat "$startTimeFilePath") # get the timestamp inside that file.
+		local currentTime=$(date +%s)
+		startTime=$(cat "$startTimeFilePath") # get the time stamp inside that file.
 		# advance timestamp to the closest time after current time that the given interval could produce.
 		startTime=$(($startTime + (($currentTime - $startTime) / $interval) * $interval + $interval))
 		# that division does not produce a float number. ex: (7/2)*2 = 6.
@@ -441,7 +345,8 @@ getStartTime() {
 		sleep $(($startTime - $currentTime)) # sleep for the amount of time left to next interval.
 		# this makes us always start at the same second, even if the process is shut down for a long time.
 	else # if file holding start time doesn't exist.
-		startTime=$currentTime # use current time.
+		sleep $(random0To59); # sleeping for at most 59 seconds to distribute data collecting through a minute window.
+		startTime=$(date +%s) # use current time.
 	fi
 	echo $startTime > "$startTimeFilePath" # substitute that time in file, or create a new file.
 	echo $startTime # print start time found, or current time.
@@ -495,4 +400,4 @@ loop() {
 }
 
 cleanFiles # deletes files, marking process state, from previous process.
-loop
+loop # the infinite loop.
