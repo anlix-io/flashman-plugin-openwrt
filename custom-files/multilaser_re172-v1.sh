@@ -45,4 +45,3 @@ custom_switch_ports() {
 		5) echo "4" ;;
 	esac
 }
-

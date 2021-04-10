@@ -691,6 +691,7 @@ get_bridge_mode_status() {
 
 save_vlan_config() {
 	local _res=$1
+	# Realtek routers have to save config on auxiliary file 
 	if [ "$(type -t set_vlan_on_boot)" ]; then
 		_vlan="{ \"vlan\": "
 		_suffix=${_res#*\"vlan\":}
@@ -718,6 +719,7 @@ save_vlan_config() {
 }
 
 update_vlan() {
+	local _restart_network=$1
 	json_cleanup
 	if [ "$(type -t set_vlan_on_boot)" ] && [ -e /root/vlan_config.json ]; then
 		json_load_file /root/vlan_config.json
@@ -816,6 +818,10 @@ update_vlan() {
 	else
 		uci commit network
 	fi
+	if [ "$_restart_network" = "y" ]; then
+		/etc/init.d/network restart
+		sleep 5
+	fi
 }
 
 enable_bridge_mode() {
@@ -897,10 +903,15 @@ enable_bridge_mode() {
 			uci set network.lan.ifname="$_lan_ifnames $_wan_ifnames"
 		fi
 	fi
+	# Save bridge mode vlan config
+	if [ "$(type -t wan_lan_diff_ifaces)" == "" ]; then
+		save_bridge_mode_vlan_config "y" "$_disable_lan_ports"
+	fi
+
 	# Some routers need to change port mapping on software switch
-	if [ "$(type -t set_vlan_on_boot)" == "" ]
+	if [ "$(type -t set_vlan_on_boot)" == "" ] && [ "$(type -t wan_lan_diff_ifaces)" == "" ]
 	then
-		update_vlan
+		update_vlan "n"
 	fi
 
 	# Disable dns, dhcp and dhcp6
@@ -1031,10 +1042,15 @@ update_bridge_mode() {
 				uci set network.lan.ifname="$_lan_ifnames $_wan_ifnames"
 			fi
 		fi
+		# Save bridge mode vlan config
+		if [ "$(type -t wan_lan_diff_ifaces)" == "" ]; then
+			save_bridge_mode_vlan_config "y" "$_disable_lan_ports"
+		fi
+
 		# Some routers need to change port mapping on software switch
-		if [ "$(type -t set_vlan_on_boot)" == "" ]
+		if [ "$(type -t set_vlan_on_boot)" == "" ] && [ "$(type -t wan_lan_diff_ifaces)" == "" ]
 		then
-			update_vlan
+			update_vlan "n"
 		fi
 	fi
 	json_dump > /root/flashbox_config.json
@@ -1104,10 +1120,15 @@ disable_bridge_mode() {
 		# Get ifname to remove from the bridge
 		uci set network.lan.ifname="$_lan_ifnames"
 	fi
+	# Save router mode vlan config
+	if [ "$(type -t wan_lan_diff_ifaces)" == "" ]; then
+		save_bridge_mode_vlan_config "n" "n"
+	fi
+
 	# Some routers need to change back port mapping on software switch
-	if [ "$(type -t set_vlan_on_boot)" == "" ]
+	if [ "$(type -t set_vlan_on_boot)" == "" ] && [ "$(type -t wan_lan_diff_ifaces)" == "" ]
 	then
-		update_vlan
+		update_vlan "n"
 	fi
 	uci set network.lan.proto="static"
 	uci set network.lan.ipaddr="$_lan_ip"
@@ -1151,6 +1172,60 @@ disable_bridge_mode() {
 			/etc/init.d/network restart
 			[ "$(get_ipv6_enabled)" = "1" ] && /etc/init.d/odhcpd restart
 		fi
+	fi
+}
+
+save_bridge_mode_vlan_config() {
+	local _enable_bridge="$1"
+	local _disable_lan_ports="$2"
+
+	if [ "$(type -t custom_switch_ports)" ]; then
+		local _wan_port=$(custom_switch_ports 2) 
+		local _lan_ports=$(custom_switch_ports 3)
+		local _cpu_port=$(custom_switch_ports 4) 
+	else
+		local _wan_port=$(switch_ports 2) 
+		local _lan_ports=$(switch_ports 3)
+		local _cpu_port=$(switch_ports 4) 
+	fi
+
+	# Realtek routers have to save config on auxiliary file 
+	if [ "$(type -t set_vlan_on_boot)" ]; then
+		if [ "$_enable_bridge" = "y" ]; then
+			_vlan="{ \"vlan\": { \"9\": \"\", \"8\": \"$_wan_port "
+			if [ "$_disable_lan_ports" = "y" ]; then
+				_vlan="$_vlan$_cpu_port\" } }"
+			else
+				_vlan="$_vlan$_lan_ports $_cpu_port\" } }"
+			fi
+		else
+			_vlan="{ \"vlan\": { \"9\": \"$_lan_ports $_cpu_port\", \"8\": \"$_wan_port $_cpu_port\" } }"
+		fi
+		echo "$_vlan" > /root/vlan_config.json
+	else
+		if [ "$_enable_bridge" = "y" ]; then
+			_vlan="\"vlan\": { \"1\": \"$_wan_port "
+			if [ "$_disable_lan_ports" = "y" ]; then
+				_vlan="$_vlan${_cpu_port}t\""
+			else
+				_vlan="$_vlan$_lan_ports ${_cpu_port}t\""
+			fi
+			_vlan="$_vlan, \"2\": \"\" }"
+		else
+			_vlan="\"vlan\": { \"1\": \"$_lan_ports ${_cpu_port}t\", \"2\": \"$_wan_port ${_cpu_port}t\" }"
+		fi
+		_config="$(cat /root/flashbox_config.json)"
+		_before=${_config%\"vlan\"*}
+		if [ $(( ${#_before} < ${#_config} )) = 1 ]; then
+			_after=${_config#*\"vlan\": }
+			_after=${_after#*\}}
+		else
+			_before=${_config% \}}
+			_before="$_before, "
+			_after=" }"
+		fi
+		_new_config="$_before$_vlan$_after"
+		echo "$_new_config" > /root/flashbox_config.json
 	fi
 }
 

@@ -287,10 +287,8 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		fi
 
 		_local_vlan_index=$(get_indexes "vlan_index")
-		if [ "$_local_vlan_index" != "$_vlan_index" ]
-		then
-			save_vlan_config $_res
-		fi
+		# index is empty if in bridge mode or vlan doesn't change
+		[ "$_vlan_index" != "" ] && [ "$_local_vlan_index" != "$_vlan_index" ] && save_vlan_config "$_res"
 		# Reset the reset flags when we receive syn reply
 		if [ "$_local_bridge_did_reset" = "y" ]
 		then
@@ -451,28 +449,25 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 			echo "$COMMANDHASH" >> /root/done_hashes
 		fi
 
-		_update_vlan=0
-		[ "$_local_vlan_index" != "$_vlan_index" ] && _update_vlan=1 && json_update_index "$_vlan_index" "vlan_index"
 		# Update bridge mode information
 		if [ "$_bridge_mode_enabled" = "y" ] && [ "$_local_bridge_enabled" != "y" ]
 		then
 			log "FLASHMAN UPDATER" "Enabling bridge mode..."
 			enable_bridge_mode "y" "n" "$_bridge_mode_switch_disable" "$_bridge_mode_ip" \
 												 "$_bridge_mode_gateway" "$_bridge_mode_dns"
-			_update_vlan=0
 		elif [ "$_bridge_mode_enabled" = "y" ] && [ "$_local_bridge_enabled" = "y" ]
 		then
 			log "FLASHMAN UPDATER" "Updating bridge mode parameters..."
 			update_bridge_mode "n" "$_bridge_mode_switch_disable" "$_bridge_mode_ip" \
 												"$_bridge_mode_gateway" "$_bridge_mode_dns"
-			_update_vlan=0
 		elif [ "$_bridge_mode_enabled" = "n" ] && [ "$_local_bridge_enabled" = "y" ]
 		then
 			log "FLASHMAN UPDATER" "Disabling bridge mode..."
 			disable_bridge_mode
-			_update_vlan=0
 		fi
-		[ $_update_vlan == 1 ] && [ "$(type -t set_vlan_on_boot)" == "" ] && update_vlan
+		# In all the cases above for bridge mode _vlan_index is empty
+		[ "$_vlan_index" != "" ] && [ "$_local_vlan_index" != "$_vlan_index" ] && json_update_index "$_vlan_index" "vlan_index" \
+								&& [ "$(type -t set_vlan_on_boot)" == "" ] && update_vlan "y"
 		
 	fi
 else

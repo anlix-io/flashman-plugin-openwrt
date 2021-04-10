@@ -115,23 +115,27 @@ CUSTOM_FILE_ARQ=
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_dlink_dir-819-a1), y)
 		CUSTOM_FILE_ARQ="tbs"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr740n-v4), y)
-		CUSTOM_FILE_ARQ="tplink_tl-wr740n"
+		CUSTOM_FILE_ARQ="tplink_tl-wr740n-v4-v5"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr740n-v5), y)
-		CUSTOM_FILE_ARQ="tplink_tl-wr740n"
+		CUSTOM_FILE_ARQ="tplink_tl-wr740n-v4-v5"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr740n-v6), y)
-		CUSTOM_FILE_ARQ="tplink_tl-wr740n"
+		CUSTOM_FILE_ARQ="tplink_tl-wr740n-v6"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr741nd-v4), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr741n"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr841-v7), y)
-		CUSTOM_FILE_ARQ="tplink_tl-wr841n"
+		CUSTOM_FILE_ARQ="tplink_tl-wr841n-v7"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr841-v8), y)
-		CUSTOM_FILE_ARQ="tplink_tl-wr841n"
+		CUSTOM_FILE_ARQ="tplink_tl-wr841n-v8"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr841-v9), y)
-		CUSTOM_FILE_ARQ="tplink_tl-wr841n"
+		CUSTOM_FILE_ARQ="tplink_tl-wr841n-v8"
 	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_tl-wr842n-v3), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr842n"
 	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_tl-wr2543-v1), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr2543nd"
+	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_tl-wdr4300-v1), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wdr4300"
+	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_tl-wdr3600-v1), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wdr3600"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v5), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v5-v6"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v6), y)

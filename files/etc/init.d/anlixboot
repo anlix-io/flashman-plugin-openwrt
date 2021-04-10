@@ -13,6 +13,6 @@ boot() {
 
 	if [ "$(type -t set_vlan_on_boot)" ]
 	then
-		update_vlan
+		update_vlan "y"
 	fi
 }

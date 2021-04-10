@@ -157,6 +157,17 @@ leds_off() {
 	done
 }
 
+# Default switch configuration
+switch_ports() {
+	case $1 in
+		1) echo "switch0" ;; # switch name
+		2) echo "0" ;; # wan port
+		3) echo "1 2 3 4" ;; # lan ports
+		4) echo "6" ;; # cpu port
+		5) echo "4" ;; # number of lan ports
+	esac
+}
+
 reset_leds() {
 	leds_off
 	/etc/init.d/led restart > /dev/null
