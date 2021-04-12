@@ -287,10 +287,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		fi
 
 		_local_vlan_index=$(get_indexes "vlan_index")
-		log "UPDATE BRIDGE" "local vlan index: $_local_vlan_index"
-		log "UPDATE BRIDGE" "received vlan index: $_vlan_index"
-		log "UPDATE BRIDGE" "response: $_res"
-		# index is empty if in bridge mode or vlan doesn't change
+		# _vlan_index is empty if in bridge mode or vlan doesn't change
 		[ "$_vlan_index" != "" ] && [ "$_local_vlan_index" != "$_vlan_index" ] && save_vlan_config "$_res"
 		# Reset the reset flags when we receive syn reply
 		if [ "$_local_bridge_did_reset" = "y" ]
@@ -452,8 +449,6 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 			echo "$COMMANDHASH" >> /root/done_hashes
 		fi
 
-		log "UPDATE BRIDGE" "local bridge mode: $_local_bridge_enabled"
-		log "UPDATE BRIDGE" "received bridge mode: $_bridge_mode_enabled"
 		# Update bridge mode information
 		if [ "$_bridge_mode_enabled" = "y" ] && [ "$_local_bridge_enabled" != "y" ]
 		then
