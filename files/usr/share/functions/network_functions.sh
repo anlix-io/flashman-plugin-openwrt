@@ -690,6 +690,7 @@ get_bridge_mode_status() {
 }
 
 save_vlan_config() {
+	log "UPDATE BRIDGE" "entered save vlan"
 	local _res=$1
 	# Realtek routers have to save config on auxiliary file 
 	if [ "$(type -t set_vlan_on_boot)" ]; then
@@ -716,9 +717,12 @@ save_vlan_config() {
 		_new_config="$_before$_vlan$_after"
 		echo "$_new_config" > /root/flashbox_config.json
 	fi
+	log "UPDATE BRIDGE" "leaving save vlan vlan_config: $(cat /root/vlan_config.json)"
+	log "UPDATE BRIDGE" "leaving save vlan flashbox_config: $(cat /root/flashbox_config.json)"
 }
 
 update_vlan() {
+	log "UPDATE BRIDGE" "entered update_vlan"
 	local _restart_network=$1
 	json_cleanup
 	if [ "$(type -t set_vlan_on_boot)" ] && [ -e /root/vlan_config.json ]; then
@@ -822,6 +826,7 @@ update_vlan() {
 		/etc/init.d/network restart
 		sleep 5
 	fi
+	log "UPDATE BRIDGE" "leaving update_vlan config: $(cat /root/flashbox_config.json)"
 }
 
 enable_bridge_mode() {
@@ -905,12 +910,14 @@ enable_bridge_mode() {
 	fi
 	# Save bridge mode vlan config
 	if [ "$(type -t wan_lan_diff_ifaces)" == "" ]; then
+		log "UPDATE BRIDGE" "entering save_bridge"
 		save_bridge_mode_vlan_config "y" "$_disable_lan_ports"
 	fi
 
 	# Some routers need to change port mapping on software switch
 	if [ "$(type -t set_vlan_on_boot)" == "" ] && [ "$(type -t wan_lan_diff_ifaces)" == "" ]
 	then
+		log "UPDATE BRIDGE" "entering update_vlan"
 		update_vlan "n"
 	fi
 
@@ -1044,12 +1051,14 @@ update_bridge_mode() {
 		fi
 		# Save bridge mode vlan config
 		if [ "$(type -t wan_lan_diff_ifaces)" == "" ]; then
+			log "UPDATE BRIDGE" "entering save_bridge"
 			save_bridge_mode_vlan_config "y" "$_disable_lan_ports"
 		fi
 
 		# Some routers need to change port mapping on software switch
 		if [ "$(type -t set_vlan_on_boot)" == "" ] && [ "$(type -t wan_lan_diff_ifaces)" == "" ]
 		then
+			log "UPDATE BRIDGE" "entering update_vlan"
 			update_vlan "n"
 		fi
 	fi
@@ -1122,12 +1131,14 @@ disable_bridge_mode() {
 	fi
 	# Save router mode vlan config
 	if [ "$(type -t wan_lan_diff_ifaces)" == "" ]; then
+		log "UPDATE BRIDGE" "entering save_bridge"
 		save_bridge_mode_vlan_config "n" "n"
 	fi
 
 	# Some routers need to change back port mapping on software switch
 	if [ "$(type -t set_vlan_on_boot)" == "" ] && [ "$(type -t wan_lan_diff_ifaces)" == "" ]
 	then
+		log "UPDATE BRIDGE" "update_vlan"
 		update_vlan "n"
 	fi
 	uci set network.lan.proto="static"
