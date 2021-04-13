@@ -6,6 +6,9 @@
 . /usr/share/libubox/jshn.sh
 . /lib/functions/network.sh
 . /usr/share/functions/device_functions.sh
+if [ -e /usr/share/functions/custom_device.sh ]; then
+	. /usr/share/functions/custom_device.sh
+fi
 
 get_ipv6_enabled() {
 	local _ipv6_enabled=1
