@@ -693,19 +693,12 @@ get_bridge_mode_status() {
 }
 
 save_vlan_config() {
-	local _res=$1
-	# Expected received format in response: "vlan":{"1":"2 3 4 6t","2":"0 6t"}
+	local _vlan=$1
 	# Realtek routers have to save config on auxiliary file 
 	if [ "$(type -t set_vlan_on_boot)" ]; then
-		_vlan="{ \"vlan\": "
-		_suffix=${_res#*\"vlan\":}
-		_suffix=${_suffix%%\}*}
-		_vlan="$_vlan$_suffix} }"
+		_vlan="{ \"vlan\": $_vlan }"
 		echo "$_vlan" > /root/vlan_config.json
 	else
-		_vlan=${_res#*\"vlan\":}
-		_vlan=${_vlan%%\}*}
-		_vlan="$_vlan}"
 		_config="$(cat /root/flashbox_config.json)"
 		_before=${_config%\"vlan\"*}
 		# Indicates that flashbox_config already has a vlan object
