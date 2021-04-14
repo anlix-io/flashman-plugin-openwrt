@@ -692,44 +692,14 @@ get_bridge_mode_status() {
 	echo "$_status"
 }
 
-save_vlan_config() {
-	local _vlan=$1
-	# Realtek routers have to save config on auxiliary file 
-	if [ "$(type -t set_vlan_on_boot)" ]; then
-		_vlan="{ \"vlan\": $_vlan }"
-		echo "$_vlan" > /root/vlan_config.json
-	else
-		_config="$(cat /root/flashbox_config.json)"
-		_before=${_config%\"vlan\"*}
-		# Indicates that flashbox_config already has a vlan object
-		if [ $(( ${#_before} < ${#_config} )) = 1 ]; then
-			_before="$_before\"vlan\": "
-			_after=${_config#*\"vlan\": }
-			_after=${_after#*\}}
-		else # flashbox_config doesn't have a vlan object
-			_before=${_config% \}}
-			_before="$_before, \"vlan\": "
-			_after=" }"
-		fi
-		_new_config="$_before$_vlan$_after"
-		echo "$_new_config" > /root/flashbox_config.json
-	fi
-}
-
 update_vlan() {
 	local _restart_network=$1
 	json_cleanup
-	if [ "$(type -t set_vlan_on_boot)" ] && [ -e /root/vlan_config.json ]; then
-		json_load_file /root/vlan_config.json
-	else
-		json_load_file /root/flashbox_config.json
-	fi
-	json_get_keys _vlans vlan
+	json_load_file /root/vlan_config.json
+	json_get_keys _vlans
 
 	# On first boot there will be no vlan object
 	if [ "$_vlans" != "" ]; then
-
-		json_select vlan
 
 		local _input=""
 
@@ -796,30 +766,10 @@ update_vlan() {
 			fi
 		done
 	
-		json_select ..
 		json_close_object
 	
 		if [ "$(type -t set_vlan_on_boot)" ]; then
 			swconfig dev switch0 set apply
-			if [ -e /root/vlan_config.json ]; then
-				_vlan="$(cat /root/vlan_config.json)"
-				_vlan=${_vlan#\{ }
-				_vlan=${_vlan% \}}
-				_config="$(cat /root/flashbox_config.json)"
-				_before=${_config%\"vlan\"*}
-				# Indicates vlan object already is in flashbox_config
-				if [ $(( ${#_before} < ${#_config} )) = 1 ]; then
-					_after=${_config#*\"vlan\": }
-					_after=${_after#*\}}
-				else # No vlan object yet in flashbox_config
-					_before=${_config% \}}
-					_before="$_before, "
-					_after=" }"
-				fi
-				_new_config="$_before$_vlan$_after"
-				echo "$_new_config" > /root/flashbox_config.json
-				rm /root/vlan_config.json
-			fi
 		else
 			uci commit network
 		fi
@@ -1198,19 +1148,18 @@ save_bridge_mode_vlan_config() {
 	# Realtek routers have to save config on auxiliary file 
 	if [ "$(type -t set_vlan_on_boot)" ]; then
 		if [ "$_enable_bridge" = "y" ]; then
-			_vlan="{ \"vlan\": { \"9\": \"\", \"8\": \"$_wan_port "
+			_vlan="{ \"9\": \"\", \"8\": \"$_wan_port "
 			if [ "$_disable_lan_ports" = "y" ]; then
-				_vlan="$_vlan$_cpu_port\" } }"
+				_vlan="$_vlan$_cpu_port\" }"
 			else
-				_vlan="$_vlan$_lan_ports $_cpu_port\" } }"
+				_vlan="$_vlan$_lan_ports $_cpu_port\" }"
 			fi
 		else
-			_vlan="{ \"vlan\": { \"9\": \"$_lan_ports $_cpu_port\", \"8\": \"$_wan_port $_cpu_port\" } }"
+			_vlan="{ \"9\": \"$_lan_ports $_cpu_port\", \"8\": \"$_wan_port $_cpu_port\" }"
 		fi
-		echo "$_vlan" > /root/vlan_config.json
 	else
 		if [ "$_enable_bridge" = "y" ]; then
-			_vlan="\"vlan\": { \"1\": \"$_wan_port "
+			_vlan="{ \"1\": \"$_wan_port "
 			if [ "$_disable_lan_ports" = "y" ]; then
 				_vlan="$_vlan${_cpu_port}t\""
 			else
@@ -1218,21 +1167,10 @@ save_bridge_mode_vlan_config() {
 			fi
 			_vlan="$_vlan, \"2\": \"\" }"
 		else
-			_vlan="\"vlan\": { \"1\": \"$_lan_ports ${_cpu_port}t\", \"2\": \"$_wan_port ${_cpu_port}t\" }"
+			_vlan="{ \"1\": \"$_lan_ports ${_cpu_port}t\", \"2\": \"$_wan_port ${_cpu_port}t\" }"
 		fi
-		_config="$(cat /root/flashbox_config.json)"
-		_before=${_config%\"vlan\"*}
-		if [ $(( ${#_before} < ${#_config} )) = 1 ]; then
-			_after=${_config#*\"vlan\": }
-			_after=${_after#*\}}
-		else
-			_before=${_config% \}}
-			_before="$_before, "
-			_after=" }"
-		fi
-		_new_config="$_before$_vlan$_after"
-		echo "$_new_config" > /root/flashbox_config.json
 	fi
+	echo "$_vlan" > /root/vlan_config.json
 }
 
 get_mesh_mode() {
