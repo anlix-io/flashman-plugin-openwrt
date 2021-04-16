@@ -1,6 +1,6 @@
 #!/bin/sh /etc/rc.common
 
-. /usr/share/functions/device_functions.sh
+. /usr/share/libubox/jshn.sh
 if [ -e /usr/share/functions/custom_device.sh ]
 then
 	. /usr/share/functions/network_functions.sh
@@ -11,7 +11,7 @@ START=17
 boot() {
 	[ "$(type -t anlix_bootup_defaults)" ] && anlix_bootup_defaults
 
-	if [ "$(type -t set_vlan_on_boot)" ]
+	if [ "$(type -t set_switch_bridge_mode_on_boot)" ]
 	then
 		update_vlan "n"
 	fi
