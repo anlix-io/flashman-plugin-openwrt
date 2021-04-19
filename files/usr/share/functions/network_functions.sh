@@ -210,9 +210,9 @@ set_wan_type() {
 			json_close_object
 
 			# If we changed bridge and router needs reboot, we do so here
-			if [ "$_did_change_bridge" = "y" ] && [ "$(type -t needs_reboot_bridge_mode)" ]
+			if [ "$_did_change_bridge" = "y" ] && [ "$(type -t needs_reboot_change_vlan)" ]
 			then
-				needs_reboot_bridge_mode
+				needs_reboot_change_vlan
 			fi
 
 		elif [ "$_wan_type_remote" = "pppoe" ]
@@ -240,9 +240,9 @@ set_wan_type() {
 				json_close_object
 
 				# If we changed bridge and router needs reboot, we do so here
-				if [ "$_did_change_bridge" = "y" ] && [ "$(type -t needs_reboot_bridge_mode)" ]
+				if [ "$_did_change_bridge" = "y" ] && [ "$(type -t needs_reboot_change_vlan)" ]
 				then
-					needs_reboot_bridge_mode
+					needs_reboot_change_vlan
 				fi
 
 			fi
@@ -908,9 +908,9 @@ enable_bridge_mode() {
 			fi
 		fi
 		# Some targets need to reboot the whole router after changing mode
-		if [ "$(type -t needs_reboot_bridge_mode)" ]
+		if [ "$(type -t needs_reboot_change_vlan)" ]
 		then
-			needs_reboot_bridge_mode
+			needs_reboot_change_vlan
 		else
 			/etc/init.d/network restart
 			/etc/init.d/uhttpd restart
@@ -1034,9 +1034,9 @@ update_bridge_mode() {
 			fi
 		fi
 		# Some targets need to reboot the whole router after changes on switch
-		if [ "$(type -t needs_reboot_bridge_mode)" ] && [ "$_check_reboot" == "y" ]
+		if [ "$(type -t needs_reboot_change_vlan)" ] && [ "$_check_reboot" == "y" ]
 		then
-			needs_reboot_bridge_mode
+			needs_reboot_change_vlan
 		fi
 		/etc/init.d/minisapo reload
 	else
@@ -1121,9 +1121,9 @@ disable_bridge_mode() {
 	if [ "$_skip_network_restart" != "y" ]
 	then
 		# Some targets need to reboot the whole router after changing mode
-		if [ "$(type -t needs_reboot_bridge_mode)" ]
+		if [ "$(type -t needs_reboot_change_vlan)" ]
 		then
-			needs_reboot_bridge_mode
+			needs_reboot_change_vlan
 		else
 			/etc/init.d/network restart
 			[ "$(get_ipv6_enabled)" = "1" ] && /etc/init.d/odhcpd restart

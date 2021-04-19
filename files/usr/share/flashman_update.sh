@@ -229,6 +229,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		json_get_var _forward_index forward_index
 		json_get_var _blocked_devices_index blocked_devices_index
 		json_get_var _upnp_devices_index upnp_devices_index
+		json_get_var _vlan_index vlan_index
 		json_get_var _data_collecting_is_active data_collecting_is_active
 		json_get_var _data_collecting_has_latency data_collecting_has_latency
 		json_get_var _data_collecting_alarm_fqdn data_collecting_alarm_fqdn
@@ -419,7 +420,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		# Ignore changes if in bridge mode
 		if [ "$_local_bridge_enabled" != "y" ]
 		then
-			_local_dindex=$(get_forward_indexes "blocked_devices_index")
+			_local_dindex=$(get_indexes "blocked_devices_index")
 			if [ "$_local_dindex" != "$_blocked_devices_index" ]
 			then
 				update_blocked_devices "$_blocked_devices" "$_blocked_macs" \
@@ -436,11 +437,11 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		# Ignore changes if in bridge mode
 		if [ "$_local_bridge_enabled" != "y" ]
 		then
-			_local_findex=$(get_forward_indexes "forward_index")
+			_local_findex=$(get_indexes "forward_index")
 			[ "$_local_findex" != "$_forward_index" ] && update_port_forward
 
 			# Check for updates in upnp allowed devices mapping
-			_local_uindex=$(get_forward_indexes "upnp_devices_index")
+			_local_uindex=$(get_indexes "upnp_devices_index")
 			[ "$_local_uindex" != "$_upnp_devices_index" ] && update_upnp_devices
 		fi
 
