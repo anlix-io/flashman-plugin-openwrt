@@ -4,6 +4,31 @@
 . /usr/share/libubox/jshn.sh
 . /usr/share/functions/device_functions.sh
 
+json_update_index() {
+	_index=$1
+	_json_var=$2
+
+	json_init
+	[ -f /etc/anlix_indexes ] && json_load_file /etc/anlix_indexes
+	json_add_string "$_json_var" "$_index"
+	json_close_object
+	json_dump > /etc/anlix_indexes
+}
+
+get_indexes() {
+	local _index=$1
+	local _idx_val=""
+
+	if [ -f /etc/anlix_indexes ]
+	then
+		json_cleanup
+		json_load_file /etc/anlix_indexes
+		json_get_var _idx_val "$_index"
+		json_close_object
+	fi
+	echo "$_idx_val"
+}
+
 log() {
 	logger -t "$1 " "$2"
 }
