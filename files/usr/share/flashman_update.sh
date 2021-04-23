@@ -175,7 +175,7 @@ upgfirm=$_has_upgraded_version&\
 sysuptime=$(sys_uptime)&\
 wanuptime=$(wan_uptime)&\
 wpsstate=$_local_wps_state"
-	if [ "$_local_bridge_did_reset" = "y" ] || [ "$_local_did_change_wan" = "y" || "$_hard_reset_info" = "1" ]
+	if [ "$_local_bridge_did_reset" = "y" ] || [ "$_local_did_change_wan" = "y" ] || [ "$_hard_reset_info" = "1" ]
 	then
 		_data="$_data&\
 bridge_enabled=$_local_bridge_enabled&\
