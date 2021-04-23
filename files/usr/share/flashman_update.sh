@@ -184,7 +184,7 @@ bridge_fix_ip=$_local_bridge_fix_ip&\
 bridge_fix_gateway=$_local_bridge_fix_gateway&\
 bridge_fix_dns=$_local_bridge_fix_dns"
 	fi
-	if [ "$_hard_reset_info" = "1" ] && [ "$_local_bridge_enabled" = 0 ]
+	if [ "$_local_bridge_enabled" = 0 ]
 	then
 		_data="$_data&vlan=$(cat /root/vlan_config.json)"
 	fi
