@@ -79,6 +79,7 @@ then
 	json_get_var _local_bridge_fix_ip bridge_fix_ip
 	json_get_var _local_bridge_fix_gateway bridge_fix_gateway
 	json_get_var _local_bridge_fix_dns bridge_fix_dns
+	json_get_var _local_bridge_did_reset bridge_did_reset
 	json_get_var _local_did_change_wan did_change_wan_local
 	json_get_var _local_mesh_mode mesh_mode
 	json_close_object
@@ -289,6 +290,15 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		# _vlan_index is empty if in bridge mode or vlan doesn't change
 		if [ "$_vlan_index" != "" ] && [ "$_local_vlan_index" != "$_vlan_index" ]; then
 			echo $_res | jsonfilter -e "@.vlan" > /root/vlan_config.json
+		fi
+		# Reset the reset flags when we receive syn reply
+		if [ "$_local_bridge_did_reset" = "y" ]
+		then
+			json_cleanup
+			json_load_file /root/flashbox_config.json
+			json_add_string bridge_did_reset "n"
+			json_dump > /root/flashbox_config.json
+			json_close_object
 		fi
 		if [ "$_local_did_change_wan" = "y" ]
 		then
