@@ -894,7 +894,6 @@ enable_bridge_mode() {
 				# No connectivity - remove fixed ip config from bridge
 				json_cleanup
 				json_load_file /root/flashbox_config.json
-				json_add_string bridge_did_reset "y"
 				json_add_string bridge_fix_ip ""
 				json_add_string bridge_fix_gateway ""
 				json_add_string bridge_fix_dns ""
@@ -1025,11 +1024,6 @@ update_bridge_mode() {
 			if [ "$_accessOK" = "1" ]
 			then
 				# No connectivity - remove fixed ip config from bridge
-				json_cleanup
-				json_load_file /root/flashbox_config.json
-				json_add_string bridge_did_reset "y"
-				json_dump > /root/flashbox_config.json
-				json_close_object
 				update_bridge_mode "n" "$2" "" "" ""
 			fi
 		fi
