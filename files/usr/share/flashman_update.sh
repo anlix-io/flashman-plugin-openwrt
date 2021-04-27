@@ -80,6 +80,7 @@ then
 	json_get_var _local_bridge_fix_gateway bridge_fix_gateway
 	json_get_var _local_bridge_fix_dns bridge_fix_dns
 	json_get_var _local_bridge_did_reset bridge_did_reset
+	json_get_var _local_did_change_wan did_change_wan_local
 	json_get_var _local_mesh_mode mesh_mode
 	json_close_object
 
@@ -183,9 +184,9 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 	then
 		_data="$_data&vlan=$(cat /root/vlan_config.json)"
 	fi
-	if [ "$_local_bridge_did_reset" = "y" ]
+	if [ "$_local_did_change_wan" = "y" ]
 	then
-		_data="$_data&local_change_bridge=1"
+		_data="$_data&local_change_wan=1"
 	fi
 	_url="deviceinfo/syn/"
 	_res=$(rest_flashman "$_url" "$_data")
@@ -296,6 +297,14 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 			json_cleanup
 			json_load_file /root/flashbox_config.json
 			json_add_string bridge_did_reset "n"
+			json_dump > /root/flashbox_config.json
+			json_close_object
+		fi
+		if [ "$_local_did_change_wan" = "y" ]
+		then
+			json_cleanup
+			json_load_file /root/flashbox_config.json
+			json_add_string did_change_wan_local "n"
 			json_dump > /root/flashbox_config.json
 			json_close_object
 		fi
