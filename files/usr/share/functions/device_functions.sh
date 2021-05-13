@@ -26,7 +26,7 @@ is_mesh_routing_capable() {
 		[ "$_5iface" ] && [ "$(iw phy $_5iface info|grep "mesh point")" ] && _ret5=1
 	fi
 
-	if [ "$_ret5" -eq "1" ] 
+	if [ "$_ret5" -eq "1" ]
 	then
 		[ "$_ret" -eq "1" ] && echo "3" || echo "2"
 	else
@@ -138,6 +138,17 @@ leds_off() {
 	done
 }
 
+# Default switch configuration
+switch_ports() {
+	case $1 in
+		1) echo "switch0" ;; # switch name
+		2) echo "0" ;; # wan port
+		3) echo "1 2 3 4" ;; # lan ports
+		4) echo "6" ;; # cpu port
+		5) echo "4" ;; # number of lan ports
+	esac
+}
+
 reset_leds() {
 	leds_off
 	/etc/init.d/led restart > /dev/null
@@ -171,10 +182,10 @@ get_mac() {
 }
 
 get_vlan_device() {
-	parse_get_switch() { 
-		config_get device $2 device 
+	parse_get_switch() {
+		config_get device $2 device
 		config_get vlan $2 vlan
-		[ $vlan -eq $1 ] && echo "${device}" 
+		[ $vlan -eq $1 ] && echo "${device}"
 	}
 	config_load network
 	swt=$(config_foreach "parse_get_switch $1" switch_vlan)
@@ -194,8 +205,8 @@ get_wan_device() {
 get_switch_device() {
 	local _switch
 	for i in $(swconfig list)
-	do 
-		[ -z "${i%switch*}" ] && _switch="$i" 
+	do
+		[ -z "${i%switch*}" ] && _switch="$i"
 	done
 	echo "$_switch"
 }
@@ -290,6 +301,14 @@ get_lan_dev_negotiated_speed() {
 	echo "$_speed"
 }
 
-needs_reboot_bridge_mode() {
+get_wifi_device_signature() {
+	local _dev_mac="$1"
+	local _q=""
+	_q="$(ubus -S call hostapd.wlan0 get_clients | jsonfilter -e '@.clients["'"$_dev_mac"'"].signature')"
+	[ -z "$_q" ] && [ "$(is_5ghz_capable)" -eq "1" ] && _q="$(ubus -S call hostapd.wlan1 get_clients | jsonfilter -e '@.clients["'"$_dev_mac"'"].signature')"
+	echo "$_q"
+}
+
+needs_reboot_change_vlan() {
 	reboot
 }

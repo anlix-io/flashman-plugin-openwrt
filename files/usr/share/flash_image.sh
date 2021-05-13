@@ -127,7 +127,7 @@ run_reflash() {
 				json_add_string pppoe_user "$_pppoe_user_local"
 				json_add_string pppoe_pass "$_pppoe_password_local"
 				json_dump > /root/flashbox_config.json
-				tar -zcf /tmp/config.tar.gz /root/flashbox_config.json
+				tar -zcf /tmp/config.tar.gz /root/flashbox_config.json /root/vlan_config.json
 				json_add_string has_upgraded_version "0"
 				json_dump > /root/flashbox_config.json
 				json_close_object
