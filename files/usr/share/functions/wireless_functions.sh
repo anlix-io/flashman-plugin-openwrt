@@ -648,18 +648,13 @@ set_wps_push_button() {
 	local _device1
 
 	_state=$1
-	_device0="$(get_ifname '0')"
-	_device1="$(get_ifname '1')"
-
-	if [ ! "$(type -t hostapd_cli)" ]
-	then
-		return 1
-	fi
+	_device0=$(get_ifname '0')
+	_device1=$(get_ifname '1')
 
 	if [ "$_state" = "1" ]
 	then
 		# Push button will last 2 min active or until first conn succeeds
-		if ["$_device0" = "ra0"]
+		if [ "$_device0" == "ra0" ]
 		then
 
 			iwpriv ra0 wsc_start 1
@@ -670,7 +665,7 @@ set_wps_push_button() {
 
 		fi
 
-		if [ "$(is_5ghz_capable)" == "1" ] && [ "$_device1" = "rai0" ]
+		if [ "$(is_5ghz_capable)" == "1" ] && [ "$_device1" == "rai0" ]
 		then
 
 			iwpriv rai0 wsc_start 1
@@ -682,10 +677,11 @@ set_wps_push_button() {
 
 		fi
 		return 0
+
 	else
 
 		# Cancel WPS
-		if ["$_device0" = "ra0"]
+		if [ "$_device0" == "ra0" ]
 		then
 		
 			iwpriv ra0 wsc_start 0
@@ -696,7 +692,7 @@ set_wps_push_button() {
 		
 		fi
 
-		if [ "$(is_5ghz_capable)" == "1" ] && [ "$_device1" = "rai0" ]
+		if [ "$(is_5ghz_capable)" == "1" ] && [ "$_device1" == "rai0" ]
 		then
 
 			iwpriv rai0 wsc_start 0
