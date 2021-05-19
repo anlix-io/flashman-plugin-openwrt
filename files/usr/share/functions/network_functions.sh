@@ -143,10 +143,19 @@ check_connectivity_internet() {
 }
 
 renew_dhcp() {
-	local _iface="wan"
-	[ "$(get_bridge_mode_status)" = "y" ] && _iface="lan"
-	local _proto="$(ifstatus $_iface | jsonfilter -e '@.proto')"
-	[ "$_proto" = "dhcp" ] && ubus call "network.interface.$_iface" renew
+	local _iface
+	local _proto
+	if [ "$(get_bridge_mode_status)" = "y" ]
+	then
+		_iface="lan"
+		_proto="$(ifstatus $_iface | jsonfilter -e '@.proto')"
+		[ "$_proto" = "dhcp" ] && ubus call "network.interface.$_iface" renew
+	elif [ "$FLM_DO_DHCP_RENEW_ON_DISCONNECT" = "y" ]
+	then
+		_iface="wan"
+		_proto="$(ifstatus $_iface | jsonfilter -e '@.proto')"
+		[ "$_proto" = "dhcp" ] && ubus call "network.interface.$_iface" renew
+	fi
 }
 
 get_wan_ip() {

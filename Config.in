@@ -131,6 +131,10 @@ config FLASHMAN_DHCP_NOPROXY
 	string "Do not use router as a DNS proxy"
 	default "0"
 
+config FLASHMAN_DO_DHCP_RENEW_ON_DISCONNECT
+	bool "Force DHCP renew if DHCP mode is activated on WAN and Flashman connection has been lost"
+	default y
+
 config MQTT_PORT
 	string "MQTT port"
 	default "1883"
