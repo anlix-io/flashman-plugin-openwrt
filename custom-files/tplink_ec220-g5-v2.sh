@@ -10,7 +10,7 @@ get_custom_hardware_version() {
 
 custom_switch_ports() {
 	case $1 in
-		1) echo "switch1" ;;
+		1) echo "switch0" ;;
 		2) echo "3" ;;
 		3) echo "0 1 2" ;;
 		4) echo "5" ;;
