@@ -89,6 +89,7 @@ DRIVER_FILE_ARQ=mac80211
 		CUSTOM_FILE_ARQ="tplink_archer-c20-v1"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tplink_c20-v4), y)
 		CUSTOM_FILE_ARQ="tplink_archer-c20-v4"
+		DRIVER_FILE_ARQ="rtwifi"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tplink_c20-v5), y)
 		CUSTOM_FILE_ARQ="tplink_archer-c20-v5"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tplink_c20-v5w), y)

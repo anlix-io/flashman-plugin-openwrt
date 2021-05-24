@@ -348,7 +348,11 @@ drv_rtwifi_setup() {
 			APCLI_APCTRL="apcli_2g"
 			RTWIFI_IFPREFIX=""
 			RTWIFI_DEF_BAND="g"
+			WSC_CONF_MODE="4"
+			WSC_CONF_STATUS="2"
+			WSC_MODE="4"
 			RTWIFI_PROFILE_PATH="${RTWIFI_PROFILE_DIR}rtwifi_2g.dat"
+			
 		;;
 		rai)
 			WirelessMode=14
@@ -356,6 +360,9 @@ drv_rtwifi_setup() {
 			APCLI_APCTRL="apcli_5g"
 			RTWIFI_IFPREFIX="i"
 			RTWIFI_DEF_BAND="a"
+			WSC_CONF_MODE="4"
+			WSC_CONF_STATUS="2"
+			WSC_MODE="4"
 			RTWIFI_PROFILE_PATH="${RTWIFI_PROFILE_DIR}rtwifi_5g.dat"
 		;;
 		*)
@@ -622,8 +629,9 @@ HT_DisallowTKIP=${HT_DisallowTKIP:-0}
 HT_BSSCoexistence=${HT_CE:-1}
 HT_BSSCoexApCntThr=10
 GreenAP=${greenap:-0}
-WscConfMode=0
-WscConfStatus=1
+WscConfMode=${WSC_CONF_MODE}
+WscConfStatus=${WSC_CONF_STATUS}
+WscMode=${WSC_MODE}
 WCNTest=0
 RADIUS_Server=
 RADIUS_Port=1812
