@@ -114,7 +114,7 @@ is_device_wireless() {
 			_wifi_itf="$(get_radio_phy 1)"
 		fi
 
-		_dev_info="$(iwinfo $_wifi_itf a 2> /dev/null | grep -r $_dev_mac)"
+		_dev_info="$(iwinfo $_wifi_itf a 2> /dev/null | grep -i $_dev_mac)"
 
 		[ "$_dev_info" ] && return 0  
 	done
