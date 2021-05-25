@@ -6,7 +6,6 @@
 . /usr/share/functions/device_functions.sh
 . /usr/share/functions/firewall_functions.sh
 . /usr/share/functions/network_functions.sh
-. /usr/share/functions/wireless_functions.sh
 
 send_boot_log() {
 	local _res
@@ -348,8 +347,8 @@ send_site_survey() {
 	local _device1
 	local _INFO
 
-	_device0=$(get_ifname '0')
-	_device1=$(get_ifname '1')
+	_device0=$(get_radio_phy 0)
+	_device1=$(get_radio_phy 1)
 
 	A="$(iwinfo $_device0 freqlist 2> /dev/null)"
 	[ "$(is_5ghz_capable)" = "1" ] && \

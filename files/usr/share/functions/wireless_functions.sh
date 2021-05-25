@@ -32,11 +32,6 @@ get_wifi_state() {
 	[ "$_q" ] && [ "$_q" = "1" ] && echo "0" || echo "1"
 }
 
-get_ifname() {
-	local _radio_ifname="$(uci -q get wireless.default_radio$1.ifname)"
-	echo "$_radio_ifname"
-}
-
 auto_channel_selection() {
 	local _iface=$1
 	case "$_iface" in
@@ -648,58 +643,40 @@ set_wps_push_button() {
 	local _device1
 
 	_state=$1
-	_device0=$(get_ifname '0')
-	_device1=$(get_ifname '1')
+	_device0=$(get_radio_phy 0)
+	_device1=$(get_radio_phy 1)
 
 	if [ "$_state" = "1" ]
 	then
 		# Push button will last 2 min active or until first conn succeeds
 		if [ "$_device0" == "ra0" ]
 		then
-
 			iwpriv ra0 wsc_start 1
-
 		else
-
 			hostapd_cli -i wlan0 wps_pbc
-
 		fi
 
 		if [ "$(is_5ghz_capable)" == "1" ] && [ "$_device1" == "rai0" ]
 		then
-
-			iwpriv rai0 wsc_start 1
-			
+			iwpriv rai0 wsc_start 1		
 		elif [ "$(is_5ghz_capable)" == "1" ]
 		then
-
 			hostapd_cli -i wlan1 wps_pbc
-
 		fi
 		return 0
-
 	else
-
 		# Cancel WPS
 		if [ "$_device0" == "ra0" ]
 		then
-		
 			iwpriv ra0 wsc_start 0
-
 		else
-
 			hostapd_cli -i wlan0 wps_cancel
-		
 		fi
-
 		if [ "$(is_5ghz_capable)" == "1" ] && [ "$_device1" == "rai0" ]
 		then
-
 			iwpriv rai0 wsc_start 0
-			
 		elif [ "$(is_5ghz_capable)" == "1" ]
 		then
-
 			hostapd_cli -i wlan1 wps_cancel
 		fi
 		return 0
