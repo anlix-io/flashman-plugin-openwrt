@@ -41,94 +41,84 @@ is_mesh_capable() {
 get_wifi_device_stats() {
 	local _dev_mac="$1"
 	local _dev_info
-	local _wifi_stats=""
-	local _retstatus
-	local _cmd_res
-	local _wifi_itf="wlan0"
-	local _ap_freq="2.4"
+	local _wifi_itf
+	local _ap_freq
+	local _res
 	local _base_noise="-92"
 
-	_cmd_res=$(command -v iw)
-	_retstatus=$?
-
-	if [ $_retstatus -eq 0 ]
-	then
-		_dev_info="$(iw dev $_wifi_itf station get $_dev_mac 2> /dev/null)"
-		_retstatus=$?
-
-		if [ $_retstatus -ne 0 ]
+	for _ap_freq in "2.4" "5.0"
+	do 
+		if [ "$_ap_freq" == "2.4" ]
 		then
-			_wifi_itf="wlan1"
-			_ap_freq="5.0"
-			_dev_info="$(iw dev $_wifi_itf station get $_dev_mac 2> /dev/null)"
-			_retstatus=$?
-		fi
-
-		if [ $_retstatus -eq 0 ]
-		then
-			local _dev_txbitrate="$(echo "$_dev_info" | grep 'tx bitrate:' | awk '{print $3}')"
-			local _dev_rxbitrate="$(echo "$_dev_info" | grep 'rx bitrate:' | awk '{print $3}')"
-			local _dev_mcs="$(echo "$_dev_info" | grep 'tx bitrate:' | awk '{print $5}')"
-			local _dev_signal="$(echo "$_dev_info" | grep -m1 'signal:' | awk '{print $2}' | awk -F. '{print $1}')"
-			local _ap_noise="$(iwinfo $_wifi_itf info | grep 'Noise:' | awk '{print $5}' | awk -F. '{print $1}')"
-			local _dev_txbytes="$(echo "$_dev_info" | grep 'tx bytes:' | awk '{print $3}')"
-			local _dev_rxbytes="$(echo "$_dev_info" | grep 'rx bytes:' | awk '{print $3}')"
-			local _dev_txpackets="$(echo "$_dev_info" | grep 'tx packets:' | awk '{print $3}')"
-			local _dev_rxpackets="$(echo "$_dev_info" | grep 'rx packets:' | awk '{print $3}')"
-			local _dev_conntime="$(echo "$_dev_info" | grep 'connected time:' | awk '{print $3}')"
-
-			_ap_noise=$([ "$_ap_noise" == "unknown" ] && echo "$_base_noise" || echo "$_ap_noise")
-			if [ "$_ap_noise" -lt "$_base_noise" ]
-			then
-				_ap_noise="$_base_noise"
-			fi
-
-			# Calculate SNR
-			local _dev_snr="$(($_dev_signal - $_ap_noise))"
-
-			_wifi_stats="$_dev_txbitrate $_dev_rxbitrate $_dev_signal"
-			_wifi_stats="$_wifi_stats $_dev_snr $_ap_freq"
-
-			[ "$_dev_mcs" == "VHT-MCS" ] && _wifi_stats="$_wifi_stats AC" || _wifi_stats="$_wifi_stats N"
-			# Traffic data
-			_wifi_stats="$_wifi_stats $_dev_txbytes $_dev_rxbytes"
-			_wifi_stats="$_wifi_stats $_dev_txpackets $_dev_rxpackets"
-			_wifi_stats="$_wifi_stats $_dev_conntime"
-			echo "$_wifi_stats"
+			_wifi_itf="$(get_radio_phy 0)"
 		else
-			echo "0.0 0.0 0.0 0.0 0 Z 0 0 0 0 0"
+			_wifi_itf="$(get_radio_phy 1)"
 		fi
-	else
-		echo "0.0 0.0 0.0 0.0 0 Z 0 0 0 0 0"
-	fi
+
+		_dev_info="$(iwinfo $_wifi_itf a 2> /dev/null)"
+		_res=$(echo "$_dev_info" | awk -v MAC=$_dev_mac -v FREQ=$_ap_freq -e '
+			BEGIN {
+			  A=0;
+			  F=0;
+			} 
+
+			/ago/ {
+			  if (tolower($1) == tolower(MAC)) {
+			    A=1;
+			    F=1;
+			    M=$1
+			    S=$2
+			    N=$5
+			    I=$9
+			  } else {
+			    A=0;
+			  }
+			} 
+
+			/TX/ {
+			  if(A == 1) {
+			    TXBITRATE=$2
+			    TXPKT=$7
+			  }
+			}
+
+			END {
+			  if(FREQ == 5.0) 
+			    FTYPE="AC"
+			  else
+			    FTYPE="N"
+
+			  if(F == 1)
+			    print TXBITRATE, "0.0", S, S-N, FREQ, FTYPE, "0.0", "0.0", TXPKT, "0.0", "1.0" 
+			  else
+			    print "0.0 0.0 0.0 0.0 0 Z 0 0 0 0 0"
+			}
+		')
+
+		[ "${_res::3}" != "0.0" ] && break  
+	done
+	echo "$_res"
 }
 
 is_device_wireless() {
 	local _dev_mac="$1"
 	local _dev_info
-	local _retstatus
-	local _cmd_res
-	local _wifi_itf="wlan0"
+	local _wifi_itf
 
-	_cmd_res=$(command -v iw)
-	_retstatus=$?
-
-	if [ $_retstatus -eq 0 ]
-	then
-		_dev_info="$(iw dev $_wifi_itf station get $_dev_mac 2> /dev/null)"
-		_retstatus=$?
-
-		if [ $_retstatus -ne 0 ]
+	for _ap_freq in "2.4" "5.0"
+	do 
+		if [ "$_ap_freq" == "2.4" ]
 		then
-			_wifi_itf="wlan1"
-			_dev_info="$(iw dev $_wifi_itf station get $_dev_mac 2> /dev/null)"
-			_retstatus=$?
+			_wifi_itf="$(get_radio_phy 0)"
+		else
+			_wifi_itf="$(get_radio_phy 1)"
 		fi
 
-		[ $_retstatus -eq 0 ] && return 0 || return 1
-	else
-		return 1
-	fi
+		_dev_info="$(iwinfo $_wifi_itf a 2> /dev/null | grep -r $_dev_mac)"
+
+		[ "$_dev_info" ] && return 0  
+	done
+	return 1
 }
 
 leds_off() {
