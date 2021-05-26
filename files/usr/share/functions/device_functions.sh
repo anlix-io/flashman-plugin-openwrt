@@ -291,6 +291,26 @@ get_lan_dev_negotiated_speed() {
 	echo "$_speed"
 }
 
+get_wan_statistics() {
+	local _param=$1
+
+	if [ "$(lsmod | grep rtl8367c)" ] && [ "$(type -t custom_switch_ports)" ]
+	then
+		local _switch="$(custom_switch_ports 1)"
+		local _wan_port="$(custom_switch_ports 2)"
+		case "$1" in
+			"TX") echo "$(swconfig dev $_switch port $_wan_port get mib | awk '/ifOutOctets/ { print $3 }')" ;; 
+			"RX") echo "$(swconfig dev $_switch port $_wan_port get mib | awk '/ifInOctets/ { print $3 }')" ;; 
+		esac
+	else
+		local _wan=$(get_wan_device)
+		case "$1" in
+			"TX") echo "$(cat /sys/class/net/$_wan_itf/statistics/rx_bytes)" ;; 
+			"RX") echo "$(cat /sys/class/net/$_wan_itf/statistics/tx_bytes)" ;; 
+		esac
+	fi
+}
+
 get_wifi_device_signature() {
 	local _dev_mac="$1"
 	local _q=""
