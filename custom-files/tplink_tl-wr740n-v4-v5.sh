@@ -1,7 +1,7 @@
 #!/bin/sh
 
 get_custom_hardware_model() {
-	echo "TL-WR842ND"
+	echo "TL-WR740ND"
 }
 
 get_custom_mac() {
@@ -20,8 +20,12 @@ custom_switch_ports() {
 	case $1 in
 		1) echo "switch0" ;;
 		2) echo "5" ;;
-		3) echo "4 3 2 1" ;;
+		3) echo "4 1 2 3" ;;
 		4) echo "0" ;;
 		5) echo "4" ;;
 	esac
+}
+
+wan_lan_diff_ifaces() {
+	echo "1"
 }
