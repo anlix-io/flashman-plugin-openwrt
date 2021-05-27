@@ -298,16 +298,27 @@ get_wan_statistics() {
 	then
 		local _switch="$(custom_switch_ports 1)"
 		local _wan_port="$(custom_switch_ports 2)"
-		case "$1" in
-			"TX") echo "$(swconfig dev $_switch port $_wan_port get mib | awk '/ifOutOctets/ { print $3 }')" ;; 
-			"RX") echo "$(swconfig dev $_switch port $_wan_port get mib | awk '/ifInOctets/ { print $3 }')" ;; 
-		esac
+		A=$(swconfig dev $_switch port $_wan_port get mib 2>/dev/null)
+		if [ "$A" ]
+		then
+			case "$1" in
+				"TX") echo "$(echo "$A" | awk '/ifOutOctets/ { print $3 }')" ;;
+				"RX") echo "$(echo "$A" | awk '/ifInOctets/ { print $3 }')" ;;
+			esac
+		else
+			echo "0"
+		fi
 	else
 		local _wan=$(get_wan_device)
-		case "$1" in
-			"TX") echo "$(cat /sys/class/net/$_wan_itf/statistics/rx_bytes)" ;; 
-			"RX") echo "$(cat /sys/class/net/$_wan_itf/statistics/tx_bytes)" ;; 
-		esac
+		if [ -f /sys/class/net/$_wan_itf/statistics/tx_bytes ]
+		then
+			case "$1" in
+				"TX") echo "$(cat /sys/class/net/$_wan_itf/statistics/rx_bytes)" ;;
+				"RX") echo "$(cat /sys/class/net/$_wan_itf/statistics/tx_bytes)" ;;
+			esac
+		else
+			echo "0"
+		fi
 	fi
 }
 
