@@ -371,30 +371,33 @@ BEGIN {
 }
 
 /Cell/ {
-  A++; 
-  M[A]=$5 
-} 
+  A++;
+  M[A]=$5
+}
 
-/Signal/ { 
-  S[A]=$2 
+/Signal/ {
+  S[A]=$2
 }
 
 /Mode/ {
   C[A]=freq[$4+0]
-}  
+}
 
 /ESSID/ {
   $1=""
-  ID[A]=$0
+  if ($0 == " unknown")
+    ID[A]="\"Desconhecido\""
+  else
+    ID[A]=$0
 }
 
 END { 
   print "{ \"survey\": { "
   for (i=1; i<=A; i++) {
     if(i>1) print ","
-    print "\""tolower(M[i])"\":" 
-    print "{ \"SSID\":"ID[i]"," 
-    print " \"freq\":", C[i]*1000, "," 
+    print "\""tolower(M[i])"\":"
+    print "{ \"SSID\":"ID[i]","
+    print " \"freq\":", C[i]*1000, ","
     print " \"signal\":", S[i]
     print "}"
   }
