@@ -11,6 +11,11 @@ if [ "$EVENT" == "WPS-PBC-ACTIVE" ]
 then
 	# Push button active
 	send_wps_status "0" "1"
+	if [ "$WLAN_ITF" == "ra0" ]
+	then
+		sleep 120 # Wait 2 minutes
+		send_wps_status "0" "0"
+	fi
 elif [ "$EVENT" == "WPS-TIMEOUT" ] || [ "$EVENT" == "WPS-PBC-DISABLE" ]
 then
 	# Push button disabled
