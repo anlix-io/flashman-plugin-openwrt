@@ -42,14 +42,14 @@ set_data_collecting_parameters() {
 	# Updating value if $data_collecting_is_active has changed.
 	if [ "$saved_data_collecting_is_active" != "$data_collecting_is_active" ]; then
 		anyChange=true
-		json_add_string data_collecting_is_active "$data_collecting_is_active"
+		json_add_boolean data_collecting_is_active "$data_collecting_is_active"
 		log "DATA_COLLECTING" "Updated 'data_collecting_is_active' parameter to '$data_collecting_is_active'"
 	fi
 
 	# Updating value if $data_collecting_has_latency has changed.
 	if [ "$saved_data_collecting_has_latency" != "$data_collecting_has_latency" ]; then
 		anyChange=true
-		json_add_string data_collecting_has_latency "$data_collecting_has_latency"
+		json_add_boolean data_collecting_has_latency "$data_collecting_has_latency"
 		log "DATA_COLLECTING" "Updated 'data_collecting_has_latency' parameter to '$data_collecting_has_latency'"
 	fi
 
@@ -70,7 +70,7 @@ set_data_collecting_parameters() {
 	# Updating value if $data_collecting_alarm_fqdn has changed.
 	if [ "$saved_data_collecting_ping_packets" != "$data_collecting_ping_packets" ]; then
 		anyChange=true
-		json_add_string data_collecting_ping_packets "$data_collecting_ping_packets"
+		json_add_int data_collecting_ping_packets "$data_collecting_ping_packets"
 		log "DATA_COLLECTING" "Updated 'data_collecting_ping_packets' parameter to '$data_collecting_ping_packets'"
 	fi
 
