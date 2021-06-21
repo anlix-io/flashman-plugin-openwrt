@@ -21,7 +21,15 @@ json_get_var _lan_ipv6prefix lan_ipv6prefix
 json_get_var _enable_ipv6 enable_ipv6 
 json_close_object
 
-[ -z "$_enable_ipv6" ] && [ "$FLM_WAN_IPV6_ENABLED" = "y" ] && _enable_ipv6="1" || _enable_ipv6="0"
+if [ -z "$_enable_ipv6" ]
+then
+	if [ "$FLM_WAN_IPV6_ENABLED" = "y" ]
+	then
+		_enable_ipv6="1"
+	else
+		_enable_ipv6="0"
+	fi
+fi
 
 if [ "$_lan_addr" = "" ] || [ "$_lan_netmask" = "" ]
 then
