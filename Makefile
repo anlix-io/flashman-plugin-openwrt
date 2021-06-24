@@ -146,10 +146,15 @@ DRIVER_FILE_ARQ=mac80211
 		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v5-v6"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v6), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v5-v6"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v4), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v4"
+		DRIVER_FILE_ARQ="rtwifi"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v5), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v5-v6"
+		DRIVER_FILE_ARQ="rtwifi"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v6), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v5-v6"
+		DRIVER_FILE_ARQ="rtwifi"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr940n-v4), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr940n-v4-v5"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr940n-v5), y)
