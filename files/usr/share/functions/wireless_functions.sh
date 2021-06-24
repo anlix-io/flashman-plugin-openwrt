@@ -652,13 +652,14 @@ set_wps_push_button() {
 		if [ "$_device0" == "ra0" ]
 		then
 			iwpriv ra0 wsc_start 1
+			/usr/share/hostapdstats.sh ra0 WPS-PBC-ACTIVE & # Call this once
 		else
 			hostapd_cli -i wlan0 wps_pbc
 		fi
 
 		if [ "$(is_5ghz_capable)" == "1" ] && [ "$_device1" == "rai0" ]
 		then
-			iwpriv rai0 wsc_start 1		
+			iwpriv rai0 wsc_start 1
 		elif [ "$(is_5ghz_capable)" == "1" ]
 		then
 			hostapd_cli -i wlan1 wps_pbc
@@ -669,6 +670,7 @@ set_wps_push_button() {
 		if [ "$_device0" == "ra0" ]
 		then
 			iwpriv ra0 wsc_start 0
+			/usr/share/hostapdstats.sh ra0 WPS-PBC-DISABLE # Call this only once
 		else
 			hostapd_cli -i wlan0 wps_cancel
 		fi
