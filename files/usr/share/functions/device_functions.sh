@@ -310,11 +310,11 @@ get_wan_statistics() {
 		fi
 	else
 		local _wan=$(get_wan_device)
-		if [ -f /sys/class/net/$_wan_itf/statistics/tx_bytes ]
+		if [ -f /sys/class/net/$_wan/statistics/tx_bytes ]
 		then
 			case "$1" in
-				"TX") echo "$(cat /sys/class/net/$_wan_itf/statistics/rx_bytes)" ;;
-				"RX") echo "$(cat /sys/class/net/$_wan_itf/statistics/tx_bytes)" ;;
+				"TX") echo "$(cat /sys/class/net/$_wan/statistics/rx_bytes)" ;;
+				"RX") echo "$(cat /sys/class/net/$_wan/statistics/tx_bytes)" ;;
 			esac
 		else
 			echo "0"
