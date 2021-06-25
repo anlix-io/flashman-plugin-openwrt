@@ -92,8 +92,10 @@ DRIVER_FILE_ARQ=mac80211
 		DRIVER_FILE_ARQ="rtwifi"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tplink_c20-v5), y)
 		CUSTOM_FILE_ARQ="tplink_archer-c20-v5"
+		DRIVER_FILE_ARQ="rtwifi"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tplink_c20-v5w), y)
 		CUSTOM_FILE_ARQ="tplink_archer-c20-v5W"
+		DRIVER_FILE_ARQ="rtwifi"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_tplink_c5-v4), y)
 		CUSTOM_FILE_ARQ="tplink_archer-c5-v4"
 		DRIVER_FILE_ARQ="rtwifi"
@@ -142,10 +144,18 @@ DRIVER_FILE_ARQ=mac80211
 		CUSTOM_FILE_ARQ="tplink_tl-wdr4300"
 	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_tl-wdr3600-v1), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wdr3600"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v4), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v4"
+		DRIVER_FILE_ARQ="rtwifi"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v5), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v5-v6"
+		DRIVER_FILE_ARQ="rtwifi"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v6), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v5-v6"
+		DRIVER_FILE_ARQ="rtwifi"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v62), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v62"
+		DRIVER_FILE_ARQ="rtwifi"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v4), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v4"
 		DRIVER_FILE_ARQ="rtwifi"
@@ -154,6 +164,9 @@ DRIVER_FILE_ARQ=mac80211
 		DRIVER_FILE_ARQ="rtwifi"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v6), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v5-v6"
+		DRIVER_FILE_ARQ="rtwifi"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v62), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v62"
 		DRIVER_FILE_ARQ="rtwifi"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr940n-v4), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr940n-v4-v5"
