@@ -469,7 +469,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		fi
 		# In all the cases above for bridge mode _vlan_index is empty
 		[ "$_vlan_index" != "" ] && [ "$_local_vlan_index" != "$_vlan_index" ] && json_update_index "$_vlan_index" "vlan_index" \
-								&& [ "$(type -t set_vlan_on_boot)" == "" ] && update_vlan "y"
+							 && update_vlan "y"
 	fi
 else
 	log "FLASHMAN UPDATER" "Fail Authenticating device!"

@@ -712,7 +712,7 @@ update_vlan() {
 
 		local _input=""
 
-		if [ "$(type -t set_vlan_on_boot)" ]; then
+		if [ "$(type -t set_bridge_on_boot)" ]; then
 			_input="$(swconfig dev switch0 show | grep info:)"
 		else
 			_input="$(uci show network | grep ].vlan=)"
@@ -725,7 +725,7 @@ update_vlan() {
 		local _idx=0
 
 		for _vlan in $_input; do
-			if [ "$(type -t set_vlan_on_boot)" ]; then
+			if [ "$(type -t set_bridge_on_boot)" ]; then
 				local _vid=${_vlan#*VLAN }
 				_vid=${_vid%: Ports*}
 			else
@@ -736,13 +736,13 @@ update_vlan() {
 			# Indicates _vid is in _vlans
 			if [ $(( ${#_test} < ${#_vlans} )) = 1 ]; then
 				json_get_var _ports $_vid
-				if [ "$(type -t set_vlan_on_boot)" ]; then
+				if [ "$(type -t set_bridge_on_boot)" ]; then
 					swconfig dev switch0 vlan $_vid set ports "$_ports"
 				else
 					uci set network.@switch_vlan[$_idx].ports="$_ports"
 				fi
 			else # _vid isn't in _vlans
-				if [ "$(type -t set_vlan_on_boot)" ]; then
+				if [ "$(type -t set_bridge_on_boot)" ]; then
 					swconfig dev switch0 vlan $_vid set ports ""
 				else
 					uci delete network.@switch_vlan[$_idx]
@@ -764,7 +764,7 @@ update_vlan() {
 			# Indicates _vlan isn't in _vids
 			if [ $(( ${#_test} < ${#_vids} )) = 0 ]; then
 				json_get_var _ports $_vlan
-				if [ "$(type -t set_vlan_on_boot)" ]; then
+				if [ "$(type -t set_bridge_on_boot)" ]; then
 					swconfig dev switch0 vlan $_vlan set ports "$_ports"
 				else
 					uci add network switch_vlan
@@ -777,7 +777,7 @@ update_vlan() {
 	
 		json_close_object
 	
-		if [ "$(type -t set_vlan_on_boot)" ]; then
+		if [ "$(type -t set_bridge_on_boot)" ]; then
 			swconfig dev switch0 set apply
 		else
 			uci commit network
@@ -874,7 +874,7 @@ enable_bridge_mode() {
 	fi
 
 	# Some routers need to change port mapping on software switch
-	if [ "$(type -t set_vlan_on_boot)" == "" ] && [ "$(type -t wan_lan_diff_ifaces)" == "" ]
+	if [ "$(type -t set_bridge_on_boot)" == "" ] && [ "$(type -t wan_lan_diff_ifaces)" == "" ]
 	then
 		update_vlan "n"
 	fi
@@ -1013,7 +1013,7 @@ update_bridge_mode() {
 		fi
 
 		# Some routers need to change port mapping on software switch
-		if [ "$(type -t set_vlan_on_boot)" == "" ] && [ "$(type -t wan_lan_diff_ifaces)" == "" ]
+		if [ "$(type -t set_bridge_on_boot)" == "" ] && [ "$(type -t wan_lan_diff_ifaces)" == "" ]
 		then
 			update_vlan "n"
 		fi
@@ -1091,7 +1091,7 @@ disable_bridge_mode() {
 	fi
 
 	# Some routers need to change back port mapping on software switch
-	if [ "$(type -t set_vlan_on_boot)" == "" ] && [ "$(type -t wan_lan_diff_ifaces)" == "" ]
+	if [ "$(type -t set_bridge_on_boot)" == "" ] && [ "$(type -t wan_lan_diff_ifaces)" == "" ]
 	then
 		update_vlan "n"
 	fi
@@ -1155,7 +1155,7 @@ save_bridge_mode_vlan_config() {
 	fi
 
 	# Realtek routers have to save config on auxiliary file 
-	if [ "$(type -t set_vlan_on_boot)" ]; then
+	if [ "$(type -t set_bridge_on_boot)" ]; then
 		if [ "$_enable_bridge" = "y" ]; then
 			_vlan="{ \"9\": \"\", \"8\": \"$_wan_port "
 			if [ "$_disable_lan_ports" = "y" ]; then
