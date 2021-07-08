@@ -1154,17 +1154,16 @@ save_bridge_mode_vlan_config() {
 		local _cpu_port=$(switch_ports 4) 
 	fi
 
-	# Realtek routers have to save config on auxiliary file 
 	if [ "$(type -t set_bridge_on_boot)" ]; then
 		if [ "$_enable_bridge" = "y" ]; then
-			_vlan="{ \"9\": \"\", \"8\": \"$_wan_port "
+			_vlan="{ \"1\": \"\", \"2\": \"$_wan_port "
 			if [ "$_disable_lan_ports" = "y" ]; then
 				_vlan="$_vlan$_cpu_port\" }"
 			else
 				_vlan="$_vlan$_lan_ports $_cpu_port\" }"
 			fi
 		else
-			_vlan="{ \"9\": \"$_lan_ports $_cpu_port\", \"8\": \"$_wan_port $_cpu_port\" }"
+			_vlan="{ \"1\": \"$_lan_ports $_cpu_port\", \"2\": \"$_wan_port $_cpu_port\" }"
 		fi
 	else
 		if [ "$_enable_bridge" = "y" ]; then
