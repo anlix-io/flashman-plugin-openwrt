@@ -343,56 +343,69 @@ send_wps_status() {
 
 send_site_survey() {
 	local _res
+	local _device0
+	local _device1
+	local _INFO
 
-	A="$(iw dev wlan0 scan 2> /dev/null | grep 'freq:\|BSS \|SSID:\|signal:\|last seen:\|width:\|offset:')"
+	_device0=$(get_radio_phy 0)
+	_device1=$(get_radio_phy 1)
+
+	A="$(iwinfo $_device0 freqlist 2> /dev/null)"
 	[ "$(is_5ghz_capable)" = "1" ] && \
-		A=$A"$(iw dev wlan1 scan 2> /dev/null | grep 'freq:\|BSS \|SSID:\|signal:\|last seen:\|width:\|offset:')"
+		A=$A$'\n'"$(iwinfo $_device1 freqlist 2> /dev/null)"
 
-	json_cleanup
-	json_init
-	json_add_object "survey"
-	if [ -n "$A" ]; then
-		local _is_first_round=true
+	A=$A$'\n'"$(iwinfo $_device0 s 2> /dev/null)"
+	[ "$(is_5ghz_capable)" = "1" ] && \
+		A=$A$'\n'"$(iwinfo $_device1 s 2> /dev/null)"
 
-		IFS=$'\n'
-		for s in $A ; do
-			case $s in
-				*BSS*)
-					if [ "$_is_first_round" = false ]; then
-						json_close_object
-					fi
-					_is_first_round=false
-					json_add_object "$(echo "$s" | sed 's/.*BSS //g' | sed -e 's/(.*//')"
-					;;
-				*freq:*)
-					json_add_int "freq" "$( echo "$s" | sed 's/.*: //g' | sed 's/ .*//')"
-					;;
-				*signal:*)
-					json_add_int "signal" "$( echo "$s" | sed 's/.*: //g' | sed 's/ .*//')"
-					;;
-				*STA\ channel\ width:*)
-					json_add_string "largura_HT" "$( echo "$s" | sed 's/.*: //g' | sed 's/ .*//')"
-					;;
-				*\*\ channel\ width:*)
-					json_add_int "largura_VHT" "$( echo "$s" | sed 's/.*: //g' | sed 's/ .*//')"
-					;;
-				*offset:*)
-					json_add_string "offset" "$( echo "$s" | sed 's/.*: //g')"
-					;;
-				*last\ *)
-					json_add_int "last_seen" "$( echo "$s" | sed 's/.*: //g' | sed 's/ .*//')"
-					;;
-				*SSID:*)
-					json_add_string "SSID" "$( echo "$s" | sed 's/.*: //g')"
-					;;
-			esac
-		done
-		IFS=" "
-		json_close_object
-	fi
-	json_close_object
+	_INFO=$(echo "$A" | awk -e '
+BEGIN {
+  A=0;
+} 
 
-	_res=$(json_dump | curl -s --tlsv1.2 --connect-timeout 5 --retry 1 \
+/GHz/ {
+  if ($1 == "*")
+    freq[$5+0]=$2;
+  else
+    freq[$4+0]=$1;
+}
+
+/Cell/ {
+  A++;
+  M[A]=$5
+}
+
+/Signal/ {
+  S[A]=$2
+}
+
+/Mode/ {
+  C[A]=freq[$4+0]
+}
+
+/ESSID/ {
+  $1=""
+  if ($0 == " unknown")
+    ID[A]="\"Desconhecido\""
+  else
+    ID[A]=$0
+}
+
+END { 
+  print "{ \"survey\": { "
+  for (i=1; i<=A; i++) {
+    if(i>1) print ","
+    print "\""tolower(M[i])"\":"
+    print "{ \"SSID\":"ID[i]","
+    print " \"freq\":", C[i]*1000, ","
+    print " \"signal\":", S[i]
+    print "}"
+  }
+  print "} }"
+}
+	')
+
+	_res=$(echo "$_INFO" | curl -s --tlsv1.2 --connect-timeout 5 --retry 1 \
 				-H "Content-Type: application/json" \
 				-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
 				--data @- "https://$FLM_SVADDR/deviceinfo/receive/sitesurvey")

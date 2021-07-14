@@ -17,12 +17,11 @@ collect_QoE_Monitor_data() {
 	local timestamp=$(date +%s) # getting current unix time in seconds.
 	local pingResult=$(ping -i 0.01 -c "$pingPackets" "$pingServerAddress") # burst ping with $pingPackets amount of packets.
 
-	local wanName=$(ifstatus wan | jsonfilter -e '@.device') # name of the wan interface.
-	local rxBytes=$(cat /sys/class/net/$wanName/statistics/rx_bytes) # bytes received by the interface.
-	local txBytes=$(cat /sys/class/net/$wanName/statistics/tx_bytes) # bytes sent by the interface.
+	local rxBytes=$(get_wan_statistics RX) # bytes received by the interface.
+	local txBytes=$(get_wan_statistics TX) # bytes sent by the interface.
 	local max_bytes=4294967295 # max number possible with 32 bits. (2^32 - 1).
 	# if last bytes are not defined. define them using the current wan interface bytes value. then it returns.
-	if [ -z "$last_rxBytes" ] || [ -z "$last_txBytes"]; then
+	if [ -z "$last_rxBytes" ] || [ -z "$last_txBytes" ]; then
 		# echo last bytes are undefined
 		last_rxBytes="$rxBytes" # bytes received by the interface. will be used next time.
 		last_txBytes="$txBytes" # bytes sent by the interface. will be used next time.

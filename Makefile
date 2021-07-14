@@ -82,18 +82,23 @@ FILE_DIR=
 
 CUSTOM_FILE_DIR=
 CUSTOM_FILE_ARQ=
+DRIVER_FILE_ARQ=mac80211
 	ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_tplink_c2-v1), y)
 		CUSTOM_FILE_ARQ="tplink_archer-c2-v1"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_tplink_c20-v1), y)
 		CUSTOM_FILE_ARQ="tplink_archer-c20-v1"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tplink_c20-v4), y)
 		CUSTOM_FILE_ARQ="tplink_archer-c20-v4"
+		DRIVER_FILE_ARQ="rtwifi"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tplink_c20-v5), y)
 		CUSTOM_FILE_ARQ="tplink_archer-c20-v5"
+		DRIVER_FILE_ARQ="rtwifi"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tplink_c20-v5w), y)
 		CUSTOM_FILE_ARQ="tplink_archer-c20-v5W"
+		DRIVER_FILE_ARQ="rtwifi"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_tplink_c5-v4), y)
 		CUSTOM_FILE_ARQ="tplink_archer-c5-v4"
+		DRIVER_FILE_ARQ="rtwifi"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tplink_c50-v3), y)
 		CUSTOM_FILE_ARQ="tplink_archer-c50-v3"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tplink_c50-v4), y)
@@ -106,10 +111,13 @@ CUSTOM_FILE_ARQ=
 		CUSTOM_FILE_ARQ="tplink_archer-c60-v3"
 	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_archer-c6-v2-us), y)
 		CUSTOM_FILE_ARQ="tplink_archer-c6-v2US"
+	else ifeq ($(CONFIG_TARGET_ramips_mt7621_DEVICE_archer-c6-v3), y)
+		DRIVER_FILE_ARQ="rtwifi"
 	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_archer-c7-v5), y)
 		CUSTOM_FILE_ARQ="tplink_archer-c7-v5"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_tplink_ec220-g5-v2), y)
 		CUSTOM_FILE_ARQ="tplink_ec220-g5-v2"
+		DRIVER_FILE_ARQ="rtwifi"
 	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_dlink_covr-c1200-a1), y)
 		CUSTOM_FILE_ARQ="dlink_covr-c1200-a1"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_dlink_dir-819-a1), y)
@@ -136,14 +144,30 @@ CUSTOM_FILE_ARQ=
 		CUSTOM_FILE_ARQ="tplink_tl-wdr4300"
 	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_tl-wdr3600-v1), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wdr3600"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v4), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v4"
+		DRIVER_FILE_ARQ="rtwifi"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v5), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v5-v6"
+		DRIVER_FILE_ARQ="rtwifi"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v6), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v5-v6"
+		DRIVER_FILE_ARQ="rtwifi"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v62), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v62"
+		DRIVER_FILE_ARQ="rtwifi"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v4), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v4"
+		DRIVER_FILE_ARQ="rtwifi"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v5), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v5-v6"
+		DRIVER_FILE_ARQ="rtwifi"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v6), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v5-v6"
+		DRIVER_FILE_ARQ="rtwifi"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v62), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v62"
+		DRIVER_FILE_ARQ="rtwifi"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr940n-v4), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr940n-v4-v5"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr940n-v5), y)
@@ -202,6 +226,7 @@ SSID_SUFFIX=
 
 define Package/flashman-plugin/install
 	$(CP) ./$(FILE_DIR)/* $(1)/
+	$(CP) ./driver/$(DRIVER_FILE_ARQ).sh $(1)/usr/share/functions/custom_wireless_driver.sh
 ifneq ($(CUSTOM_FILE_DIR),)
 	$(CP) ./$(CUSTOM_FILE_DIR)/* $(1)/
 endif
@@ -216,6 +241,10 @@ endif
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/anlix-mqtt $(1)/usr/bin/
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/pk $(1)/usr/bin/
+
+	$(INSTALL_DIR) $(1)/lib/wifi $(1)/lib/netifd/wireless
+	$(INSTALL_DATA) ./files/lib/wifi/rtwifi.sh $(1)/lib/wifi
+	$(INSTALL_BIN) ./files/lib/netifd/wireless/rtwifi.sh $(1)/lib/netifd/wireless
 
 	mkdir -p $(1)/usr/share
 	echo 'FLM_SSID_SUFFIX=$(SSID_SUFFIX)' >>$(1)/usr/share/flashman_init.conf

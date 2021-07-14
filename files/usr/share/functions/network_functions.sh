@@ -669,39 +669,33 @@ set_use_dns_proxy() {
 }
 
 store_wan_bytes() {
-	local _wan_itf
-	_wan_itf=$(uci get network.wan.ifname)
+	local _epoch=$(date +%s)
+	local _wan_rx=$(get_wan_statistics RX)
+	local _wan_tx=$(get_wan_statistics TX)
 
-	if [ $? -eq 0 ]
+	json_init
+
+	if [ -f /tmp/wanbytes.json ]
 	then
-		local _epoch=$(date +%s)
-		local _wan_rx=$(cat /sys/class/net/$_wan_itf/statistics/rx_bytes)
-		local _wan_tx=$(cat /sys/class/net/$_wan_itf/statistics/tx_bytes)
-
-		json_init
-
-		if [ -f /tmp/wanbytes.json ]
+		local _size=$(ls -l /tmp/wanbytes.json | awk '{print $5}')
+		if [ $_size -lt 8196 ]
 		then
-			local _size=$(ls -l /tmp/wanbytes.json | awk '{print $5}')
-			if [ $_size -lt 8196 ]
-			then
-				json_load_file /tmp/wanbytes.json
-				json_select "wanbytes"
-			else
-				json_add_object "wanbytes"
-			fi
+			json_load_file /tmp/wanbytes.json
+			json_select "wanbytes"
 		else
 			json_add_object "wanbytes"
 		fi
-
-		json_add_array "$_epoch"
-		json_add_int "" "$_wan_rx"
-		json_add_int "" "$_wan_tx"
-		json_close_array
-		json_close_object
-		json_dump > /tmp/wanbytes.json
-		json_cleanup
+	else
+		json_add_object "wanbytes"
 	fi
+
+	json_add_array "$_epoch"
+	json_add_int "" "$_wan_rx"
+	json_add_int "" "$_wan_tx"
+	json_close_array
+	json_close_object
+	json_dump > /tmp/wanbytes.json
+	json_cleanup
 }
 
 get_bridge_mode_status() {

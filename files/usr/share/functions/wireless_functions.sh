@@ -27,17 +27,9 @@ get_htmode_50() {
 	[ "$_noscan_50" == "0" ] && echo "auto" || echo "$_htmode_50"
 }
 
-get_wifi_htmode(){
-	iw dev wlan$1 info 2>/dev/null|grep width|awk '{print $6}'
-}
-
 get_wifi_state() {
 	local _q=$(uci -q get wireless.default_radio$1.disabled)
 	[ "$_q" ] && [ "$_q" = "1" ] && echo "0" || echo "1"
-}
-
-get_wifi_channel(){
-	iw dev wlan$1 info 2>/dev/null|grep channel|awk '{print $2}'
 }
 
 auto_channel_selection() {
@@ -50,73 +42,6 @@ auto_channel_selection() {
 			echo "40"
 		;;
 	esac
-}
-
-convert_txpower() {
-	local _freq="$1"
-	local _channel="$2"
-	local _txprct="$3"
-	local _maxpwr
-
-	if [ "$_freq" = "24" ] 
-	then
-		_maxpwr=20
-		[ "$(type -t custom_wifi_24_txpower)" ] && _maxpwr="$(custom_wifi_24_txpower)"
-	else
-		_maxpwr=30
-		[ "$(type -t custom_wifi_50_txpower)" ] && _maxpwr="$(custom_wifi_50_txpower)"
-	fi
-
-	if [ "$_channel" = "auto" ] 
-	then
-		echo "$_maxpwr"
-		return
-	fi
-
-	local _phy
-	local _reload=0
-	if [ "$_freq" = "24" ]
-	then
-		_phy=$(get_24ghz_phy)
-		[ ! "$(type -t custom_wifi_24_txpower)" ] && _reload=1
-	else
-		_phy=$(get_5ghz_phy)
-		[ ! "$(type -t custom_wifi_50_txpower)" ] && _reload=1
-	fi
-	[ $_reload = 1 ] && _maxpwr=$(iw $_phy info | awk '/\['$_channel'\]/{ print substr($5,2,2) }')
-
-	echo $(( ((_maxpwr * _txprct)+50) / 100 ))
-}
-
-get_txpower() {
-	local _freq="$1"
-	local _txpower="$(uci -q get wireless.radio$_freq.txpower)"
-	local _channel="$(uci -q get wireless.radio$_freq.channel)"
-
-	if [ "$_channel" = "auto" ] 
-	then
-		echo "100" 
-		return
-	fi
-
-	local _phy
-	local _maxpwr="0"
-	if [ "$_freq" = "0" ]
-	then
-		_phy=$(get_24ghz_phy)
-		[ "$(type -t custom_wifi_24_txpower)" ] && _maxpwr="$(custom_wifi_24_txpower)"
-	else
-		_phy=$(get_5ghz_phy)
-		[ "$(type -t custom_wifi_50_txpower)" ] && _maxpwr="$(custom_wifi_50_txpower)"
-	fi
-	[ "$_maxpwr" = "0" ] && _maxpwr=$(iw $_phy info | awk '/\['$_channel'\]/{ print substr($5,2,2) }')
-
-	local _txprct="$(( (_txpower * 100) / _maxpwr ))"
-	if   [ $_txprct -ge 100 ]; then echo "100"
-	elif [ $_txprct -ge 75 ]; then echo "75"
-	elif [ $_txprct -ge 50 ]; then echo "50"
-	else echo "25"
-	fi
 }
 
 change_fast_transition() {
@@ -714,28 +639,45 @@ set_mesh_rrm() {
 
 set_wps_push_button() {
 	local _state
+	local _device0
+	local _device1
 
 	_state=$1
-
-	if [ ! "$(type -t hostapd_cli)" ]
-	then
-		return 1
-	fi
+	_device0=$(get_radio_phy 0)
+	_device1=$(get_radio_phy 1)
 
 	if [ "$_state" = "1" ]
 	then
 		# Push button will last 2 min active or until first conn succeeds
-		hostapd_cli -i wlan0 wps_pbc
+		if [ "$_device0" == "ra0" ]
+		then
+			iwpriv ra0 wsc_start 1
+			/usr/share/hostapdstats.sh ra0 WPS-PBC-ACTIVE & # Call this once
+		else
+			hostapd_cli -i wlan0 wps_pbc
+		fi
 
-		if [ "$(is_5ghz_capable)" == "1" ]
+		if [ "$(is_5ghz_capable)" == "1" ] && [ "$_device1" == "rai0" ]
+		then
+			iwpriv rai0 wsc_start 1
+		elif [ "$(is_5ghz_capable)" == "1" ]
 		then
 			hostapd_cli -i wlan1 wps_pbc
 		fi
 		return 0
 	else
-		hostapd_cli -i wlan0 wps_cancel
-
-		if [ "$(is_5ghz_capable)" == "1" ]
+		# Cancel WPS
+		if [ "$_device0" == "ra0" ]
+		then
+			iwpriv ra0 wsc_start 0
+			/usr/share/hostapdstats.sh ra0 WPS-PBC-DISABLE # Call this only once
+		else
+			hostapd_cli -i wlan0 wps_cancel
+		fi
+		if [ "$(is_5ghz_capable)" == "1" ] && [ "$_device1" == "rai0" ]
+		then
+			iwpriv rai0 wsc_start 0
+		elif [ "$(is_5ghz_capable)" == "1" ]
 		then
 			hostapd_cli -i wlan1 wps_cancel
 		fi
