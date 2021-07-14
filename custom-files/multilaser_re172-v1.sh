@@ -26,8 +26,12 @@ set_bridge_on_boot() {
 	echo "1"
 }
 
+is_realtek() {
+	echo "1"
+}
+
 # Needs reboot to validate switch config
-needs_reboot_change_vlan() {
+needs_reboot_change_mode() {
   reboot
 }
 

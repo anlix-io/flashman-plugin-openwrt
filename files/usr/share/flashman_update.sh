@@ -290,6 +290,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		# _vlan_index is empty if in bridge mode or vlan doesn't change
 		if [ "$_vlan_index" != "" ] && [ "$_local_vlan_index" != "$_vlan_index" ]; then
 			echo $_res | jsonfilter -e "@.vlan" > /root/vlan_config.json
+			json_update_index "$_vlan_index" "vlan_index"
 		fi
 		# Reset the reset flags when we receive syn reply
 		if [ "$_local_bridge_did_reset" = "y" ]
@@ -351,6 +352,10 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 				disable_ipv6
 			fi
 			/etc/init.d/network restart
+			# Some targets must update vlan after a network restart
+			if [ "$(type -t update_vlan_after_network_restart)" ]; then
+				update_vlan
+			fi
 			/etc/init.d/miniupnpd reload
 		fi
 
@@ -467,14 +472,17 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 			log "FLASHMAN UPDATER" "Disabling bridge mode..."
 			disable_bridge_mode
 		fi
-		# In all the cases above for bridge mode _vlan_index is empty
-		if [ "$_vlan_index" != "" ] && [ "$_local_vlan_index" != "$_vlan_index" ]
-		then
-			json_update_index "$_vlan_index" "vlan_index"
-			if [ "$(type -t set_vlan_on_boot)" ]; then
-				reboot
-			else
-				update_vlan "y"
+		# Some models have already updated vlan after network restart
+		if [ "$(type -t update_vlan_after_network_restart)" == "" ] && \
+			[ "$_ipv6_enabled" ] && [ "$_local_enabled_ipv6" != "$_ipv6_enabled" ]; then
+			# In all the cases above for bridge mode _vlan_index is empty
+			if [ "$_vlan_index" != "" ] && [ "$_local_vlan_index" != "$_vlan_index" ]
+			then
+				if [ "$(type -t set_vlan_on_boot)" ]; then
+					reboot
+				else
+					update_vlan
+				fi
 			fi
 		fi
 	fi

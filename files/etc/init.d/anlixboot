@@ -13,6 +13,6 @@ boot() {
 
 	if [ "$(type -t set_bridge_on_boot)" ]
 	then
-		update_vlan "n"
+		update_vlan
 	fi
 }

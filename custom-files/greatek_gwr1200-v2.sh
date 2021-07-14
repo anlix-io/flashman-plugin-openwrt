@@ -44,6 +44,10 @@ set_bridge_on_boot() {
 	echo "1"
 }
 
+is_realtek() {
+	echo "1"
+}
+
 set_vlan_on_boot() {
 	echo "1"
 }

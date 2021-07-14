@@ -33,6 +33,10 @@ set_bridge_on_boot() {
 	echo "1"
 }
 
+is_realtek() {
+	echo "1"
+}
+
 custom_switch_ports() {
 	case $1 in 
 		1) echo "switch0" ;;
