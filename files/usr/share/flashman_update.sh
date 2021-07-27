@@ -290,6 +290,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		# _vlan_index is empty if in bridge mode or vlan doesn't change
 		if [ "$_vlan_index" != "" ] && [ "$_local_vlan_index" != "$_vlan_index" ]; then
 			echo $_res | jsonfilter -e "@.vlan" > /root/vlan_config.json
+			echo $_res | jsonfilter -e "@.pvid" > /root/pvid_config.json
 			json_update_index "$_vlan_index" "vlan_index"
 		fi
 		# Reset the reset flags when we receive syn reply

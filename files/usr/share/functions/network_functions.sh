@@ -769,6 +769,63 @@ update_vlan() {
 			fi
 		done
 	
+		json_close_object
+		json_cleanup
+		json_load_file /root/pvid_config.json
+		json_get_keys _ports
+		
+		if [ "$(type -t use_swconfig)" ]; then
+			for _port in $_ports; do
+				json_get_var _pvid $_port
+				swconfig dev switch0 port $_port set pvid $_pvid
+			done
+		else
+			IFS=$'\n'
+
+			_input="$(uci show network | grep ].port=)"
+			_idx=0
+			local _port_list=''
+
+			log "DEBUG" "input: $_input"
+			log "DEBUG" "ports: $_ports"
+
+			for _port in $_input; do
+				_p=${_port#*\'}
+				_p=${_vid%\'}
+
+				local _test=${_ports#*$_p}
+
+				# Indicates _p is in _ports
+				if [ $(( ${#_test} < ${#_ports} )) = 1 ]; then
+					json_get_var _pvid $_p
+					uci set network.@switch_port[$_idx].pvid="$_pvid"
+				else # _p isn't in _ports
+					uci delete network.@switch_port[$_idx]
+					_idx=$(( _idx - 1 ))
+				fi
+				if [ "$_port_list" = '' ]; then
+					_port_list="$_p"
+				else
+					_port_list="$_port_list $_p"
+				fi
+				_idx=$(( _idx + 1 ))
+			done
+
+			IFS=$' '
+
+			for _port in $_ports; do
+				_test=${_port_list#*$_port}
+				# Indicates _port isn't in _port_list
+				if [ $(( ${#_test} < ${#_port_list} )) = 0 ]; then
+					json_get_var _pvid $_port
+					uci add network switch_port
+					uci set network.@switch_port[-1].device="$(get_switch_device)"
+					uci set network.@switch_port[-1].port="$_port"
+					uci set network.@switch_port[-1].pvid="$_pvid"
+				fi
+			done
+		fi
+
 		if [ "$(type -t use_swconfig)" ]; then
 			swconfig dev switch0 set apply
 		else
