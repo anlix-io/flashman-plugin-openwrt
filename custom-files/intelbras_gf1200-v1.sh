@@ -39,6 +39,10 @@ is_realtek() {
 	echo "1"
 }
 
+use_swconfig() {
+	echo "1"
+}
+
 custom_switch_ports() {
 	case $1 in 
 		1) echo "switch0" ;;
