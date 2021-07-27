@@ -207,9 +207,6 @@ set_wan_type() {
 			uci commit network
 
 			/etc/init.d/network restart
-			if [ "$(type -t update_vlan_after_network_restart)" ]; then
-				update_vlan
-			fi
 			[ "$(get_ipv6_enabled)" != "0" ] && /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
 
 			# This will persist connection type between firmware upgrades
@@ -240,9 +237,6 @@ set_wan_type() {
 				uci commit network
 
 				/etc/init.d/network restart
-				if [ "$(type -t update_vlan_after_network_restart)" ]; then
-					update_vlan
-				fi
 				[ "$(get_ipv6_enabled)" != "0" ] && /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
 
 				# This will persist connection type between firmware upgrades
@@ -292,9 +286,6 @@ set_pppoe_credentials() {
 				uci commit network
 
 				/etc/init.d/network restart
-				if [ "$(type -t update_vlan_after_network_restart)" ]; then
-					update_vlan
-				fi
 				[ "$(get_ipv6_enabled)" != "0" ] && /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
 
 				# This will persist connection type between firmware upgrades
@@ -435,9 +426,6 @@ set_lan_subnet() {
 				sed -i 's/.*anlixrouter/'"$_lan_addr"' anlixrouter/' /etc/hosts
 
 				/etc/init.d/network restart
-				if [ "$(type -t update_vlan_after_network_restart)" ]; then
-					update_vlan
-				fi
 				[ "$(get_ipv6_enabled)" != "0" ] && /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
 				/etc/init.d/dnsmasq reload
 				/etc/init.d/uhttpd restart # Must restart to update Flash App API
@@ -714,6 +702,7 @@ get_bridge_mode_status() {
 }
 
 update_vlan() {
+	local _restart_network=$1
 	json_cleanup
 	json_load_file /root/vlan_config.json
 	json_get_keys _vlans
@@ -723,7 +712,7 @@ update_vlan() {
 
 		local _input=""
 
-		if [ "$(type -t is_realtek)" ]; then
+		if [ "$(type -t use_swconfig)" ]; then
 			_input="$(swconfig dev switch0 show | grep info:)"
 		else
 			_input="$(uci show network | grep ].vlan=)"
@@ -736,7 +725,7 @@ update_vlan() {
 		local _idx=0
 
 		for _vlan in $_input; do
-			if [ "$(type -t is_realtek)" ]; then
+			if [ "$(type -t use_swconfig)" ]; then
 				local _vid=${_vlan#*VLAN }
 				_vid=${_vid%: Ports*}
 			else
@@ -747,13 +736,13 @@ update_vlan() {
 			# Indicates _vid is in _vlans
 			if [ $(( ${#_test} < ${#_vlans} )) = 1 ]; then
 				json_get_var _ports $_vid
-				if [ "$(type -t is_realtek)" ]; then
+				if [ "$(type -t use_swconfig)" ]; then
 					swconfig dev switch0 vlan $_vid set ports "$_ports"
 				else
 					uci set network.@switch_vlan[$_idx].ports="$_ports"
 				fi
 			else # _vid isn't in _vlans
-				if [ "$(type -t is_realtek)" ]; then
+				if [ "$(type -t use_swconfig)" ]; then
 					swconfig dev switch0 vlan $_vid set ports ""
 				else
 					uci delete network.@switch_vlan[$_idx]
@@ -775,7 +764,7 @@ update_vlan() {
 			# Indicates _vlan isn't in _vids
 			if [ $(( ${#_test} < ${#_vids} )) = 0 ]; then
 				json_get_var _ports $_vlan
-				if [ "$(type -t is_realtek)" ]; then
+				if [ "$(type -t use_swconfig)" ]; then
 					swconfig dev switch0 vlan $_vlan set ports "$_ports"
 				else
 					uci add network switch_vlan
@@ -786,19 +775,19 @@ update_vlan() {
 			fi
 		done
 	
-		json_close_object
-	
-		if [ "$(type -t is_realtek)" ]; then
+		if [ "$(type -t use_swconfig)" ]; then
 			swconfig dev switch0 set apply
 		else
 			uci commit network
-			if [ "$(type -t custom_switch_ports)" ]; then
-				swconfig dev "$(custom_switch_ports 1)" load network
-			else
-				swconfig dev switch0 load network
+			# Only targets updating via uci need to do network restart
+			if [ "$_restart_network" = "y" ]; then
+				/etc/init.d/network restart
+				sleep 5
 			fi
 		fi
 	fi
+
+	json_close_object
 }
 
 enable_bridge_mode() {
@@ -886,9 +875,9 @@ enable_bridge_mode() {
 	fi
 
 	# Some routers need to change port mapping on software switch
-	if [ "$(type -t is_realtek)" == "" ] && [ "$(type -t wan_lan_diff_ifaces)" == "" ]
+	if [ "$(type -t set_bridge_on_boot)" == "" ] && [ "$(type -t wan_lan_diff_ifaces)" == "" ]
 	then
-		update_vlan
+		update_vlan "n"
 	fi
 
 	# Disable dns, dhcp and dhcp6
@@ -907,9 +896,6 @@ enable_bridge_mode() {
 		if [ "$_fixed_ip" != "" ]
 		then
 			/etc/init.d/network restart
-			if [ "$(type -t update_vlan_after_network_restart)" ]; then
-				update_vlan
-			fi
 			# Wait for network to configure itself and check connectivity
 			sleep 5
 			_accessOK="$(check_connectivity_internet)"
@@ -937,9 +923,6 @@ enable_bridge_mode() {
 			needs_reboot_change_mode
 		else
 			/etc/init.d/network restart
-			if [ "$(type -t update_vlan_after_network_restart)" ]; then
-				update_vlan
-			fi
 			/etc/init.d/uhttpd restart
 			/etc/init.d/minisapo reload
 		fi
@@ -1031,9 +1014,9 @@ update_bridge_mode() {
 		fi
 
 		# Some routers need to change port mapping on software switch
-		if [ "$(type -t is_realtek)" == "" ] && [ "$(type -t wan_lan_diff_ifaces)" == "" ]
+		if [ "$(type -t set_bridge_on_boot)" == "" ] && [ "$(type -t wan_lan_diff_ifaces)" == "" ]
 		then
-			update_vlan
+			update_vlan "n"
 		fi
 	fi
 	json_dump > /root/flashbox_config.json
@@ -1043,9 +1026,6 @@ update_bridge_mode() {
 		log "FLASHMAN UPDATER" "Updated parameters, restarting network..."
 		uci commit network
 		/etc/init.d/network restart
-		if [ "$(type -t update_vlan_after_network_restart)" ]; then
-			update_vlan
-		fi
 		if [ "$_fixed_ip" != "" ]
 		then
 			/etc/init.d/uhttpd restart
@@ -1112,9 +1092,9 @@ disable_bridge_mode() {
 	fi
 
 	# Some routers need to change back port mapping on software switch
-	if [ "$(type -t is_realtek)" == "" ] && [ "$(type -t wan_lan_diff_ifaces)" == "" ]
+	if [ "$(type -t set_bridge_on_boot)" == "" ] && [ "$(type -t wan_lan_diff_ifaces)" == "" ]
 	then
-		update_vlan
+		update_vlan "n"
 	fi
 	uci set network.lan.proto="static"
 	uci set network.lan.ipaddr="$_lan_ip"
@@ -1156,9 +1136,6 @@ disable_bridge_mode() {
 			needs_reboot_change_mode
 		else
 			/etc/init.d/network restart
-			if [ "$(type -t update_vlan_after_network_restart)" ]; then
-				update_vlan
-			fi
 			[ "$(get_ipv6_enabled)" = "1" ] && /etc/init.d/odhcpd restart
 		fi
 	fi
@@ -1202,7 +1179,9 @@ save_bridge_mode_vlan_config() {
 			_vlan="{ \"1\": \"$_lan_ports ${_cpu_port}t\", \"2\": \"$_wan_port ${_cpu_port}t\" }"
 		fi
 	fi
+	local _pvid="{ }"
 	echo "$_vlan" > /root/vlan_config.json
+	echo "$_pvid" > /root/pvid_config.json
 }
 
 get_mesh_mode() {

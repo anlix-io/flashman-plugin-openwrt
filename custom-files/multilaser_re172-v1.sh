@@ -30,6 +30,10 @@ is_realtek() {
 	echo "1"
 }
 
+use_swconfig() {
+	echo "1"
+}
+
 # Needs reboot to validate switch config
 needs_reboot_change_mode() {
   reboot
