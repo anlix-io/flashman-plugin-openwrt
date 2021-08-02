@@ -40,6 +40,18 @@ get_custom_mac() {
 	echo "$_mac_address_tag"
 }
 
+set_bridge_on_boot() {
+	echo "1"
+}
+
+is_realtek() {
+	echo "1"
+}
+
+use_swconfig() {
+	echo "1"
+}
+
 set_vlan_on_boot() {
 	echo "1"
 }

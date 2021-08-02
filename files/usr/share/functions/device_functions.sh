@@ -328,6 +328,6 @@ get_wifi_device_signature() {
 	echo "$_q"
 }
 
-needs_reboot_change_vlan() {
+needs_reboot_change_mode() {
 	reboot
 }

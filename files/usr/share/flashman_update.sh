@@ -290,6 +290,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		# _vlan_index is empty if in bridge mode or vlan doesn't change
 		if [ "$_vlan_index" != "" ] && [ "$_local_vlan_index" != "$_vlan_index" ]; then
 			echo $_res | jsonfilter -e "@.vlan" > /root/vlan_config.json
+			json_update_index "$_vlan_index" "vlan_index"
 		fi
 		# Reset the reset flags when we receive syn reply
 		if [ "$_local_bridge_did_reset" = "y" ]
@@ -468,8 +469,14 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 			disable_bridge_mode
 		fi
 		# In all the cases above for bridge mode _vlan_index is empty
-		[ "$_vlan_index" != "" ] && [ "$_local_vlan_index" != "$_vlan_index" ] && json_update_index "$_vlan_index" "vlan_index" \
-								&& [ "$(type -t set_vlan_on_boot)" == "" ] && update_vlan "y"
+		if [ "$_vlan_index" != "" ] && [ "$_local_vlan_index" != "$_vlan_index" ]
+		then
+			if [ "$(type -t set_vlan_on_boot)" ]; then
+				reboot
+			else
+				update_vlan "y"
+			fi
+		fi
 	fi
 else
 	log "FLASHMAN UPDATER" "Fail Authenticating device!"
