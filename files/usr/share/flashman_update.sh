@@ -182,7 +182,7 @@ bridge_fix_gateway=$_local_bridge_fix_gateway&\
 bridge_fix_dns=$_local_bridge_fix_dns"
 	if [ "$_local_bridge_enabled" = 0 ]
 	then
-		_data="$_data&vlan=$(cat /root/vlan_config.json)"
+		[ -f /root/vlan_config.json ] && _data="$_data&vlan=$(cat /root/vlan_config.json)"
 	fi
 	if [ "$_local_did_change_wan" = "y" ]
 	then

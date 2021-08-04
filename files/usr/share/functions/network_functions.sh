@@ -702,92 +702,94 @@ get_bridge_mode_status() {
 }
 
 update_vlan() {
-	local _restart_network=$1
-	json_cleanup
-	json_load_file /root/vlan_config.json
-	json_get_keys _vlans
+	if [ -f /root/vlan_config.json ]; then
+		local _restart_network=$1
+		json_cleanup
+		json_load_file /root/vlan_config.json
+		json_get_keys _vlans
 
-	# On first boot there will be no vlan object
-	if [ "$_vlans" != "" ]; then
+		# On first boot there will be no vlan object
+		if [ "$_vlans" != "" ]; then
 
-		local _input=""
+			local _input=""
 
-		if [ "$(type -t use_swconfig)" ]; then
-			_input="$(swconfig dev switch0 show | grep info:)"
-		else
-			_input="$(uci show network | grep ].vlan=)"
-		fi
-
-		IFS=$'\n'
-
-		local _vids=''
-
-		local _idx=0
-
-		for _vlan in $_input; do
 			if [ "$(type -t use_swconfig)" ]; then
-				local _vid=${_vlan#*VLAN }
-				_vid=${_vid%: Ports*}
+				_input="$(swconfig dev switch0 show | grep info:)"
 			else
-				_vid=${_vlan#*\'}
-				_vid=${_vid%\'}
+				_input="$(uci show network | grep ].vlan=)"
 			fi
-			local _test=${_vlans#*$_vid}
-			# Indicates _vid is in _vlans
-			if [ $(( ${#_test} < ${#_vlans} )) = 1 ]; then
-				json_get_var _ports $_vid
+
+			IFS=$'\n'
+
+			local _vids=''
+
+			local _idx=0
+
+			for _vlan in $_input; do
 				if [ "$(type -t use_swconfig)" ]; then
-					swconfig dev switch0 vlan $_vid set ports "$_ports"
+					local _vid=${_vlan#*VLAN }
+					_vid=${_vid%: Ports*}
 				else
-					uci set network.@switch_vlan[$_idx].ports="$_ports"
+					_vid=${_vlan#*\'}
+					_vid=${_vid%\'}
 				fi
-			else # _vid isn't in _vlans
-				if [ "$(type -t use_swconfig)" ]; then
-					swconfig dev switch0 vlan $_vid set ports ""
+				local _test=${_vlans#*$_vid}
+				# Indicates _vid is in _vlans
+				if [ $(( ${#_test} < ${#_vlans} )) = 1 ]; then
+					json_get_var _ports $_vid
+					if [ "$(type -t use_swconfig)" ]; then
+						swconfig dev switch0 vlan $_vid set ports "$_ports"
+					else
+						uci set network.@switch_vlan[$_idx].ports="$_ports"
+					fi
+				else # _vid isn't in _vlans
+					if [ "$(type -t use_swconfig)" ]; then
+						swconfig dev switch0 vlan $_vid set ports ""
+					else
+						uci delete network.@switch_vlan[$_idx]
+						_idx=$(( _idx - 1 ))
+					fi
+				fi
+				if [ "$_vids" = '' ]; then
+					_vids="$_vid"
 				else
-					uci delete network.@switch_vlan[$_idx]
-					_idx=$(( _idx - 1 ))
+					_vids="$_vids $_vid"
 				fi
-			fi
-			if [ "$_vids" = '' ]; then
-				_vids="$_vid"
+				_idx=$(( _idx + 1 ))
+			done
+
+			IFS=$' '
+
+			for _vlan in $_vlans; do
+				_test=${_vids#*$_vlan}
+				# Indicates _vlan isn't in _vids
+				if [ $(( ${#_test} < ${#_vids} )) = 0 ]; then
+					json_get_var _ports $_vlan
+					if [ "$(type -t use_swconfig)" ]; then
+						swconfig dev switch0 vlan $_vlan set ports "$_ports"
+					else
+						uci add network switch_vlan
+						uci set network.@switch_vlan[-1].device="$(get_switch_device)"
+						uci set network.@switch_vlan[-1].vlan="$_vlan"
+						uci set network.@switch_vlan[-1].ports="$_ports"
+					fi
+				fi
+			done
+
+			if [ "$(type -t use_swconfig)" ]; then
+				swconfig dev switch0 set apply
 			else
-				_vids="$_vids $_vid"
-			fi
-			_idx=$(( _idx + 1 ))
-		done
-
-		IFS=$' '
-
-		for _vlan in $_vlans; do
-			_test=${_vids#*$_vlan}
-			# Indicates _vlan isn't in _vids
-			if [ $(( ${#_test} < ${#_vids} )) = 0 ]; then
-				json_get_var _ports $_vlan
-				if [ "$(type -t use_swconfig)" ]; then
-					swconfig dev switch0 vlan $_vlan set ports "$_ports"
-				else
-					uci add network switch_vlan
-					uci set network.@switch_vlan[-1].device="$(get_switch_device)"
-					uci set network.@switch_vlan[-1].vlan="$_vlan"
-					uci set network.@switch_vlan[-1].ports="$_ports"
+				uci commit network
+				# Only targets updating via uci need to do network restart
+				if [ "$_restart_network" = "y" ]; then
+					/etc/init.d/network restart
+					sleep 5
 				fi
-			fi
-		done
-	
-		if [ "$(type -t use_swconfig)" ]; then
-			swconfig dev switch0 set apply
-		else
-			uci commit network
-			# Only targets updating via uci need to do network restart
-			if [ "$_restart_network" = "y" ]; then
-				/etc/init.d/network restart
-				sleep 5
 			fi
 		fi
-	fi
 
-	json_close_object
+		json_close_object
+	fi
 }
 
 enable_bridge_mode() {
