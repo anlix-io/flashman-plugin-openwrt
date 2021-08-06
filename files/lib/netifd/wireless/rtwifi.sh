@@ -271,6 +271,74 @@ rtwifi_sta_vif_connect() {
 	}
 	let stacount+=1
 	
+	ApCliSsid=${ssid}
+	ApCliBssid=${bssid}
+
+	case "$encryption" in 
+	wpa*|psk*|WPA*|Mixed|mixed)
+		local enc
+		local crypto
+		case "$encryption" in
+			Mixed|mixed|psk+psk2|psk-mixed*)
+				enc=WPAPSKWPA2PSK
+			;;
+			WPA2*|wpa2*|psk2*)
+				enc=WPA2PSK
+			;;
+			WPA*|WPA1*|wpa*|wpa1*|psk*)
+				enc=WPAPSK
+			;;
+			esac
+			crypto="AES"
+		case "$encryption" in
+			*tkip+aes*|*tkip+ccmp*|*aes+tkip*|*ccmp+tkip*)
+				crypto="TKIPAES"
+			;;
+			*aes*|*ccmp*)
+				crypto="AES"
+			;;
+			*tkip*) 
+				crypto="TKIP"
+				echo "Warning!!! TKIP is not support in 802.11n 40Mhz!!!"
+			;;
+			esac
+				ApCliAuthMode="${ApCliAuthMode}${enc};"
+				ApCliEncrypType="${ApCliEncrypType}${crypto};"
+				ApCliDefaultKeyID="${ApCliDefaultKeyID}2;"
+			echo "ApCliWPAPSK=${key}" >> $RTWIFI_PROFILE_PATH
+	;;
+	WEP|wep|wep-open|wep-shared)
+		if [ "$encryption" == "wep-shared" ]; then
+			ApCliAuthMode="${ApCliAuthMode}SHARED;"
+		else  
+			ApCliAuthMode="${ApCliAuthMode}OPEN;"
+		fi
+		ApCliEncrypType="${ApCliEncrypType}WEP;"
+		K1Tp=$(get_wep_key_type "$key1")
+		K2Tp=$(get_wep_key_type "$key2")
+		K3Tp=$(get_wep_key_type "$key3")
+		K4Tp=$(get_wep_key_type "$key4")
+
+		[ $K1Tp -eq 1 ] && key1=$(echo $key1 | cut -d ':' -f 2- )
+		[ $K2Tp -eq 1 ] && key2=$(echo $key2 | cut -d ':' -f 2- )
+		[ $K3Tp -eq 1 ] && key3=$(echo $key3 | cut -d ':' -f 2- )
+		[ $K4Tp -eq 1 ] && key4=$(echo $key4 | cut -d ':' -f 2- )
+		echo "ApCliKey1Str=${key1}" >> $RTWIFI_PROFILE_PATH
+		echo "ApCliKey2Str=${key2}" >> $RTWIFI_PROFILE_PATH
+		echo "ApCliKey3Str=${key3}" >> $RTWIFI_PROFILE_PATH
+		echo "ApCliKey4Str=${key4}" >> $RTWIFI_PROFILE_PATH
+		ApCliDefaultKeyID="${ApCliDefaultKeyID}${key};"
+		;;
+	none|open)
+		ApCliAuthMode="${ApCliAuthMode}OPEN;"
+		ApCliEncrypType="${ApCliEncrypType}NONE;"
+		ApCliDefaultKeyID="${ApCliDefaultKeyID}1;"
+		;;
+	esac
+	ApCliKey1Type="${ApCliKey1Type}${K1Tp:-0};"
+	ApCliKey2Type="${ApCliKey2Type}${K2Tp:-0};"
+	ApCliKey3Type="${ApCliKey3Type}${K3Tp:-0};"
+
 	killall  $APCLI_APCTRL
 	[ ! -z "$key" ] && APCTRL_KEY_ARG="-k"
 	[ ! -z "$bssid" ] && APCTRL_BSS_ARG="-b $(echo $bssid | tr 'A-Z' 'a-z')"
@@ -654,21 +722,6 @@ session_timeout_interval=0
 idle_timeout_interval=0
 WiFiTest=0
 TGnWifiTest=0
-ApCliEnable=0
-ApCliSsid=
-ApCliBssid=
-ApCliAuthMode=
-ApCliEncrypType=
-ApCliWPAPSK=
-ApCliDefaultKeyID=0
-ApCliKey1Type=0
-ApCliKey1Str=
-ApCliKey2Type=0
-ApCliKey2Str=
-ApCliKey3Type=0
-ApCliKey3Str=
-ApCliKey4Type=0
-ApCliKey4Str=
 RadioOn=1
 WscManufacturer=Flashbox AP
 WscModelName=
@@ -748,7 +801,19 @@ EOF
 	ApK3Tp=""
 	ApK4Tp=""
 
+	ApCliEnable=0
+	ApCliSsid=""
+	ApCliBssid=""
+	ApCliAuthMode=""
+	ApCliEncrypType=""
+	ApCliDefaultKeyID=""
+	ApCliKey1Type=""
+	ApCliKey2Type=""
+	ApCliKey3Type=""
+	ApCliKey4Type=""
+
 	for_each_interface "ap" rtwifi_ap_vif_pre_config
+	#for_each_interface "sta" rtwifi_sta_vif_connect
 
 	echo "AuthMode=${ApAuthMode}" >> $RTWIFI_PROFILE_PATH
 	echo "EncrypType=${ApEncrypType}" >> $RTWIFI_PROFILE_PATH
@@ -758,6 +823,17 @@ EOF
 	echo "Key2Type=${ApK2Tp}" >> $RTWIFI_PROFILE_PATH
 	echo "Key3Type=${ApK3Tp}" >> $RTWIFI_PROFILE_PATH
 	echo "Key4Type=${ApK4Tp}" >> $RTWIFI_PROFILE_PATH
+
+	echo "ApCliEnable=${ApCliEnable}" >> $RTWIFI_PROFILE_PATH
+	echo "ApCliSsid=${ApCliSsid}" >> $RTWIFI_PROFILE_PATH
+	echo "ApCliBssid=${ApCliBssid}" >> $RTWIFI_PROFILE_PATH
+	echo "ApCliAuthMode=${ApCliAuthMode}" >> $RTWIFI_PROFILE_PATH
+	echo "ApCliEncrypType=${ApCliEncrypType}" >> $RTWIFI_PROFILE_PATH
+	echo "ApCliDefaultKeyID=${ApCliDefaultKeyID}" >> $RTWIFI_PROFILE_PATH
+	echo "ApCliKey1Type=${ApCliKey1Type}" >> $RTWIFI_PROFILE_PATH
+	echo "ApCliKey2Type=${ApCliKey2Type}" >> $RTWIFI_PROFILE_PATH
+	echo "ApCliKey3Type=${ApCliKey3Type}" >> $RTWIFI_PROFILE_PATH
+	echo "ApCliKey4Type=${ApCliKey4Type}" >> $RTWIFI_PROFILE_PATH
 
 	drv_rtwifi_teardown
 	drv_rtwifi_cleanup
