@@ -702,63 +702,63 @@ get_bridge_mode_status() {
 }
 
 update_vlan() {
-	local _restart_network=$1
-	json_cleanup
-	json_load_file /root/vlan_config.json
-	json_get_keys _vlans
+	if [ -f /root/vlan_config.json ]; then
+		local _restart_network=$1
+		json_cleanup
+		json_load_file /root/vlan_config.json
+		json_get_keys _vlans
 
-	# On first boot there will be no vlan object
-	if [ "$_vlans" != "" ]; then
+		# On first boot there will be no vlan object
+		if [ "$_vlans" != "" ]; then
 
-		local _input=""
+			local _input=""
+      _input="$(uci show network | grep ].vlan=)"
 
-		_input="$(uci show network | grep ].vlan=)"
+			IFS=$'\n'
 
-		IFS=$'\n'
+			local _vids=''
+			local _idx=0
 
-		local _vids=''
+      for _vlan in $_input; do
+        _vid=${_vlan#*\'}
+        _vid=${_vid%\'}
+        local _test=${_vlans#*$_vid}
+        # Indicates _vid is in _vlans
+        if [ $(( ${#_test} < ${#_vlans} )) = 1 ]; then
+          json_get_var _ports $_vid
+          uci set network.@switch_vlan[$_idx].ports="$_ports"
+        else # _vid isn't in _vlans
+          uci delete network.@switch_vlan[$_idx]
+          _idx=$(( _idx - 1 ))
+        fi
+        if [ "$_vids" = '' ]; then
+          _vids="$_vid"
+        else
+          _vids="$_vids $_vid"
+        fi
+        _idx=$(( _idx + 1 ))
+      done
 
-		local _idx=0
+      IFS=$' '
 
-		for _vlan in $_input; do
-			_vid=${_vlan#*\'}
-			_vid=${_vid%\'}
-			local _test=${_vlans#*$_vid}
-			# Indicates _vid is in _vlans
-			if [ $(( ${#_test} < ${#_vlans} )) = 1 ]; then
-				json_get_var _ports $_vid
-				uci set network.@switch_vlan[$_idx].ports="$_ports"
-			else # _vid isn't in _vlans
-				uci delete network.@switch_vlan[$_idx]
-				_idx=$(( _idx - 1 ))
-			fi
-			if [ "$_vids" = '' ]; then
-				_vids="$_vid"
-			else
-				_vids="$_vids $_vid"
-			fi
-			_idx=$(( _idx + 1 ))
-		done
-
-		IFS=$' '
-
-		for _vlan in $_vlans; do
-			_test=${_vids#*$_vlan}
-			# Indicates _vlan isn't in _vids
-			if [ $(( ${#_test} < ${#_vids} )) = 0 ]; then
-				json_get_var _ports $_vlan
-				uci add network switch_vlan
-				uci set network.@switch_vlan[-1].device="$(get_switch_device)"
-				uci set network.@switch_vlan[-1].vlan="$_vlan"
-				uci set network.@switch_vlan[-1].ports="$_ports"
-			fi
-		done
+      for _vlan in $_vlans; do
+        _test=${_vids#*$_vlan}
+        # Indicates _vlan isn't in _vids
+        if [ $(( ${#_test} < ${#_vids} )) = 0 ]; then
+          json_get_var _ports $_vlan
+          uci add network switch_vlan
+          uci set network.@switch_vlan[-1].device="$(get_switch_device)"
+          uci set network.@switch_vlan[-1].vlan="$_vlan"
+          uci set network.@switch_vlan[-1].ports="$_ports"
+        fi
+      done
 	
-		uci commit network
-		[ "$_restart_network" = "y" ] && /etc/init.d/network restart && sleep 5
-	fi
+      uci commit network
+      [ "$_restart_network" = "y" ] && /etc/init.d/network restart && sleep 5
+    fi
 
-	json_close_object
+		json_close_object
+	fi
 }
 
 enable_bridge_mode() {
