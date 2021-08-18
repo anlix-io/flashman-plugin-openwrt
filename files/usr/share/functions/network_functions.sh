@@ -820,9 +820,11 @@ enable_bridge_mode() {
 		# LAN IP on etc/hosts will be replaced by hotplug
 		uci set network.lan.proto="dhcp"
 	fi
-	if [ "$(type -t keep_ifnames_in_bridge_mode)" == "" ]
-	then
-		# Enable/disable ethernet connection on LAN physical ports
+
+	if [ "$(type -t wan_lan_diff_ifaces)" == "" ]; then
+		save_bridge_mode_vlan_config "y" "$_disable_lan_ports"
+	else
+		# those routers do not use vlan
 		if [ "$_disable_lan_ports" = "y" ]
 		then
 			uci set network.lan.ifname="$_wan_ifnames"
@@ -830,10 +832,6 @@ enable_bridge_mode() {
 			# DO NOT PLACE WAN IFNAME BEFORE LAN IFNAME OR SOME ROUTERS WILL CRASH
 			uci set network.lan.ifname="$_lan_ifnames $_wan_ifnames"
 		fi
-	fi
-	# Save bridge mode vlan config
-	if [ "$(type -t wan_lan_diff_ifaces)" == "" ]; then
-		save_bridge_mode_vlan_config "y" "$_disable_lan_ports"
 	fi
 
 	# Disable dns, dhcp and dhcp6
@@ -943,9 +941,11 @@ update_bridge_mode() {
 		json_get_var _lan_ifnames bridge_lan_backup
 		_reset_network="y"
 		_check_reboot="y"
-		# Enable/disable ethernet connection on LAN physical ports
-		if [ "$(type -t keep_ifnames_in_bridge_mode)" == "" ]
-		then
+
+		if [ "$(type -t wan_lan_diff_ifaces)" == "" ]; then
+			save_bridge_mode_vlan_config "y" "$_disable_lan_ports"
+		else
+			#routers that do not use vlan
 			if [ "$_disable_lan_ports" = "y" ]
 			then
 				uci set network.lan.ifname="$_wan_ifnames"
@@ -953,10 +953,6 @@ update_bridge_mode() {
 				# DO NOT PLACE WAN IFNAME BEFORE LAN IFNAME OR SOME ROUTERS WILL CRASH
 				uci set network.lan.ifname="$_lan_ifnames $_wan_ifnames"
 			fi
-		fi
-		# Save bridge mode vlan config
-		if [ "$(type -t wan_lan_diff_ifaces)" == "" ]; then
-			save_bridge_mode_vlan_config "y" "$_disable_lan_ports"
 		fi
 	fi
 	json_dump > /root/flashbox_config.json
@@ -1021,14 +1017,13 @@ disable_bridge_mode() {
 	then
 		_wan_conn_type="$FLM_WAN_PROTO"
 	fi
-	if [ "$(type -t keep_ifnames_in_bridge_mode)" == "" ]
-	then
-		# Get ifname to remove from the bridge
-		uci set network.lan.ifname="$_lan_ifnames"
-	fi
+
 	# Save router mode vlan config
 	if [ "$(type -t wan_lan_diff_ifaces)" == "" ]; then
 		save_bridge_mode_vlan_config "n" "n"
+	else
+		# Router without vlan: Get ifname to remove from the bridge
+		uci set network.lan.ifname="$_lan_ifnames"
 	fi
 
 	uci set network.lan.proto="static"
