@@ -712,50 +712,50 @@ update_vlan() {
 		if [ "$_vlans" != "" ]; then
 
 			local _input=""
-      _input="$(uci show network | grep ].vlan=)"
+			_input="$(uci show network | grep ].vlan=)"
 
 			IFS=$'\n'
 
 			local _vids=''
 			local _idx=0
 
-      for _vlan in $_input; do
-        _vid=${_vlan#*\'}
-        _vid=${_vid%\'}
-        local _test=${_vlans#*$_vid}
-        # Indicates _vid is in _vlans
-        if [ $(( ${#_test} < ${#_vlans} )) = 1 ]; then
-          json_get_var _ports $_vid
-          uci set network.@switch_vlan[$_idx].ports="$_ports"
-        else # _vid isn't in _vlans
-          uci delete network.@switch_vlan[$_idx]
-          _idx=$(( _idx - 1 ))
-        fi
-        if [ "$_vids" = '' ]; then
-          _vids="$_vid"
-        else
-          _vids="$_vids $_vid"
-        fi
-        _idx=$(( _idx + 1 ))
-      done
+			for _vlan in $_input; do
+				_vid=${_vlan#*\'}
+				_vid=${_vid%\'}
+				local _test=${_vlans#*$_vid}
+				# Indicates _vid is in _vlans
+				if [ $(( ${#_test} < ${#_vlans} )) = 1 ]; then
+					json_get_var _ports $_vid
+					uci set network.@switch_vlan[$_idx].ports="$_ports"
+				else # _vid isn't in _vlans
+					uci delete network.@switch_vlan[$_idx]
+					_idx=$(( _idx - 1 ))
+				fi
+				if [ "$_vids" = '' ]; then
+					_vids="$_vid"
+				else
+					_vids="$_vids $_vid"
+				fi
+				_idx=$(( _idx + 1 ))
+			done
 
-      IFS=$' '
+			IFS=$' '
 
-      for _vlan in $_vlans; do
-        _test=${_vids#*$_vlan}
-        # Indicates _vlan isn't in _vids
-        if [ $(( ${#_test} < ${#_vids} )) = 0 ]; then
-          json_get_var _ports $_vlan
-          uci add network switch_vlan
-          uci set network.@switch_vlan[-1].device="$(get_switch_device)"
-          uci set network.@switch_vlan[-1].vlan="$_vlan"
-          uci set network.@switch_vlan[-1].ports="$_ports"
-        fi
-      done
-	
-      uci commit network
-      [ "$_restart_network" = "y" ] && /etc/init.d/network restart && sleep 5
-    fi
+			for _vlan in $_vlans; do
+				_test=${_vids#*$_vlan}
+				# Indicates _vlan isn't in _vids
+				if [ $(( ${#_test} < ${#_vids} )) = 0 ]; then
+					json_get_var _ports $_vlan
+					uci add network switch_vlan
+					uci set network.@switch_vlan[-1].device="$(get_switch_device)"
+					uci set network.@switch_vlan[-1].vlan="$_vlan"
+					uci set network.@switch_vlan[-1].ports="$_ports"
+				fi
+			done
+
+			uci commit network
+			[ "$_restart_network" = "y" ] && /etc/init.d/network restart && sleep 5
+		fi
 
 		json_close_object
 	fi
