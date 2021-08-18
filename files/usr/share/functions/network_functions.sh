@@ -778,7 +778,6 @@ enable_bridge_mode() {
 	local _lan_ip="$(uci get network.lan.ipaddr)"
 	local _lan_ifnames="$(uci get network.lan.ifname)"
 	local _wan_ifnames="$(uci get network.wan.ifname)"
-	local _lan_ifnames_wifi=""
 	# Write bridge mode to config.json so it persists between flashes
 	json_cleanup
 	json_load_file /root/flashbox_config.json
@@ -821,20 +820,12 @@ enable_bridge_mode() {
 		# LAN IP on etc/hosts will be replaced by hotplug
 		uci set network.lan.proto="dhcp"
 	fi
-	# Separate non-wifi interfaces to back them up
-	for iface in $_lan_ifnames
-	do
-		if [ "$(echo $iface | grep ra)" != "" ]
-		then
-			_lan_ifnames_wifi="$iface $_lan_ifnames_wifi"
-		fi
-	done
 	if [ "$(type -t keep_ifnames_in_bridge_mode)" == "" ]
 	then
 		# Enable/disable ethernet connection on LAN physical ports
 		if [ "$_disable_lan_ports" = "y" ]
 		then
-			uci set network.lan.ifname="$_lan_ifnames_wifi $_wan_ifnames"
+			uci set network.lan.ifname="$_wan_ifnames"
 		else
 			# DO NOT PLACE WAN IFNAME BEFORE LAN IFNAME OR SOME ROUTERS WILL CRASH
 			uci set network.lan.ifname="$_lan_ifnames $_wan_ifnames"
@@ -844,9 +835,6 @@ enable_bridge_mode() {
 	if [ "$(type -t wan_lan_diff_ifaces)" == "" ]; then
 		save_bridge_mode_vlan_config "y" "$_disable_lan_ports"
 	fi
-
-	# Some routers need to change port mapping on software switch
-	[ "$(type -t wan_lan_diff_ifaces)" == "" ] && update_vlan "n"
 
 	# Disable dns, dhcp and dhcp6
 	/etc/init.d/miniupnpd disable
@@ -914,7 +902,6 @@ update_bridge_mode() {
 	local _current_gateway=""
 	local _current_dns=""
 	local _lan_ifnames=""
-	local _lan_ifnames_wifi=""
 	local _reset_network="n"
 	local _check_reboot="n"
 	local _wan_ifnames="$(uci get network.wan.ifname)"
@@ -956,21 +943,12 @@ update_bridge_mode() {
 		json_get_var _lan_ifnames bridge_lan_backup
 		_reset_network="y"
 		_check_reboot="y"
-		# Separate non-wifi interfaces to back them up
-		for iface in $_lan_ifnames
-		do
-			if [ "$(echo $iface | grep ra)" != "" ]
-			then
-				_lan_ifnames_wifi="$iface $_lan_ifnames_wifi"
-			fi
-		done
 		# Enable/disable ethernet connection on LAN physical ports
 		if [ "$(type -t keep_ifnames_in_bridge_mode)" == "" ]
 		then
-		# Enable/disable ethernet connection on LAN physical ports
 			if [ "$_disable_lan_ports" = "y" ]
 			then
-				uci set network.lan.ifname="$_lan_ifnames_wifi $_wan_ifnames"
+				uci set network.lan.ifname="$_wan_ifnames"
 			else
 				# DO NOT PLACE WAN IFNAME BEFORE LAN IFNAME OR SOME ROUTERS WILL CRASH
 				uci set network.lan.ifname="$_lan_ifnames $_wan_ifnames"
@@ -980,9 +958,6 @@ update_bridge_mode() {
 		if [ "$(type -t wan_lan_diff_ifaces)" == "" ]; then
 			save_bridge_mode_vlan_config "y" "$_disable_lan_ports"
 		fi
-
-		# Some routers need to change port mapping on software switch
-		[ "$(type -t wan_lan_diff_ifaces)" == "" ] && update_vlan "n"
 	fi
 	json_dump > /root/flashbox_config.json
 	json_close_object
@@ -1056,8 +1031,6 @@ disable_bridge_mode() {
 		save_bridge_mode_vlan_config "n" "n"
 	fi
 
-	# Some routers need to change back port mapping on software switch
-	[ "$(type -t wan_lan_diff_ifaces)" == "" ] && update_vlan "n"
 	uci set network.lan.proto="static"
 	uci set network.lan.ipaddr="$_lan_ip"
 	# Set wan and lan back to proper values
@@ -1129,6 +1102,7 @@ save_bridge_mode_vlan_config() {
 		_vlan="{ \"1\": \"$_lan_ports ${_cpu_port}t\", \"2\": \"$_wan_port ${_cpu_port}t\" }"
 	fi
 	echo "$_vlan" > /root/vlan_config.json
+	update_vlan "n"
 }
 
 get_mesh_mode() {
