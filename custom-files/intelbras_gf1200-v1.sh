@@ -31,10 +31,6 @@ get_custom_mac() {
 	echo "$_mac_address_tag"
 }
 
-is_realtek() {
-	echo "1"
-}
-
 custom_switch_ports() {
 	case $1 in 
 		1) echo "switch0" ;;

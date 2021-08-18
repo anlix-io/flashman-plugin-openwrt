@@ -1117,18 +1117,6 @@ save_bridge_mode_vlan_config() {
 		local _cpu_port=$(switch_ports 4) 
 	fi
 
-#	if [ "$(type -t is_realtek)" ]; then
-#		if [ "$_enable_bridge" = "y" ]; then
-#			_vlan="{ \"1\": \"\", \"2\": \"$_wan_port "
-#			if [ "$_disable_lan_ports" = "y" ]; then
-#				_vlan="$_vlan$_cpu_port\" }"
-#			else
-#				_vlan="$_vlan$_lan_ports $_cpu_port\" }"
-#			fi
-#		else
-#			_vlan="{ \"1\": \"$_lan_ports $_cpu_port\", \"2\": \"$_wan_port $_cpu_port\" }"
-#		fi
-#	else
 	if [ "$_enable_bridge" = "y" ]; then
 		_vlan="{ \"1\": \"$_wan_port "
 		if [ "$_disable_lan_ports" = "y" ]; then
@@ -1140,7 +1128,6 @@ save_bridge_mode_vlan_config() {
 	else
 		_vlan="{ \"1\": \"$_lan_ports ${_cpu_port}t\", \"2\": \"$_wan_port ${_cpu_port}t\" }"
 	fi
-#	fi
 	echo "$_vlan" > /root/vlan_config.json
 }
 
