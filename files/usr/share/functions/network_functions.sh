@@ -712,11 +712,7 @@ update_vlan() {
 
 		local _input=""
 
-		if [ "$(type -t use_swconfig)" ]; then
-			_input="$(swconfig dev switch0 show | grep info:)"
-		else
-			_input="$(uci show network | grep ].vlan=)"
-		fi
+		_input="$(uci show network | grep ].vlan=)"
 
 		IFS=$'\n'
 
@@ -725,29 +721,16 @@ update_vlan() {
 		local _idx=0
 
 		for _vlan in $_input; do
-			if [ "$(type -t use_swconfig)" ]; then
-				local _vid=${_vlan#*VLAN }
-				_vid=${_vid%: Ports*}
-			else
-				_vid=${_vlan#*\'}
-				_vid=${_vid%\'}
-			fi
+			_vid=${_vlan#*\'}
+			_vid=${_vid%\'}
 			local _test=${_vlans#*$_vid}
 			# Indicates _vid is in _vlans
 			if [ $(( ${#_test} < ${#_vlans} )) = 1 ]; then
 				json_get_var _ports $_vid
-				if [ "$(type -t use_swconfig)" ]; then
-					swconfig dev switch0 vlan $_vid set ports "$_ports"
-				else
-					uci set network.@switch_vlan[$_idx].ports="$_ports"
-				fi
+				uci set network.@switch_vlan[$_idx].ports="$_ports"
 			else # _vid isn't in _vlans
-				if [ "$(type -t use_swconfig)" ]; then
-					swconfig dev switch0 vlan $_vid set ports ""
-				else
-					uci delete network.@switch_vlan[$_idx]
-					_idx=$(( _idx - 1 ))
-				fi
+				uci delete network.@switch_vlan[$_idx]
+				_idx=$(( _idx - 1 ))
 			fi
 			if [ "$_vids" = '' ]; then
 				_vids="$_vid"
@@ -764,27 +747,15 @@ update_vlan() {
 			# Indicates _vlan isn't in _vids
 			if [ $(( ${#_test} < ${#_vids} )) = 0 ]; then
 				json_get_var _ports $_vlan
-				if [ "$(type -t use_swconfig)" ]; then
-					swconfig dev switch0 vlan $_vlan set ports "$_ports"
-				else
-					uci add network switch_vlan
-					uci set network.@switch_vlan[-1].device="$(get_switch_device)"
-					uci set network.@switch_vlan[-1].vlan="$_vlan"
-					uci set network.@switch_vlan[-1].ports="$_ports"
-				fi
+				uci add network switch_vlan
+				uci set network.@switch_vlan[-1].device="$(get_switch_device)"
+				uci set network.@switch_vlan[-1].vlan="$_vlan"
+				uci set network.@switch_vlan[-1].ports="$_ports"
 			fi
 		done
 	
-		if [ "$(type -t use_swconfig)" ]; then
-			swconfig dev switch0 set apply
-		else
-			uci commit network
-			# Only targets updating via uci need to do network restart
-			if [ "$_restart_network" = "y" ]; then
-				/etc/init.d/network restart
-				sleep 5
-			fi
-		fi
+		uci commit network
+		[ "$_restart_network" = "y" ] && /etc/init.d/network restart && sleep 5
 	fi
 
 	json_close_object
@@ -875,10 +846,7 @@ enable_bridge_mode() {
 	fi
 
 	# Some routers need to change port mapping on software switch
-	if [ "$(type -t set_bridge_on_boot)" == "" ] && [ "$(type -t wan_lan_diff_ifaces)" == "" ]
-	then
-		update_vlan "n"
-	fi
+	[ "$(type -t wan_lan_diff_ifaces)" == "" ] && update_vlan "n"
 
 	# Disable dns, dhcp and dhcp6
 	/etc/init.d/miniupnpd disable
@@ -1014,10 +982,7 @@ update_bridge_mode() {
 		fi
 
 		# Some routers need to change port mapping on software switch
-		if [ "$(type -t set_bridge_on_boot)" == "" ] && [ "$(type -t wan_lan_diff_ifaces)" == "" ]
-		then
-			update_vlan "n"
-		fi
+		[ "$(type -t wan_lan_diff_ifaces)" == "" ] && update_vlan "n"
 	fi
 	json_dump > /root/flashbox_config.json
 	json_close_object
@@ -1092,10 +1057,7 @@ disable_bridge_mode() {
 	fi
 
 	# Some routers need to change back port mapping on software switch
-	if [ "$(type -t set_bridge_on_boot)" == "" ] && [ "$(type -t wan_lan_diff_ifaces)" == "" ]
-	then
-		update_vlan "n"
-	fi
+	[ "$(type -t wan_lan_diff_ifaces)" == "" ] && update_vlan "n"
 	uci set network.lan.proto="static"
 	uci set network.lan.ipaddr="$_lan_ip"
 	# Set wan and lan back to proper values
@@ -1155,33 +1117,31 @@ save_bridge_mode_vlan_config() {
 		local _cpu_port=$(switch_ports 4) 
 	fi
 
-	if [ "$(type -t is_realtek)" ]; then
-		if [ "$_enable_bridge" = "y" ]; then
-			_vlan="{ \"1\": \"\", \"2\": \"$_wan_port "
-			if [ "$_disable_lan_ports" = "y" ]; then
-				_vlan="$_vlan$_cpu_port\" }"
-			else
-				_vlan="$_vlan$_lan_ports $_cpu_port\" }"
-			fi
+#	if [ "$(type -t is_realtek)" ]; then
+#		if [ "$_enable_bridge" = "y" ]; then
+#			_vlan="{ \"1\": \"\", \"2\": \"$_wan_port "
+#			if [ "$_disable_lan_ports" = "y" ]; then
+#				_vlan="$_vlan$_cpu_port\" }"
+#			else
+#				_vlan="$_vlan$_lan_ports $_cpu_port\" }"
+#			fi
+#		else
+#			_vlan="{ \"1\": \"$_lan_ports $_cpu_port\", \"2\": \"$_wan_port $_cpu_port\" }"
+#		fi
+#	else
+	if [ "$_enable_bridge" = "y" ]; then
+		_vlan="{ \"1\": \"$_wan_port "
+		if [ "$_disable_lan_ports" = "y" ]; then
+			_vlan="$_vlan${_cpu_port}t\""
 		else
-			_vlan="{ \"1\": \"$_lan_ports $_cpu_port\", \"2\": \"$_wan_port $_cpu_port\" }"
+			_vlan="$_vlan$_lan_ports ${_cpu_port}t\""
 		fi
+		_vlan="$_vlan, \"2\": \"\" }"
 	else
-		if [ "$_enable_bridge" = "y" ]; then
-			_vlan="{ \"1\": \"$_wan_port "
-			if [ "$_disable_lan_ports" = "y" ]; then
-				_vlan="$_vlan${_cpu_port}t\""
-			else
-				_vlan="$_vlan$_lan_ports ${_cpu_port}t\""
-			fi
-			_vlan="$_vlan, \"2\": \"\" }"
-		else
-			_vlan="{ \"1\": \"$_lan_ports ${_cpu_port}t\", \"2\": \"$_wan_port ${_cpu_port}t\" }"
-		fi
+		_vlan="{ \"1\": \"$_lan_ports ${_cpu_port}t\", \"2\": \"$_wan_port ${_cpu_port}t\" }"
 	fi
-	local _pvid="{ }"
+#	fi
 	echo "$_vlan" > /root/vlan_config.json
-	echo "$_pvid" > /root/pvid_config.json
 }
 
 get_mesh_mode() {
