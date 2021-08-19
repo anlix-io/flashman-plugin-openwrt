@@ -172,6 +172,43 @@ rtwifi_ap_vif_pre_config() {
 	ApK4Tp="${ApK4Tp}${K4Tp:-0};"
 }
 
+rtwifi_ap_vif_post_config() {
+	local name="$1"
+
+	json_select config
+	json_get_vars disabled encryption key key1 key2 key3 key4 ssid mode wps pin isolated doth hidden rssikick rssiassoc ieee80211r
+	json_select ..
+
+	[ "$disabled" == "1" ] && return
+	
+	[ $ApIfCNT -gt $RTWIFI_DEF_MAX_BSSID ] && return 
+	
+	ifname="ra${RTWIFI_IFPREFIX}${ApIfCNT}"
+	let ApIfCNT+=1
+
+	ifconfig $ifname up
+#	iwpriv $ifname set NoForwarding=${isolated:-0}
+#	iwpriv $ifname set IEEE80211H=${doth:-0}
+#	if [ "$wps" == "pbc" ]  && [ "$encryption" != "none" ]; then
+#		echo "Ralink_AP:Enable WPS for ${ifname}."
+#		iwpriv $ifname set WscConfMode=4 
+#		iwpriv $ifname set WscConfStatus=2
+#		iwpriv $ifname set WscMode=2
+#		iwpriv $ifname set WscV2Support=0
+#	else
+#		iwpriv $ifname set WscConfMode=0
+#	fi
+#	[ -n "$rssikick" ]  && [ "$rssikick" != "0" ] && iwpriv $ifname set KickStaRssiLow=$rssikick
+#	[ -n "$rssiassoc" ]  && [ "$rssiassoc" != "0" ] && iwpriv $ifname set AssocReqRssiThres=$rssiassoc
+#	[ -n "$ieee80211r" ]  && [ "$ieee80211r" != "0" ] && iwpriv $ifname set ftenable=1
+	wireless_add_vif "$name" "$ifname"
+	json_get_vars bridge
+	[ -z `brctl show | grep $ifname` ] && [ ! -z $bridge ] && {
+		echo "Manually bridge interface $ifname into $bridge"
+		brctl addif $bridge $ifname 
+	}
+}
+
 rtwifi_wds_vif_pre_config() {
 	local name="$1"
 
@@ -210,44 +247,7 @@ rtwifi_wds_vif_post_config() {
 	let WDSBssidNum+=1
 }
 
-rtwifi_ap_vif_post_config() {
-	local name="$1"
-
-	json_select config
-	json_get_vars disabled encryption key key1 key2 key3 key4 ssid mode wps pin isolated doth hidden rssikick rssiassoc ieee80211r
-	json_select ..
-
-	[ "$disabled" == "1" ] && return
-	
-	[ $ApIfCNT -gt $RTWIFI_DEF_MAX_BSSID ] && return 
-	
-	ifname="ra${RTWIFI_IFPREFIX}${ApIfCNT}"
-	let ApIfCNT+=1
-
-	ifconfig $ifname up
-#	iwpriv $ifname set NoForwarding=${isolated:-0}
-#	iwpriv $ifname set IEEE80211H=${doth:-0}
-#	if [ "$wps" == "pbc" ]  && [ "$encryption" != "none" ]; then
-#		echo "Ralink_AP:Enable WPS for ${ifname}."
-#		iwpriv $ifname set WscConfMode=4 
-#		iwpriv $ifname set WscConfStatus=2
-#		iwpriv $ifname set WscMode=2
-#		iwpriv $ifname set WscV2Support=0
-#	else
-#		iwpriv $ifname set WscConfMode=0
-#	fi
-#	[ -n "$rssikick" ]  && [ "$rssikick" != "0" ] && iwpriv $ifname set KickStaRssiLow=$rssikick
-#	[ -n "$rssiassoc" ]  && [ "$rssiassoc" != "0" ] && iwpriv $ifname set AssocReqRssiThres=$rssiassoc
-#	[ -n "$ieee80211r" ]  && [ "$ieee80211r" != "0" ] && iwpriv $ifname set ftenable=1
-	wireless_add_vif "$name" "$ifname"
-	json_get_vars bridge
-	[ -z `brctl show | grep $ifname` ] && [ ! -z $bridge ] && {
-		echo "Manually bridge interface $ifname into $bridge"
-		brctl addif $bridge $ifname 
-	}
-}
-
-rtwifi_sta_vif_connect() {
+rtwifi_sta_vif_pre_config() {
 	local name="$1"
 
 	json_select config
@@ -261,16 +261,8 @@ rtwifi_sta_vif_connect() {
 
 	[ "$disabled" == "1" ] && return
 	
-	[ "$ApIfCNT" == "0" ] &&
-	{
-		#FIXME: need ra0 up before apcli0 start
-		ifconfig ra${RTWIFI_IFPREFIX}0 up
-		ifconfig $APCLI_IF up
-		#iwpriv ra${RTWIFI_IFPREFIX}0 set DisConnectAllSta=1 2>/dev/null
-		ifconfig ra${RTWIFI_IFPREFIX}0 down
-	}
-	let stacount+=1
-	
+	echo "Generating sta config for interface $APCLI_IF"
+
 	ApCliSsid=${ssid}
 	ApCliBssid=${bssid}
 
@@ -338,13 +330,43 @@ rtwifi_sta_vif_connect() {
 	ApCliKey1Type="${ApCliKey1Type}${K1Tp:-0};"
 	ApCliKey2Type="${ApCliKey2Type}${K2Tp:-0};"
 	ApCliKey3Type="${ApCliKey3Type}${K3Tp:-0};"
+	ApCliKey4Type="${ApCliKey4Type}${K4Tp:-0};"
 
-	killall  $APCLI_APCTRL
-	[ ! -z "$key" ] && APCTRL_KEY_ARG="-k"
-	[ ! -z "$bssid" ] && APCTRL_BSS_ARG="-b $(echo $bssid | tr 'A-Z' 'a-z')"
-	$APCLI_APCTRL ra${RTWIFI_IFPREFIX}0 connect -s "$ssid" $APCTRL_BSS_ARG $APCTRL_KEY_ARG "$key"
+	echo "ApCliEnable=1" >> $RTWIFI_PROFILE_PATH
+}
+
+rtwifi_sta_vif_post_config() {
+	local name="$1"
+
+	json_select config
+	json_get_vars disabled
+	json_select ..
+
+	[ $stacount -gt 1 ] && {
+		rt2860v2_dbg "Ralink ApSoC drivers only support 1 sta config!"
+		return
+	}
+
+	[ "$disabled" == "1" ] && return
+	
+	if [ "$ApIfCNT" == "0" ]; then
+		#FIXME: need ra0 up before apcli0 start
+		ifconfig ra${RTWIFI_IFPREFIX}0 up
+		ifconfig $APCLI_IF up
+		#iwpriv ra${RTWIFI_IFPREFIX}0 set DisConnectAllSta=1 2>/dev/null
+		ifconfig ra${RTWIFI_IFPREFIX}0 down
+	else
+		ifconfig $APCLI_IF up
+	fi
+	
+	let stacount+=1
 
 	wireless_add_vif "$name" "$APCLI_IF"
+	#json_get_vars bridge
+	#[ -z `brctl show | grep $APCLI_IF` ] && [ ! -z $bridge ] && {
+	#	echo "Manually bridge interface $APCLI_IF into $bridge"
+	#	brctl addif $bridge $APCLI_IF 
+	#}
 }
 
 drv_rtwifi_cleanup() {
@@ -801,7 +823,6 @@ EOF
 	ApK3Tp=""
 	ApK4Tp=""
 
-	ApCliEnable=0
 	ApCliSsid=""
 	ApCliBssid=""
 	ApCliAuthMode=""
@@ -813,7 +834,7 @@ EOF
 	ApCliKey4Type=""
 
 	for_each_interface "ap" rtwifi_ap_vif_pre_config
-	#for_each_interface "sta" rtwifi_sta_vif_connect
+	for_each_interface "sta" rtwifi_sta_vif_pre_config
 
 	echo "AuthMode=${ApAuthMode}" >> $RTWIFI_PROFILE_PATH
 	echo "EncrypType=${ApEncrypType}" >> $RTWIFI_PROFILE_PATH
@@ -824,7 +845,6 @@ EOF
 	echo "Key3Type=${ApK3Tp}" >> $RTWIFI_PROFILE_PATH
 	echo "Key4Type=${ApK4Tp}" >> $RTWIFI_PROFILE_PATH
 
-	echo "ApCliEnable=${ApCliEnable}" >> $RTWIFI_PROFILE_PATH
 	echo "ApCliSsid=${ApCliSsid}" >> $RTWIFI_PROFILE_PATH
 	echo "ApCliBssid=${ApCliBssid}" >> $RTWIFI_PROFILE_PATH
 	echo "ApCliAuthMode=${ApCliAuthMode}" >> $RTWIFI_PROFILE_PATH
@@ -839,7 +859,9 @@ EOF
 	drv_rtwifi_cleanup
 
 	ApIfCNT=0
+	stacount=0
 	for_each_interface "ap" rtwifi_ap_vif_post_config
+	for_each_interface "sta" rtwifi_sta_vif_post_config
 
 	wireless_set_up
 }
