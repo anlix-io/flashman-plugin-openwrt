@@ -101,8 +101,10 @@ DRIVER_FILE_ARQ=mac80211
 		DRIVER_FILE_ARQ="rtwifi"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tplink_c50-v3), y)
 		CUSTOM_FILE_ARQ="tplink_archer-c50-v3"
+		DRIVER_FILE_ARQ="rtwifi"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tplink_c50-v4), y)
 		CUSTOM_FILE_ARQ="tplink_archer-c50-v4"
+		DRIVER_FILE_ARQ="rtwifi"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_zyxel_emg1702-t10a-a1), y)
 		CUSTOM_FILE_ARQ="tbs"
 	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_archer-c60-v2), y)
