@@ -10,9 +10,4 @@ START=17
 
 boot() {
 	[ "$(type -t anlix_bootup_defaults)" ] && anlix_bootup_defaults
-
-	if [ "$(type -t set_vlan_on_boot)" ]
-	then
-		update_vlan "n"
-	fi
 }

@@ -17,8 +17,3 @@ custom_switch_ports() {
 		5) echo "4" ;;
         esac
 }
-
-# Will not change ifnames if this variable is set when in bridge mode
-keep_ifnames_in_bridge_mode() {
-  echo "1"
-}

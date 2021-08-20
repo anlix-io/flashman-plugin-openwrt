@@ -237,6 +237,6 @@ get_lan_dev_negotiated_speed() {
 }
 
 # Needs reboot to validate switch config
-needs_reboot_change_vlan() {
+needs_reboot_change_mode() {
   reboot
 }

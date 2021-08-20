@@ -40,10 +40,6 @@ get_custom_mac() {
 	echo "$_mac_address_tag"
 }
 
-set_vlan_on_boot() {
-	echo "1"
-}
-
 custom_switch_ports() {
 	case $1 in 
 		1) echo "switch0" ;;

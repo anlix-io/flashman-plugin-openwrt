@@ -7,3 +7,7 @@ get_custom_hardware_model() {
 get_custom_hardware_version() {
 	echo "V3"
 }
+
+wan_lan_diff_ifaces() {
+	echo "1"
+}

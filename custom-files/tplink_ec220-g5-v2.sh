@@ -18,11 +18,6 @@ custom_switch_ports() {
 	esac
 }
 
-# Will not change ifnames if this variable is set when in bridge mode
-keep_ifnames_in_bridge_mode() {
-  echo "1"
-}
-
 hw_offload_support() {
   echo "1"
 }
