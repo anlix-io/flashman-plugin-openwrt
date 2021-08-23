@@ -1,5 +1,4 @@
 . /usr/share/libubox/jshn.sh
-. /usr/share/functions/common_functions.sh
 . /usr/share/flashman_init.conf
 
 
