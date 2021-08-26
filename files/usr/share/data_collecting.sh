@@ -1,7 +1,6 @@
 #!/bin/sh
 . /usr/share/functions/device_functions.sh
 . /usr/share/flashman_init.conf
-. /usr/share/functions/common_functions.sh
 
 dataCollectingDir="/tmp/data_collecting" # directory where all data related to data collecting will be stored.
 rawDataFile="${dataCollectingDir}/raw" # file collected data will be stored before being compressed.
@@ -12,29 +11,35 @@ compressedDataDir="${dataCollectingDir}/compressed" # directory where data will 
 # cross traffic. If latency collecting is enabled, extracts the individual icmp request numbers and 
 # their respective ping times. Builds a string with all this information and write them to file.
 collect_QoE_Monitor_data() {
-	# echo collecting data and writing to file
+	# echo collecting data and writing to file.
 
 	local timestamp=$(date +%s) # getting current unix time in seconds.
 	local pingResult=$(ping -i 0.01 -c "$pingPackets" "$pingServerAddress") # burst ping with $pingPackets amount of packets.
+	local pingError="$?" # ping return value.
+
+	# Even if the ping could not be executed, we'll read the wan bytes to keep tracking the amount of bytes up and down.
 
 	local rxBytes=$(get_wan_statistics RX) # bytes received by the interface.
 	local txBytes=$(get_wan_statistics TX) # bytes sent by the interface.
-	local max_bytes=4294967295 # max number possible with 32 bits. (2^32 - 1).
-	# if last bytes are not defined. define them using the current wan interface bytes value. then it returns.
+	# if last bytes are not defined. define them using the current wan interface bytes value. then we skip this measure.
 	if [ -z "$last_rxBytes" ] || [ -z "$last_txBytes" ]; then
 		# echo last bytes are undefined
 		last_rxBytes="$rxBytes" # bytes received by the interface. will be used next time.
 		last_txBytes="$txBytes" # bytes sent by the interface. will be used next time.
 		return # don't write data this round. we need a full minute of bytes to calculate cross traffic.
 	fi
-	local rx=$(($rxBytes - $last_rxBytes)) # subtract previous interface value from the current value.
-	local tx=$(($txBytes - $last_txBytes)) # subtract previous interface value from the current value.
-	[ "$rx" -lt 0 ] && rx=$(($rx + $max_bytes)) # if subtraction created a negative value, it means it has overflown.
-	[ "$tx" -lt 0 ] && tx=$(($tx + $max_bytes)) # if subtraction created a negative value, it means it has overflown.
+	local rx=$(($rxBytes - $last_rxBytes)) # bytes received since last time.
+	local tx=$(($txBytes - $last_txBytes)) # bytes transmitted since last time
+	# if subtraction created a negative value, it means it has overflown or interface has been restarted.
+	([ "$rx" -lt 0 ] || [ "$tx" -lt 0 ]) && return # we skip this measure.
 	last_rxBytes=$rxBytes # saves current interface bytes value as last value.
 	last_txBytes=$txBytes # saves current interface bytes value as last value.
 
-	pingResult=${pingResult##* ---[$'\r\n']} # removes everything behind the summary that appears in the last lines.
+	[ "$pingError" -eq 2 ] && return; # if ping could not be executed, we skip this measure.
+
+	# An skipped measure will become missing data, for this minute, in the server.
+
+	pingResult=${pingResult##* ping statistics ---[$'\r\n']} # removes everything behind the summary that appears in the last lines.
 	local transmitted=${pingResult% packets transmitted*} # removes everything after, and including, ' packets transmitted'.
 	local received=${pingResult% received*} # removes everything after, and including, ' received'.
 	received=${received##* } # removes everything before first space.
@@ -48,6 +53,7 @@ collect_QoE_Monitor_data() {
 		# echo collecting latencies
 		# removing the first line and the last 4 lines. only the ping lines remain.
 		local latencies=$(printf "%s" "$pingResult" | head -n -4 | sed '1d' | (
+		local pairs=""
 		local firstLine=true
 		while read line; do # for each ping line.
 			reached=${line%time=*} # removes 'time=' part if it exists.
@@ -62,11 +68,11 @@ collect_QoE_Monitor_data() {
 			if [ "$firstLine" = true ]; then
 				firstLine=false
 			else
-				string="${string},"
+				pairs="${pairs},"
 			fi
-			string="${string}${pingNumber}=${pingTime}" # concatenate to $string.
+			pairs="${pairs}${pingNumber}=${pingTime}" # concatenate to $string.
 		done
-		echo $string)) # prints final $string in this sub shell back to $string.
+		echo $pairs)) # prints final $string in this sub shell back to $string.
 		string="${string} ${latencies}" # appending latencies to string to be sent.
 	fi
 
@@ -178,7 +184,7 @@ checkServerState() {
 	if [ "$lastState" -ne "0" ]; then
 		# echo pinging alarm server to check if it's alive.
 		curl -s -m 10 "https://$alarmServerAddress:7890/ping" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" > /dev/null
-		lastState="$?" #return $(curl) exit code.
+		lastState="$?" # return $(curl) exit code.
 	fi
 	# echo last state is $lastState
 	return $lastState
@@ -195,7 +201,7 @@ sendToServer() {
 	status=$(curl --write-out '%{http_code}' -s -m 20 --connect-timeout 5 --output /dev/null \
 	-XPOST "https://$alarmServerAddress:7890/data" -H 'Content-Encoding: gzip' \
 	-H 'Content-Type: text/plain' -H "X-ANLIX-ID: $mac" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
-	-H "Only-old: $oldData" --data-binary @"$filepath")
+	-H "Send-Time: $(date +%s)" --data-binary @"$filepath")
 	curlCode="$?"
 	[ "$curlCode" -ne 0 ] && log "DATA_COLLECTING" "Data sent with curl exit code $curlCode" && return "$curlCode"
 	log "DATA_COLLECTING" "Data sent with response status code $status."
