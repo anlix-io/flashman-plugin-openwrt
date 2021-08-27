@@ -2,9 +2,12 @@
 . /usr/share/functions/device_functions.sh
 . /usr/share/flashman_init.conf
 
-dataCollectingDir="/tmp/data_collecting" # directory where all data related to data collecting will be stored.
-rawDataFile="${dataCollectingDir}/raw" # file collected data will be stored before being compressed.
-compressedDataDir="${dataCollectingDir}/compressed" # directory where data will be stored if compressing old data is necessary.
+# directory where all data related to data collecting will be stored.
+dataCollectingDir="/tmp/data_collecting"
+# file collected data will be stored before being compressed.
+rawDataFile="${dataCollectingDir}/raw"
+# directory where data will be stored if compressing old data is necessary.
+compressedDataDir="${dataCollectingDir}/compressed"
 
 # takes current unix timestamp, executes ping, in burst, to $pingServerAddress server, gets current 
 # rx and tx bytes from wan interface and compares then with values from previous calls to calculate 
@@ -13,104 +16,152 @@ compressedDataDir="${dataCollectingDir}/compressed" # directory where data will 
 collect_QoE_Monitor_data() {
 	# echo collecting data and writing to file.
 
-	local timestamp=$(date +%s) # getting current unix time in seconds.
-	local pingResult=$(ping -i 0.01 -c "$pingPackets" "$pingServerAddress") # burst ping with $pingPackets amount of packets.
-	local pingError="$?" # ping return value.
+	# getting current unix time in seconds.
+	local timestamp=$(date +%s)
+	# burst ping with $pingPackets amount of packets.
+	local pingResult=$(ping -i 0.01 -c "$pingPackets" "$pingServerAddress")
+	# ping return value.
+	local pingError="$?"
 
 	# Even if the ping could not be executed, we'll read the wan bytes to keep tracking the amount of bytes up and down.
 
-	local wanName=$(ifstatus wan | jsonfilter -e '@.device') # name of the wan interface.
-	local rxBytes=$(cat /sys/class/net/$wanName/statistics/rx_bytes) # bytes received by the interface.
-	local txBytes=$(cat /sys/class/net/$wanName/statistics/tx_bytes) # bytes sent by the interface.
+	# name of the wan interface.
+	local wanName=$(ifstatus wan | jsonfilter -e '@.device')
+	# bytes received by the interface.
+	local rxBytes=$(cat /sys/class/net/$wanName/statistics/rx_bytes)
+	# bytes sent by the interface.
+	local txBytes=$(cat /sys/class/net/$wanName/statistics/tx_bytes)
 	# if last bytes are not defined. define them using the current wan interface bytes value. then we skip this measure.
 	if [ -z "$last_rxBytes" ] || [ -z "$last_txBytes" ]; then
 		# echo last bytes are undefined
-		last_rxBytes="$rxBytes" # bytes received by the interface. will be used next time.
-		last_txBytes="$txBytes" # bytes sent by the interface. will be used next time.
-		return # don't write data this round. we need a full minute of bytes to calculate cross traffic.
+		# bytes received by the interface. will be used next time.
+		last_rxBytes="$rxBytes"
+		# bytes sent by the interface. will be used next time.
+		last_txBytes="$txBytes"
+		# don't write data this round. we need a full minute of bytes to calculate cross traffic.
+		return
 	fi
-	local rx=$(($rxBytes - $last_rxBytes)) # bytes received since last time.
-	local tx=$(($txBytes - $last_txBytes)) # bytes transmitted since last time
+	# bytes received since last time.
+	local rx=$(($rxBytes - $last_rxBytes))
+	# bytes transmitted since last time
+	local tx=$(($txBytes - $last_txBytes))
 	# if subtraction created a negative value, it means it has overflown or interface has been restarted.
-	([ "$rx" -lt 0 ] || [ "$tx" -lt 0 ]) && return # we skip this measure.
-	last_rxBytes=$rxBytes # saves current interface bytes value as last value.
-	last_txBytes=$txBytes # saves current interface bytes value as last value.
+	# we skip this measure.
+	([ "$rx" -lt 0 ] || [ "$tx" -lt 0 ]) && return
+	# saves current interface bytes value as last value.
+	last_rxBytes=$rxBytes
+	# saves current interface bytes value as last value.
+	last_txBytes=$txBytes
 
-	[ "$pingError" -eq 2 ] && return; # if ping could not be executed, we skip this measure.
+	# if ping could not be executed, we skip this measure.
+	[ "$pingError" -eq 2 ] && return;
 
 	# An skipped measure will become missing data, for this minute, in the server.
 
-	pingResult=${pingResult##* ping statistics ---[$'\r\n']} # removes everything behind the summary that appears in the last lines.
-	local transmitted=${pingResult% packets transmitted*} # removes everything after, and including, ' packets transmitted'.
-	local received=${pingResult% received*} # removes everything after, and including, ' received'.
-	received=${received##* } # removes everything before first space.
-	local loss=$(($transmitted - $received)) # integer representing the amount of packets not received.
+	# removes everything behind the summary that appears in the last lines.
+	pingResult=${pingResult##* ping statistics ---[$'\r\n']}
+	# removes everything after, and including, ' packets transmitted'.
+	local transmitted=${pingResult% packets transmitted*}
+	# removes everything after, and including, ' received'.
+	local received=${pingResult% received*}
+	# removes everything before first space.
+	received=${received##* }
+	# integer representing the amount of packets not received.
+	local loss=$(($transmitted - $received))
 	# local loss=${pingResult%\% packet loss*} # removes everything after, and including, '% packet loss'.
 	# loss=${loss##* } # removes everything before first space.
 
 	local string="$timestamp $loss $transmitted $rx $tx" # data to be sent.
 
-	if [ "$hasLatency" -eq 1 ]; then # if latency collecting is enabled.
+	# if latency collecting is enabled.
+	if [ "$hasLatency" -eq 1 ]; then
 		# echo collecting latencies
 		# removing the first line and the last 4 lines. only the ping lines remain.
 		local latencies=$(printf "%s" "$pingResult" | head -n -4 | sed '1d' | (
 		local pairs=""
 		local firstLine=true
-		while read line; do # for each ping line.
-			reached=${line%time=*} # removes 'time=' part if it exists.
+		# for each ping line.
+		while read line; do
+			# removes 'time=' part if it exists.
+			reached=${line%time=*}
 			# if "time=" has actually been removed, it means that line 
 			# contains it, which also means the icmp request was fulfilled.
-			[ ${#reached} -lt ${#line} ] || continue # if line doesn't contain 'time=', skip this line.
+			# if line doesn't contain 'time=', skip this line.
+			[ ${#reached} -lt ${#line} ] || continue
 
-			pingNumber=${line#*icmp_*eq=} # from the whole line, removes everything until, and including, "icmp_req=".
-			pingNumber=${pingNumber%% *} # removes everything after the first space.
-			pingTime=${line#*time=} # from the whole line, removes everything until, and including, "time=".
-			pingTime=${pingTime%% *} # removes everything after the first space.
+			 # from the whole line, removes everything until, and including, "icmp_req=".
+			pingNumber=${line#*icmp_*eq=}
+			# removes everything after the first space.
+			pingNumber=${pingNumber%% *}
+			# from the whole line, removes everything until, and including, "time=".
+			pingTime=${line#*time=}
+			# removes everything after the first space.
+			pingTime=${pingTime%% *}
 			if [ "$firstLine" = true ]; then
 				firstLine=false
 			else
 				pairs="${pairs},"
 			fi
-			pairs="${pairs}${pingNumber}=${pingTime}" # concatenate to $string.
+			# concatenate to $string.
+			pairs="${pairs}${pingNumber}=${pingTime}"
 		done
-		echo $pairs)) # prints final $string in this sub shell back to $string.
-		string="${string} ${latencies}" # appending latencies to string to be sent.
+		# prints final $string in this sub shell back to $string.
+		echo $pairs))
+		# appending latencies to string to be sent.
+		string="${string} ${latencies}"
 	fi
 
 	# printf "string is: '%s'\n" "$string"
-	echo "$string" >> "$rawDataFile"; # appending string to file.
+	# appending string to file.
+	echo "$string" >> "$rawDataFile";
 }
 
 # prints the size of a file, using 'ls', where full file path is given as 
 # first argument ($1).
 fileSize() {
-	local wcline=$(wc -c "$1") # file size is the information at the 1st column.
-	local size=${wcline% *} #remove suffix composed of space and anything else.
+	# file size is the information at the 1st column.
+	local wcline=$(wc -c "$1")
+	#remove suffix composed of space and anything else.
+	local size=${wcline% *}
 	echo $size
 }
 
 # prints the sum of the sizes of all files inside given directory path.
 sumFileSizesInPath() {
-	local anyFile=false # boolean that marks that at least one file exists inside given directory.
-	for i in "$1"/*; do # for each file in that directory.
-		[ -f "$i" ] || continue # if that pattern expansion exists as a file.
-		anyFile=true # set boolean to true.
-		break # as we have at least one file, we don't need to loop through all files.
+	# boolean that marks that at least one file exists inside given directory.
+	local anyFile=false
+	# for each file in that directory.
+	for i in "$1"/*; do
+		# if that pattern expansion exists as a file.
+		[ -f "$i" ] || continue
+		# set boolean to true.
+		anyFile=true
+		# as we have at least one file, we don't need to loop through all files.
+		break
 	done
-	if [ "$anyFile" = false ]; then # if no files.
-		echo 0 # prints zero. size of nothing is 0.
-		return 0 # result was given, we can leave function.
+	if [ "$anyFile" = false ]; then
+		# if no files.
+		# prints zero. size of nothing is 0.
+		echo 0
+		# result was given, we can leave function.
+		return 0
 	fi
 	# if there is at least one file.
 
-	local wcResult=$(wc -c "$1"/*) # prints a list of sizes and files.
-	local hasTotal=${wcResult% total} # if there is 2 or more files, the last line will have a "total". remove that string.
+	# prints a list of sizes and files.
+	local wcResult=$(wc -c "$1"/*)
+	# if there is 2 or more files, the last line will have a "total". remove that string.
+	local hasTotal=${wcResult% total}
 	# if it has a total, it was removed. if not, nothing was removed and both strings are the same.
 
-	if [ ${#hasTotal} -lt ${#wcResult} ]; then # if length of string with "total" removed is smaller than original string.
-		echo ${hasTotal##* } # remove everything before the last word, which is the value for total, and print what remains.
-	else # if there were no total, then there was only one file, in one line of output, and the first column is the size value.
-		echo ${wcResult%% *} # remove everything past, and including, the first space, and print what remains.
+	 # if length of string with "total" removed is smaller than original string.
+	if [ ${#hasTotal} -lt ${#wcResult} ]; then
+		# remove everything before the last word, which is the value for total, and print what remains.
+		echo ${hasTotal##* }
+	else
+		# if there were no total, then there was only one file, in one line of output, and the first column is the size value.
+		# remove everything past, and including, the first space, and print what remains.
+		echo ${wcResult%% *}
 	fi
 }
 
@@ -120,14 +171,18 @@ zipFile() {
 	local capSize="$1"
 
 	# if file doesn't exist, we won't have to compressed anything.
-	[ -f "$rawDataFile" ] || return 1 # a return of 1 means nothing has been be gzipped.
+	# a return of 1 means nothing has been be gzipped.
+	[ -f "$rawDataFile" ] || return 1 
 
-	local size=$(fileSize "$rawDataFile") # size of file with raw data.
-	local dirSize=$(sumFileSizesInPath "$compressedDataDir") # sum of file sizes in directory for compressed files.
+	# size of file with raw data.
+	local size=$(fileSize "$rawDataFile")
+	# sum of file sizes in directory for compressed files.
+	local dirSize=$(sumFileSizesInPath "$compressedDataDir")
 
 	# if sum is smaller than $capSize, do nothing.
 	# echo checking file size to zip
-	if [ $(($size + $dirSize)) -lt $capSize ]; then return 1; fi # a return of 1 means nothing will be gzipped.
+	# a return of 1 means nothing will be gzipped.
+	if [ $(($size + $dirSize)) -lt $capSize ]; then return 1; fi
 
 	# compressing file where raw data is held.
 	gzip "$rawDataFile"
@@ -142,14 +197,18 @@ zipFile() {
 removeOldFiles() {
 	local capSize="$1"
 
-	local dirSize=$(sumFileSizesInPath "$compressedDataDir") # get the sum of sizes of all files in bytes.
+	# get the sum of sizes of all files in bytes.
+	local dirSize=$(sumFileSizesInPath "$compressedDataDir")
 
 	# if $dirSize is more than given $capSize, remove oldest file. which is 
 	# the file that shell orders as first.
 	for i in "$compressedDataDir"/*; do
-		[ $dirSize -lt $capSize ] && break; # if we are under $capSize. do nothing.
-		rm "$i" # removes that file.
-		dirSize=$(($dirSize - $(fileSize "$i"))) # subtract that file's size from sum.
+		# if we are under $capSize. do nothing.
+		[ $dirSize -lt $capSize ] && break;
+		# removes that file.
+		rm "$i"
+		# subtract that file's size from sum.
+		dirSize=$(($dirSize - $(fileSize "$i")))
 	done
 }
 
@@ -163,7 +222,9 @@ collectData() {
 	# and, consequently, moved to the directory of compressed files. So
 	# $(removeOldFiles) is only executed if any new compressed file was 
 	# created.
-	mkdir -p "$compressedDataDir" # creates directory of for compressed files, if it doesn't already exists.
+
+	# creates directory of for compressed files, if it doesn't already exists.
+	mkdir -p "$compressedDataDir"
 	zipFile $((32*1024)) && removeOldFiles $((24*1024))
 	# the difference between the cap size sent to $(zipFile) and 
 	# $(removeOldFiles) is the size left as a minimum amount for raw data 
@@ -185,7 +246,8 @@ checkServerState() {
 	if [ "$lastState" -ne "0" ]; then
 		# echo pinging alarm server to check if it's alive.
 		curl -s -m 10 "https://$alarmServerAddress:7890/ping" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" > /dev/null
-		lastState="$?" # return $(curl) exit code.
+		# return $(curl) exit code.
+		lastState="$?"
 	fi
 	# echo last state is $lastState
 	return $lastState
@@ -196,8 +258,10 @@ checkServerState() {
 sendToServer() {
 	local filepath="$1" oldData="$2"
 
-	local mac=$(get_mac); # defined in /usr/share/functions/device_functions.sh
-	mac=${mac//:/} # removing all colons in mac address.
+	# defined in /usr/share/functions/device_functions.sh
+	local mac=$(get_mac);
+	# removing all colons in mac address.
+	mac=${mac//:/}
 
 	status=$(curl --write-out '%{http_code}' -s -m 20 --connect-timeout 5 --output /dev/null \
 	-XPOST "https://$alarmServerAddress:7890/data" -H 'Content-Encoding: gzip' \
@@ -215,7 +279,8 @@ sendToServer() {
 sendCompressedData() {
 	# echo going to send compressed files
 	# echo "$compressedDataDir"/*
-	for i in "$compressedDataDir"/*; do # for each compressed file in the pattern expansion.
+	# for each compressed file in the pattern expansion.
+	for i in "$compressedDataDir"/*; do
 		# if file exists, sends file and if $(curl) exit code isn't equal to 0, returns $(curl) exit code 
 		# without deleting the file we tried to send. if $(curl) exit code is equal to 0, removes file
 		[ -f "$i" ] && (sendToServer "$i" "1" || return "$?") && rm "$i"
@@ -230,19 +295,27 @@ sendUncompressedData() {
 	[ -f "$rawDataFile" ] || return 0
 
 	# echo going to send uncompressed file
-	local compressedTempFile="${rawDataFile}.gz" # the name the compressed file will have.
+	# the name the compressed file will have.
+	local compressedTempFile="${rawDataFile}.gz"
 	# remove old file if it exists. it should never be left there.
 	[ -f "$compressedTempFile" ] && rm "$compressedTempFile"
 
-	trap "rm $compressedTempFile" SIGTERM # in case the process is interrupted, delete compressed file.
-	gzip -k "$rawDataFile" # compressing to a temporary file but keeping original, uncompressed, intact.
+	# in case the process is interrupted, delete compressed file.
+	trap "rm $compressedTempFile" SIGTERM
+	# compressing to a temporary file but keeping original, uncompressed, intact.
+	gzip -k "$rawDataFile"
 
-	sendToServer "$compressedTempFile" "0" # sends compressed file.
-	local sentResult="$?" # storing $(curl) exit code.
+	# sends compressed file.
+	sendToServer "$compressedTempFile" "0"
+	# storing $(curl) exit code.
+	local sentResult="$?"
 
-	[ "$sentResult" -eq 0 ] && rm "$rawDataFile" # if send was successful, removes original file.
-	rm "$compressedTempFile" # removes temporary file. a new temporary will be created next time, with more content, 
-	trap - SIGTERM # cleans trap.
+	# if send was successful, removes original file.
+	[ "$sentResult" -eq 0 ] && rm "$rawDataFile"
+	# removes temporary file. a new temporary will be created next time, with more content, 
+	rm "$compressedTempFile"
+	# cleans trap.
+	trap - SIGTERM
 
 	return $sentResult # Returns #(curl) exit code.
 }
@@ -284,7 +357,8 @@ sendUncompressedData() {
 # Attempts to send data some times with 10 seconds of sleep time between tries.
 sendData() {
 	# echo going to send data
-	local tries=3 # amount of attempts of sending data, to alarm server, before giving up.
+	# amount of attempts of sending data, to alarm server, before giving up.
+	local tries=3
 
 	while true; do
 		# check if the last time, data was sent, server was alive. if it was, 
@@ -304,21 +378,27 @@ sendData() {
 
 		# writes the $(curl) exit code if it has changed since last attempt to send data.
 		[ "$currentServerState" -ne "$lastServerState" ] && echo "$currentServerState" > "$lastServerStateFilePath"
-		[ "$currentServerState" -eq 0 ] && break # if data was sent successfully, we stop retrying.
+		# if data was sent successfully, we stop retrying.
+		[ "$currentServerState" -eq 0 ] && break
 
 		tries=$(($tries - 1))
-		[ "$tries" -eq 0 ] && break # leaves retry loop when $retries reaches zero.
+		# leaves retry loop when $retries reaches zero.
+		[ "$tries" -eq 0 ] && break
 		# echo retrying in 10 seconds
-		sleep 10 # sleeps before retrying. this time must take the 60 second interval into consideration.
+		# sleeps before retrying. this time must take the 60 second interval into consideration.
+		sleep 10
 	done
 }
 
 # echoes a random number between 0 and 59 (inclusive).
 random0To59() {
 	local rand=$(head /dev/urandom | tr -dc "0123456789")
-	rand=${rand:0:2} # taking the first 2 digits.
-	[ ${rand:0:1} = "0" ] && rand=${rand:1:2} # "08" and "09" don't work for "$(())".
-	echo $(($rand * 6 / 10)) # $rand is a integer between 0 and 99 (inclusive), this makes it an integer between 0 and 59.
+	# taking the first 2 digits.
+	rand=${rand:0:2}
+	# "08" and "09" don't work for "$(())".
+	[ ${rand:0:1} = "0" ] && rand=${rand:1:2}
+	# $rand is a integer between 0 and 99 (inclusive), this makes it an integer between 0 and 59.
+	echo $(($rand * 6 / 10))
 	# our Ash has not been compiled to work with floats.
 }
 
@@ -337,7 +417,8 @@ getStartTime() {
 	local startTimeFilePath="$1" interval="$2"
 
 	local startTime
-	if [ -f "$startTimeFilePath" ]; then # if file holding start time exists.
+	# if file holding start time exists.
+	if [ -f "$startTimeFilePath" ]; then
 		local currentTime=$(date +%s)
 		startTime=$(cat "$startTimeFilePath") # get the time stamp inside that file.
 		# advance timestamp to the closest time after current time that the given interval could produce.
@@ -348,14 +429,20 @@ getStartTime() {
 		# produce, starting from $startTime, that is smaller than $currentTime. 
 		# By adding $interval, we get the closest time to $currentTime that 
 		# $interval could produce that is bigger than $currentTtime.
-		sleep $(($startTime - $currentTime)) # sleep for the amount of time left to next interval.
+		# sleep for the amount of time left to next interval.
+		sleep $(($startTime - $currentTime))
 		# this makes us always start at the same second, even if the process is shut down for a long time.
-	else # if file holding start time doesn't exist.
-		sleep $(random0To59); # sleeping for at most 59 seconds to distribute data collecting through a minute window.
-		startTime=$(date +%s) # use current time.
+	else 
+		# if file holding start time doesn't exist.
+		# sleeping for at most 59 seconds to distribute data collecting through a minute window.
+		sleep $(random0To59)
+		# use current time.
+		startTime=$(date +%s)
 	fi
-	echo $startTime > "$startTimeFilePath" # substitute that time in file, or create a new file.
-	echo $startTime # print start time found, or current time.
+	# substitute that time in file, or create a new file.
+	echo $startTime > "$startTimeFilePath"
+	# print start time found, or current time.
+	echo $startTime
 }
 
 # deletes files, marking process state, from previous process and deletes temporary
@@ -368,13 +455,18 @@ cleanFiles() {
 
 # collects and sends data forever.
 loop() {
-	local interval=60 # interval between beginnings of data collecting.
-	mkdir -p "$dataCollectingDir" # making sure directory exists.
-	local time=$(getStartTime "${dataCollectingDir}/startTime" $interval) # time when we will start executing.
+	# interval between beginnings of data collecting.
+	local interval=60
+	# making sure directory exists.
+	mkdir -p "$dataCollectingDir"
+	# time when we will start executing.
+	local time=$(getStartTime "${dataCollectingDir}/startTime" $interval)
 
-	while true; do # infinite loop where we execute all procedures over and over again until the end of times.
+	# infinite loop where we execute all procedures over and over again until the end of times.
+	while true; do
 		# echo startTime $time
-		mkdir -p "$dataCollectingDir" # making sure directory exists every time.
+		# making sure directory exists every time.
+		mkdir -p "$dataCollectingDir"
 
 		# getting FQDNs every time we need to send data, this way we don't have to 
 		# restart the service if a fqdn changes.
@@ -387,23 +479,32 @@ loop() {
 		# 	hasLatency="$hasLatency", alarmServerAddress="$alarmServerAddress", \
 		# 	pingServerAddress="$pingServerAddress", pingPackets="$pingPackets"
 
-		collectData # does everything related to collecting and storing data.
-		sendData # does everything related to sending data and deletes data sent.
+		# does everything related to collecting and storing data.`
+		collectData
+		# does everything related to sending data and deletes data sent.
+		sendData
 
-		local endTime=$(date +%s) # time after all procedures are finished.
-		local timeLeftForNextRun="-1" # this will hold the time left until we should run the next iteration of this loop
+		# time after all procedures are finished.
+		local endTime=$(date +%s)
+		# this will hold the time left until we should run the next iteration of this loop
+		local timeLeftForNextRun="-1"
 		# while time left is negative, which could happen if $(($time - $endTime)) is bigger than $interval.
 		while [ "$timeLeftForNextRun" -lt 0 ]; do
-			time=$(($time + $interval)) # advance time, when current data collecting has started, by one interval.
-			timeLeftForNextRun=$(($time - $endTime)) # calculate time left to collect data again.
+			# advance time, when current data collecting has started, by one interval.
+			time=$(($time + $interval))
+			# calculate time left to collect data again.
+			timeLeftForNextRun=$(($time - $endTime))
 		done
 		# echo timeLeftForNextRun=$timeLeftForNextRun
-		sleep $timeLeftForNextRun # sleep for the time remaining until next data collecting.
+		 # sleep for the time remaining until next data collecting.
+		sleep $timeLeftForNextRun
 
 		# writing next loop time to file that, at this line, matches current time.
 		echo $time > "${dataCollectingDir}/startTime"
 	done
 }
 
-cleanFiles # deletes files, marking process state, from previous process.
-loop # the infinite loop.
+# deletes files, marking process state, from previous process.
+cleanFiles
+# the infinite loop.
+loop
