@@ -1,15 +1,16 @@
 . /usr/share/libubox/jshn.sh
 . /usr/share/flashman_init.conf
 
-
 # start, stop or restart the data collecting service.
 data_collecting_service() {
 	log "DATA_COLLECTING" "service $1"
 	case "$1" in
 	# start) /etc/init.d/data_collecting start;;
 	# stop) /etc/init.d/data_collecting stop;;
-	restart) /etc/init.d/data_collecting stop; /etc/init.d/data_collecting start;; # stopping before starting.
-	*) /etc/init.d/data_collecting "$1";; # 'start' and 'stop' will fall to this case.
+# stopping before starting.
+	restart) /etc/init.d/data_collecting stop; /etc/init.d/data_collecting start;;
+# 'start' and 'stop' will fall to this case.
+	*) /etc/init.d/data_collecting "$1";;
 	esac
 }
 
@@ -84,7 +85,7 @@ set_data_collecting_parameters() {
 	if [ "$data_collecting_is_active" = "1" ] && [ "$data_collecting_ping_fqdn" != "" ] && ! data_collecting_is_running; then
 		# if data collecting is already running, no need to turn it on.
 		data_collecting_service start
-	elif [ "$data_collecting_is_active" != "1" ] && data_collecting_is_running; then # being != "1" means empty string works.
+	elif [ "$data_collecting_is_active" != "1" ] && data_collecting_is_running; then
 		# if data collecting is already not running, no need to turn it off.
 		data_collecting_service stop
 	fi
