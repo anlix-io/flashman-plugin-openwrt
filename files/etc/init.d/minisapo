@@ -55,7 +55,7 @@ param_list() {
 
 start_service() {
   procd_open_instance
-  procd_set_param command minisapo 
+  procd_set_param command nice minisapo 
   procd_append_param command "$(param_list)"
   procd_set_param respawn
   procd_set_param stdout 1 # forward stdout of the command to logd
