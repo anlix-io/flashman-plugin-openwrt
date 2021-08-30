@@ -80,7 +80,6 @@ FILE_DIR=
 		FILE_DIR="files"
 	endif
 
-CUSTOM_FILE_DIR=
 CUSTOM_FILE_ARQ=
 DRIVER_FILE_ARQ=mac80211
 	ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_tplink_c2-v1), y)
@@ -182,10 +181,10 @@ DRIVER_FILE_ARQ=mac80211
 		CUSTOM_FILE_ARQ="tplink_tl-wdr3500"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_dlink_dwr-116-a1), y)
 		CUSTOM_FILE_ARQ="dlink_dl-dwr116-a3"
+		DRIVER_FILE_ARQ="rtwifi"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_itlb-ncloud-v1), y)
-		CUSTOM_FILE_DIR="custom-files/itlb-ncloud-v1"
-	else ifeq ($(CONFIG_TARGET_realtek_rtl8197d_DEVICE_DIR815D1), y)
-		CUSTOM_FILE_DIR="custom-files/dir-815-d1"
+		CUSTOM_FILE_ARQ="intelbras_ncloud-v1"
+		DRIVER_FILE_ARQ="rtwifi"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8196e_DEVICE_GWR300N), y)
 		CUSTOM_FILE_ARQ="greatek_gwr300-v1"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_GWR1200AC-V1), y)
@@ -229,15 +228,8 @@ SSID_SUFFIX=
 define Package/flashman-plugin/install
 	$(CP) ./$(FILE_DIR)/* $(1)/
 	$(CP) ./driver/$(DRIVER_FILE_ARQ).sh $(1)/usr/share/functions/custom_wireless_driver.sh
-ifneq ($(CUSTOM_FILE_DIR),)
-	$(CP) ./$(CUSTOM_FILE_DIR)/* $(1)/
-endif
 ifneq ($(CUSTOM_FILE_ARQ),)
 	$(CP) ./custom-files/$(CUSTOM_FILE_ARQ).sh $(1)/usr/share/functions/custom_device.sh
-	if [ -d ./calibration/$(CUSTOM_FILE_ARQ) ]; then \
-		mkdir -p $(1)/lib/firmware ; \
-		$(CP) ./calibration/$(CUSTOM_FILE_ARQ)/* $(1)/lib/firmware/ ; \
-	fi
 endif
 
 	$(INSTALL_DIR) $(1)/usr/bin
