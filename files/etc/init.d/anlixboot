@@ -10,4 +10,28 @@ START=17
 
 boot() {
 	[ "$(type -t anlix_bootup_defaults)" ] && anlix_bootup_defaults
+
+	[ "$(type -t old_realtek_bridge_mode)" ] 
+	then
+		local _bridge_mode=""
+		local _disable_lan_ports=""
+
+		json_cleanup
+		json_load_file /root/flashbox_config.json
+		json_get_var _bridge_mode bridge_mode
+		json_get_var _disable_lan_ports bridge_disable_switch
+		json_close_object
+
+		if [ "$_bridge_mode" = "y" ]
+		then
+			if [ "$_disable_lan_ports" = "y" ]
+			then
+				swconfig dev switch0 vlan 9 set ports ''
+				swconfig dev switch0 vlan 8 set ports '4 6'
+			else
+				swconfig dev switch0 vlan 9 set ports ''
+				swconfig dev switch0 vlan 8 set ports '0 1 2 3 4 6'
+			fi
+		fi
+	fi
 }

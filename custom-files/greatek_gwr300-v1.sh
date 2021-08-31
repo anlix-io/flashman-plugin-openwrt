@@ -45,3 +45,7 @@ custom_switch_ports() {
 custom_wifi_24_txpower(){
 	echo "22"
 }
+
+old_realtek_bridge_mode() {
+	echo "1"
+}

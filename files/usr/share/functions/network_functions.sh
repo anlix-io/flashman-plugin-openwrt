@@ -1072,6 +1072,8 @@ disable_bridge_mode() {
 }
 
 save_bridge_mode_vlan_config() {
+	[ "$(type -t old_realtek_bridge_mode)" ] && return
+
 	local _enable_bridge="$1"
 	local _disable_lan_ports="$2"
 
