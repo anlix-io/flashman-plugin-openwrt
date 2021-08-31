@@ -11,7 +11,7 @@ START=17
 boot() {
 	[ "$(type -t anlix_bootup_defaults)" ] && anlix_bootup_defaults
 
-	[ "$(type -t old_realtek_bridge_mode)" ] 
+	if [ "$(type -t old_realtek_bridge_mode)" ]
 	then
 		local _bridge_mode=""
 		local _disable_lan_ports=""

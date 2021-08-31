@@ -45,3 +45,7 @@ custom_switch_ports() {
 old_realtek_bridge_mode() {
 	echo "1"
 }
+
+wan_lan_diff_ifaces(){
+	echo "1"
+}

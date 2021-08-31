@@ -49,3 +49,7 @@ custom_wifi_24_txpower(){
 old_realtek_bridge_mode() {
 	echo "1"
 }
+
+wan_lan_diff_ifaces(){
+	echo "1"
+}
