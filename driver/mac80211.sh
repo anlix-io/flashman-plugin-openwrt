@@ -37,7 +37,7 @@ get_virtual_ap_ifname() {
 	# $2: Which virtual AP
 
 	# Get the vap interface with the given number
-	echo "$(get_ifnames "$1") | grep $2"
+	echo "$(get_ifnames "$1" | grep $2)"
 }
 
 # Get the station ifname
@@ -48,7 +48,7 @@ get_station_ifname() {
 
 	# Show the last interface, which is always the station
 	# that contains "-"
-	echo "$(get_ifnames "$1") | grep "-" | tail -1"
+	echo "$(get_ifnames "$1" | grep "-" | tail -1)"
 }
 
 get_24ghz_phy() {
