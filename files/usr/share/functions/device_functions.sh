@@ -14,6 +14,34 @@ get_wifi_channel(){
 	iwinfo $_phy info | awk '/Channel/ { print $4 }'
 }
 
+# Check if there is station
+# Returns:
+#	0: None
+#	1: Only 2.4G
+#	2: Only 5G
+#	3: Both 2.4G and 5G
+is_station_capable() {
+	local _ret=0
+	local _ret5=0
+
+	if [ -f /usr/sbin/wpad ]
+	then
+		local _24iface=$(get_24ghz_phy)
+		local _5iface=$(get_5ghz_phy)
+
+		# If it has any vap, so the station exists
+		[ "$_24iface" ] && [ "$(get_station_ifname "0")" ] && _ret=1
+		[ "$_5iface" ] && [ "$(get_station_ifname "1")" ] && _ret5=1
+	fi
+
+	if [ "$_ret5" -eq "1" ]
+	then
+		[ "$_ret" -eq "1" ] && echo "3" || echo "2"
+	else
+		echo "$_ret"
+	fi
+}
+
 is_mesh_routing_capable() {
 	local _ret=0
 	local _ret5=0

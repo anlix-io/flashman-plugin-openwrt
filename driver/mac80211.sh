@@ -9,6 +9,48 @@ get_phy_type() {
 	echo "$(iw phy $1 channels|grep Band|tail -1|cut -c6)"
 }
 
+# Get all ifnames from interfaces
+get_ifnames() {
+	# $1: Which interface:
+		# 0: 2.4G
+		# 1: 5G
+
+	# Do not show interfaces with tmp
+	echo "$(ls /sys/devices/$(uci get wireless.radio$1.path)/net | grep -v "tmp")"
+}
+
+# Get only the root interface
+get_root_ifname() {
+	# $1: Which interface:
+		# 0: 2.4G
+		# 1: 5G
+
+	# Do not show interfaces with "-" (Virtual AP's)
+	echo "$(get_ifnames "$1" | grep -v "-")"
+}
+
+# Get the chosen virtual AP ifname
+get_virtual_ap_ifname() {
+	# $1: Which interface:
+		# 0: 2.4G
+		# 1: 5G
+	# $2: Which virtual AP
+
+	# Get the vap interface with the given number
+	echo "$(get_ifnames "$1") | grep $2"
+}
+
+# Get the station ifname
+get_station_ifname() {
+	# $1: Which interface:
+		# 0: 2.4G
+		# 1: 5G
+
+	# Show the last interface, which is always the station
+	# that contains "-"
+	echo "$(get_ifnames "$1") | grep "-" | tail -1"
+}
+
 get_24ghz_phy() {
 	for i in /sys/class/ieee80211/* 
 	do 
