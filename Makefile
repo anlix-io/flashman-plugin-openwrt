@@ -84,8 +84,10 @@ CUSTOM_FILE_ARQ=
 DRIVER_FILE_ARQ=mac80211
 	ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_tplink_c2-v1), y)
 		CUSTOM_FILE_ARQ="tplink_archer-c2-v1"
+		DRIVER_FILE_ARQ="rtwifi"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_tplink_c20-v1), y)
 		CUSTOM_FILE_ARQ="tplink_archer-c20-v1"
+		DRIVER_FILE_ARQ="rtwifi"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tplink_c20-v4), y)
 		CUSTOM_FILE_ARQ="tplink_archer-c20-v4"
 		DRIVER_FILE_ARQ="rtwifi"
@@ -106,6 +108,7 @@ DRIVER_FILE_ARQ=mac80211
 		DRIVER_FILE_ARQ="rtwifi"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_zyxel_emg1702-t10a-a1), y)
 		CUSTOM_FILE_ARQ="tbs"
+		DRIVER_FILE_ARQ="rtwifi"
 	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_archer-c60-v2), y)
 		CUSTOM_FILE_ARQ="tplink_archer-c60-v2"
 	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_archer-c60-v3), y)
@@ -123,6 +126,7 @@ DRIVER_FILE_ARQ=mac80211
 		CUSTOM_FILE_ARQ="dlink_covr-c1200-a1"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_dlink_dir-819-a1), y)
 		CUSTOM_FILE_ARQ="tbs"
+		DRIVER_FILE_ARQ="rtwifi"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr740n-v4), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr740n-v4-v5"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr740n-v5), y)
