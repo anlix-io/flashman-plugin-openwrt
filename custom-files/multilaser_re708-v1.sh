@@ -29,27 +29,12 @@ get_custom_mac() {
 	echo "$_mac_address_tag"
 }
 
-set_switch_bridge_mode_on_boot() {
-	local _disable_lan_ports="$1"
-
-	if [ "$_disable_lan_ports" = "y" ]
-	then
-		# eth0
-		swconfig dev switch0 vlan 9 set ports ''
-		# eth1
-		swconfig dev switch0 vlan 8 set ports '4 6'
-	else
-		# eth0
-		swconfig dev switch0 vlan 9 set ports ''
-		# eth1
-		swconfig dev switch0 vlan 8 set ports '0 1 2 3 4 6'
-	fi
-}
-
 custom_switch_ports() {
 	case $1 in 
 		1) echo "switch0" ;;
 		2) echo "4" ;;
 		3) echo "0 1 2 3" ;;
+		4) echo "6" ;;
+		5) echo "4" ;;
 	esac
 }

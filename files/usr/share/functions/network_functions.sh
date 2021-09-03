@@ -6,6 +6,9 @@
 . /usr/share/libubox/jshn.sh
 . /lib/functions/network.sh
 . /usr/share/functions/device_functions.sh
+if [ -e /usr/share/functions/custom_device.sh ]; then
+	. /usr/share/functions/custom_device.sh
+fi
 
 get_ipv6_enabled() {
 	local _ipv6_enabled=1
@@ -216,9 +219,9 @@ set_wan_type() {
 			json_close_object
 
 			# If we changed bridge and router needs reboot, we do so here
-			if [ "$_did_change_bridge" = "y" ] && [ "$(type -t needs_reboot_bridge_mode)" ]
+			if [ "$_did_change_bridge" = "y" ] && [ "$(type -t needs_reboot_change_mode)" ]
 			then
-				needs_reboot_bridge_mode
+				needs_reboot_change_mode
 			fi
 
 		elif [ "$_wan_type_remote" = "pppoe" ]
@@ -246,9 +249,9 @@ set_wan_type() {
 				json_close_object
 
 				# If we changed bridge and router needs reboot, we do so here
-				if [ "$_did_change_bridge" = "y" ] && [ "$(type -t needs_reboot_bridge_mode)" ]
+				if [ "$_did_change_bridge" = "y" ] && [ "$(type -t needs_reboot_change_mode)" ]
 				then
-					needs_reboot_bridge_mode
+					needs_reboot_change_mode
 				fi
 
 			fi
@@ -698,6 +701,66 @@ get_bridge_mode_status() {
 	echo "$_status"
 }
 
+update_vlan() {
+	if [ -f /root/vlan_config.json ]; then
+		local _restart_network=$1
+		json_cleanup
+		json_load_file /root/vlan_config.json
+		json_get_keys _vlans
+
+		# On first boot there will be no vlan object
+		if [ "$_vlans" != "" ]; then
+
+			local _input=""
+			_input="$(uci show network | grep ].vlan=)"
+
+			IFS=$'\n'
+
+			local _vids=''
+			local _idx=0
+
+			for _vlan in $_input; do
+				_vid=${_vlan#*\'}
+				_vid=${_vid%\'}
+				local _test=${_vlans#*$_vid}
+				# Indicates _vid is in _vlans
+				if [ $(( ${#_test} < ${#_vlans} )) = 1 ]; then
+					json_get_var _ports $_vid
+					uci set network.@switch_vlan[$_idx].ports="$_ports"
+				else # _vid isn't in _vlans
+					uci delete network.@switch_vlan[$_idx]
+					_idx=$(( _idx - 1 ))
+				fi
+				if [ "$_vids" = '' ]; then
+					_vids="$_vid"
+				else
+					_vids="$_vids $_vid"
+				fi
+				_idx=$(( _idx + 1 ))
+			done
+
+			IFS=$' '
+
+			for _vlan in $_vlans; do
+				_test=${_vids#*$_vlan}
+				# Indicates _vlan isn't in _vids
+				if [ $(( ${#_test} < ${#_vids} )) = 0 ]; then
+					json_get_var _ports $_vlan
+					uci add network switch_vlan
+					uci set network.@switch_vlan[-1].device="$(get_switch_device)"
+					uci set network.@switch_vlan[-1].vlan="$_vlan"
+					uci set network.@switch_vlan[-1].ports="$_ports"
+				fi
+			done
+
+			uci commit network
+			[ "$_restart_network" = "y" ] && /etc/init.d/network restart && sleep 5
+		fi
+
+		json_close_object
+	fi
+}
+
 enable_bridge_mode() {
 	local _do_network_restart=$1
 	local _wait_uhttpd_reply=$2 # TODO: Find a better way to solve this
@@ -715,7 +778,6 @@ enable_bridge_mode() {
 	local _lan_ip="$(uci get network.lan.ipaddr)"
 	local _lan_ifnames="$(uci get network.lan.ifname)"
 	local _wan_ifnames="$(uci get network.wan.ifname)"
-	local _lan_ifnames_wifi=""
 	# Write bridge mode to config.json so it persists between flashes
 	json_cleanup
 	json_load_file /root/flashbox_config.json
@@ -758,29 +820,18 @@ enable_bridge_mode() {
 		# LAN IP on etc/hosts will be replaced by hotplug
 		uci set network.lan.proto="dhcp"
 	fi
-	# Separate non-wifi interfaces to back them up
-	for iface in $_lan_ifnames
-	do
-		if [ "$(echo $iface | grep ra)" != "" ]
-		then
-			_lan_ifnames_wifi="$iface $_lan_ifnames_wifi"
-		fi
-	done
-	if [ "$(type -t keep_ifnames_in_bridge_mode)" == "" ]
-	then
-		# Enable/disable ethernet connection on LAN physical ports
+
+	if [ "$(type -t wan_lan_diff_ifaces)" == "" ]; then
+		save_bridge_mode_vlan_config "y" "$_disable_lan_ports"
+	else
+		# those routers do not use vlan
 		if [ "$_disable_lan_ports" = "y" ]
 		then
-			uci set network.lan.ifname="$_lan_ifnames_wifi $_wan_ifnames"
+			uci set network.lan.ifname="$_wan_ifnames"
 		else
 			# DO NOT PLACE WAN IFNAME BEFORE LAN IFNAME OR SOME ROUTERS WILL CRASH
 			uci set network.lan.ifname="$_lan_ifnames $_wan_ifnames"
 		fi
-	fi
-	# Some routers need to change port mapping on software switch
-	if [ "$(type -t set_switch_bridge_mode)" ]
-	then
-		set_switch_bridge_mode "y" "$_disable_lan_ports"
 	fi
 
 	# Disable dns, dhcp and dhcp6
@@ -821,9 +872,9 @@ enable_bridge_mode() {
 			fi
 		fi
 		# Some targets need to reboot the whole router after changing mode
-		if [ "$(type -t needs_reboot_bridge_mode)" ]
+		if [ "$(type -t needs_reboot_change_mode)" ]
 		then
-			needs_reboot_bridge_mode
+			needs_reboot_change_mode
 		else
 			/etc/init.d/network restart
 			/etc/init.d/uhttpd restart
@@ -849,7 +900,6 @@ update_bridge_mode() {
 	local _current_gateway=""
 	local _current_dns=""
 	local _lan_ifnames=""
-	local _lan_ifnames_wifi=""
 	local _reset_network="n"
 	local _check_reboot="n"
 	local _wan_ifnames="$(uci get network.wan.ifname)"
@@ -891,30 +941,18 @@ update_bridge_mode() {
 		json_get_var _lan_ifnames bridge_lan_backup
 		_reset_network="y"
 		_check_reboot="y"
-		# Separate non-wifi interfaces to back them up
-		for iface in $_lan_ifnames
-		do
-			if [ "$(echo $iface | grep ra)" != "" ]
-			then
-				_lan_ifnames_wifi="$iface $_lan_ifnames_wifi"
-			fi
-		done
-		# Enable/disable ethernet connection on LAN physical ports
-		if [ "$(type -t keep_ifnames_in_bridge_mode)" == "" ]
-		then
-		# Enable/disable ethernet connection on LAN physical ports
+
+		if [ "$(type -t wan_lan_diff_ifaces)" == "" ]; then
+			save_bridge_mode_vlan_config "y" "$_disable_lan_ports"
+		else
+			#routers that do not use vlan
 			if [ "$_disable_lan_ports" = "y" ]
 			then
-				uci set network.lan.ifname="$_lan_ifnames_wifi $_wan_ifnames"
+				uci set network.lan.ifname="$_wan_ifnames"
 			else
 				# DO NOT PLACE WAN IFNAME BEFORE LAN IFNAME OR SOME ROUTERS WILL CRASH
 				uci set network.lan.ifname="$_lan_ifnames $_wan_ifnames"
 			fi
-		fi
-		# Some routers need to change port mapping on software switch
-		if [ "$(type -t set_switch_bridge_mode)" ]
-		then
-			set_switch_bridge_mode "y" "$_disable_lan_ports"
 		fi
 	fi
 	json_dump > /root/flashbox_config.json
@@ -942,9 +980,9 @@ update_bridge_mode() {
 			fi
 		fi
 		# Some targets need to reboot the whole router after changes on switch
-		if [ "$(type -t needs_reboot_bridge_mode)" ] && [ "$_check_reboot" == "y" ]
+		if [ "$(type -t needs_reboot_change_mode)" ] && [ "$_check_reboot" == "y" ]
 		then
-			needs_reboot_bridge_mode
+			needs_reboot_change_mode
 		fi
 		/etc/init.d/minisapo reload
 	else
@@ -979,16 +1017,15 @@ disable_bridge_mode() {
 	then
 		_wan_conn_type="$FLM_WAN_PROTO"
 	fi
-	if [ "$(type -t keep_ifnames_in_bridge_mode)" == "" ]
-	then
-		# Get ifname to remove from the bridge
+
+	# Save router mode vlan config
+	if [ "$(type -t wan_lan_diff_ifaces)" == "" ]; then
+		save_bridge_mode_vlan_config "n" "n"
+	else
+		# Router without vlan: Get ifname to remove from the bridge
 		uci set network.lan.ifname="$_lan_ifnames"
 	fi
-  # Some routers need to change back port mapping on software switch
-  if [ "$(type -t set_switch_bridge_mode)" ]
-  then
-    set_switch_bridge_mode "n" "$_disable_lan_ports"
-  fi
+
 	uci set network.lan.proto="static"
 	uci set network.lan.ipaddr="$_lan_ip"
 	# Set wan and lan back to proper values
@@ -1024,14 +1061,43 @@ disable_bridge_mode() {
 	if [ "$_skip_network_restart" != "y" ]
 	then
 		# Some targets need to reboot the whole router after changing mode
-		if [ "$(type -t needs_reboot_bridge_mode)" ]
+		if [ "$(type -t needs_reboot_change_mode)" ]
 		then
-			needs_reboot_bridge_mode
+			needs_reboot_change_mode
 		else
 			/etc/init.d/network restart
 			[ "$(get_ipv6_enabled)" = "1" ] && /etc/init.d/odhcpd restart
 		fi
 	fi
+}
+
+save_bridge_mode_vlan_config() {
+	local _enable_bridge="$1"
+	local _disable_lan_ports="$2"
+
+	if [ "$(type -t custom_switch_ports)" ]; then
+		local _wan_port=$(custom_switch_ports 2) 
+		local _lan_ports=$(custom_switch_ports 3)
+		local _cpu_port=$(custom_switch_ports 4) 
+	else
+		local _wan_port=$(switch_ports 2) 
+		local _lan_ports=$(switch_ports 3)
+		local _cpu_port=$(switch_ports 4) 
+	fi
+
+	if [ "$_enable_bridge" = "y" ]; then
+		_vlan="{ \"1\": \"$_wan_port "
+		if [ "$_disable_lan_ports" = "y" ]; then
+			_vlan="$_vlan${_cpu_port}t\""
+		else
+			_vlan="$_vlan$_lan_ports ${_cpu_port}t\""
+		fi
+		_vlan="$_vlan, \"2\": \"\" }"
+	else
+		_vlan="{ \"1\": \"$_lan_ports ${_cpu_port}t\", \"2\": \"$_wan_port ${_cpu_port}t\" }"
+	fi
+	echo "$_vlan" > /root/vlan_config.json
+	update_vlan "n"
 }
 
 get_mesh_mode() {

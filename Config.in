@@ -68,9 +68,6 @@ config FLASHMAN_CLIENT_ORG
 	string "FlashMan image client organization identification"
 	default "MyCompany"
 
-config ZABBIX_SUPPORT
-	bool "Install custom zabbix agent"
-
 config NTP_SERVER_ADDR
 	string "First NTP server IP or FQDN"
 	default "a.st1.ntp.br"

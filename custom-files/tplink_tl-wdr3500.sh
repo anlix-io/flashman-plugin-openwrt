@@ -9,3 +9,7 @@ get_custom_mac() {
 
 	echo "$_mac_address_tag"
 }
+
+wan_lan_diff_ifaces() {
+	echo "1"
+}

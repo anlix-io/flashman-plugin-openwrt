@@ -10,7 +10,7 @@
 . /usr/share/functions/network_functions.sh
 . /usr/share/functions/firewall_functions.sh
 . /usr/share/functions/api_functions.sh
-. /usr/share/functions/zabbix_functions.sh
+. /usr/share/functions/data_collecting_functions.sh
 
 lock /tmp/lock_updater
 
@@ -174,15 +174,15 @@ hardreset=$_hard_reset_info&\
 upgfirm=$_has_upgraded_version&\
 sysuptime=$(sys_uptime)&\
 wanuptime=$(wan_uptime)&\
-wpsstate=$_local_wps_state"
-	if [ "$_local_bridge_did_reset" = "y" ] || [ "$_local_did_change_wan" = "y" ]
-	then
-		_data="$_data&\
+wpsstate=$_local_wps_state&\
 bridge_enabled=$_local_bridge_enabled&\
 bridge_switch_disable=$_local_bridge_switch_disable&\
 bridge_fix_ip=$_local_bridge_fix_ip&\
 bridge_fix_gateway=$_local_bridge_fix_gateway&\
 bridge_fix_dns=$_local_bridge_fix_dns"
+	if [ "$_local_bridge_enabled" = 0 ]
+	then
+		[ -f /root/vlan_config.json ] && _data="$_data&vlan=$(cat /root/vlan_config.json)"
 	fi
 	if [ "$_local_did_change_wan" = "y" ]
 	then
@@ -229,9 +229,12 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		json_get_var _forward_index forward_index
 		json_get_var _blocked_devices_index blocked_devices_index
 		json_get_var _upnp_devices_index upnp_devices_index
-		json_get_var _zabbix_psk zabbix_psk
-		json_get_var _zabbix_fqdn zabbix_fqdn
-		json_get_var _zabbix_active zabbix_active
+		json_get_var _vlan_index vlan_index
+		json_get_var _data_collecting_is_active data_collecting_is_active
+		json_get_var _data_collecting_has_latency data_collecting_has_latency
+		json_get_var _data_collecting_alarm_fqdn data_collecting_alarm_fqdn
+		json_get_var _data_collecting_ping_fqdn data_collecting_ping_fqdn
+		json_get_var _data_collecting_ping_packets data_collecting_ping_packets
 		json_get_var _bridge_mode_enabled bridge_mode_enabled
 		json_get_var _bridge_mode_switch_disable bridge_mode_switch_disable
 		json_get_var _bridge_mode_ip bridge_mode_ip
@@ -283,6 +286,12 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 			exit 1
 		fi
 
+		_local_vlan_index=$(get_indexes "vlan_index")
+		# _vlan_index is empty if in bridge mode or vlan doesn't change
+		if [ "$_vlan_index" != "" ] && [ "$_local_vlan_index" != "$_vlan_index" ]; then
+			echo $_res | jsonfilter -e "@.vlan" > /root/vlan_config.json
+			json_update_index "$_vlan_index" "vlan_index"
+		fi
 		# Reset the reset flags when we receive syn reply
 		if [ "$_local_bridge_did_reset" = "y" ]
 		then
@@ -412,7 +421,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		# Ignore changes if in bridge mode
 		if [ "$_local_bridge_enabled" != "y" ]
 		then
-			_local_dindex=$(get_forward_indexes "blocked_devices_index")
+			_local_dindex=$(get_indexes "blocked_devices_index")
 			if [ "$_local_dindex" != "$_blocked_devices_index" ]
 			then
 				update_blocked_devices "$_blocked_devices" "$_blocked_macs" \
@@ -420,21 +429,20 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 			fi
 		fi
 
-		# Update zabbix parameters as necessary
-		if [ "$ZBX_SUPPORT" == "y" ]
-		then
-			set_zabbix_params "$_zabbix_psk" "$_zabbix_fqdn" "$_zabbix_active"
-		fi
+		# updates data collecting parameters.
+		set_data_collecting_parameters "$_data_collecting_is_active" "$_data_collecting_has_latency" \
+			                           "$_data_collecting_alarm_fqdn" "$_data_collecting_ping_fqdn" \
+			                           "$_data_collecting_ping_packets"
 
 		# Check for updates in port forward mapping
 		# Ignore changes if in bridge mode
 		if [ "$_local_bridge_enabled" != "y" ]
 		then
-			_local_findex=$(get_forward_indexes "forward_index")
+			_local_findex=$(get_indexes "forward_index")
 			[ "$_local_findex" != "$_forward_index" ] && update_port_forward
 
 			# Check for updates in upnp allowed devices mapping
-			_local_uindex=$(get_forward_indexes "upnp_devices_index")
+			_local_uindex=$(get_indexes "upnp_devices_index")
 			[ "$_local_uindex" != "$_upnp_devices_index" ] && update_upnp_devices
 		fi
 
@@ -460,6 +468,8 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 			log "FLASHMAN UPDATER" "Disabling bridge mode..."
 			disable_bridge_mode
 		fi
+		# In all the cases above for bridge mode _vlan_index is empty
+		[ "$_vlan_index" != "" ] && [ "$_local_vlan_index" != "$_vlan_index" ] && update_vlan "y"
 	fi
 else
 	log "FLASHMAN UPDATER" "Fail Authenticating device!"
