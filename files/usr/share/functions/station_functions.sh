@@ -127,7 +127,7 @@ enable_station() {
 				uci set wireless.station5.device='radio1'
 				uci set wireless.station5.ifname="$(get_station_ifname "1")"
 				uci set wireless.station5.mode='sta'
-				uci set wireless.station5.mesh_id="$_new_station_ssid"
+				uci set wireless.station5.ssid="$_new_station_ssid"
 				uci set wireless.station5.encryption='psk2+aes'
 				uci set wireless.station5.key="$_new_station_key"
 				uci set wireless.station5.disabled='0'

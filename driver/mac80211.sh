@@ -37,7 +37,8 @@ get_virtual_ap_ifname() {
 	# $2: Which virtual AP
 
 	# Get the vap interface with the given number
-	echo "$(get_ifnames "$1" | grep $2)"
+	# Do not get interfaces with sta
+	echo "$(get_ifnames "$1" | grep -v "sta" | grep $2)"
 }
 
 # Get the station ifname
@@ -46,9 +47,18 @@ get_station_ifname() {
 		# 0: 2.4G
 		# 1: 5G
 
-	# Show the last interface, which is always the station
-	# that contains "-"
-	echo "$(get_ifnames "$1" | grep "-" | tail -1)"
+	# Show the last interface, which is always the station in Realtek
+	# It contains "-"
+	local _ifname="$(get_ifnames "$1" | grep "-" | tail -1)"
+
+	# In Atheros, use "-sta" if exists
+	[ -z "$_ifname" ] && _ifname="$(get_ifnames "$1" | grep "\-sta")" ||
+
+	# Or create a virtual station with "wlanX-sta"
+	[ -z "$_ifname" ] && _ifname="$(get_root_ifname "$1")-sta"
+
+
+	echo "$_ifname"
 }
 
 get_24ghz_phy() {
