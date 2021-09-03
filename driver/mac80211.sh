@@ -38,7 +38,13 @@ get_virtual_ap_ifname() {
 
 	# Get the vap interface with the given number
 	# Do not get interfaces with sta
-	echo "$(get_ifnames "$1" | grep -v "sta" | grep $2)"
+	local _ifname="$(get_ifnames "$1" | grep -v "sta" | grep "\-$2")"
+
+	# In Atheros, it needs to be created first
+	[ -z "$_ifname" ] && _ifname="$(get_root_ifname "$1")-$2"
+
+
+	echo "$_ifname"
 }
 
 # Get the station ifname
