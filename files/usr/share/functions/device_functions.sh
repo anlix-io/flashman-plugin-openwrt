@@ -294,10 +294,16 @@ get_lan_dev_negotiated_speed() {
 get_wan_statistics() {
 	local _param=$1
 
-	if [ "$(lsmod | grep rtl8367c)" ] && [ "$(type -t custom_switch_ports)" ]
+	if [ "$(lsmod | grep hwnat)" ]
 	then
-		local _switch="$(custom_switch_ports 1)"
-		local _wan_port="$(custom_switch_ports 2)"
+		# MT7620 routers read data from swconfig, as hwnat mascarede the wan bytes
+		if [ "$(type -t custom_switch_ports)" ]; then
+			local _switch="$(custom_switch_ports 1)"
+			local _wan_port="$(custom_switch_ports 2)"
+		else
+			local _switch="$(switch_ports 1)"
+			local _wan_port="$(switch_ports 2)"
+		fi
 		A=$(swconfig dev $_switch port $_wan_port get mib 2>/dev/null)
 		if [ "$A" ]
 		then
