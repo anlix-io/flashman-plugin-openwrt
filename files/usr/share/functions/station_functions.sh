@@ -67,7 +67,6 @@ enable_station() {
 	local _new_station_key
 	local _do_save=0
 
-	local _local_station_ssid="$(get_station_ssid)"
 	local _station_capable=$(is_station_capable)
 
 	# Check if it needs to change the ssid and key
@@ -81,12 +80,12 @@ enable_station() {
 	fi
 
 	# Save the config in json
-	if [ "$_local_station_ssid" != "$_new_station_ssid" ]
+	if [ "$_new_station_ssid" ] && [ "$_new_station_key" ]
 	then
 		json_cleanup
 		json_load_file /root/flashbox_config.json
-		json_add_string mesh_id "$_new_station_ssid"
-		json_add_string mesh_key "$_new_station_key"
+		json_add_string station_ssid "$_new_station_ssid"
+		json_add_string station_key "$_new_station_key"
 		json_dump > /root/flashbox_config.json
 		json_close_object
 	fi
@@ -104,7 +103,7 @@ enable_station() {
 				uci set wireless.station2.ifname="$(get_station_ifname "0")"
 				uci set wireless.station2.mode='sta'
 				uci set wireless.station2.ssid="$_new_station_ssid"
-				uci set wireless.station2.encryption='psk2+aes'
+				uci set wireless.station2.encryption='psk2'
 				uci set wireless.station2.key="$_new_station_key"
 				uci set wireless.station2.disabled='0'
 				_do_save=1
@@ -128,7 +127,7 @@ enable_station() {
 				uci set wireless.station5.ifname="$(get_station_ifname "1")"
 				uci set wireless.station5.mode='sta'
 				uci set wireless.station5.ssid="$_new_station_ssid"
-				uci set wireless.station5.encryption='psk2+aes'
+				uci set wireless.station5.encryption='psk2'
 				uci set wireless.station5.key="$_new_station_key"
 				uci set wireless.station5.disabled='0'
 				_do_save=1
