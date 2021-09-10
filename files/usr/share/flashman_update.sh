@@ -9,6 +9,7 @@
 . /usr/share/functions/wireless_functions.sh
 . /usr/share/functions/network_functions.sh
 . /usr/share/functions/firewall_functions.sh
+. /usr/share/functions/mesh_functions.sh
 . /usr/share/functions/api_functions.sh
 . /usr/share/functions/data_collecting_functions.sh
 
@@ -82,6 +83,7 @@ then
 	json_get_var _local_bridge_did_reset bridge_did_reset
 	json_get_var _local_did_change_wan did_change_wan_local
 	json_get_var _local_mesh_mode mesh_mode
+	json_get_var _local_mesh_master mesh_master
 	json_close_object
 
 	# Get WPS state if exists
@@ -94,6 +96,7 @@ then
 		json_close_object
 	fi
 
+	# If mode is not set
 	[ ! "$_local_mesh_mode" ] && _local_mesh_mode="0"
 
 	# If bridge is active, we cannot use get_wan_type, use flashman_init.conf
@@ -379,15 +382,21 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		# WiFi update
 		log "FLASHMAN UPDATER" "Updating Wireless ..."
 		_need_wifi_reload=0
-		if [ "$_mesh_mode" ] && [ "$_mesh_mode" != "$_local_mesh_mode" ] 
+		# If mesh mode and master updated, update mesh
+		if [ "$_mesh_mode" ] && ([ "$_mesh_mode" != "$_local_mesh_mode" ] ||
+		[ "$_mesh_master" != "$_local_mesh_master" ])
 		then
 			if [ -z "$_mesh_master" ]
 			then
-				set_mesh_master_mode "$_mesh_mode"
+				# Set as Master
+				set_mesh_master "$_mesh_mode"
 			else
-				set_mesh_slave_mode "$_mesh_mode" "$_mesh_master"
+				# Set as Slave
+				set_mesh_slave "$_mesh_mode" "$_mesh_master"
 			fi
-			enable_mesh_routing "$_mesh_mode" "$_mesh_id" "$_mesh_key" && _need_wifi_reload=1
+			
+			# Start Mesh
+			enable_mesh "$_mesh_mode" "$_mesh_id" "$_mesh_key" && _need_wifi_reload=1
 			/etc/init.d/minisapo restart
 		fi
 
@@ -401,6 +410,23 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 									"$_wifi_txpower_50" "$_wifi_hidden_50" \
 									"$_mesh_mode" && _need_wifi_reload=1
 		[ $_need_wifi_reload -eq 1 ] && wifi reload && /etc/init.d/minisapo reload
+
+
+		# If the Station is on, add it to the lan
+		if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
+		then
+			brctl addif br-lan "$(get_station_ifname "0")"
+		else
+			brctl delif br-lan "$(get_station_ifname "0")"
+		fi
+
+		if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
+		then
+			brctl addif br-lan "$(get_station_ifname "1")"
+		else
+			brctl delif br-lan "$(get_station_ifname "1")"
+		fi
+
 
 		# Flash App password update
 		if [ "$_app_password" == "" ]

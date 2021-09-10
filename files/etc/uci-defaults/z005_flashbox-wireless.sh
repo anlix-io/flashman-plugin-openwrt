@@ -6,6 +6,7 @@
 . /lib/functions/system.sh
 . /usr/share/functions/device_functions.sh
 . /usr/share/functions/wireless_functions.sh
+. /usr/share/functions/mesh_functions.sh
 
 MAC_ADDR="$(get_mac)"
 MAC_LAST_CHARS=$(echo $MAC_ADDR | awk -F: '{ print $5$6 }')
@@ -36,6 +37,7 @@ then
 fi
 json_close_object
 
+# If mode is not set
 [ ! "$_mesh_mode" ] && _mesh_mode="0"
 
 if [ -z "$_ssid_24" ]
@@ -170,9 +172,9 @@ if [ "$_mesh_mode" -gt "0" ]
 then
 	if [ -z "$_mesh_master" ]
 	then
-		set_mesh_master_mode "$_mesh_mode"
+		set_mesh_master "$_mesh_mode"
 	else
-		set_mesh_slave_mode "$_mesh_mode" "$_mesh_master"
+		set_mesh_slave "$_mesh_mode" "$_mesh_master"
 	fi
 
 	# Enable Fast Transition
@@ -182,7 +184,7 @@ then
 		change_fast_transition "1" "1"
 	fi
 
-	enable_mesh_routing "$_mesh_mode"
+	enable_mesh "$_mesh_mode"
 fi
 
 uci commit wireless
