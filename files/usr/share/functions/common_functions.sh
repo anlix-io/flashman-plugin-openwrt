@@ -209,7 +209,7 @@ is_mesh_active=$(is_mesh_slave)"
 		_is_authenticated=0
 	fi
 
-	echo $_is_authenticated
+	return $_is_authenticated
 }
 
 is_mesh_license_available() {
