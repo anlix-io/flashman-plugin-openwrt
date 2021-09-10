@@ -36,15 +36,17 @@ get_virtual_ap_ifname() {
 		# 1: 5G
 	# $2: Which virtual AP
 
-	# Get the vap interface with the given number
-	# Do not get interfaces with sta
-	local _ifname="$(get_ifnames "$1" | grep -v "sta" | grep "\-$2")"
+	# Check if it is Realtek
+	local _is_realtek="$(lsmod | grep rtl8192cd)"
 
-	# In Atheros, it needs to be created first
-	[ -z "$_ifname" ] && _ifname="$(get_root_ifname "$1")-$2"
-
-
-	echo "$_ifname"
+	if [ "$_is_realtek" ]
+	then
+		# In Realtek, just choose the vap with the number
+		echo "$(get_ifnames "$1" | grep "\-$2")"
+	else
+		# In Atheros, just use the root name with the number
+		echo "$(get_root_ifname "$1")-$2"
+	fi
 }
 
 # Get the station ifname
@@ -53,18 +55,18 @@ get_station_ifname() {
 		# 0: 2.4G
 		# 1: 5G
 
-	# Show the last interface, which is always the station in Realtek
-	# It contains "-"
-	local _ifname="$(get_ifnames "$1" | grep "-" | tail -1)"
+	# Check if it is Realtek
+	local _is_realtek="$(lsmod | grep rtl8192cd)"
 
-	# In Atheros, use "-sta" if exists
-	[ -z "$_ifname" ] && _ifname="$(get_ifnames "$1" | grep "\-sta")" ||
-
-	# Or create a virtual station with "wlanX-sta"
-	[ -z "$_ifname" ] && _ifname="$(get_root_ifname "$1")-sta"
-
-
-	echo "$_ifname"
+	if [ "$_is_realtek" ]
+	then
+		# Show the last interface, which is always the station in Realtek
+		# It contains "-"
+		echo "$(get_ifnames "$1" | grep "-" | tail -1)"
+	else
+		# In Atheros, just use the root name with -sta
+		echo "$(get_root_ifname "$1")-sta"
+	fi
 }
 
 get_24ghz_phy() {
