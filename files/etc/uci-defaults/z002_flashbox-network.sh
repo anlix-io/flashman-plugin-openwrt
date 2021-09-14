@@ -4,6 +4,7 @@
 . /usr/share/libubox/jshn.sh
 . /usr/share/functions/network_functions.sh
 . /usr/share/functions/device_functions.sh
+. /usr/share/functions/mesh_functions.sh
 
 json_cleanup
 json_load_file /root/flashbox_config.json

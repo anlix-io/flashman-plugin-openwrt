@@ -14,30 +14,6 @@ get_wifi_channel(){
 	iwinfo $_phy info | awk '/Channel/ { print $4 }'
 }
 
-is_mesh_routing_capable() {
-	local _ret=0
-	local _ret5=0
-
-	if [ -f /usr/sbin/wpad ]
-	then
-		local _24iface=$(get_24ghz_phy)
-		local _5iface=$(get_5ghz_phy)
-		[ "$_24iface" ] && [ "$(iw phy $_24iface info|grep "mesh point")" ] && _ret=1
-		[ "$_5iface" ] && [ "$(iw phy $_5iface info|grep "mesh point")" ] && _ret5=1
-	fi
-
-	if [ "$_ret5" -eq "1" ]
-	then
-		[ "$_ret" -eq "1" ] && echo "3" || echo "2"
-	else
-		echo "$_ret"
-	fi
-}
-
-is_mesh_capable() {
-	[ -f /usr/sbin/wpad ] && [ "$(is_mesh_routing_capable)" != "0" ] && echo "1"
-}
-
 get_wifi_device_stats() {
 	local _dev_mac="$1"
 	local _dev_info

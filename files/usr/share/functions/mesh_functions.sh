@@ -1,10 +1,15 @@
 #!/bin/bash
 
 . /usr/share/libubox/jshn.sh
-. /usr/share/functions/device_functions.sh
 . /usr/share/functions/network_functions.sh
 . /usr/share/functions/custom_wireless_driver.sh
 
+
+# Check if the device can do Mesh
+is_mesh_capable() {
+	# If it has an Station ifname, than it can do Mesh
+	[ -z "$(get_station_ifname 0)" ] && echo "0" || echo "1"
+}
 
 # Set mesh to be Master
 set_mesh_master() {
@@ -45,9 +50,6 @@ set_mesh_slave() {
 	local _mesh_mode="$1"
 	local _mesh_master="$2"
 
-	# uci set dhcp.lan.ignore='1'
-	# uci set network.lan.proto='dhcp'
-
 	log "MESH" "Enabling mesh slave mode $_mesh_mode from master $_mesh_master"
 	json_cleanup
 	json_load_file /root/flashbox_config.json
@@ -55,6 +57,19 @@ set_mesh_slave() {
 	json_add_string mesh_master "$_mesh_master"
 	json_dump > /root/flashbox_config.json
 	json_close_object
+}
+
+# Is Mesh Slave
+is_mesh_slave() {
+	local _mesh_mode=""
+	local _mesh_master=""
+	json_cleanup
+	json_load_file /root/flashbox_config.json
+	json_get_var _mesh_mode mesh_mode
+	json_get_var _mesh_master mesh_master
+	json_close_object
+
+	[ -n "$_mesh_mode" ] && [ "$_mesh_mode" != "0" ] && [ -n "$_mesh_master" ] && echo "1" || echo "0"
 }
 
 # Get if the Mesh Mode: 2.4G, 5G or Both
@@ -67,7 +82,7 @@ get_mesh_mode() {
 	[ -z "$_mesh_mode" ] && echo "0" || echo "$_mesh_mode"
 }
 
-# Get the Mesh flag: Master, Slave or Both
+# Get the Mesh Master BSSID
 get_mesh_master() {
 	local _mesh_master=""
 	json_cleanup
@@ -157,7 +172,7 @@ enable_mesh() {
         # If Slave, configure STATION
         if [ -z "$_mesh_master" ]
         then
-            # Set the configuration for 2.4G
+            # Set the configuration for AP 2.4G
 			uci set wireless.mesh2_ap=wifi-iface
 			uci set wireless.mesh2_ap.device='radio0'
             uci set wireless.mesh2_ap.network='lan'
@@ -176,12 +191,12 @@ enable_mesh() {
 			uci set wireless.mesh2_ap.macaddr="${_mac_addr::-2}$((_mac_end + 1))"
 
         else
-            # Set the configuration for 2.4G
+            # Set the configuration for STATION 2.4G
 			uci set wireless.mesh2_sta=wifi-iface
 			uci set wireless.mesh2_sta.device='radio0'
 			uci set wireless.mesh2_sta.ifname="$(get_station_ifname "0")"
 			uci set wireless.mesh2_sta.mode='sta'
-			uci set wireless.mesh2_sta.ssid="$_new_mesh_id"
+			uci set wireless.mesh2_sta.bssid="$_mesh_master"
 			uci set wireless.mesh2_sta.encryption='psk2'
 			uci set wireless.mesh2_sta.key="$_new_mesh_key"
 			uci set wireless.mesh2_sta.disabled='0'
@@ -195,7 +210,7 @@ enable_mesh() {
         # If Slave, configure STATION
         if [ -z "$_mesh_master" ]
         then
-            # Set the configuration for 5G
+            # Set the configuration for AP 5G
 			uci set wireless.mesh5_ap=wifi-iface
 			uci set wireless.mesh5_ap.device='radio1'
             uci set wireless.mesh5_ap.network='lan'
@@ -214,12 +229,12 @@ enable_mesh() {
 			uci set wireless.mesh5_ap.macaddr="${_mac_addr::-2}$((_mac_end + 1))"
 
         else
-            # Set the configuration for 5G
+            # Set the configuration for STATION 5G
 			uci set wireless.mesh5_sta=wifi-iface
 			uci set wireless.mesh5_sta.device='radio1'
 			uci set wireless.mesh5_sta.ifname="$(get_station_ifname "1")"
 			uci set wireless.mesh5_sta.mode='sta'
-			uci set wireless.mesh5_sta.ssid="$_new_mesh_id"
+			uci set wireless.mesh5_sta.bssid="$_mesh_master"
 			uci set wireless.mesh5_sta.encryption='psk2'
 			uci set wireless.mesh5_sta.key="$_new_mesh_key"
 			uci set wireless.mesh5_sta.disabled='0'
@@ -234,4 +249,194 @@ enable_mesh() {
 	fi
 
 	return 1
+}
+
+# Change the channels automatically
+auto_change_mesh_slave_channel() {
+	scan_channel(){
+		local _new_NCh=""
+		local _iface="$1"
+		local _mesh_id="$2"
+		A=$(iw dev $_iface scan -u);
+		while [ "$A" ]
+		do
+			AP=${A##*BSS }
+			A=${A%BSS *}
+			case "$AP" in
+				*"MESH ID: $_mesh_id"*)
+					_new_NCh="$(echo "$AP"|awk 'BEGIN{CH=""}/primary channel/{CH=$4}END{print CH}')"
+					;;
+			esac
+		done
+		echo "$_new_NCh"
+	}
+
+	local _mesh_mode="$(get_mesh_mode)"
+	local _mesh_id="$(get_mesh_id)"
+	local _NCh2=""
+	local _NCh5=""
+	if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
+	then
+		log "AUTOCHANNEL" "Scanning MESH channel for mesh0..."
+		_NCh2=$(iwinfo $(get_root_ifname 0) scan | sed -n /$_mesh_id/,/Cell/p | grep "Channel" | awk '{print $4}' | head -1)
+	fi
+	if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
+	then
+		log "AUTOCHANNEL" "Scanning MESH channel for mesh1..."
+		_NCh5=$(iwinfo $(get_root_ifname 1) scan | sed -n /$_mesh_id/,/Cell/p | grep "Channel" | awk '{print $4}' | head -1)
+	fi
+
+	if [ "$_NCh2" ] || [ "$_NCh5" ]
+	then
+		if set_wifi_local_config "" "" "$_NCh2" "" "" "" "" "" \
+			"" "" "$_NCh5" "" "" "" "" "" "$_mesh_mode"
+		then
+			log "AUTOCHANNEL" "MESH Channel change ($_NCh2) ($_NCh5)"
+			wifi reload
+		else
+			log "AUTOCHANNEL" "No need to change MESH channel"
+		fi
+	else
+		log "AUTOCHANNEL" "No MESH signal found"
+	fi
+}
+
+set_mesh_rrm() {
+	local _need_change=0
+	[ "$(get_wifi_state 0)" = "1" ] && ubus -t 15 wait_for hostapd.wlan0 2>/dev/null && _need_change=1
+	[ "$(is_5ghz_capable)" = "1" ] && [ "$(get_wifi_state 1)" = "1" ] && \
+		ubus -t 15 wait_for hostapd.wlan1 2>/dev/null && _need_change=1
+
+	if [ $_need_change -eq 1 ]
+	then
+		local rrm_list
+		local radios=$(ubus list | grep hostapd.wlan)
+		A=$'\n'$(ubus call anlix_sapo get_meshids | jsonfilter -e "@.list[*]")
+		while [ "$A" ]
+		do
+			B=${A##*$'\n'}
+			A=${A%$'\n'*}
+			rrm_list=$rrm_list",$B"
+		done
+		for value in ${radios}
+		do
+			rrm_list=${rrm_list}",$(ubus call ${value} rrm_nr_get_own | jsonfilter -e '$.value')"
+		done
+		for value in ${radios}
+		do
+			ubus call ${value} bss_mgmt_enable '{"neighbor_report": true}'
+			eval "ubus call ${value} rrm_nr_set '{ \"list\": [ ${rrm_list:1} ] }'"
+		done
+	fi
+}
+
+# Check if there is a Mesh license available
+is_mesh_license_available() {
+	local _res
+	local _slave_mac=$1
+	local _is_available=1
+
+	if [ "$FLM_USE_AUTH_SVADDR" == "y" ]
+	then
+		#
+		# WARNING! No spaces or tabs inside the following string!
+		#
+		local _data
+		_data="organization=$FLM_CLIENT_ORG&\
+mac=$_slave_mac&\
+secret=$FLM_CLIENT_SECRET"
+
+		_res=$(curl -s \
+			-A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
+			--tlsv1.2 --connect-timeout 5 --retry 1 \
+			--data "$_data" \
+			"https://$FLM_AUTH_SVADDR/api/device/mesh/available")
+
+		local _curl_res=$?
+		if [ $_curl_res -eq 0 ]
+		then
+			json_cleanup
+			json_load "$_res" 2>/dev/null
+			if [ $? == 0 ]
+			then
+				json_get_var _is_available is_available
+				json_close_object
+			else
+				log "AUTHENTICATOR" "Invalid answer from controler"
+			fi
+		else
+			log "AUTHENTICATOR" "Error connecting to controler ($_curl_res)"
+		fi
+	else
+		_is_available=0
+	fi
+
+	return $_is_available
+}
+
+# Check if Mesh is connected
+is_mesh_connected() {
+	local _mesh_mode="$(get_mesh_mode)"
+	local _mesh_master="$(get_mesh_master)"
+	local conn=""
+	if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
+	then
+		local _has_mesh=$(iwinfo $(get_station_ifname 0) assoclist | grep $_mesh_master)
+		[ "$_has_mesh" ] && conn="1"
+	fi
+	if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
+	then
+		local _has_mesh=$(iwinfo $(get_station_ifname 1) assoclist | grep $_mesh_master)
+		[ "$_has_mesh" ] && conn="1"
+	fi
+	echo "$conn"
+}
+
+# Register Mesh Slaves
+set_mesh_slaves() {
+	local _mesh_slave="$1"
+	if [ "$(is_mesh_master)" = "1" ]
+	then
+		# Check license availability before proceeding
+		if is_mesh_license_available $_mesh_slave
+		then
+			local _retstatus
+			local _status=20
+			local _data="id=$(get_mac)&slave=$_mesh_slave"
+			local _url="deviceinfo/mesh/add"
+			local _res=$(rest_flashman "$_url" "$_data")
+
+			_retstatus=$?
+			if [ $_retstatus -eq 0 ]
+			then
+				json_cleanup
+				json_load "$_res"
+				json_get_var _is_registered is_registered
+				json_close_object
+				# value 2 is already registred. No need to do anything
+				if [ "$_is_registered" = "1" ]
+				then
+					log "MESH" "Slave router $_mesh_slave registered successfull"
+				fi
+				if [ "$_is_registered" = "0" ]
+				then
+					log "MESH" "Error registering slave router $_mesh_slave"
+					_status=21
+				fi
+			else
+				log "MESH" "Error communicating with server for registration"
+				_status=21
+			fi
+		else
+			log "MESH" "No license available"
+			_status=22
+		fi
+
+		json_cleanup
+		json_init
+		json_add_string mac "$_mesh_slave"
+		json_add_int status $_status
+		ubus call anlix_sapo notify_sapo "$(json_dump)"
+		json_close_object
+	fi
 }
