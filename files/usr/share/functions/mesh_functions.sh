@@ -127,7 +127,7 @@ change_channel() {
 	local _mesh_master="$2"
 
 	# Configuration for 2.4G
-	if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
+	if [ "$_mesh_master" ] && [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
 	then
 
 		# Get the channel of the Master
@@ -142,7 +142,7 @@ change_channel() {
 	fi
 
 	# Configuration for 5G
-	if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
+	if [ "$_mesh_master" ] && [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
 	then
 
 		# Get the channel of the Master

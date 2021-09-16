@@ -15,12 +15,9 @@ get_ifnames() {
 		# 0: 2.4G
 		# 1: 5G
 
-	# Get all interfaces
-	local _interfaces="$(ls /sys/devices/virtual/net)"
-
 	# Only show interfaces with apcli or ra
-	[ "$1" == "0" ] && echo "$_interfaces | $(grep -E "apcli"$1"|ra"$1"")" ||
-	echo "$_interfaces | $(grep -E "apclii"$1"|rai"$1"")"
+	[ "$1" == "0" ] && echo "$(ls /sys/devices/virtual/net | grep -E "apcli[0-9]|ra[0-9]")" ||
+	echo "$(ls /sys/devices/virtual/net | grep -E "apclii|rai")"
 }
 
 # Get only the root interface
@@ -30,7 +27,7 @@ get_root_ifname() {
 		# 1: 5G
 
 	# Show interfaces ra0 or rai0
-	echo "$(get_ifnames "$1" | grep -E "ra|0")"
+	echo "$(get_ifnames "$1" | grep ra | grep 0)"
 }
 
 # Get the chosen virtual AP ifname
@@ -41,7 +38,7 @@ get_virtual_ap_ifname() {
 	# $2: Which virtual AP
 
 	# Return the ifname with ra and the number
-	echo "$(get_ifnames "$1" | grep -E "ra|"$2"")"
+	echo "$(get_ifnames "$1" | grep ra | grep "$2")"
 }
 
 # Get the station ifname
@@ -51,7 +48,7 @@ get_station_ifname() {
 		# 1: 5G
 
 	# Return interface with apcli
-	echo "$(get_ifnames "$1" | grep -E "apcli|0")"
+	echo "$(get_ifnames "$1" | grep apcli | grep 0)"
 }
 
 get_24ghz_phy() {
