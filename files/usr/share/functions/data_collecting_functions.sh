@@ -14,9 +14,9 @@ data_collecting_service() {
 	esac
 }
 
-# returns good exit code if data collecting service is running, based on the existence of its pid file.
+# returns good exit code if data collecting service is running.
 data_collecting_is_running() {
-	[ -f /var/run/data_collecting.pid ] && return 0; return 1
+	[ $(ps | grep "data_collecting.sh" | wc -l) -ge 2 ] && return 0; return 1
 }
 
 # saves data collecting parameters if they have changed, saves file only if at least one parameter has changed
