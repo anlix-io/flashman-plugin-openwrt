@@ -60,7 +60,7 @@ get_station_ifname() {
 
 	if [ "$_is_realtek" ]
 	then
-		# Show the last interface, which is always the station in Realtek
+		# Return the last interface, which is always the station in Realtek
 		# It contains "-"
 		echo "$(get_ifnames "$1" | grep "-" | tail -1)"
 	else
