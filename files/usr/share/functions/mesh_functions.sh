@@ -1,6 +1,7 @@
 #!/bin/bash
 
 . /usr/share/libubox/jshn.sh
+. /usr/share/functions/device_functions.sh
 . /usr/share/functions/network_functions.sh
 . /usr/share/functions/custom_wireless_driver.sh
 
@@ -112,6 +113,53 @@ get_mesh_key() {
 	[ "$_mesh_key" ] && echo "$_mesh_key" || echo "tempkey1234"
 }
 
+# Change channel automatically for slave or return to auto
+change_channel() {
+	# $1: Mesh Mode
+		# 0: Disable all
+		# 1: Cable Only
+		# 2: Enable 2.4G and Cable
+		# 3: Enable 5G and Cable
+		# 4: Enable all
+	# $2: Mesh Master
+
+	local _mesh_mode="$1"
+	local _mesh_master="$2"
+
+	# Configuration for 2.4G
+	if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
+	then
+
+		# Get the channel of the Master
+		local _channel_2=$(iwinfo $(get_root_ifname 0) scan | sed -n /$_mesh_master/,/Cell/p | grep "Channel" | awk '{print $4}' | head -1)
+
+		# Configure radio to use the channel
+		[ "$_channel_2" ] && uci set wireless.radio0.channel="$_channel_2"
+
+	# Otherwise reset the channel
+	else
+		uci set wireless.radio0.channel="auto"
+	fi
+
+	# Configuration for 5G
+	if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
+	then
+
+		# Get the channel of the Master
+		local _channel_5=$(iwinfo $(get_root_ifname 1) scan | sed -n /$_mesh_master/,/Cell/p | grep "Channel" | awk '{print $4}' | head -1)
+
+		# Configure radio to use the channel
+		[ "$_channel_5" ] && uci set wireless.radio1.channel="$_channel_5"
+
+	# Otherwise reset the channel
+	else
+		uci set wireless.radio1.channel="auto"
+	fi
+
+	# Commit changes
+	uci commit wireless
+}
+
 # Turns on/off Mesh
 enable_mesh() {
     # $1: Mesh Mode
@@ -120,8 +168,8 @@ enable_mesh() {
 		# 2: Enable 2.4G and Cable
 		# 3: Enable 5G and Cable
 		# 4: Enable all
-	# $3: Station SSID 	(if needed)
-	# $4: Station Key 	(if needed)
+	# $2: Station SSID 	(if needed)
+	# $3: Station Key 	(if needed)
 
     local _new_mesh_id	
 	local _new_mesh_key
@@ -165,6 +213,10 @@ enable_mesh() {
     _do_save=1
 
 
+	# Set the channel automatically
+	"$(change_channel $_mesh_mode $_mesh_master)"
+
+
 	# Configuration for 2.4G
     if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
     then
@@ -188,7 +240,7 @@ enable_mesh() {
 			uci set wireless.mesh2_ap.key="$_new_mesh_key"
 			uci set wireless.mesh2_ap.disabled='0'
 			# Use the mac address and increment the last byte
-			uci set wireless.mesh2_ap.macaddr="${_mac_addr::-2}$((_mac_end + 1))"
+			uci set wireless.mesh2_ap.macaddr="${_mac_addr::-2}$(printf '%x' $((0x$_mac_end + 0x1)))"
 
         else
             # Set the configuration for STATION 2.4G
@@ -226,7 +278,7 @@ enable_mesh() {
 			uci set wireless.mesh5_ap.key="$_new_mesh_key"
 			uci set wireless.mesh5_ap.disabled='0'
 			# Use the mac address and increment the last byte
-			uci set wireless.mesh5_ap.macaddr="${_mac_addr::-2}$((_mac_end + 1))"
+			uci set wireless.mesh5_ap.macaddr="${_mac_addr::-2}$(printf '%x' $((0x$_mac_end + 0x1)))"
 
         else
             # Set the configuration for STATION 5G
