@@ -168,8 +168,8 @@ enable_mesh() {
 		# 2: Enable 2.4G and Cable
 		# 3: Enable 5G and Cable
 		# 4: Enable all
-	# $2: Station SSID 	(if needed)
-	# $3: Station Key 	(if needed)
+	# $2: Mesh SSID 	(if needed)
+	# $3: Mesh Key 		(if needed)
 
     local _new_mesh_id	
 	local _new_mesh_key
@@ -214,7 +214,7 @@ enable_mesh() {
 
 
 	# Set the channel automatically
-	"$(change_channel $_mesh_mode $_mesh_master)"
+	change_channel "$_mesh_mode" "$_mesh_master"
 
 
 	# Configuration for 2.4G
@@ -248,6 +248,8 @@ enable_mesh() {
 			uci set wireless.mesh2_sta.device='radio0'
 			uci set wireless.mesh2_sta.ifname="$(get_station_ifname "0")"
 			uci set wireless.mesh2_sta.mode='sta'
+			# The SSID is needed by Mediatek
+			uci set wireless.mesh2_sta.ssid="$_mesh_id"
 			uci set wireless.mesh2_sta.bssid="$_mesh_master"
 			uci set wireless.mesh2_sta.encryption='psk2'
 			uci set wireless.mesh2_sta.key="$_new_mesh_key"
@@ -286,6 +288,8 @@ enable_mesh() {
 			uci set wireless.mesh5_sta.device='radio1'
 			uci set wireless.mesh5_sta.ifname="$(get_station_ifname "1")"
 			uci set wireless.mesh5_sta.mode='sta'
+			# The SSID is needed by Mediatek
+			uci set wireless.mesh5_sta.ssid="$_mesh_id"
 			uci set wireless.mesh5_sta.bssid="$_mesh_master"
 			uci set wireless.mesh5_sta.encryption='psk2'
 			uci set wireless.mesh5_sta.key="$_new_mesh_key"
