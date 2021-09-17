@@ -1,5 +1,6 @@
 #!/bin/sh
 . /usr/share/functions/device_functions.sh
+. /usr/share/functions/common_functions.sh
 . /usr/share/flashman_init.conf
 
 # directory where all data related to data collecting will be stored.
