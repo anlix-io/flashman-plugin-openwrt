@@ -64,7 +64,7 @@ set_data_collecting_parameters() {
 
 	# "true" boolean value is translated as string "1" by jshn.sh
 	# "false" boolean value is translated as string "0" by jshn.sh
-	if [ "$data_collecting_is_active" = "1" ] && [ "$data_collecting_ping_fqdn" != "" ] then
+	if [ "$data_collecting_is_active" = "1" ] && [ "$data_collecting_ping_fqdn" != "" ]; then
 		# reload won't restart data collecting service if it's already running.
 		/etc/init.d/data_collecting reload
 	elif [ "$data_collecting_is_active" != "1" ]; then
