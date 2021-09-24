@@ -41,3 +41,11 @@ custom_switch_ports() {
 		5) echo "4" ;;
 	esac
 }
+
+old_realtek_bridge_mode() {
+	echo "1"
+}
+
+wan_lan_diff_ifaces(){
+	echo "1"
+}
