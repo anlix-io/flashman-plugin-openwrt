@@ -2,6 +2,7 @@
 
 . /usr/share/flashman_init.conf
 . /usr/share/functions/network_functions.sh
+. /usr/share/functions/mesh_functions.sh
 
 A=$(uci get dhcp.@dnsmasq[0].interface)
 if [ "$A" ]
@@ -28,6 +29,14 @@ uci set dhcp.dmz.interface='dmz'
 uci set dhcp.dmz.dynamicdhcp='0'
 uci set dhcp.dmz.leasetime='1h'
 uci set dhcp.dmz.force='1'
+
+# Set the dhcp for mesh station
+if [ "$(is_mesh_capable)" ]
+then
+	uci set dhcp.station="dhcp"
+	uci set dhcp.station.interface="station"
+	uci set dhcp.station.ignore="1"
+fi
 
 if [ "$FLM_DHCP_NOPROXY" == "1" ]
 then

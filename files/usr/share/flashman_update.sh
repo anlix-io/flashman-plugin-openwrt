@@ -411,23 +411,6 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 									"$_mesh_mode" && _need_wifi_reload=1
 		[ $_need_wifi_reload -eq 1 ] && wifi reload && /etc/init.d/minisapo reload
 
-
-		# If the Station is on, add it to the lan
-		if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
-		then
-			brctl addif br-lan "$(get_station_ifname "0")"
-		else
-			brctl delif br-lan "$(get_station_ifname "0")"
-		fi
-
-		if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
-		then
-			brctl addif br-lan "$(get_station_ifname "1")"
-		else
-			brctl delif br-lan "$(get_station_ifname "1")"
-		fi
-
-
 		# Flash App password update
 		if [ "$_app_password" == "" ]
 		then

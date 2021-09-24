@@ -280,7 +280,7 @@ set_wifi_local_config() {
 		if [ "$_mesh_mode" != "0" ] && \
 			 [ "$_local_ft_24" != "1" ]
 		then
-			change_fast_transition "0" "1"
+			change_fast_transition "0" "0"
 			_do_reload=1
 		fi
 
@@ -386,7 +386,7 @@ set_wifi_local_config() {
 			if [ "$_mesh_mode" != "0" ] && \
 				 [ "$_local_ft_50" != "1" ]
 			then
-				change_fast_transition "1" "1"
+				change_fast_transition "1" "0"
 				_do_reload=1
 			fi
 

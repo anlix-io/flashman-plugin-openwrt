@@ -113,26 +113,149 @@ get_mesh_key() {
 	[ "$_mesh_key" ] && echo "$_mesh_key" || echo "tempkey1234"
 }
 
+# Get cell number from iwinfo
+get_iwinfo_cell() {
+	# $1: Iwinfo Data
+	# $2: Cell Number
+
+	local _iwinfo_data="$1"
+	local _cell_num="$2"
+
+	# Get only one Cell
+	local _cell="$(echo "$_iwinfo_data" | awk '/Cell 0'"$_cell_num"'/{f=1} /Cell 0'""$(($_cell_num + 1))'/{f=0} f')"
+
+	echo "$_cell"
+}
+
+# Get MAC Address based on the SSID
+find_mac_address() {
+	# $1: Iwinfo Data
+	# $2: Mesh SSID
+
+	local _iwinfo_data="$1"
+	local _mesh_id="$2"
+
+	# Get the quantity of cells
+	local _total_cells="$(echo "$_iwinfo_data" | grep Cell | awk '{print $2}' | tail -1)"
+	local _mac_addr=""
+
+	# Remove left zeros
+	_total_cells=${_total_cells#0}
+
+	# Loop through all cells and find mac address
+	if [ "$_total_cells" ]
+	then
+		for cell in $(seq 1 $_total_cells)
+		do
+			local _cell="$(get_iwinfo_cell "$_iwinfo_data" "$cell")"
+
+			# Check if has the SSID
+			if [ "$(echo "$_cell" | grep "$_mesh_id")" ]
+			then
+				# Assign mac and exit, 5th element of the line
+				_mac_addr="$(echo "$_cell" | grep Address | awk '{print $5}')"
+				break
+			fi
+		done
+	fi
+
+	echo "$_mac_addr"
+}
+
+# Get Channel based on the SSID
+find_channel() {
+	# $1: Iwinfo Data
+	# $2: Mesh SSID
+
+	local _iwinfo_data="$1"
+	local _mesh_id="$2"
+
+	# Get the quantity of cells
+	local _total_cells="$(echo "$_iwinfo_data" | grep Cell | awk '{print $2}' | tail -1)"
+	local _channel=""
+
+	# Remove left zeros
+	_total_cells=${_total_cells#0}
+
+	# Loop through all cells and find the channel
+	if [ "$_total_cells" ]
+	then
+		for cell in $(seq 1 $_total_cells)
+		do
+			local _cell="$(get_iwinfo_cell "$_iwinfo_data" "$cell")"
+
+			# Check if has the SSID
+			if [ "$(echo "$_cell" | grep "$_mesh_id")" ]
+			then
+				# Assign channel and exit
+				# The channel is on the same line as the mode, 4th item
+				_channel="$(echo "$_cell" | grep Mode | awk '{print $4}')"
+				break
+			fi
+		done
+	fi
+
+	echo "$_channel"
+}
+
+# Get Quality based on the SSID
+find_quality() {
+	# $1: Iwinfo Data
+	# $2: Mesh SSID
+
+	local _iwinfo_data="$1"
+	local _mesh_id="$2"
+
+	# Get the quantity of cells
+	local _total_cells="$(echo "$_iwinfo_data" | grep Cell | awk '{print $2}' | tail -1)"
+	local _quality=""
+
+	# Remove left zeros
+	_total_cells=${_total_cells#0}
+
+	# Loop through all cells and find the quality
+	if [ "$_total_cells" ]
+	then
+		for cell in $(seq 1 $_total_cells)
+		do
+			local _cell="$(get_iwinfo_cell "$_iwinfo_data" "$cell")"
+
+			# Check if has the SSID
+			if [ "$(echo "$_cell" | grep "$_mesh_id")" ]
+			then
+				# Assign quality and exit, 2nd element of the line
+				_quality="$(echo "$_cell" | grep Signal | awk '{print $2}')"
+				break
+			fi
+		done
+	fi
+
+	echo "$_quality"
+}
+
 # Change channel automatically for slave or return to auto
 change_channel() {
-	# $1: Mesh Mode
+	# $1: Iwinfo 2.4G Data
+	# $2: Iwinfo 5G Data
+	# $3: Mesh Mode
 		# 0: Disable all
 		# 1: Cable Only
 		# 2: Enable 2.4G and Cable
 		# 3: Enable 5G and Cable
 		# 4: Enable all
-	# $2: Mesh Master
+	# $4: Mesh SSID
 
-	local _mesh_mode="$1"
-	local _mesh_master="$2"
+	local _iwinfo_2g_data="$1"
+	local _iwinfo_5g_data="$2"
+	local _mesh_mode="$3"
+	local _mesh_id="$4"
 
 	# Configuration for 2.4G
-	if [ "$_mesh_master" ] && [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
+	if [ "$_mesh_id" ] && [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
 	then
 
 		# Get the channel of the Master
-		local _channel_2=$(iwinfo $(get_root_ifname 0) scan | sed -n /$_mesh_master/,/Cell/p | grep "Channel" | awk '{print $4}' | head -1)
-
+		local _channel_2="$(find_channel "$_iwinfo_2g_data" "$_mesh_id")"
 		# Configure radio to use the channel
 		[ "$_channel_2" ] && uci set wireless.radio0.channel="$_channel_2"
 
@@ -142,11 +265,11 @@ change_channel() {
 	fi
 
 	# Configuration for 5G
-	if [ "$_mesh_master" ] && [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
+	if [ "$_mesh_id" ] && [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
 	then
 
 		# Get the channel of the Master
-		local _channel_5=$(iwinfo $(get_root_ifname 1) scan | sed -n /$_mesh_master/,/Cell/p | grep "Channel" | awk '{print $4}' | head -1)
+		local _channel_5="$(find_channel "$_iwinfo_5g_data" "$_mesh_id")"
 
 		# Configure radio to use the channel
 		[ "$_channel_5" ] && uci set wireless.radio1.channel="$_channel_5"
@@ -181,7 +304,12 @@ enable_mesh() {
     local _mesh_master=$(get_mesh_master)
 
 	local _mac_addr="$(get_mac)"
-	local _mac_end=${_mac_addr:15}
+	local _mac_middle=${_mac_addr::12}
+	_mac_middle=${_mac_middle::-3}
+	local _mac_end=${_mac_addr:14}
+
+	local _iwinfo_2g_data=""
+	local _iwinfo_5g_data=""
 
     # Check if it needs to change the ssid and key
 	if [ "$#" -eq 3 ]
@@ -213,13 +341,12 @@ enable_mesh() {
     _do_save=1
 
 
-	# Set the channel automatically
-	change_channel "$_mesh_mode" "$_mesh_master"
-
-
 	# Configuration for 2.4G
     if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
     then
+		# Scan
+		_iwinfo_2g_data="$(iwinfo $(get_root_ifname 0) scan)"
+
         # If Master, configure AP
         # If Slave, configure STATION
         if [ -z "$_mesh_master" ]
@@ -240,17 +367,18 @@ enable_mesh() {
 			uci set wireless.mesh2_ap.key="$_new_mesh_key"
 			uci set wireless.mesh2_ap.disabled='0'
 			# Use the mac address and increment the last byte
-			uci set wireless.mesh2_ap.macaddr="${_mac_addr::-2}$(printf '%x' $((0x$_mac_end + 0x1)))"
+			uci set wireless.mesh2_ap.macaddr="${_mac_addr::-5}$(printf '%x' $((0x$_mac_middle + 0x1)))$_mac_end"
 
         else
             # Set the configuration for STATION 2.4G
 			uci set wireless.mesh2_sta=wifi-iface
 			uci set wireless.mesh2_sta.device='radio0'
+			uci set wireless.mesh2_sta.network='station'
 			uci set wireless.mesh2_sta.ifname="$(get_station_ifname "0")"
 			uci set wireless.mesh2_sta.mode='sta'
 			# The SSID is needed by Mediatek
-			uci set wireless.mesh2_sta.ssid="$_mesh_id"
-			uci set wireless.mesh2_sta.bssid="$_mesh_master"
+			uci set wireless.mesh2_sta.ssid="$_new_mesh_id"
+			uci set wireless.mesh2_sta.bssid="$(find_mac_address "$_iwinfo_2g_data" "$_new_mesh_id")"
 			uci set wireless.mesh2_sta.encryption='psk2'
 			uci set wireless.mesh2_sta.key="$_new_mesh_key"
 			uci set wireless.mesh2_sta.disabled='0'
@@ -260,6 +388,9 @@ enable_mesh() {
 	# Configuration for 5G
     if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
     then
+		# Scan
+		_iwinfo_5g_data="$(iwinfo $(get_root_ifname 1) scan)"
+
         # If Master, configure AP
         # If Slave, configure STATION
         if [ -z "$_mesh_master" ]
@@ -279,23 +410,28 @@ enable_mesh() {
 			uci set wireless.mesh5_ap.encryption='psk2'
 			uci set wireless.mesh5_ap.key="$_new_mesh_key"
 			uci set wireless.mesh5_ap.disabled='0'
-			# Use the mac address and increment the last byte
-			uci set wireless.mesh5_ap.macaddr="${_mac_addr::-2}$(printf '%x' $((0x$_mac_end + 0x1)))"
+			# Use the mac address and increment the byte
+			uci set wireless.mesh5_ap.macaddr="${_mac_addr::-5}$(printf '%x' $((0x$_mac_middle + 0x1)))$_mac_end"
 
         else
             # Set the configuration for STATION 5G
 			uci set wireless.mesh5_sta=wifi-iface
 			uci set wireless.mesh5_sta.device='radio1'
+			uci set wireless.mesh5_sta.network='station'
 			uci set wireless.mesh5_sta.ifname="$(get_station_ifname "1")"
 			uci set wireless.mesh5_sta.mode='sta'
 			# The SSID is needed by Mediatek
-			uci set wireless.mesh5_sta.ssid="$_mesh_id"
-			uci set wireless.mesh5_sta.bssid="$_mesh_master"
+			uci set wireless.mesh5_sta.ssid="$_new_mesh_id"
+			# The BSSID of the Master must be incremented in the byte
+			uci set wireless.mesh5_sta.bssid="$(find_mac_address "$_iwinfo_5g_data" "$_new_mesh_id")"
 			uci set wireless.mesh5_sta.encryption='psk2'
 			uci set wireless.mesh5_sta.key="$_new_mesh_key"
 			uci set wireless.mesh5_sta.disabled='0'
         fi
     fi
+
+	# Set the channel automatically
+	change_channel "$_iwinfo_2g_data" "$_iwinfo_5g_data" "$_mesh_mode" "$_new_mesh_id"
 
     # Save modifications
 	if [ $_do_save -eq 1 ]
@@ -331,15 +467,24 @@ auto_change_mesh_slave_channel() {
 	local _mesh_id="$(get_mesh_id)"
 	local _NCh2=""
 	local _NCh5=""
+
 	if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
 	then
 		log "AUTOCHANNEL" "Scanning MESH channel for mesh0..."
-		_NCh2=$(iwinfo $(get_root_ifname 0) scan | sed -n /$_mesh_id/,/Cell/p | grep "Channel" | awk '{print $4}' | head -1)
+
+		# Scan
+		local _iwinfo_2g_data="$(iwinfo $(get_root_ifname 0) scan)"
+
+		_NCh2="$(find_channel "$_iwinfo_2g_data" "$_mesh_id")"
 	fi
 	if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
 	then
 		log "AUTOCHANNEL" "Scanning MESH channel for mesh1..."
-		_NCh5=$(iwinfo $(get_root_ifname 1) scan | sed -n /$_mesh_id/,/Cell/p | grep "Channel" | awk '{print $4}' | head -1)
+
+		# Scan
+		local _iwinfo_5g_data="$(iwinfo $(get_root_ifname 1) scan)"
+
+		_NCh5="$(find_channel "$_iwinfo_5g_data" "$_mesh_id")"
 	fi
 
 	if [ "$_NCh2" ] || [ "$_NCh5" ]
