@@ -30,14 +30,6 @@ uci set dhcp.dmz.dynamicdhcp='0'
 uci set dhcp.dmz.leasetime='1h'
 uci set dhcp.dmz.force='1'
 
-# Set the dhcp for mesh station
-if [ "$(is_mesh_capable)" ]
-then
-	uci set dhcp.station="dhcp"
-	uci set dhcp.station.interface="station"
-	uci set dhcp.station.ignore="1"
-fi
-
 if [ "$FLM_DHCP_NOPROXY" == "1" ]
 then
 	uci set dhcp.@dnsmasq[0].noproxy='1'

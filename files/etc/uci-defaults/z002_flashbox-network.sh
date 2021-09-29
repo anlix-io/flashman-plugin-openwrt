@@ -86,15 +86,6 @@ then
 	uci set network.wan.vendorid="ANLIX02"
 	uci set network.wan.reqopts="43"
 	uci set network.lan.stp='1'
-
-	# Setup interface for Mesh Station
-	uci set network.station="interface"
-
-	uci set network.station.type="bridge"
-	uci set network.station.ifname="eth0.sta"
-	uci set network.station.ipv6="auto"
-	uci set network.station.proto="dhcp"
-
 else
 	uci set network.wan.vendorid="ANLIX01"
 fi

@@ -95,7 +95,7 @@ get_mesh_master() {
 
 # Get Mesh SSID from configuration file
 get_mesh_id() {
-    local _mesh_id=""
+	local _mesh_id=""
 	json_cleanup
 	json_load_file /root/flashbox_config.json
 	json_get_var _mesh_id mesh_id
@@ -105,7 +105,7 @@ get_mesh_id() {
 
 # Get Mesh Key from configuration file
 get_mesh_key() {
-    local _mesh_key=""
+	local _mesh_key=""
 	json_cleanup
 	json_load_file /root/flashbox_config.json
 	json_get_var _mesh_key mesh_key
@@ -122,7 +122,7 @@ get_iwinfo_cell() {
 	local _cell_num="$2"
 
 	# Get only one Cell
-	local _cell="$(echo "$_iwinfo_data" | awk '/Cell 0'"$_cell_num"'/{f=1} /Cell 0'""$(($_cell_num + 1))'/{f=0} f')"
+	local _cell="$(echo "$_iwinfo_data" | awk '/Cell 0'"$_cell_num"'/{f=1} /Cell 0'"$(($_cell_num + 1))"'/{f=0} f')"
 
 	echo "$_cell"
 }
@@ -143,7 +143,7 @@ find_mac_address() {
 	_total_cells=${_total_cells#0}
 
 	# Loop through all cells and find mac address
-	if [ "$_total_cells" ]
+	if [ "$_total_cells" ] && [ "$_mesh_id" ]
 	then
 		for cell in $(seq 1 $_total_cells)
 		do
@@ -178,7 +178,7 @@ find_channel() {
 	_total_cells=${_total_cells#0}
 
 	# Loop through all cells and find the channel
-	if [ "$_total_cells" ]
+	if [ "$_total_cells" ] && [ "$_mesh_id" ]
 	then
 		for cell in $(seq 1 $_total_cells)
 		do
@@ -214,7 +214,7 @@ find_quality() {
 	_total_cells=${_total_cells#0}
 
 	# Loop through all cells and find the quality
-	if [ "$_total_cells" ]
+	if [ "$_total_cells" ] && [ "$_mesh_id" ]
 	then
 		for cell in $(seq 1 $_total_cells)
 		do
@@ -285,7 +285,7 @@ change_channel() {
 
 # Turns on/off Mesh
 enable_mesh() {
-    # $1: Mesh Mode
+	# $1: Mesh Mode
 		# 0: Disable all
 		# 1: Cable Only
 		# 2: Enable 2.4G and Cable
@@ -294,24 +294,24 @@ enable_mesh() {
 	# $2: Mesh SSID 	(if needed)
 	# $3: Mesh Key 		(if needed)
 
-    local _new_mesh_id	
+	local _new_mesh_id	
 	local _new_mesh_key
 	local _mesh_mode="$1"
 	local _do_save=0
 	local _local_mesh_id="$(get_mesh_id)"
 	local _local_mesh_id="$(get_mesh_key)"
 
-    local _mesh_master=$(get_mesh_master)
+	local _mesh_master=$(get_mesh_master)
 
 	local _mac_addr="$(get_mac)"
-	local _mac_middle=${_mac_addr::12}
-	_mac_middle=${_mac_middle::-3}
+	local _mac_middle=${_mac_addr::-3}
+	_mac_middle=${_mac_middle:12}
 	local _mac_end=${_mac_addr:14}
 
 	local _iwinfo_2g_data=""
 	local _iwinfo_5g_data=""
 
-    # Check if it needs to change the ssid and key
+	# Check if it needs to change the ssid and key
 	if [ "$#" -eq 3 ]
 	then
 		_new_mesh_id="$2"
@@ -333,35 +333,35 @@ enable_mesh() {
 		json_close_object
 	fi
 
-    # Clean all mesh entries before updating
-    [ "$(uci -q get wireless.mesh2_ap)" ] && uci delete wireless.mesh2_ap
-    [ "$(uci -q get wireless.mesh2_sta)" ] && uci delete wireless.mesh2_sta
-    [ "$(uci -q get wireless.mesh5_ap)" ] && uci delete wireless.mesh5_ap
-    [ "$(uci -q get wireless.mesh5_sta)" ] && uci delete wireless.mesh5_sta
-    _do_save=1
+	# Clean all mesh entries before updating
+	[ "$(uci -q get wireless.mesh2_ap)" ] && uci delete wireless.mesh2_ap
+	[ "$(uci -q get wireless.mesh2_sta)" ] && uci delete wireless.mesh2_sta
+	[ "$(uci -q get wireless.mesh5_ap)" ] && uci delete wireless.mesh5_ap
+	[ "$(uci -q get wireless.mesh5_sta)" ] && uci delete wireless.mesh5_sta
+	_do_save=1
 
 
 	# Configuration for 2.4G
-    if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
-    then
+	if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
+	then
 		# Scan
 		_iwinfo_2g_data="$(iwinfo $(get_root_ifname 0) scan)"
 
-        # If Master, configure AP
-        # If Slave, configure STATION
-        if [ -z "$_mesh_master" ]
-        then
-            # Set the configuration for AP 2.4G
+		# If Master, configure AP
+		# If Slave, configure STATION
+		if [ -z "$_mesh_master" ]
+		then
+			# Set the configuration for AP 2.4G
 			uci set wireless.mesh2_ap=wifi-iface
 			uci set wireless.mesh2_ap.device='radio0'
-            uci set wireless.mesh2_ap.network='lan'
+			uci set wireless.mesh2_ap.network='lan'
 
 			# Get the first virtual AP
 			uci set wireless.mesh2_ap.ifname="$(get_virtual_ap_ifname "0" "1")"
 			
 			uci set wireless.mesh2_ap.mode='ap'
-            uci set wireless.mesh2_ap.hidden='0'
-            uci set wireless.mesh2_ap.disassoc_low_ack='1'
+			uci set wireless.mesh2_ap.hidden='0'
+			uci set wireless.mesh2_ap.disassoc_low_ack='1'
 			uci set wireless.mesh2_ap.ssid="$_new_mesh_id"
 			uci set wireless.mesh2_ap.encryption='psk2'
 			uci set wireless.mesh2_ap.key="$_new_mesh_key"
@@ -369,11 +369,10 @@ enable_mesh() {
 			# Use the mac address and increment the last byte
 			uci set wireless.mesh2_ap.macaddr="${_mac_addr::-5}$(printf '%x' $((0x$_mac_middle + 0x1)))$_mac_end"
 
-        else
-            # Set the configuration for STATION 2.4G
+		else
+			# Set the configuration for STATION 2.4G
 			uci set wireless.mesh2_sta=wifi-iface
 			uci set wireless.mesh2_sta.device='radio0'
-			uci set wireless.mesh2_sta.network='station'
 			uci set wireless.mesh2_sta.ifname="$(get_station_ifname "0")"
 			uci set wireless.mesh2_sta.mode='sta'
 			# The SSID is needed by Mediatek
@@ -382,30 +381,30 @@ enable_mesh() {
 			uci set wireless.mesh2_sta.encryption='psk2'
 			uci set wireless.mesh2_sta.key="$_new_mesh_key"
 			uci set wireless.mesh2_sta.disabled='0'
-        fi
-    fi
-    
+		fi
+	fi
+	
 	# Configuration for 5G
-    if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
-    then
+	if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
+	then
 		# Scan
 		_iwinfo_5g_data="$(iwinfo $(get_root_ifname 1) scan)"
 
-        # If Master, configure AP
-        # If Slave, configure STATION
-        if [ -z "$_mesh_master" ]
-        then
-            # Set the configuration for AP 5G
+		# If Master, configure AP
+		# If Slave, configure STATION
+		if [ -z "$_mesh_master" ]
+		then
+			# Set the configuration for AP 5G
 			uci set wireless.mesh5_ap=wifi-iface
 			uci set wireless.mesh5_ap.device='radio1'
-            uci set wireless.mesh5_ap.network='lan'
+			uci set wireless.mesh5_ap.network='lan'
 
 			# Get the first virtual AP
 			uci set wireless.mesh5_ap.ifname="$(get_virtual_ap_ifname "1" "1")"
 
 			uci set wireless.mesh5_ap.mode='ap'
-            uci set wireless.mesh5_ap.hidden='0'
-            uci set wireless.mesh5_ap.disassoc_low_ack='1'
+			uci set wireless.mesh5_ap.hidden='0'
+			uci set wireless.mesh5_ap.disassoc_low_ack='1'
 			uci set wireless.mesh5_ap.ssid="$_new_mesh_id"
 			uci set wireless.mesh5_ap.encryption='psk2'
 			uci set wireless.mesh5_ap.key="$_new_mesh_key"
@@ -413,11 +412,10 @@ enable_mesh() {
 			# Use the mac address and increment the byte
 			uci set wireless.mesh5_ap.macaddr="${_mac_addr::-5}$(printf '%x' $((0x$_mac_middle + 0x1)))$_mac_end"
 
-        else
-            # Set the configuration for STATION 5G
+		else
+			# Set the configuration for STATION 5G
 			uci set wireless.mesh5_sta=wifi-iface
 			uci set wireless.mesh5_sta.device='radio1'
-			uci set wireless.mesh5_sta.network='station'
 			uci set wireless.mesh5_sta.ifname="$(get_station_ifname "1")"
 			uci set wireless.mesh5_sta.mode='sta'
 			# The SSID is needed by Mediatek
@@ -427,13 +425,13 @@ enable_mesh() {
 			uci set wireless.mesh5_sta.encryption='psk2'
 			uci set wireless.mesh5_sta.key="$_new_mesh_key"
 			uci set wireless.mesh5_sta.disabled='0'
-        fi
-    fi
+		fi
+	fi
 
 	# Set the channel automatically
 	change_channel "$_iwinfo_2g_data" "$_iwinfo_5g_data" "$_mesh_mode" "$_new_mesh_id"
 
-    # Save modifications
+	# Save modifications
 	if [ $_do_save -eq 1 ]
 	then
 		uci commit wireless
@@ -443,25 +441,38 @@ enable_mesh() {
 	return 1
 }
 
+# Adds the stations to the bridge
+auto_set_mesh_bridge() {
+	# $1: Mesh Mode
+		# 0: Disable all
+		# 1: Cable Only
+		# 2: Enable 2.4G and Cable
+		# 3: Enable 5G and Cable
+		# 4: Enable all
+
+	local _mesh_mode="$1"
+
+	if [ "$_mesh_mode" -eq 2 ] || [ "$_mesh_mode" -eq 4 ]
+	then
+		# Bring the interface up
+		ifconfig "$(get_station_ifname 0)" up
+
+		# Add de 2.4G client interface to the lan
+		brctl addif br-lan "$(get_station_ifname 0)"
+	fi
+
+	if [ "$_mesh_mode" -eq 3 ] || [ "$_mesh_mode" -eq 4 ]
+	then
+		# Bring the interface up
+		ifconfig "$(get_station_ifname 1)" up
+
+		# Add de 2.4G client interface to the lan
+		brctl addif br-lan "$(get_station_ifname 1)"
+	fi 
+}
+
 # Change the channels automatically
 auto_change_mesh_slave_channel() {
-	scan_channel(){
-		local _new_NCh=""
-		local _iface="$1"
-		local _mesh_id="$2"
-		A=$(iw dev $_iface scan -u);
-		while [ "$A" ]
-		do
-			AP=${A##*BSS }
-			A=${A%BSS *}
-			case "$AP" in
-				*"MESH ID: $_mesh_id"*)
-					_new_NCh="$(echo "$AP"|awk 'BEGIN{CH=""}/primary channel/{CH=$4}END{print CH}')"
-					;;
-			esac
-		done
-		echo "$_new_NCh"
-	}
 
 	local _mesh_mode="$(get_mesh_mode)"
 	local _mesh_id="$(get_mesh_id)"
@@ -473,18 +484,18 @@ auto_change_mesh_slave_channel() {
 		log "AUTOCHANNEL" "Scanning MESH channel for mesh0..."
 
 		# Scan
-		local _iwinfo_2g_data="$(iwinfo $(get_root_ifname 0) scan)"
-
-		_NCh2="$(find_channel "$_iwinfo_2g_data" "$_mesh_id")"
+		#local _iwinfo_2g_data="$(iwinfo $(get_root_ifname 0) scan)"
+		
+		#_NCh2="$(find_channel "$_iwinfo_2g_data" "$_mesh_id")"
 	fi
 	if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
 	then
 		log "AUTOCHANNEL" "Scanning MESH channel for mesh1..."
 
 		# Scan
-		local _iwinfo_5g_data="$(iwinfo $(get_root_ifname 1) scan)"
+		#local _iwinfo_5g_data="$(iwinfo $(get_root_ifname 1) scan)"
 
-		_NCh5="$(find_channel "$_iwinfo_5g_data" "$_mesh_id")"
+		#_NCh5="$(find_channel "$_iwinfo_5g_data" "$_mesh_id")"
 	fi
 
 	if [ "$_NCh2" ] || [ "$_NCh5" ]

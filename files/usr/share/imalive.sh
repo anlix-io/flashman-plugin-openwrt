@@ -10,6 +10,7 @@
 
 redo_connections() {
 	[ "$(get_mesh_mode)" -gt "1" ] && [ "$(is_mesh_slave)" = "1" ] && [ ! "$(is_mesh_connected)" ] && auto_change_mesh_slave_channel
+	auto_set_mesh_bridge "$(get_mesh_mode)"
 	renew_dhcp
 }
 

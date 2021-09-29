@@ -400,6 +400,11 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 			/etc/init.d/minisapo restart
 		fi
 
+
+		# Add interfaces to the bridge
+		auto_set_mesh_bridge "$_mesh_mode"
+
+
 		set_wifi_local_config "$_wifi_ssid_24" "$_wifi_password_24" \
 									"$_wifi_channel_24" "$_wifi_hwmode_24" \
 									"$_wifi_htmode_24" "$_wifi_state" \
