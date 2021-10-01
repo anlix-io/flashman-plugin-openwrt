@@ -145,15 +145,15 @@ find_mac_address() {
 	# Loop through all cells and find mac address
 	if [ "$_total_cells" ] && [ "$_mesh_id" ]
 	then
-		for cell in $(seq 1 $_total_cells)
+		for _cell_num in $(seq 1 $_total_cells)
 		do
-			local _cell="$(get_iwinfo_cell "$_iwinfo_data" "$cell")"
+			local _cell="$(get_iwinfo_cell "$_iwinfo_data" "$_cell_num")"
 
 			# Check if has the SSID
 			if [ "$(echo "$_cell" | grep "$_mesh_id")" ]
 			then
 				# Assign mac and exit, 5th element of the line
-				_mac_addr="$(echo "$_cell" | grep Address | awk '{print $5}')"
+				_mac_addr="$(echo "$_cell" | grep Address | awk '{print $5}' | tail -1)"
 				break
 			fi
 		done
@@ -180,16 +180,16 @@ find_channel() {
 	# Loop through all cells and find the channel
 	if [ "$_total_cells" ] && [ "$_mesh_id" ]
 	then
-		for cell in $(seq 1 $_total_cells)
+		for _cell_num in $(seq 1 $_total_cells)
 		do
-			local _cell="$(get_iwinfo_cell "$_iwinfo_data" "$cell")"
+			local _cell="$(get_iwinfo_cell "$_iwinfo_data" "$_cell_num")"
 
 			# Check if has the SSID
 			if [ "$(echo "$_cell" | grep "$_mesh_id")" ]
 			then
 				# Assign channel and exit
 				# The channel is on the same line as the mode, 4th item
-				_channel="$(echo "$_cell" | grep Mode | awk '{print $4}')"
+				_channel="$(echo "$_cell" | grep Mode | awk '{print $4}' | tail -1)"
 				break
 			fi
 		done
@@ -216,15 +216,15 @@ find_quality() {
 	# Loop through all cells and find the quality
 	if [ "$_total_cells" ] && [ "$_mesh_id" ]
 	then
-		for cell in $(seq 1 $_total_cells)
+		for _cell_num in $(seq 1 $_total_cells)
 		do
-			local _cell="$(get_iwinfo_cell "$_iwinfo_data" "$cell")"
+			local _cell="$(get_iwinfo_cell "$_iwinfo_data" "$_cell_num")"
 
 			# Check if has the SSID
 			if [ "$(echo "$_cell" | grep "$_mesh_id")" ]
 			then
 				# Assign quality and exit, 2nd element of the line
-				_quality="$(echo "$_cell" | grep Signal | awk '{print $2}')"
+				_quality="$(echo "$_cell" | grep Signal | awk '{print $2}' | tail -1)"
 				break
 			fi
 		done
@@ -381,6 +381,8 @@ enable_mesh() {
 			uci set wireless.mesh2_sta.encryption='psk2'
 			uci set wireless.mesh2_sta.key="$_new_mesh_key"
 			uci set wireless.mesh2_sta.disabled='0'
+			# WDS is needed by open driver in order to be added to the lan
+			uci set wireless.mesh2_sta.wds='1'
 		fi
 	fi
 	
@@ -425,6 +427,8 @@ enable_mesh() {
 			uci set wireless.mesh5_sta.encryption='psk2'
 			uci set wireless.mesh5_sta.key="$_new_mesh_key"
 			uci set wireless.mesh5_sta.disabled='0'
+			# WDS is needed by open driver in order to be added to the lan
+			uci set wireless.mesh5_sta.wds='1'
 		fi
 	fi
 
@@ -452,23 +456,27 @@ auto_set_mesh_bridge() {
 
 	local _mesh_mode="$1"
 
-	if [ "$_mesh_mode" -eq 2 ] || [ "$_mesh_mode" -eq 4 ]
+	# If it is not the master
+	if [ -z "$(get_mesh_master)" ]
 	then
-		# Bring the interface up
-		ifconfig "$(get_station_ifname 0)" up
+		if [ "$_mesh_mode" -eq 2 ] || [ "$_mesh_mode" -eq 4 ]
+		then
+			# Bring the interface up
+			ifconfig "$(get_station_ifname 0)" up
 
-		# Add de 2.4G client interface to the lan
-		brctl addif br-lan "$(get_station_ifname 0)"
+			# Add de 2.4G client interface to the lan
+			brctl addif br-lan "$(get_station_ifname 0)"
+		fi
+
+		if [ "$_mesh_mode" -eq 3 ] || [ "$_mesh_mode" -eq 4 ]
+		then
+			# Bring the interface up
+			ifconfig "$(get_station_ifname 1)" up
+
+			# Add de 5G client interface to the lan
+			brctl addif br-lan "$(get_station_ifname 1)"
+		fi
 	fi
-
-	if [ "$_mesh_mode" -eq 3 ] || [ "$_mesh_mode" -eq 4 ]
-	then
-		# Bring the interface up
-		ifconfig "$(get_station_ifname 1)" up
-
-		# Add de 2.4G client interface to the lan
-		brctl addif br-lan "$(get_station_ifname 1)"
-	fi 
 }
 
 # Change the channels automatically
