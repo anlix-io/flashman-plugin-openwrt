@@ -660,3 +660,22 @@ set_mesh_slaves() {
 		json_close_object
 	fi
 }
+
+change_fast_transition() {
+	local _radio="$1"
+	local _enabled="$2"
+	# FAST TRANSITION IS DISABLED FOR NOW
+	#if [ "$_enabled" = "1" ]
+	#then
+	#	# Enable Fast Transition
+	#	uci set wireless.default_radio$_radio.ieee80211r="1"
+	#	uci set wireless.default_radio$_radio.ieee80211v="1"
+	#	uci set wireless.default_radio$_radio.bss_transition="1"
+	#	uci set wireless.default_radio$_radio.ieee80211k="1"
+	#else
+	#	uci delete wireless.default_radio$_radio.ieee80211r
+	#	uci delete wireless.default_radio$_radio.ieee80211v
+	#	uci delete wireless.default_radio$_radio.bss_transition
+	#	uci delete wireless.default_radio$_radio.ieee80211k
+	#fi
+}

@@ -44,24 +44,6 @@ auto_channel_selection() {
 	esac
 }
 
-change_fast_transition() {
-	local _radio="$1"
-	local _enabled="$2"
-	if [ "$_enabled" = "1" ]
-	then
-		# Enable Fast Transition
-		uci set wireless.default_radio$_radio.ieee80211r="1"
-		uci set wireless.default_radio$_radio.ieee80211v="1"
-		uci set wireless.default_radio$_radio.bss_transition="1"
-		uci set wireless.default_radio$_radio.ieee80211k="1"
-	else
-		uci delete wireless.default_radio$_radio.ieee80211r
-		uci delete wireless.default_radio$_radio.ieee80211v
-		uci delete wireless.default_radio$_radio.bss_transition
-		uci delete wireless.default_radio$_radio.ieee80211k
-	fi
-}
-
 change_wps_state() {
 	local _radio="$1"
 	local _enabled="$2"
@@ -280,7 +262,7 @@ set_wifi_local_config() {
 		if [ "$_mesh_mode" != "0" ] && \
 			 [ "$_local_ft_24" != "1" ]
 		then
-			change_fast_transition "0" "0"
+			change_fast_transition "0" "1"
 			_do_reload=1
 		fi
 
@@ -386,7 +368,7 @@ set_wifi_local_config() {
 			if [ "$_mesh_mode" != "0" ] && \
 				 [ "$_local_ft_50" != "1" ]
 			then
-				change_fast_transition "1" "0"
+				change_fast_transition "1" "1"
 				_do_reload=1
 			fi
 
