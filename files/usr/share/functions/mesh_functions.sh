@@ -120,9 +120,32 @@ get_iwinfo_cell() {
 
 	local _iwinfo_data="$1"
 	local _cell_num="$2"
+	local _cell_num_end=""
+
+	# Format cell number
+	if [ "$_cell_num" -lt "9" ]
+	then
+		# Just add 0 to the left
+		_cell_num_end="$(($_cell_num + 1))"
+		_cell_num_end="0${_cell_num_end}"
+		_cell_num="0${_cell_num}"
+
+	elif [ "$_cell_num" -eq "9" ]
+	then
+		# Just add 0 to the left, only in _cell_num
+		_cell_num_end="$(($_cell_num + 1))"
+		_cell_num_end="${_cell_num_end}"
+		_cell_num="0${_cell_num}"
+
+	else
+		# Just the number
+		_cell_num_end="$(($_cell_num + 1))"
+		_cell_num="${_cell_num}"
+
+	fi
 
 	# Get only one Cell
-	local _cell="$(echo "$_iwinfo_data" | awk '/Cell 0'"$_cell_num"'/{f=1} /Cell 0'"$(($_cell_num + 1))"'/{f=0} f')"
+	local _cell="$(echo "$_iwinfo_data" | awk '/Cell '"$_cell_num"'/{f=1} /Cell '"$_cell_num_end"'/{f=0} f')"
 
 	echo "$_cell"
 }
@@ -251,7 +274,7 @@ change_channel() {
 	local _mesh_id="$4"
 
 	# Configuration for 2.4G
-	if [ "$_mesh_id" ] && [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
+	if [ "$_mesh_id" ] && ([ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ])
 	then
 
 		# Get the channel of the Master
@@ -265,7 +288,7 @@ change_channel() {
 	fi
 
 	# Configuration for 5G
-	if [ "$_mesh_id" ] && [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
+	if [ "$_mesh_id" ] && ([ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ])
 	then
 
 		# Get the channel of the Master
@@ -308,6 +331,10 @@ enable_mesh() {
 	_mac_middle=${_mac_middle:12}
 	local _mac_end=${_mac_addr:14}
 
+	# Choose between 2.4G or 5G if mesh mode is for
+	# 0: 2.4G     1: 5G
+	local _wifi_option=""
+
 	local _iwinfo_2g_data=""
 	local _iwinfo_5g_data=""
 
@@ -341,11 +368,38 @@ enable_mesh() {
 	_do_save=1
 
 
-	# Configuration for 2.4G
-	if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
+	# If the mode is 4, check the best option (RSSI) to connect to
+	# It must choose between 2.4G and 5G
+	if [ "$_mesh_mode" -eq "4" ]
 	then
+		local _rssi_2g=""
+		local _rssi_5g=""
+
 		# Scan
 		_iwinfo_2g_data="$(iwinfo $(get_root_ifname 0) scan)"
+		_iwinfo_5g_data="$(iwinfo $(get_root_ifname 1) scan)"
+
+		# Find the quality for both 2.4G and 5G
+		_rssi_2g="$(find_quality "$_iwinfo_2g_data" "$_new_mesh_id")"
+		_rssi_5g="$(find_quality "$_iwinfo_5g_data" "$_new_mesh_id")"
+
+		# Assign which one should be on if they are defined
+		if ([ -z "$_rssi_5g" ] && [ "$_rssi_2g" ]) || [ "$_rssi_2g" -gt "$_rssi_5g" ]
+		then
+			_wifi_option="0"
+
+		else
+			_wifi_option="1"
+
+		fi
+	fi
+
+
+	# Configuration for 2.4G
+	if [ "$_mesh_mode" -eq "2" ] || [ "$_wifi_option" -eq "0" ]
+	then
+		# Scan
+		[ -z "$_mesh_mode" ] && _iwinfo_2g_data="$(iwinfo $(get_root_ifname 0) scan)"
 
 		# If Master, configure AP
 		# If Slave, configure STATION
@@ -373,6 +427,7 @@ enable_mesh() {
 			# Set the configuration for STATION 2.4G
 			uci set wireless.mesh2_sta=wifi-iface
 			uci set wireless.mesh2_sta.device='radio0'
+			uci set wireless.mesh2_sta.network='lan'
 			uci set wireless.mesh2_sta.ifname="$(get_station_ifname "0")"
 			uci set wireless.mesh2_sta.mode='sta'
 			# The SSID is needed by Mediatek
@@ -381,16 +436,16 @@ enable_mesh() {
 			uci set wireless.mesh2_sta.encryption='psk2'
 			uci set wireless.mesh2_sta.key="$_new_mesh_key"
 			uci set wireless.mesh2_sta.disabled='0'
-			# WDS is needed by open driver in order to be added to the lan
+			# WDS is needed in order to be added to the lan
 			uci set wireless.mesh2_sta.wds='1'
 		fi
 	fi
 	
 	# Configuration for 5G
-	if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
+	if [ "$_mesh_mode" -eq "3" ] || [ "$_wifi_option" -eq "1" ]
 	then
 		# Scan
-		_iwinfo_5g_data="$(iwinfo $(get_root_ifname 1) scan)"
+		[ -z "$_mesh_mode" ] && _iwinfo_5g_data="$(iwinfo $(get_root_ifname 1) scan)"
 
 		# If Master, configure AP
 		# If Slave, configure STATION
@@ -418,6 +473,7 @@ enable_mesh() {
 			# Set the configuration for STATION 5G
 			uci set wireless.mesh5_sta=wifi-iface
 			uci set wireless.mesh5_sta.device='radio1'
+			uci set wireless.mesh5_sta.network='lan'
 			uci set wireless.mesh5_sta.ifname="$(get_station_ifname "1")"
 			uci set wireless.mesh5_sta.mode='sta'
 			# The SSID is needed by Mediatek
@@ -427,7 +483,7 @@ enable_mesh() {
 			uci set wireless.mesh5_sta.encryption='psk2'
 			uci set wireless.mesh5_sta.key="$_new_mesh_key"
 			uci set wireless.mesh5_sta.disabled='0'
-			# WDS is needed by open driver in order to be added to the lan
+			# WDS is needed in order to be added to the lan
 			uci set wireless.mesh5_sta.wds='1'
 		fi
 	fi
@@ -492,18 +548,18 @@ auto_change_mesh_slave_channel() {
 		log "AUTOCHANNEL" "Scanning MESH channel for mesh0..."
 
 		# Scan
-		#local _iwinfo_2g_data="$(iwinfo $(get_root_ifname 0) scan)"
+		local _iwinfo_2g_data="$(iwinfo $(get_root_ifname 0) scan)"
 		
-		#_NCh2="$(find_channel "$_iwinfo_2g_data" "$_mesh_id")"
+		_NCh2="$(find_channel "$_iwinfo_2g_data" "$_mesh_id")"
 	fi
 	if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
 	then
 		log "AUTOCHANNEL" "Scanning MESH channel for mesh1..."
 
 		# Scan
-		#local _iwinfo_5g_data="$(iwinfo $(get_root_ifname 1) scan)"
+		local _iwinfo_5g_data="$(iwinfo $(get_root_ifname 1) scan)"
 
-		#_NCh5="$(find_channel "$_iwinfo_5g_data" "$_mesh_id")"
+		_NCh5="$(find_channel "$_iwinfo_5g_data" "$_mesh_id")"
 	fi
 
 	if [ "$_NCh2" ] || [ "$_NCh5" ]
@@ -601,12 +657,12 @@ is_mesh_connected() {
 	local conn=""
 	if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
 	then
-		local _has_mesh=$(iwinfo $(get_station_ifname 0) assoclist | grep $_mesh_master)
+		local _has_mesh=$(iwinfo $(get_station_ifname 0) assoclist | grep -v "No station connected")
 		[ "$_has_mesh" ] && conn="1"
 	fi
 	if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
 	then
-		local _has_mesh=$(iwinfo $(get_station_ifname 1) assoclist | grep $_mesh_master)
+		local _has_mesh=$(iwinfo $(get_station_ifname 1) assoclist | grep -v "No station connected")
 		[ "$_has_mesh" ] && conn="1"
 	fi
 	echo "$conn"

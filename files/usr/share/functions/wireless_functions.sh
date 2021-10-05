@@ -249,12 +249,12 @@ set_wifi_local_config() {
 
 	if [ -n "$_mesh_mode" ]
 	then
-		local _new_channel="$([ "$_remote_channel_24" != "" ] && echo "$_remote_channel_24" || echo $_local_channel_24)"
-		if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ] && [ "$_new_channel" = "auto" ]
+		# Set the channel back to what was set in enable_mesh
+		# if it is a slave and remote channel is auto
+		if [ "$_remote_channel_24" = "auto" ] && 
+		   [ "$(is_mesh_slave)" -eq "1" ]
 		then
-			#MESH cant run auto!
-			_new_channel="$(auto_channel_selection wlan0)"
-			uci set wireless.radio0.channel="$_new_channel"
+			uci set wireless.radio0.channel="$_local_channel_24"
 			_do_reload=1
 		fi
 
@@ -355,12 +355,12 @@ set_wifi_local_config() {
 
 		if [ -n "$_mesh_mode" ]
 		then
-			local _new_channel="$([ "$_remote_channel_50" != "" ] && echo "$_remote_channel_50" || echo $_local_channel_50)"
-			if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ] && [ "$_new_channel" = "auto" ]
+			# Set the channel back to what was set in enable_mesh
+			# if it is a slave and remote channel is auto
+			if [ "$_remote_channel_50" = "auto" ] && 
+			[ "$(is_mesh_slave)" -eq "1" ]
 			then
-				#MESH cant run auto!
-				_new_channel="$(auto_channel_selection wlan1)"
-				uci set wireless.radio1.channel="$_new_channel"
+				uci set wireless.radio1.channel="$_local_channel_50"
 				_do_reload=1
 			fi
 
