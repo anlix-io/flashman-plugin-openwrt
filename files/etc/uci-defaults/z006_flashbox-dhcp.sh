@@ -2,6 +2,7 @@
 
 . /usr/share/flashman_init.conf
 . /usr/share/functions/network_functions.sh
+. /usr/share/functions/mesh_functions.sh
 
 A=$(uci get dhcp.@dnsmasq[0].interface)
 if [ "$A" ]

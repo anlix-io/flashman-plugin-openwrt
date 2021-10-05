@@ -6,6 +6,7 @@
 . /lib/functions/system.sh
 . /usr/share/functions/device_functions.sh
 . /usr/share/functions/wireless_functions.sh
+. /usr/share/functions/mesh_functions.sh
 
 MAC_ADDR="$(get_mac)"
 MAC_LAST_CHARS=$(echo $MAC_ADDR | awk -F: '{ print $5$6 }')
@@ -36,6 +37,7 @@ then
 fi
 json_close_object
 
+# If mode is not set
 [ ! "$_mesh_mode" ] && _mesh_mode="0"
 
 if [ -z "$_ssid_24" ]
@@ -121,7 +123,7 @@ uci set wireless.radio0.channel="$_channel_24"
 uci set wireless.radio0.channels="$DEFAULT_24_CHANNELS"
 uci set wireless.radio0.disabled='0'
 uci set wireless.default_radio0.disabled="$([ "$_state_24" = "1" ] && echo "0" || echo "1")"
-uci set wireless.default_radio0.ifname="$(get_radio_phy "0")"
+uci set wireless.default_radio0.ifname="$(get_root_ifname "0")"
 uci set wireless.default_radio0.ssid="$_ssid_24"
 uci set wireless.default_radio0.encryption="$([ "$(grep RTL8196E /proc/cpuinfo)" ] && echo "psk2+tkip+ccmp" || echo "psk2")"
 uci set wireless.default_radio0.key="$_password_24"
@@ -156,7 +158,7 @@ then
 	fi
 	uci set wireless.radio1.disabled='0'
 	uci set wireless.default_radio1.disabled="$([ "$_state_50" = "1" ] && echo "0" || echo "1")"
-	uci set wireless.default_radio1.ifname="$(get_radio_phy "1")"
+	uci set wireless.default_radio1.ifname="$(get_root_ifname "1")"
 	uci set wireless.default_radio1.ssid="$_ssid_50"
 	uci set wireless.default_radio1.encryption="psk2"
 	uci set wireless.default_radio1.key="$_password_50"
@@ -170,9 +172,9 @@ if [ "$_mesh_mode" -gt "0" ]
 then
 	if [ -z "$_mesh_master" ]
 	then
-		set_mesh_master_mode "$_mesh_mode"
+		set_mesh_master "$_mesh_mode"
 	else
-		set_mesh_slave_mode "$_mesh_mode" "$_mesh_master"
+		set_mesh_slave "$_mesh_mode" "$_mesh_master"
 	fi
 
 	# Enable Fast Transition
@@ -182,7 +184,7 @@ then
 		change_fast_transition "1" "1"
 	fi
 
-	enable_mesh_routing "$_mesh_mode"
+	enable_mesh "$_mesh_mode"
 fi
 
 uci commit wireless

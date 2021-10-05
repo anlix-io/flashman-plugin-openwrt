@@ -9,6 +9,66 @@ get_phy_type() {
 	echo "$(iw phy $1 channels|grep Band|tail -1|cut -c6)"
 }
 
+# Get all ifnames from interfaces
+get_ifnames() {
+	# $1: Which interface:
+		# 0: 2.4G
+		# 1: 5G
+
+	# Do not show interfaces with tmp
+	echo "$(ls /sys/devices/$(uci get wireless.radio$1.path)/net | grep -v "tmp")"
+}
+
+# Get only the root interface
+get_root_ifname() {
+	# $1: Which interface:
+		# 0: 2.4G
+		# 1: 5G
+
+	# Do not show interfaces with "-" (Virtual AP's)
+	echo "$(get_ifnames "$1" | grep -v "-")"
+}
+
+# Get the chosen virtual AP ifname
+get_virtual_ap_ifname() {
+	# $1: Which interface:
+		# 0: 2.4G
+		# 1: 5G
+	# $2: Which virtual AP
+
+	# Check if it is Realtek
+	local _is_realtek="$(lsmod | grep rtl8192cd)"
+
+	if [ "$_is_realtek" ]
+	then
+		# In Realtek, just choose the vap with the number
+		echo "$(get_ifnames "$1" | grep "\-$2")"
+	else
+		# In Atheros, just use the root name with the number
+		echo "$(get_root_ifname "$1")-$2"
+	fi
+}
+
+# Get the station ifname
+get_station_ifname() {
+	# $1: Which interface:
+		# 0: 2.4G
+		# 1: 5G
+
+	# Check if it is Realtek
+	local _is_realtek="$(lsmod | grep rtl8192cd)"
+
+	if [ "$_is_realtek" ]
+	then
+		# Return the last interface, which is always the station in Realtek
+		# It contains "-"
+		echo "$(get_ifnames "$1" | grep "-" | tail -1)"
+	else
+		# In Atheros, just use the root name with -sta
+		echo "$(get_root_ifname "$1")-sta"
+	fi
+}
+
 get_24ghz_phy() {
 	for i in /sys/class/ieee80211/* 
 	do 
