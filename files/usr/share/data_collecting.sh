@@ -1,6 +1,5 @@
 #!/bin/sh
 . /usr/share/functions/device_functions.sh
-. /usr/share/functions/common_functions.sh
 . /usr/share/flashman_init.conf
 
 # directory where all data related to data collecting will be stored.
@@ -17,8 +16,6 @@ compressedDataDir="${dataCollectingDir}/compressed"
 collect_QoE_Monitor_data() {
 	# echo collecting data and writing to file.
 
-	# getting current unix time in seconds.
-	local timestamp=$(date +%s)
 	# burst ping with $pingPackets amount of packets.
 	local pingResult=$(ping -i 0.01 -c "$pingPackets" "$pingServerAddress")
 	# ping return value.
@@ -72,7 +69,7 @@ collect_QoE_Monitor_data() {
 	# local loss=${pingResult%\% packet loss*} # removes everything after, and including, '% packet loss'.
 	# loss=${loss##* } # removes everything before first space.
 
-	local string="$timestamp $loss $transmitted $rx $tx" # data to be sent.
+	local string="loss $loss $transmitted $rx $tx" # data to be sent.
 
 	# if latency collecting is enabled.
 	if [ "$hasLatency" -eq 1 ]; then
@@ -83,11 +80,11 @@ collect_QoE_Monitor_data() {
 		local firstLine=true
 		# for each ping line.
 		while read line; do
-			# removes 'time=' part if it exists.
+			# removes 'time=' part if it exists. if it doesn't, '$reached' will be as long as '$line'.
 			reached=${line%time=*}
 			# if "time=" has actually been removed, it means that line 
 			# contains it, which also means the icmp request was fulfilled.
-			# if line doesn't contain 'time=', skip this line.
+			# if line doesn't contain 'time=', we skip this line.
 			[ ${#reached} -lt ${#line} ] || continue
 
 			 # from the whole line, removes everything until, and including, "icmp_req=".
@@ -114,7 +111,46 @@ collect_QoE_Monitor_data() {
 
 	# printf "string is: '%s'\n" "$string"
 	# appending string to file.
-	echo "$string" >> "$rawDataFile";
+	echo "loss $string"
+}
+
+collect_connectivity_pings() {
+	# file where pings are stored.
+	local pingsFile="${data_collecting_dir}/pings"
+	
+	# content from pings file will be assign to this variable.
+	local pings
+	# using a lock file, in writing mode, to block code while accessing the pings file.
+	# this is to prevent writing conflict to the script that writes new values to the pings file.
+	{
+	flock -x 9
+	pings=$(cat "$pingsFile")
+	rm "$pingsFile" > /dev/null 2>&1
+	# "${pingsFile}lock" is also used by the script that writes new values to the file.
+	} 9>"${pingsFile}lock"
+
+	# counter and total for pings. we later divide them to get an average.
+	local count=0
+	local average=0
+	for rtt in $pings; do
+		count=$(($count + 1))
+		# removing floating point. which means multiplying by 1000 as 'ping' times always have 3 floating point digits.
+		# we are using integers only in our math because flashboxes don't have floating point numbers in ash.
+		average=$(($average + ${rtt//.}))
+	done
+	# using integer division isn't perfect but it's precise enough for us.
+	average=$(($average / $count))
+	# dividing back by 1000 by just manipulating the string. Putting a dot before the last 3 digits.
+	local length=${#average}
+	average="${average:0:$(($l-3))}.${average:$(($l-3))}"
+
+	# this measures output.
+	echo "pings $average $count"
+}
+
+collect_wifi_devices() {
+	local devices="$(iwinfo $(get_root_ifname 0) assoclist)"
+	echo "$devices"
 }
 
 # prints the size of a file, using 'ls', where full file path is given as 
@@ -217,7 +253,21 @@ removeOldFiles() {
 # too big, compress it and move it to a directory of compressed files. If 
 # directory of compressed files grows too big delete oldest compressed files.
 collectData() {
-	collect_QoE_Monitor_data
+	# getting current unix time in seconds.
+	local timestamp=$(date +%s)
+
+	# string to be written to file.
+	local str=""
+
+	local out
+	out=$(collect_QoE_Monitor_data)
+	[ "$out" != "" ] && str="${str}${out}|"
+	out=$(collect_connectivity_pings)
+	[ "$out" != "" ] && str="${str}${out}|"
+	out=$(collect_wifi_devices)
+	[ "$out" != "" ] && str="${str}${out}|"
+
+	[ "$str" != "" ] && echo "$timestamp:$str" >> "$rawDataFile";
 
 	# $(zipFile) returns 0 only if any amount of files has been compressed 
 	# and, consequently, moved to the directory of compressed files. So
@@ -452,6 +502,7 @@ cleanFiles() {
 	rm "${dataCollectingDir}/serverState" 2> /dev/null
 	# rm "${dataCollectingDir}/backoffCounter" 2> /dev/null
 	rm "${rawDataFile}.gz" 2> /dev/null
+	flock "${dataCollectingDir}pingslock" rm "${dataCollectingDir}/pings"
 }
 
 # collects and sends data forever.

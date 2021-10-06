@@ -28,7 +28,7 @@ write_access_start_time 0
 while true
 do
 	# We have layer 2 connectivity, now check external access
-	if [ ! "$(check_connectivity_internet)" -eq 0 ]
+	if [ ! "$(check_connectivity_internet "" "collect")" -eq 0 ]
 	then
 		# No external access
 		log "CHECK_WAN" "No external access..."
