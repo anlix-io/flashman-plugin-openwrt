@@ -362,11 +362,11 @@ rtwifi_sta_vif_post_config() {
 	let stacount+=1
 
 	wireless_add_vif "$name" "$APCLI_IF"
-	#json_get_vars bridge
-	#[ -z `brctl show | grep $APCLI_IF` ] && [ ! -z $bridge ] && {
-	#	echo "Manually bridge interface $APCLI_IF into $bridge"
-	#	brctl addif $bridge $APCLI_IF 
-	#}
+	json_get_vars bridge
+	[ -z `brctl show | grep $APCLI_IF` ] && [ ! -z $bridge ] && {
+		echo "Manually bridge interface $APCLI_IF into $bridge"
+		brctl addif $bridge $APCLI_IF
+	}
 }
 
 drv_rtwifi_cleanup() {
