@@ -572,50 +572,6 @@ set_mesh_rrm() {
 	fi
 }
 
-# Check if there is a Mesh license available
-is_mesh_license_available() {
-	local _res
-	local _slave_mac=$1
-	local _is_available=1
-
-	if [ "$FLM_USE_AUTH_SVADDR" == "y" ]
-	then
-		#
-		# WARNING! No spaces or tabs inside the following string!
-		#
-		local _data
-		_data="organization=$FLM_CLIENT_ORG&\
-mac=$_slave_mac&\
-secret=$FLM_CLIENT_SECRET"
-
-		_res=$(curl -s \
-			-A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
-			--tlsv1.2 --connect-timeout 5 --retry 1 \
-			--data "$_data" \
-			"https://$FLM_AUTH_SVADDR/api/device/mesh/available")
-
-		local _curl_res=$?
-		if [ $_curl_res -eq 0 ]
-		then
-			json_cleanup
-			json_load "$_res" 2>/dev/null
-			if [ $? == 0 ]
-			then
-				json_get_var _is_available is_available
-				json_close_object
-			else
-				log "AUTHENTICATOR" "Invalid answer from controler"
-			fi
-		else
-			log "AUTHENTICATOR" "Error connecting to controler ($_curl_res)"
-		fi
-	else
-		_is_available=0
-	fi
-
-	return $_is_available
-}
-
 # Check if Mesh is connected
 is_mesh_connected() {
 	local _mesh_mode="$(get_mesh_mode)"
@@ -632,55 +588,6 @@ is_mesh_connected() {
 		[ "$_has_mesh" ] && conn="1"
 	fi
 	echo "$conn"
-}
-
-# Register Mesh Slaves
-set_mesh_slaves() {
-	local _mesh_slave="$1"
-	if [ "$(is_mesh_master)" = "1" ]
-	then
-		# Check license availability before proceeding
-		if is_mesh_license_available $_mesh_slave
-		then
-			local _retstatus
-			local _status=20
-			local _data="id=$(get_mac)&slave=$_mesh_slave"
-			local _url="deviceinfo/mesh/add"
-			local _res=$(rest_flashman "$_url" "$_data")
-
-			_retstatus=$?
-			if [ $_retstatus -eq 0 ]
-			then
-				json_cleanup
-				json_load "$_res"
-				json_get_var _is_registered is_registered
-				json_close_object
-				# value 2 is already registred. No need to do anything
-				if [ "$_is_registered" = "1" ]
-				then
-					log "MESH" "Slave router $_mesh_slave registered successfull"
-				fi
-				if [ "$_is_registered" = "0" ]
-				then
-					log "MESH" "Error registering slave router $_mesh_slave"
-					_status=21
-				fi
-			else
-				log "MESH" "Error communicating with server for registration"
-				_status=21
-			fi
-		else
-			log "MESH" "No license available"
-			_status=22
-		fi
-
-		json_cleanup
-		json_init
-		json_add_string mac "$_mesh_slave"
-		json_add_int status $_status
-		ubus call anlix_sapo notify_sapo "$(json_dump)"
-		json_close_object
-	fi
 }
 
 change_fast_transition() {
