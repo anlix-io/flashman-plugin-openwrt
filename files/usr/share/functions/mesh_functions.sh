@@ -501,40 +501,6 @@ enable_mesh() {
 	return 1
 }
 
-# Adds the stations to the bridge
-auto_set_mesh_bridge() {
-	# $1: Mesh Mode
-		# 0: Disable all
-		# 1: Cable Only
-		# 2: Enable 2.4G and Cable
-		# 3: Enable 5G and Cable
-		# 4: Enable all
-
-	local _mesh_mode="$1"
-
-	# If it is not the master
-	if [ -z "$(get_mesh_master)" ]
-	then
-		if [ "$_mesh_mode" -eq 2 ] || [ "$_mesh_mode" -eq 4 ]
-		then
-			# Bring the interface up
-			ifconfig "$(get_station_ifname 0)" up
-
-			# Add de 2.4G client interface to the lan
-			brctl addif br-lan "$(get_station_ifname 0)"
-		fi
-
-		if [ "$_mesh_mode" -eq 3 ] || [ "$_mesh_mode" -eq 4 ]
-		then
-			# Bring the interface up
-			ifconfig "$(get_station_ifname 1)" up
-
-			# Add de 5G client interface to the lan
-			brctl addif br-lan "$(get_station_ifname 1)"
-		fi
-	fi
-}
-
 # Change the channels automatically
 auto_change_mesh_slave_channel() {
 
