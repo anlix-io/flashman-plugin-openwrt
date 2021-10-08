@@ -11,7 +11,7 @@ is_5ghz_capable() {
 
 get_wifi_channel(){
 	local _phy=$(get_radio_phy $1)
-	iwinfo $_phy info | awk '/Channel/ { print $4 }'
+	iwinfo $_phy info | awk '/Channel/ { print $4; exit }'
 }
 
 get_wifi_device_stats() {
