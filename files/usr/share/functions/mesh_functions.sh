@@ -240,59 +240,6 @@ find_quality() {
 	echo "$_quality"
 }
 
-# Change channel automatically for slave or return to auto
-change_channel() {
-	# $1: Iwinfo 2.4G Data
-	# $2: Iwinfo 5G Data
-	# $3: Mesh Mode
-		# 0: Disable all
-		# 1: Cable Only
-		# 2: Enable 2.4G and Cable
-		# 3: Enable 5G and Cable
-		# 4: Enable all
-	# $4: Mesh SSID
-
-	local _iwinfo_2g_data="$1"
-	local _iwinfo_5g_data="$2"
-	local _mesh_mode="$3"
-	local _mesh_id="$4"
-
-	# Configuration for 2.4G
-	if [ "$_mesh_id" ] && ([ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ])
-	then
-
-		# Get the channel of the Master
-		local _channel_2="$(find_channel "$_iwinfo_2g_data" "$_mesh_id")"
-		# Configure radio to use the channel
-		[ "$_channel_2" ] && uci set wireless.radio0.channel="$_channel_2"
-
-	# Otherwise reset the channel
-	else
-		uci set wireless.radio0.channel="auto"
-	fi
-
-	if [ "$(is_5ghz_capable)" == "1" ]
-	then
-		# Configuration for 5G
-		if [ "$_mesh_id" ] && ([ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ])
-		then
-
-			# Get the channel of the Master
-			local _channel_5="$(find_channel "$_iwinfo_5g_data" "$_mesh_id")"
-
-			# Configure radio to use the channel
-			[ "$_channel_5" ] && uci set wireless.radio1.channel="$_channel_5"
-
-		# Otherwise reset the channel
-		else
-			uci set wireless.radio1.channel="auto"
-		fi
-	fi
-
-	# Commit changes
-	uci commit wireless
-}
-
 # Turns on/off Mesh
 enable_mesh() {
 	# $1: Mesh Mode
@@ -446,99 +393,82 @@ update_mesh_link() {
 	# Scan
 	if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
 	then
+		log "MESHLINK" "Scanning MESH APs in 2.4GHz ..."
 		_iwinfo_2g_data="$(iwinfo $(get_root_ifname 0) scan)"
 		_rssi_2g="$(find_quality "$_iwinfo_2g_data" "$_mesh_id")"
+		[ "$_rssi_2g" ] && log "MESHLINK" "Found MESH AP in 2.4GHz ($_rssi_2g) ..."
 	fi
 
 	if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
 	then
 		if [ "$(is_5ghz_capable)" == "1" ]
 		then
+			log "MESHLINK" "Scanning MESH APs in 5GHz ..."
 			_iwinfo_5g_data="$(iwinfo $(get_root_ifname 1) scan)"
 			_rssi_5g="$(find_quality "$_iwinfo_5g_data" "$_mesh_id")"
+			[ "$_rssi_5g" ] && log "MESHLINK" "Found MESH AP in 5GHz ($_rssi_5g) ..."
 		fi
 	fi
 
 	# Can't find an uplink!
-	[ -z "$_rssi_5g" ] && [ -z "$_rssi_2g" ] && return 0
+	if [ -z "$_rssi_5g" ] && [ -z "$_rssi_2g" ] 
+	then
+		log "MESHLINK" "No MESH AP Found!"
+		return 0
+	fi
 
 	# Check the best option (RSSI) to connect to
 	# It must choose between 2.4G and 5G
-	# TODO: Must do for all modes/radios (multiple 2.4/5 slaves)
-	# TODO: This must run in every initialization. Move it to another function!
+	local _need_restart=0
 	if ([ -z "$_rssi_5g" ] && [ "$_rssi_2g" ]) || [ "$_rssi_2g" -gt "$_rssi_5g" ]
 	then
-		_wifi_option="0"
-	else
-		_wifi_option="1"
-	fi
-
-	if [ "$_wifi_option" -eq "0" ]
-	then
 		# Set the configuration for STATION 2.4G
-		uci set wireless.mesh2_sta.bssid="$(find_mac_address "$_iwinfo_2g_data" "$_mesh_id")"
-		uci set wireless.mesh5_sta.disabled='0'
-	else
-		uci set wireless.mesh5_sta.disabled='1'
-	fi
+		local _channel="$(find_channel "$_iwinfo_2g_data" "$_mesh_id")"
+		local _bssid="$(find_mac_address "$_iwinfo_2g_data" "$_mesh_id")"
+		if [ "$(uci -q get wireless.radio0.channel)" != "$_channel" ] || 
+			[ "$(uci -q get wireless.mesh2_sta.bssid)" != "$_bssid" ]||
+			[ "$(uci -q get wireless.mesh2_sta.disabled)" != "0" ]
+		then
+			uci set wireless.mesh2_sta.bssid="$_bssid"
+			uci set wireless.mesh2_sta.disabled='0'
+			[ "$(is_5ghz_capable)" == "1" ] && uci set wireless.mesh5_sta.disabled='1'
 
-	if [ "$_wifi_option" -eq "1" ]
-		uci set wireless.mesh5_sta.bssid="$(find_mac_address "$_iwinfo_5g_data" "$_mesh_id")"
-		uci set wireless.mesh5_sta.disabled='0'
+			if set_wifi_local_config "" "" "$_channel" "" "" "" "" "" \
+				"" "" "auto" "" "" "" "" "" "$_mesh_mode"
+			then
+				log "MESHLINK" "Change 2.4Ghz Backbone ($_channel) ($_bssid) ..."
+				wifi reload
+			else
+				log "MESHLINK" "FAIL in change 2.4Ghz Backbone ($_channel) ($_bssid) ..."
+			fi
+		else
+			log "MESHLINK" "Keep 2.4Ghz Backbone ($_channel) ($_bssid) ..."
+		fi
 	else
-		uci set wireless.mesh5_sta.disabled='1'
-	fi
+		local _channel="$(find_channel "$_iwinfo_5g_data" "$_mesh_id")"
+		local _bssid="$(find_mac_address "$_iwinfo_5g_data" "$_mesh_id")"
+		if [ "$(uci -q get wireless.radio1.channel)" != "$_channel" ] || 
+			[ "$(uci -q get wireless.mesh5_sta.bssid)" != "$_bssid" ] ||
+			[ "$(uci -q get wireless.mesh5_sta.disabled)" != "0" ]
+		then
+			uci set wireless.mesh5_sta.bssid="$_bssid"
+			uci set wireless.mesh5_sta.disabled='0'
+			uci set wireless.mesh2_sta.disabled='1'
 
-	# Set the channel automatically
-	change_channel "$_iwinfo_2g_data" "$_iwinfo_5g_data" "$_mesh_mode" "$_mesh_id"
+			if set_wifi_local_config "" "" "auto" "" "" "" "" "" \
+				"" "" "$_channel" "" "" "" "" "" "$_mesh_mode"
+			then
+				log "MESHLINK" "Change 5Ghz Backbone ($_channel) ($_bssid) ..."
+				wifi reload
+			else
+				log "MESHLINK" "FAIL in change 5Ghz Backbone ($_channel) ($_bssid) ..."
+			fi
+		else
+			log "MESHLINK" "Keep 5Ghz Backbone ($_channel) ($_bssid) ..."
+		fi
+	fi
 
 	return 1
-}
-
-# Change the channels automatically
-auto_change_mesh_slave_channel() {
-
-	local _mesh_mode="$(get_mesh_mode)"
-	local _mesh_id="$(get_mesh_id)"
-	local _NCh2=""
-	local _NCh5=""
-
-	if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
-	then
-		log "AUTOCHANNEL" "Scanning MESH channel for mesh0..."
-
-		# Scan
-		local _iwinfo_2g_data="$(iwinfo $(get_root_ifname 0) scan)"
-		
-		_NCh2="$(find_channel "$_iwinfo_2g_data" "$_mesh_id")"
-	fi
-
-	if [ "$(is_5ghz_capable)" == "1" ]
-	then
-		if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
-		then
-			log "AUTOCHANNEL" "Scanning MESH channel for mesh1..."
-
-			# Scan
-			local _iwinfo_5g_data="$(iwinfo $(get_root_ifname 1) scan)"
-
-			_NCh5="$(find_channel "$_iwinfo_5g_data" "$_mesh_id")"
-		fi
-	fi
-
-	if [ "$_NCh2" ] || [ "$_NCh5" ]
-	then
-		if set_wifi_local_config "" "" "$_NCh2" "" "" "" "" "" \
-			"" "" "$_NCh5" "" "" "" "" "" "$_mesh_mode"
-		then
-			log "AUTOCHANNEL" "MESH Channel change ($_NCh2) ($_NCh5)"
-			wifi reload
-		else
-			log "AUTOCHANNEL" "No need to change MESH channel"
-		fi
-	else
-		log "AUTOCHANNEL" "No MESH signal found"
-	fi
 }
 
 set_mesh_rrm() {
