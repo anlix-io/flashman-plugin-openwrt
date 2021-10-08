@@ -45,7 +45,7 @@ collect_QoE_Monitor_data() {
 	local tx=$(($txBytes - $last_txBytes))
 	# if subtraction created a negative value, it means it has overflown or interface has been restarted.
 	# we skip this measure.
-	([ "$rx" -lt 0 ] || [ "$tx" -lt 0 ]) && return
+	{ [ "$rx" -lt 0 ] || [ "$tx" -lt 0 ]; } && return
 	# saves current interface bytes value as last value.
 	last_rxBytes=$rxBytes
 	# saves current interface bytes value as last value.
@@ -111,7 +111,7 @@ collect_QoE_Monitor_data() {
 	
 	# appending string to file.
 	# printf "string is: '%s'\n" "$string"
-	echo "loss $string"
+	echo "burstLoss $string"
 }
 
 collect_connectivity_pings() {
@@ -145,12 +145,11 @@ collect_connectivity_pings() {
 	average="${average:0:$(($l-3))}.${average:$(($l-3))}"
 
 	# if there no pings, we won't echo.
-	[ "$count" -gt 0 ] && echo "cnpings $pings"
+	[ "$count" -gt 0 ] && echo "connPings $pings"
 }
 
 collect_wifi_devices() {
-	# local devices="$(iwinfo $(get_root_ifname 0) assoclist | grep ago)"
-	local devices="$(cat wifi.txt)"
+	local devices="$(iwinfo $(get_root_ifname 0) assoclist | grep ago)"
 	local str="" mac snr time
 	# first iteration won't put a space before the value.
 	local first=true
@@ -176,7 +175,7 @@ collect_wifi_devices() {
 		str="${str}${mac}-${snr}"
 	done
 	# we won't echo if there are no devices.
-	[ ${#str} -gt 0 ] && echo "wfdvcs $str"
+	[ ${#str} -gt 0 ] && echo "wifiDevices $str"
 }
 
 # prints the size of a file, using 'ls', where full file path is given as 
@@ -245,7 +244,7 @@ zipFile() {
 	# if sum is smaller than $capSize, do nothing.
 	# echo checking file size to zip
 	# a return of 1 means nothing will be gzipped.
-	if [ $(($size + $dirSize)) -lt $capSize ]; then return 1; fi
+	[ $(($size + $dirSize)) -lt $capSize ] && return 1
 
 	# compressing file where raw data is held.
 	gzip "$rawDataFile"
@@ -335,7 +334,7 @@ checkServerState() {
 # sends file at given path ($1) to server at given address ($2) using $(curl) 
 # and returns $(curl) exit code.
 sendToServer() {
-	local filepath="$1" oldData="$2"
+	local filepath="$1"
 
 	# defined in /usr/share/functions/device_functions.sh
 	local mac=$(get_mac);
@@ -360,7 +359,7 @@ sendCompressedData() {
 	for i in "$compressedDataDir"/*; do
 		# if file exists, sends file and if $(curl) exit code isn't equal to 0, returns $(curl) exit code 
 		# without deleting the file we tried to send. if $(curl) exit code is equal to 0, removes file
-		[ -f "$i" ] && (sendToServer "$i" "1" || return "$?") && rm "$i"
+		[ -f "$i" ] && { sendToServer "$i" || return "$?"; } && rm "$i"
 	done
 	return 0
 }
@@ -383,7 +382,7 @@ sendUncompressedData() {
 	gzip -k "$rawDataFile"
 
 	# sends compressed file.
-	sendToServer "$compressedTempFile" "0"
+	sendToServer "$compressedTempFile"
 	# storing $(curl) exit code.
 	local sentResult="$?"
 
