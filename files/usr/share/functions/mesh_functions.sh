@@ -307,7 +307,6 @@ enable_mesh() {
 	local _new_mesh_id	
 	local _new_mesh_key
 	local _mesh_mode="$1"
-	local _do_save=0
 	local _local_mesh_id="$(get_mesh_id)"
 	local _local_mesh_key="$(get_mesh_key)"
 
@@ -317,13 +316,6 @@ enable_mesh() {
 	local _mac_middle=${_mac_addr::-3}
 	_mac_middle=${_mac_middle:12}
 	local _mac_end=${_mac_addr:14}
-
-	# Choose between 2.4G or 5G if mesh mode is for
-	# 0: 2.4G     1: 5G
-	local _wifi_option=""
-
-	local _iwinfo_2g_data=""
-	local _iwinfo_5g_data=""
 
 	# Check if it needs to change the ssid and key
 	if [ "$#" -eq 3 ]
@@ -352,31 +344,6 @@ enable_mesh() {
 	[ "$(uci -q get wireless.mesh2_sta)" ] && uci delete wireless.mesh2_sta
 	[ "$(uci -q get wireless.mesh5_ap)" ] && uci delete wireless.mesh5_ap
 	[ "$(uci -q get wireless.mesh5_sta)" ] && uci delete wireless.mesh5_sta
-	_do_save=1
-
-	local _rssi_2g=""
-	local _rssi_5g=""
-
-	# Scan
-	_iwinfo_2g_data="$(iwinfo $(get_root_ifname 0) scan)"
-	_rssi_2g="$(find_quality "$_iwinfo_2g_data" "$_new_mesh_id")"
-
-	if [ "$(is_5ghz_capable)" == "1" ]
-	then
-		_iwinfo_5g_data="$(iwinfo $(get_root_ifname 1) scan)"
-		_rssi_5g="$(find_quality "$_iwinfo_5g_data" "$_new_mesh_id")"
-	fi
-
-	# Check the best option (RSSI) to connect to
-	# It must choose between 2.4G and 5G
-	# TODO: Must do for all modes/radios (multiple 2.4/5 slaves)
-	# TODO: This must run in every initialization. Move it to another function!
-	if ([ -z "$_rssi_5g" ] && [ "$_rssi_2g" ]) || [ "$_rssi_2g" -gt "$_rssi_5g" ]
-	then
-		_wifi_option="0"
-	else
-		_wifi_option="1"
-	fi
 
 	# Configuration for 2.4G
 	if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
@@ -399,20 +366,19 @@ enable_mesh() {
 		# Use the mac address and increment the last byte
 		uci set wireless.mesh2_ap.macaddr="${_mac_addr::-5}$(printf '%x' $((0x$_mac_middle + 0x1)))$_mac_end"
 
-		if [ "$_wifi_option" -eq "0" ]
+		if [ "$_mesh_master" ]
 		then
 			# Set the configuration for STATION 2.4G
+			# All stations are disabled until we detect with one to use
 			uci set wireless.mesh2_sta=wifi-iface
 			uci set wireless.mesh2_sta.device='radio0'
 			uci set wireless.mesh2_sta.network='lan'
 			uci set wireless.mesh2_sta.ifname="$(get_station_ifname "0")"
 			uci set wireless.mesh2_sta.mode='sta'
-			# The SSID is needed by Mediatek
 			uci set wireless.mesh2_sta.ssid="$_new_mesh_id"
-			uci set wireless.mesh2_sta.bssid="$(find_mac_address "$_iwinfo_2g_data" "$_new_mesh_id")"
 			uci set wireless.mesh2_sta.encryption='psk2'
 			uci set wireless.mesh2_sta.key="$_new_mesh_key"
-			uci set wireless.mesh2_sta.disabled='0'
+			uci set wireless.mesh2_sta.disabled='1'
 			uci set wireless.mesh2_sta.anlix_ap='1'
 		fi
 	fi
@@ -440,34 +406,91 @@ enable_mesh() {
 			# Use the mac address and increment the byte
 			uci set wireless.mesh5_ap.macaddr="${_mac_addr::-5}$(printf '%x' $((0x$_mac_middle + 0x1)))$_mac_end"
 
-			if [ "$_wifi_option" -eq "1" ]
+			if [ "$_mesh_master" ]
+			then
 				# Set the configuration for STATION 5G
+				# All stations are disabled until we detect with one to use
 				uci set wireless.mesh5_sta=wifi-iface
 				uci set wireless.mesh5_sta.device='radio1'
 				uci set wireless.mesh5_sta.network='lan'
 				uci set wireless.mesh5_sta.ifname="$(get_station_ifname "1")"
 				uci set wireless.mesh5_sta.mode='sta'
-				# The SSID is needed by Mediatek
 				uci set wireless.mesh5_sta.ssid="$_new_mesh_id"
-				# The BSSID of the Master must be incremented in the byte
-				uci set wireless.mesh5_sta.bssid="$(find_mac_address "$_iwinfo_5g_data" "$_new_mesh_id")"
 				uci set wireless.mesh5_sta.encryption='psk2'
 				uci set wireless.mesh5_sta.key="$_new_mesh_key"
-				uci set wireless.mesh5_sta.disabled='0'
+				uci set wireless.mesh5_sta.disabled='1'
 				uci set wireless.mesh5_sta.anlix_ap='1'
 			fi
 		fi
 	fi
 
-	# Set the channel automatically
-	change_channel "$_iwinfo_2g_data" "$_iwinfo_5g_data" "$_mesh_mode" "$_new_mesh_id"
-
 	# Save modifications
-	if [ $_do_save -eq 1 ]
+	uci commit wireless
+	return 0
+}
+
+update_mesh_link() {
+	local _mesh_id="$(get_mesh_id)"
+	local _mesh_mode="$(get_mesh_mode)"
+
+	# Choose between 2.4G or 5G if mesh mode is for
+	# 0: 2.4G     1: 5G
+	local _wifi_option=""
+
+	local _iwinfo_2g_data=""
+	local _iwinfo_5g_data=""
+
+	local _rssi_2g=""
+	local _rssi_5g=""
+
+	# Scan
+	if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
 	then
-		uci commit wireless
-		return 0
+		_iwinfo_2g_data="$(iwinfo $(get_root_ifname 0) scan)"
+		_rssi_2g="$(find_quality "$_iwinfo_2g_data" "$_mesh_id")"
 	fi
+
+	if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
+	then
+		if [ "$(is_5ghz_capable)" == "1" ]
+		then
+			_iwinfo_5g_data="$(iwinfo $(get_root_ifname 1) scan)"
+			_rssi_5g="$(find_quality "$_iwinfo_5g_data" "$_mesh_id")"
+		fi
+	fi
+
+	# Can't find an uplink!
+	[ -z "$_rssi_5g" ] && [ -z "$_rssi_2g" ] && return 0
+
+	# Check the best option (RSSI) to connect to
+	# It must choose between 2.4G and 5G
+	# TODO: Must do for all modes/radios (multiple 2.4/5 slaves)
+	# TODO: This must run in every initialization. Move it to another function!
+	if ([ -z "$_rssi_5g" ] && [ "$_rssi_2g" ]) || [ "$_rssi_2g" -gt "$_rssi_5g" ]
+	then
+		_wifi_option="0"
+	else
+		_wifi_option="1"
+	fi
+
+	if [ "$_wifi_option" -eq "0" ]
+	then
+		# Set the configuration for STATION 2.4G
+		uci set wireless.mesh2_sta.bssid="$(find_mac_address "$_iwinfo_2g_data" "$_mesh_id")"
+		uci set wireless.mesh5_sta.disabled='0'
+	else
+		uci set wireless.mesh5_sta.disabled='1'
+	fi
+
+	if [ "$_wifi_option" -eq "1" ]
+		uci set wireless.mesh5_sta.bssid="$(find_mac_address "$_iwinfo_5g_data" "$_mesh_id")"
+		uci set wireless.mesh5_sta.disabled='0'
+	else
+		uci set wireless.mesh5_sta.disabled='1'
+	fi
+
+	# Set the channel automatically
+	change_channel "$_iwinfo_2g_data" "$_iwinfo_5g_data" "$_mesh_mode" "$_mesh_id"
 
 	return 1
 }
