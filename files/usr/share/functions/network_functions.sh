@@ -183,10 +183,14 @@ ping_maybe_collect() {
 
 			# file where pings are stored.
 			local pingsFile="${data_collecting_dir}/pings"
+			# using a lock file, in writing mode, to block code while accessing the pings file.
+			# this is because the data_collecting service will also write to the pings file.
+			{
+			flock -x 9
 			# appending $rtt in a new line in pings file.
-			flock "$pingsFile" # lock.
 			echo "$rtt" >> "$pingsFile"
-			flock "$pingsFile" # unlock.
+			# "${pingsFile}lock" is also used by the data_collecting service.
+			} 9>"${pingsFile}lock"
 		fi
 		return 0
 	fi
@@ -244,11 +248,16 @@ save_ping_result() {
 	# removes everything after, and including, first forward slash.
 	rtt=${rtt%%/*}
 
+	# file where pings are stored.
 	local pingsFile="${data_collecting_dir}/pings"
+	# using a lock file, in writing mode, to block code while accessing the pings file.
+	# this is because the data_collecting service will also write to the pings file.
+	{
+	flock -x 9
 	# appending $rtt in a new line in pings file.
-	flock "$pingsFile" # lock.
 	echo "$rtt" >> "$pingsFile"
-	flock "$pingsFile" # unlock.
+	# "${pingsFile}lock" is also used by the data_collecting service.
+	} 9>"${pingsFile}lock"
 }
 
 renew_dhcp() {
