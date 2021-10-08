@@ -108,9 +108,9 @@ collect_QoE_Monitor_data() {
 		# appending latencies to string to be sent.
 		string="${string} ${latencies}"
 	fi
-
-	# printf "string is: '%s'\n" "$string"
+	
 	# appending string to file.
+	# printf "string is: '%s'\n" "$string"
 	echo "loss $string"
 }
 
@@ -144,13 +144,39 @@ collect_connectivity_pings() {
 	local length=${#average}
 	average="${average:0:$(($l-3))}.${average:$(($l-3))}"
 
-	# this measures output.
-	echo "pings $average $count"
+	# if there no pings, we won't echo.
+	[ "$count" -gt 0 ] && echo "cnpings $pings"
 }
 
 collect_wifi_devices() {
-	local devices="$(iwinfo $(get_root_ifname 0) assoclist)"
-	echo "$devices"
+	# local devices="$(iwinfo $(get_root_ifname 0) assoclist | grep ago)"
+	local devices="$(cat wifi.txt)"
+	local str="" mac snr time
+	# first iteration won't put a space before the value.
+	local first=true
+	while [ ${#devices} -gt 0 ]; do
+		# getting everything before the first space. 
+		mac=${devices%% *}
+		# getting after '(SNR '. 
+		devices=${devices#*\(SNR }
+		# getting everything before the first closing parenthesis.
+		snr=${devices%%\)*}
+		# getting everything before ' ms'.
+		time=${devices%% ms*}
+		# getting everything after the first space.
+		time=${time##* }
+		# getting after 'ago'.
+		devices=${devices#*ago}
+		# getting after '\n'. if it exists. last line won't have it, so nothing will be changed.
+		devices=${devices#*$'\n'}
+		# if time is greater than one minute, we don't use this device's info.
+		[ "$time" -gt 60000 ] && continue
+		# if it's the first data we are storing, don't add a space before appending the data string.
+		[ "$first" == true ] && first=false || str="$str "
+		str="${str}${mac}-${snr}"
+	done
+	# we won't echo if there are no devices.
+	[ ${#str} -gt 0 ] && echo "wfdvcs $str"
 }
 
 # prints the size of a file, using 'ls', where full file path is given as 
@@ -259,15 +285,17 @@ collectData() {
 	# string to be written to file.
 	local str=""
 
-	local out
-	out=$(collect_QoE_Monitor_data)
-	[ "$out" != "" ] && str="${str}${out}|"
-	out=$(collect_connectivity_pings)
-	[ "$out" != "" ] && str="${str}${out}|"
-	out=$(collect_wifi_devices)
-	[ "$out" != "" ] && str="${str}${out}|"
+	local output
+	output=$(collect_QoE_Monitor_data)
+	[ "$output" != "" ] && str="${str}|${output}"
+	output=$(collect_connectivity_pings)
+	[ "$output" != "" ] && str="${str}|${output}"
+	output=$(collect_wifi_devices)
+	[ "$output" != "" ] && str="${str}|${output}"
 
-	[ "$str" != "" ] && echo "$timestamp:$str" >> "$rawDataFile";
+	# expected raw data:
+	# '213234556456|loss 0 100 12345 1234|cnpings 10.344 30|wfdvcs aa:bb:cc:dd:ee:ff-22 ab:bb:cc:dd:ee:ff-45'
+	[ "$str" != "" ] && echo "${timestamp}${str}" >> "$rawDataFile";
 
 	# $(zipFile) returns 0 only if any amount of files has been compressed 
 	# and, consequently, moved to the directory of compressed files. So
@@ -311,8 +339,6 @@ sendToServer() {
 
 	# defined in /usr/share/functions/device_functions.sh
 	local mac=$(get_mac);
-	# removing all colons in mac address.
-	mac=${mac//:/}
 
 	status=$(curl --write-out '%{http_code}' -s -m 20 --connect-timeout 5 --output /dev/null \
 	-XPOST "https://$alarmServerAddress:7890/data" -H 'Content-Encoding: gzip' \
