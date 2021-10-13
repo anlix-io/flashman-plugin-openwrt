@@ -10,7 +10,7 @@ is_5ghz_capable() {
 }
 
 get_wifi_channel(){
-	local _phy=$(get_radio_phy $1)
+	local _phy=$(get_root_ifname $1)
 	iwinfo $_phy info | awk '/Channel/ { print $4; exit }'
 }
 
@@ -26,9 +26,9 @@ get_wifi_device_stats() {
 	do 
 		if [ "$_ap_freq" == "2.4" ]
 		then
-			_wifi_itf="$(get_radio_phy 0)"
+			_wifi_itf="$(get_root_ifname 0)"
 		else
-			_wifi_itf="$(get_radio_phy 1)"
+			_wifi_itf="$(get_root_ifname 1)"
 		fi
 
 		_dev_info="$(iwinfo $_wifi_itf a 2> /dev/null)"
@@ -85,9 +85,9 @@ is_device_wireless() {
 	do 
 		if [ "$_ap_freq" == "2.4" ]
 		then
-			_wifi_itf="$(get_radio_phy 0)"
+			_wifi_itf="$(get_root_ifname 0)"
 		else
-			_wifi_itf="$(get_radio_phy 1)"
+			_wifi_itf="$(get_root_ifname 1)"
 		fi
 
 		_dev_info="$(iwinfo $_wifi_itf a 2> /dev/null | grep -i $_dev_mac)"

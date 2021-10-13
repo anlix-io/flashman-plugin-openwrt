@@ -27,7 +27,7 @@ get_root_ifname() {
 		# 1: 5G
 
 	# Show interfaces ra0 or rai0
-	echo "$(get_ifnames "$1" | grep ra | grep 0)"
+	[ "$1" == "0" ] && echo "ra0" || echo "rai0"
 }
 
 # Get the chosen virtual AP ifname

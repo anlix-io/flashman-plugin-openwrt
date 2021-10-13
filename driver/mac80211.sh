@@ -25,8 +25,8 @@ get_root_ifname() {
 		# 0: 2.4G
 		# 1: 5G
 
-	# Do not show interfaces with "-" (Virtual AP's)
-	echo "$(get_ifnames "$1" | grep -v "-")"
+	# root are always wlan0 and wlan1
+	[ "$1" == "0" ] && echo "wlan0" || echo "wlan1"
 }
 
 # Get the chosen virtual AP ifname
