@@ -815,6 +815,9 @@ enable_bridge_mode() {
 		uci set network.lan.proto="dhcp"
 	fi
 
+	#disable DMZ when in bridge mode
+	uci set network.dmz.proto="none"
+
 	if [ "$(type -t wan_lan_diff_ifaces)" == "" ]; then
 		save_bridge_mode_vlan_config "y" "$_disable_lan_ports"
 	else
@@ -1019,6 +1022,9 @@ disable_bridge_mode() {
 		# Router without vlan: Get ifname to remove from the bridge
 		uci set network.lan.ifname="$_lan_ifnames"
 	fi
+
+	#enable DMZ
+	uci set network.dmz.proto="static"
 
 	uci set network.lan.proto="static"
 	uci set network.lan.ipaddr="$_lan_ip"
