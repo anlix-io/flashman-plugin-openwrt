@@ -1026,9 +1026,9 @@ disable_bridge_mode() {
 	#enable DMZ
 	uci set network.dmz.proto="static"
 
+	# Set wan and lan back to proper values
 	uci set network.lan.proto="static"
 	uci set network.lan.ipaddr="$_lan_ip"
-	# Set wan and lan back to proper values
 	uci set network.wan.proto="$_wan_conn_type"
 
 	if [ "$_enable_ipv6" = "1" ]
@@ -1043,7 +1043,6 @@ disable_bridge_mode() {
 	fi
 	[ "$(uci -q get network.lan6)" ] && uci delete network.lan6
 
-	uci set network.lan.proto="static"
 	uci delete network.lan.gateway
 	uci delete network.lan.dns
 	uci commit network
