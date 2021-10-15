@@ -30,6 +30,22 @@ set_mesh_master() {
 	json_close_object
 }
 
+# Save all bssids in the mesh
+set_mesh_devices() {
+	# $1: 2.4G devices bssid
+	# $2: 5G devices bssid
+
+	local _devices_bssid_mesh2="$1"
+	local _devices_bssid_mesh5="$2"
+
+	json_cleanup
+	json_load_file /root/flashbox_config.json
+	json_add_string devices_bssid_mesh2 "$_devices_bssid_mesh2"
+	json_add_string devices_bssid_mesh5 "$_devices_bssid_mesh5"
+	json_dump > /root/flashbox_config.json
+	json_close_object
+}
+
 # Set the mesh to be Slave
 set_mesh_slave() {
 	local _mesh_mode="$1"
@@ -77,6 +93,32 @@ get_mesh_master() {
 	echo "$_mesh_master"
 }
 
+# Get all bssids in the mesh
+get_mesh_devices() {
+	# $1: 2.4G or 5G
+		# 0: 2.4G
+		# 1: 5G
+	local _mesh_wifi="$1"
+	local _devices_bssid=""
+
+	json_cleanup
+	json_load_file /root/flashbox_config.json
+	
+	# Choose between 2.4G and 5G
+	if [ "$_mesh_wifi" -eq "0" ]
+	then
+		json_get_var _devices_bssid devices_bssid_mesh2
+	elif [ "$_mesh_wifi" -eq "1" ]
+	then
+		json_get_var _devices_bssid devices_bssid_mesh5
+	fi
+
+	json_close_object
+
+	echo "$_devices_bssid"
+}
+
+
 # Get Mesh SSID from configuration file
 get_mesh_id() {
 	local _mesh_id=""
@@ -85,6 +127,31 @@ get_mesh_id() {
 	json_get_var _mesh_id mesh_id
 	json_close_object
 	[ "$_mesh_id" ] && echo "$_mesh_id" || echo "Anlix-MESH"
+}
+
+# Get different Mesh ap BSSID from own MAC
+get_mesh_ap_bssid() {
+	# $1: 2.4G or 5G
+		# 0: 2.4G
+		# 1: 5G
+	local _mesh_wifi="$1"
+	local _mesh_bssid=""
+
+	local _mac_addr="$(get_mac)"
+	local _mac_middle=${_mac_addr::-3}
+	_mac_middle=${_mac_middle:12}
+	local _mac_end=${_mac_addr:14}
+
+	# Add one to the mac address
+	# XX:XX:XX:XX:(XX + 0x1):XX
+	if [ "$_mesh_wifi" == "0" ]
+	then
+		_mesh_bssid="${_mac_addr::-5}$(printf '%02X' $((0x$_mac_middle + 0x1)))$_mac_end"
+	else
+		_mesh_bssid="${_mac_addr::-5}$(printf '%02X' $((0x$_mac_middle + 0x1)))$_mac_end"
+	fi
+
+	echo "$_mesh_bssid"
 }
 
 # Get Mesh Key from configuration file
@@ -137,7 +204,7 @@ get_iwinfo_cell() {
 # Get MAC Address based on the SSID
 find_mac_address() {
 	# $1: Iwinfo Data
-	# $2: Mesh SSID
+	# $2: Mesh SSID or BSSID
 
 	local _iwinfo_data="$1"
 	local _mesh_id="$2"
@@ -172,7 +239,7 @@ find_mac_address() {
 # Get Channel based on the SSID
 find_channel() {
 	# $1: Iwinfo Data
-	# $2: Mesh SSID
+	# $2: Mesh SSID or BSSID
 
 	local _iwinfo_data="$1"
 	local _mesh_id="$2"
@@ -205,10 +272,47 @@ find_channel() {
 	echo "$_channel"
 }
 
+# Get the mac address and the channel of the device with the best quality
+find_mac_and_channel_by_devices() {
+	# $1: Iwinfo Data
+	# $2: Mesh BSSID devices
+
+	local _iwinfo_data="$1"
+	local _devices_bssid_mesh="$2"
+
+	local _quality_best=""
+	local _quality_new=""
+	local _bssid_best=""
+	local _bssid_new=""
+	local _channel=""
+
+	local _index="2"
+
+	# Get the first bssid and quality
+	# Devices delimited by comma
+	_bssid_new="$(echo "$_devices_bssid_mesh" | awk -F',' '{print $1}')"
+	_quality_new="$(find_quality "$_iwinfo_data" "$_bssid_new")"
+
+	while [ ! -z "$_bssid_new" ]
+	do
+		if [ -z "$_bssid_best" ] || [ "$_quality_new" -gt "$_quality_best" ]
+		then
+			_bssid_best="$_bssid_new"
+			_quality_best="$_quality_new"
+		fi
+
+		_bssid_new="$(echo "$_devices_bssid_mesh" | awk -F',' '{print $'"$_index"'}')"
+		_quality_new="$(find_quality "$_iwinfo_data" "$_bssid_new")"
+		_index=$(($_index + 1))
+	done
+
+	echo "$_bssid_best,$(find_channel "$_iwinfo_data" "$_bssid_best")"
+}
+
 # Get Quality based on the SSID
 find_quality() {
 	# $1: Iwinfo Data
-	# $2: Mesh SSID
+	# $2: Mesh SSID or BSSID
 
 	local _iwinfo_data="$1"
 	local _mesh_id="$2"
@@ -259,10 +363,8 @@ enable_mesh() {
 
 	local _mesh_master=$(get_mesh_master)
 
-	local _mac_addr="$(get_mac)"
-	local _mac_middle=${_mac_addr::-3}
-	_mac_middle=${_mac_middle:12}
-	local _mac_end=${_mac_addr:14}
+	local _mac_mesh2="$(get_mesh_ap_bssid 0)"
+	local _mac_mesh5="$(get_mesh_ap_bssid 1)"
 
 	# Check if it needs to change the ssid and key
 	if [ "$#" -eq 3 ]
@@ -304,14 +406,14 @@ enable_mesh() {
 		uci set wireless.mesh2_ap.ifname="$(get_virtual_ap_ifname "0" "1")"
 
 		uci set wireless.mesh2_ap.mode='ap'
-		uci set wireless.mesh2_ap.hidden='0'
+		uci set wireless.mesh2_ap.hidden='1'
 		uci set wireless.mesh2_ap.disassoc_low_ack='1'
 		uci set wireless.mesh2_ap.ssid="$_new_mesh_id"
 		uci set wireless.mesh2_ap.encryption='psk2'
 		uci set wireless.mesh2_ap.key="$_new_mesh_key"
 		uci set wireless.mesh2_ap.disabled='0'
 		# Use the mac address and increment the last byte
-		uci set wireless.mesh2_ap.macaddr="${_mac_addr::-5}$(printf '%x' $((0x$_mac_middle + 0x1)))$_mac_end"
+		uci set wireless.mesh2_ap.macaddr="$_mac_mesh2"
 
 		if [ "$_mesh_master" ]
 		then
@@ -344,14 +446,14 @@ enable_mesh() {
 			uci set wireless.mesh5_ap.ifname="$(get_virtual_ap_ifname "1" "1")"
 
 			uci set wireless.mesh5_ap.mode='ap'
-			uci set wireless.mesh5_ap.hidden='0'
+			uci set wireless.mesh5_ap.hidden='1'
 			uci set wireless.mesh5_ap.disassoc_low_ack='1'
 			uci set wireless.mesh5_ap.ssid="$_new_mesh_id"
 			uci set wireless.mesh5_ap.encryption='psk2'
 			uci set wireless.mesh5_ap.key="$_new_mesh_key"
 			uci set wireless.mesh5_ap.disabled='0'
 			# Use the mac address and increment the byte
-			uci set wireless.mesh5_ap.macaddr="${_mac_addr::-5}$(printf '%x' $((0x$_mac_middle + 0x1)))$_mac_end"
+			uci set wireless.mesh5_ap.macaddr="$_mac_mesh5"
 
 			if [ "$_mesh_master" ]
 			then
@@ -390,12 +492,26 @@ update_mesh_link() {
 	local _rssi_2g=""
 	local _rssi_5g=""
 
+	# Mac address and channel for 2.4G
+	local _bssid_2g=""
+	local _bssid_5g=""
+	local _channel_2g=""
+	local _channel_5g=""
+
 	# Scan
 	if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
 	then
+		local _mac_and_channel=""
+
 		log "MESHLINK" "Scanning MESH APs in 2.4GHz ..."
 		_iwinfo_2g_data="$(iwinfo $(get_root_ifname 0) scan)"
-		_rssi_2g="$(find_quality "$_iwinfo_2g_data" "$_mesh_id")"
+
+		_mac_and_channel="$(find_mac_and_channel_by_devices "$_iwinfo_2g_data" $(get_mesh_devices 0))"
+
+		_bssid_2g="$(echo "$_mac_and_channel" | awk -F',' '{print $1}')"
+		_channel_2g="$(echo "$_mac_and_channel" | awk -F',' '{print $2}')"
+		_rssi_2g="$(find_quality "$_iwinfo_2g_data" "$_bssid_2g")"
+
 		[ "$_rssi_2g" ] && log "MESHLINK" "Found MESH AP in 2.4GHz ($_rssi_2g) ..."
 	fi
 
@@ -403,9 +519,17 @@ update_mesh_link() {
 	then
 		if [ "$(is_5ghz_capable)" == "1" ]
 		then
+			local _mac_and_channel=""
+
 			log "MESHLINK" "Scanning MESH APs in 5GHz ..."
 			_iwinfo_5g_data="$(iwinfo $(get_root_ifname 1) scan)"
-			_rssi_5g="$(find_quality "$_iwinfo_5g_data" "$_mesh_id")"
+
+			_mac_and_channel="$(find_mac_and_channel_by_devices "$_iwinfo_5g_data" $(get_mesh_devices 1))"
+
+			_bssid_5g="$(echo "$_mac_and_channel" | awk -F',' '{print $1}')"
+			_channel_5g="$(echo "$_mac_and_channel" | awk -F',' '{print $2}')"
+			_rssi_5g="$(find_quality "$_iwinfo_5g_data" "$_bssid_5g")"
+
 			[ "$_rssi_5g" ] && log "MESHLINK" "Found MESH AP in 5GHz ($_rssi_5g) ..."
 		fi
 	fi
@@ -423,48 +547,45 @@ update_mesh_link() {
 	if ([ -z "$_rssi_5g" ] && [ "$_rssi_2g" ]) || [ "$_rssi_2g" -gt "$_rssi_5g" ]
 	then
 		# Set the configuration for STATION 2.4G
-		local _channel="$(find_channel "$_iwinfo_2g_data" "$_mesh_id")"
-		local _bssid="$(find_mac_address "$_iwinfo_2g_data" "$_mesh_id")"
-		if [ "$(uci -q get wireless.radio0.channel)" != "$_channel" ] || 
-			[ "$(uci -q get wireless.mesh2_sta.bssid)" != "$_bssid" ]||
+		if [ "$(uci -q get wireless.radio0.channel)" != "$_channel_2g" ] || 
+			[ "$(uci -q get wireless.mesh2_sta.bssid)" != "$_bssid_2g" ]||
 			[ "$(uci -q get wireless.mesh2_sta.disabled)" != "0" ]
 		then
-			uci set wireless.mesh2_sta.bssid="$_bssid"
+			uci set wireless.mesh2_sta.bssid="$_bssid_2g"
 			uci set wireless.mesh2_sta.disabled='0'
 			[ "$(is_5ghz_capable)" == "1" ] && uci set wireless.mesh5_sta.disabled='1'
 
-			if set_wifi_local_config "" "" "$_channel" "" "" "" "" "" \
+			if set_wifi_local_config "" "" "$_channel_2g" "" "" "" "" "" \
 				"" "" "auto" "" "" "" "" "" "$_mesh_mode"
 			then
-				log "MESHLINK" "Change 2.4Ghz Backbone ($_channel) ($_bssid) ..."
+				log "MESHLINK" "Change 2.4Ghz Backbone ($_channel_2g) ($_bssid_2g) ..."
 				wifi reload
 			else
-				log "MESHLINK" "FAIL in change 2.4Ghz Backbone ($_channel) ($_bssid) ..."
+				log "MESHLINK" "FAIL in change 2.4Ghz Backbone ($_channel_2g) ($_bssid_2g) ..."
 			fi
 		else
-			log "MESHLINK" "Keep 2.4Ghz Backbone ($_channel) ($_bssid) ..."
+			log "MESHLINK" "Keep 2.4Ghz Backbone ($_channel_2g) ($_bssid_2g) ..."
 		fi
 	else
-		local _channel="$(find_channel "$_iwinfo_5g_data" "$_mesh_id")"
-		local _bssid="$(find_mac_address "$_iwinfo_5g_data" "$_mesh_id")"
-		if [ "$(uci -q get wireless.radio1.channel)" != "$_channel" ] || 
-			[ "$(uci -q get wireless.mesh5_sta.bssid)" != "$_bssid" ] ||
+		# Set the configuration for STATION 5G
+		if [ "$(uci -q get wireless.radio1.channel)" != "$_channel_5g" ] || 
+			[ "$(uci -q get wireless.mesh5_sta.bssid)" != "$_bssid_5g" ] ||
 			[ "$(uci -q get wireless.mesh5_sta.disabled)" != "0" ]
 		then
-			uci set wireless.mesh5_sta.bssid="$_bssid"
+			uci set wireless.mesh5_sta.bssid="$_bssid_5g"
 			uci set wireless.mesh5_sta.disabled='0'
 			uci set wireless.mesh2_sta.disabled='1'
 
 			if set_wifi_local_config "" "" "auto" "" "" "" "" "" \
-				"" "" "$_channel" "" "" "" "" "" "$_mesh_mode"
+				"" "" "$_channel_5g" "" "" "" "" "" "$_mesh_mode"
 			then
-				log "MESHLINK" "Change 5Ghz Backbone ($_channel) ($_bssid) ..."
+				log "MESHLINK" "Change 5Ghz Backbone ($_channel_5g) ($_bssid_5g) ..."
 				wifi reload
 			else
-				log "MESHLINK" "FAIL in change 5Ghz Backbone ($_channel) ($_bssid) ..."
+				log "MESHLINK" "FAIL in change 5Ghz Backbone ($_channel_5g) ($_bssid_5g) ..."
 			fi
 		else
-			log "MESHLINK" "Keep 5Ghz Backbone ($_channel) ($_bssid) ..."
+			log "MESHLINK" "Keep 5Ghz Backbone ($_channel_5g) ($_bssid_5g) ..."
 		fi
 	fi
 
