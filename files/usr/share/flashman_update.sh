@@ -171,6 +171,8 @@ wifi_mode_5ghz=$_local_hwmode_50&\
 wifi_state_5ghz=$_local_state_50&\
 wifi_power_5ghz=$_local_txpower_50&\
 wifi_hidden_5ghz=$_local_hidden_50&\
+bssid_mesh2=$(get_mesh_ap_bssid 0)&\
+bssid_mesh5=$(get_mesh_ap_bssid 1)&\
 connection_type=$_local_wan_type&\
 ntp=$(ntp_anlix)&\
 hardreset=$_hard_reset_info&\
@@ -248,51 +250,6 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		json_get_var _mesh_id mesh_id
 		json_get_var _mesh_key mesh_key
 
-		# Create the array
-		_devices_bssid_mesh2=""
-		_devices_bssid_mesh5=""
-
-		# 2.4G
-		json_select devices_bssid_mesh2
-
-		# Loop 2.4G bssid array
-		index="1"
-		while json_get_type _type "$index" && [ "$_type" = string ]
-		do
-			json_get_var _mesh_bssid "$((index++))"
-
-			# If the list is empty, just add the bssid,
-			# otherwise, add a comma
-			if [ -z "$_devices_bssid_mesh2" ]
-			then
-				_devices_bssid_mesh2="$_mesh_bssid"
-			else
-				_devices_bssid_mesh2="$_devices_bssid_mesh2,$_mesh_bssid"
-			fi
-		done
-
-
-		# 5G
-		json_select ..
-		json_select devices_bssid_mesh5
-
-		# Loop 5G bssid array
-		index="1"
-		while json_get_type _type "$index" && [ "$_type" = string ]
-		do
-			json_get_var _mesh_bssid "$((index++))"
-
-			# If the list is empty, just add the bssid,
-			# otherwise, add a comma
-			if [ -z "$_devices_bssid_mesh5" ]
-			then
-				_devices_bssid_mesh5="$_mesh_bssid"
-			else
-				_devices_bssid_mesh5="$_devices_bssid_mesh5,$_mesh_bssid"
-			fi
-		done
-		
-
 		_local_bridge_enabled=$(get_bridge_mode_status)
 
 		_blocked_macs=""
@@ -324,6 +281,54 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		_blocked_macs=${_blocked_macs::-1}
 		_blocked_devices=${_blocked_devices::-1}
 		_named_devices=${_named_devices::-1}
+
+		_devices_bssid_mesh2=""
+		_devices_bssid_mesh5=""
+		# If in mesh as slave, update the devices in mesh
+		if [ "$_mesh_mode" -gt 1 ] && [ ! -z "$_mesh_master" ]
+		then
+			# 2.4G
+			if json_get_type TYPE devices_bssid_mesh2 && [ "$TYPE" == array ]
+			then
+				json_select devices_bssid_mesh2
+				index="1"
+				while json_get_type _type "$index" && [ "$_type" = string ]
+				do
+					json_get_var _mesh_bssid "$((index++))"
+					# If the list is empty, just add the bssid
+					if [ -z "$_devices_bssid_mesh2" ]
+					then
+						_devices_bssid_mesh2="$_mesh_bssid"
+					else
+						_devices_bssid_mesh2="$_devices_bssid_mesh2 $_mesh_bssid"
+					fi
+				done
+				json_select ..
+			fi
+
+			# 5G
+			if [ "$(is_5ghz_capable)" == "1" ]
+			then
+				if json_get_type TYPE devices_bssid_mesh5 && [ "$TYPE" == array ]
+				then
+					json_select devices_bssid_mesh5
+					index="1"
+					while json_get_type _type "$index" && [ "$_type" = string ]
+					do
+						json_get_var _mesh_bssid "$((index++))"
+						# If the list is empty, just add the bssid
+						if [ -z "$_devices_bssid_mesh5" ]
+						then
+							_devices_bssid_mesh5="$_mesh_bssid"
+						else
+							_devices_bssid_mesh5="$_devices_bssid_mesh5 $_mesh_bssid"
+						fi
+					done
+					json_select ..
+				fi
+			fi
+		fi
+
 		json_close_object
 
 		if [ "$_do_update" == "1" ]
@@ -427,12 +432,6 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		# WiFi update
 		log "FLASHMAN UPDATER" "Updating Wireless ..."
 		_need_wifi_reload=0
-		
-		# If in mesh as slave, update the devices in mesh
-		if [ "$_mesh_mode" -gt 0 ] && [ ! -z "$_mesh_master" ]
-		then
-			set_mesh_devices "$_devices_bssid_mesh2" "$_devices_bssid_mesh5"
-		fi
 
 		# If mesh mode and master updated, update mesh
 		if [ "$_mesh_mode" ] && ([ "$_mesh_mode" != "$_local_mesh_mode" ] ||
@@ -462,6 +461,14 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 									"$_wifi_txpower_50" "$_wifi_hidden_50" \
 									"$_mesh_mode" && _need_wifi_reload=1
 		[ $_need_wifi_reload -eq 1 ] && wifi reload && /etc/init.d/minisapo reload
+
+		# If in mesh as slave, update the devices in mesh
+		if [ "$_mesh_mode" -gt 1 ] && [ ! -z "$_mesh_master" ]
+		then
+			log "FLASHMAN UPDATER" "Update BSSID MESH information ..."
+			[ ! -z "$_devices_bssid_mesh2" ] && set_mesh_devices_2 "$_devices_bssid_mesh2"
+			[ ! -z "$_devices_bssid_mesh5" ] && set_mesh_devices_5 "$_devices_bssid_mesh5"
+		fi
 
 		# Flash App password update
 		if [ "$_app_password" == "" ]
