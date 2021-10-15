@@ -248,6 +248,51 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		json_get_var _mesh_id mesh_id
 		json_get_var _mesh_key mesh_key
 
+		# Create the array
+		_devices_bssid_mesh2=""
+		_devices_bssid_mesh5=""
+
+		# 2.4G
+		json_select devices_bssid_mesh2
+
+		# Loop 2.4G bssid array
+		index="1"
+		while json_get_type _type "$index" && [ "$_type" = string ]
+		do
+			json_get_var _mesh_bssid "$((index++))"
+
+			# If the list is empty, just add the bssid,
+			# otherwise, add a comma
+			if [ -z "$_devices_bssid_mesh2" ]
+			then
+				_devices_bssid_mesh2="$_mesh_bssid"
+			else
+				_devices_bssid_mesh2="$_devices_bssid_mesh2,$_mesh_bssid"
+			fi
+		done
+
+
+		# 5G
+		json_select ..
+		json_select devices_bssid_mesh5
+
+		# Loop 5G bssid array
+		index="1"
+		while json_get_type _type "$index" && [ "$_type" = string ]
+		do
+			json_get_var _mesh_bssid "$((index++))"
+
+			# If the list is empty, just add the bssid,
+			# otherwise, add a comma
+			if [ -z "$_devices_bssid_mesh5" ]
+			then
+				_devices_bssid_mesh5="$_mesh_bssid"
+			else
+				_devices_bssid_mesh5="$_devices_bssid_mesh5,$_mesh_bssid"
+			fi
+		done
+		
+
 		_local_bridge_enabled=$(get_bridge_mode_status)
 
 		_blocked_macs=""
@@ -382,6 +427,13 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		# WiFi update
 		log "FLASHMAN UPDATER" "Updating Wireless ..."
 		_need_wifi_reload=0
+		
+		# If in mesh as slave, update the devices in mesh
+		if [ "$_mesh_mode" -gt 0 ] && [ ! -z "$_mesh_master" ]
+		then
+			set_mesh_devices "$_devices_bssid_mesh2" "$_devices_bssid_mesh5"
+		fi
+
 		# If mesh mode and master updated, update mesh
 		if [ "$_mesh_mode" ] && ([ "$_mesh_mode" != "$_local_mesh_mode" ] ||
 		[ "$_mesh_master" != "$_local_mesh_master" ])
