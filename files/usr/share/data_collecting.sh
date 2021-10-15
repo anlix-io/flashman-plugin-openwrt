@@ -4,17 +4,20 @@
 
 # directory where all data related to data collecting will be stored.
 dataCollectingDir="/tmp/data_collecting"
-# file collected data will be stored before being compressed.
+# file where collected data will be stored before being compressed.
 rawDataFile="${dataCollectingDir}/raw"
 # directory where data will be stored if compressing old data is necessary.
 compressedDataDir="${dataCollectingDir}/compressed"
+# file where connectivity pings are stored.
+connectivityPingsFile="${dataCollectingDir}/connpings"
 
 # takes current unix timestamp, executes ping, in burst, to $pingServerAddress server, gets current 
 # rx and tx bytes from wan interface and compares then with values from previous calls to calculate 
 # cross traffic. If latency collecting is enabled, extracts the individual icmp request numbers and 
 # their respective ping times. Builds a string with all this information and write them to file.
 collect_QoE_Monitor_data() {
-	# echo collecting data and writing to file.
+	# checking if this data collecting is enabled
+	[ "$burstLoss" -ne 1 ] && return
 
 	# burst ping with $pingPackets amount of packets.
 	local pingResult=$(ping -i 0.01 -c "$pingPackets" "$pingServerAddress")
@@ -115,19 +118,26 @@ collect_QoE_Monitor_data() {
 }
 
 collect_connectivity_pings() {
-	# file where pings are stored.
-	local pingsFile="${data_collecting_dir}/pings"
-	
+	# checking if this data collecting is enabled.
+	[ "$connPings" -ne 1 ] && return
+
 	# content from pings file will be assign to this variable.
 	local pings
+	# boolean that will become false if connectivity pings file is not empty.
+	local empty=true
 	# using a lock file, in writing mode, to block code while accessing the pings file.
 	# this is to prevent writing conflict to the script that writes new values to the pings file.
 	{
 	flock -x 9
-	pings=$(cat "$pingsFile")
-	rm "$pingsFile" > /dev/null 2>&1
-	# "${pingsFile}lock" is also used by the script that writes new values to the file.
-	} 9>"${pingsFile}lock"
+	# reading connectivity pings file and writing errors to '/dev/null'. 
+	pings=$(cat "$connectivityPingsFile") > /dev/null 2>&1 && \
+		# if file could be read and if amount of lines is greater than zero, sets 'empty' to false and removes file. 
+		[ $(printf "%s" "$pings" | wc -l) -gt 0 ] && empty=false && rm "$connectivityPingsFile"
+	# "${connectivityPingsFile}lock" is also used by the script that writes new values to the file.
+	} 9>"${connectivityPingsFile}lock"
+
+	# if there are no pings, we do nothing.
+	[ "$empty" == true ] && return
 
 	# counter and total for pings. we later divide them to get an average.
 	local count=0
@@ -138,41 +148,52 @@ collect_connectivity_pings() {
 		# we are using integers only in our math because flashboxes don't have floating point numbers in ash.
 		average=$(($average + ${rtt//.}))
 	done
+
 	# using integer division isn't perfect but it's precise enough for us.
 	average=$(($average / $count))
 	# dividing back by 1000 by just manipulating the string. Putting a dot before the last 3 digits.
-	local length=${#average}
-	average="${average:0:$(($l-3))}.${average:$(($l-3))}"
-
-	# if there no pings, we won't echo.
-	[ "$count" -gt 0 ] && echo "connPings $pings"
+	local dotPosition=$((${#average}-3))
+	average="${average:0:$dotPosition}.${average:$dotPosition}"
+	echo "connPings $average $count"
 }
 
 collect_wifi_devices() {
-	local devices="$(iwinfo $(get_root_ifname 0) assoclist | grep ago)"
-	local str="" mac snr time
-	# first iteration won't put a space before the value.
-	local first=true
-	while [ ${#devices} -gt 0 ]; do
-		# getting everything before the first space. 
-		mac=${devices%% *}
-		# getting after '(SNR '. 
-		devices=${devices#*\(SNR }
-		# getting everything before the first closing parenthesis.
-		snr=${devices%%\)*}
-		# getting everything before ' ms'.
-		time=${devices%% ms*}
-		# getting everything after the first space.
-		time=${time##* }
-		# getting after 'ago'.
-		devices=${devices#*ago}
-		# getting after '\n'. if it exists. last line won't have it, so nothing will be changed.
-		devices=${devices#*$'\n'}
-		# if time is greater than one minute, we don't use this device's info.
-		[ "$time" -gt 60000 ] && continue
-		# if it's the first data we are storing, don't add a space before appending the data string.
-		[ "$first" == true ] && first=false || str="$str "
-		str="${str}${mac}-${snr}"
+	# checking if this data collecting is enabled
+	[ "$wifiDevices" -ne 1 ] && return
+
+	# devices and their data will be stored in this string variable.
+	local str=""
+	# 0 and 1 are the indexes for wifi interfaces: wlan0 and wlan1, or phy0 and phy1.
+	for i in 0 1; do
+		# getting wifi interface name
+		local lan=$(get_root_ifname "$i")
+		# getting info from each connected device on wifi. 
+		# grep returns empty when no devices are connected or if interface doesn't exist.
+		local devices="$(iwinfo "$lan" assoclist | grep ago)"
+
+		# first iteration won't put a space before the value.
+		local first=true
+		while [ ${#devices} -gt 0 ]; do
+			# getting everything before the first space.
+			local deviceMac=${devices%% *}
+			# getting after '(SNR '. 
+			devices=${devices#*\(SNR }
+			# getting everything before the first closing parenthesis.
+			local snr=${devices%%\)*}
+			# getting everything before ' ms'.
+			local time=${devices%% ms*}
+			# getting everything after the first space.
+			time=${time##* }
+			# getting after 'ago'.
+			devices=${devices#*ago}
+			# getting after '\n'. if it exists. last line won't have it, so nothing will be changed.
+			devices=${devices#*$'\n'}
+			# if time is greater than one minute, we don't use this device's info.
+			[ "$time" -gt 60000 ] && continue
+			# if it's the first data we are storing, don't add a space before appending the data string.
+			[ "$first" == true ] && first=false || str="$str "
+			str="${str}${lan}-${deviceMac}-${snr}"
+		done
 	done
 	# we won't echo if there are no devices.
 	[ ${#str} -gt 0 ] && echo "wifiDevices $str"
@@ -344,8 +365,8 @@ sendToServer() {
 	-H 'Content-Type: text/plain' -H "X-ANLIX-ID: $mac" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
 	-H "Send-Time: $(date +%s)" --data-binary @"$filepath")
 	curlCode="$?"
-	[ "$curlCode" -ne 0 ] && log "DATA_COLLECTING" "Data sent with curl exit code $curlCode" && return "$curlCode"
-	log "DATA_COLLECTING" "Data sent with response status code $status."
+	[ "$curlCode" -ne 0 ] && log "DATA_COLLECTING" "Data sent with curl exit code '${curlCode}'." && return "$curlCode"
+	log "DATA_COLLECTING" "Data sent with response status code '${status}'."
 	[ "$status" -ge 200 ] && [ "$status" -lt 300 ] && return 0
 	return 1
 }
@@ -527,7 +548,7 @@ cleanFiles() {
 	rm "${dataCollectingDir}/serverState" 2> /dev/null
 	# rm "${dataCollectingDir}/backoffCounter" 2> /dev/null
 	rm "${rawDataFile}.gz" 2> /dev/null
-	flock "${dataCollectingDir}pingslock" rm "${dataCollectingDir}/pings"
+	flock "${connectivityPingsFile}lock" rm "$connectivityPingsFile"
 }
 
 # collects and sends data forever.
@@ -545,16 +566,17 @@ loop() {
 		# making sure directory exists every time.
 		mkdir -p "$dataCollectingDir"
 
-		# getting FQDNs every time we need to send data, this way we don't have to 
-		# restart the service if a fqdn changes.
+		# getting parameters every time we need to send data, this way we don't have to 
+		# restart the service if a parameter changes.
 		eval $(cat /root/flashbox_config.json | jsonfilter \
 			-e "hasLatency=@.data_collecting_has_latency" \
 			-e "alarmServerAddress=@.data_collecting_alarm_fqdn" \
 			-e "pingServerAddress=@.data_collecting_ping_fqdn" \
-			-e "pingPackets=@.data_collecting_ping_packets")
-		# echo json variables: \
-		# 	hasLatency="$hasLatency", alarmServerAddress="$alarmServerAddress", \
-		# 	pingServerAddress="$pingServerAddress", pingPackets="$pingPackets"
+			-e "pingPackets=@.data_collecting_ping_packets" \
+			-e "burstLoss=@.data_collecting_burst_loss" \
+			-e "connPings=@.data_collecting_conn_pings" \
+			-e "wifiDevices=@.data_collecting_wifi_devices" \
+		)
 
 		# does everything related to collecting and storing data.`
 		collectData
