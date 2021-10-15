@@ -20,15 +20,27 @@ write_access_start_time() {
 	json_cleanup
 }
 
+# opens 'flashbox_config.json' and reads the connectivity pings boolean.
+read_connectivity_pings_collecting_enabled() {
+	json_cleanup
+	json_load_file "/root/flashbox_config.json"
+	# non-existing value is translated to empty string.
+	# reading to global variable.
+	json_get_var collect_pings data_collecting_conn_pings
+	json_close_object
+
+}
+
 # Bootstrap
 reset_leds
 blink_leds "0"
 write_access_start_time 0
+read_connectivity_pings_collecting_enabled
 
 while true
 do
 	# We have layer 2 connectivity, now check external access
-	if [ ! "$(check_connectivity_internet "" "collect")" -eq 0 ]
+	if [ ! "$(check_connectivity_internet '' $collect_pings)" -eq 0 ]
 	then
 		# No external access
 		log "CHECK_WAN" "No external access..."

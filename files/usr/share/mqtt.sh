@@ -5,7 +5,6 @@
 . /usr/share/functions/dhcp_functions.sh
 . /usr/share/functions/api_functions.sh
 . /usr/share/functions/wireless_functions.sh
-. /usr/share/functions/data_collecting_functions.sh
 
 case "$1" in
 1)
@@ -47,14 +46,6 @@ sitesurvey)
 ping)
 	log "MQTTMSG" "Running ping test"
 	run_ping_ondemand_test
-	;;
-datacollecting)
-	log "MQTTMSG" "Changing data collecting settings"
-	set_data_collecting_on_off "$2"
-	;;
-collectlatency)
-	log "MQTTMSG" "Changing the collecting of latencies when collecting data"
-	set_collect_latency "$2"
 	;;
 status)
 	if lock -n /tmp/get_status.lock

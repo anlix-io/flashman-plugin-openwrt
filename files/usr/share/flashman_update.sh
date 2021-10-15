@@ -238,6 +238,9 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		json_get_var _data_collecting_alarm_fqdn data_collecting_alarm_fqdn
 		json_get_var _data_collecting_ping_fqdn data_collecting_ping_fqdn
 		json_get_var _data_collecting_ping_packets data_collecting_ping_packets
+		json_get_var _data_collecting_burst_loss data_collecting_burst_loss
+		json_get_var _data_collecting_conn_pings data_collecting_conn_pings
+		json_get_var _data_collecting_wifi_devices data_collecting_wifi_devices
 		json_get_var _bridge_mode_enabled bridge_mode_enabled
 		json_get_var _bridge_mode_switch_disable bridge_mode_switch_disable
 		json_get_var _bridge_mode_ip bridge_mode_ip
@@ -441,7 +444,9 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 		# updates data collecting parameters.
 		set_data_collecting_parameters "$_data_collecting_is_active" "$_data_collecting_has_latency" \
 			                           "$_data_collecting_alarm_fqdn" "$_data_collecting_ping_fqdn" \
-			                           "$_data_collecting_ping_packets"
+			                           "$_data_collecting_ping_packets" "$_data_collecting_burst_loss" \
+			                           "$_data_collecting_conn_pings" "$_data_collecting_wifi_devices"
+
 
 		# Check for updates in port forward mapping
 		# Ignore changes if in bridge mode

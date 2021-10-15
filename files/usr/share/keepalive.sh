@@ -119,6 +119,9 @@ wpsstate=$_local_wps_state"
 			json_get_var _data_collecting_alarm_fqdn data_collecting_alarm_fqdn
 			json_get_var _data_collecting_ping_fqdn data_collecting_ping_fqdn
 			json_get_var _data_collecting_ping_packets data_collecting_ping_packets
+			json_get_var _data_collecting_burst_loss data_collecting_burst_loss
+			json_get_var _data_collecting_conn_pings data_collecting_conn_pings
+			json_get_var _data_collecting_wifi_devices data_collecting_wifi_devices
 			json_close_object
 
 			if [ "$_do_newprobe" = "1" ]
@@ -169,7 +172,8 @@ wpsstate=$_local_wps_state"
 			# updates data collecting parameters.
 			set_data_collecting_parameters "$_data_collecting_is_active" "$_data_collecting_has_latency" \
 			                               "$_data_collecting_alarm_fqdn" "$_data_collecting_ping_fqdn" \
-			                               "$_data_collecting_ping_packets"
+			                               "$_data_collecting_ping_packets" "$_data_collecting_burst_loss" \
+			                               "$_data_collecting_conn_pings" "$_data_collecting_wifi_devices"
 
 		elif [ $_retstatus -eq 2 ]
 		then
