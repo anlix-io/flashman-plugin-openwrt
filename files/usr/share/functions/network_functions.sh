@@ -148,11 +148,17 @@ check_connectivity_internet() {
 	then
 		_addrs="$1"
 	fi
+	local collect_enabled="$2"
 	for _addr in $_addrs
 	do
-		# second argument is used to allow collecting data in this call.
-		if ping_maybe_collect "$_addr" "$2"
+		# ping output will be use in case collecting connectivity pings is enabled.
+		local pingResult
+		if pingResult=$(ping -q -c 1 -w 2 "$_addr")
 		then
+			# won't collect connectivity ping if data collecting service is not running.
+			[ "$collect_enabled" -eq 1 ] && service data_collecting running && \
+				save_connectivity_ping "$pingResult"
+
 			# true
 			echo 0
 			return
@@ -165,99 +171,31 @@ check_connectivity_internet() {
 	return
 }
 
-ping_maybe_collect() {
-	local address="$1" should_collect="$2"
-
-	local pingResult
-	if pingResult=$(ping -q -c 1 -w 2 "$address"); then
-		# won't collect ping if data collecting service is not running.
-		if [ "$should_collect" == "collect" ] && service data_collecting running; then
-			local data_collecting_dir="/tmp/data_collecting"
-			# creates data_collecting temporary directory if it doesn't exist.
-			mkdir -p "$data_collecting_dir"
-
-			# Removes everything before, and including, 'mdev = '.
-			local rtt=${pingResult##*mdev = }
-			# removes everything after, and including, first forward slash.
-			rtt=${rtt%%/*}
-
-			# file where pings are stored.
-			local pingsFile="${data_collecting_dir}/pings"
-			# using a lock file, in writing mode, to block code while accessing the pings file.
-			# this is because the data_collecting service will also write to the pings file.
-			{
-			flock -x 9
-			# appending $rtt in a new line in pings file.
-			echo "$rtt" >> "$pingsFile"
-			# "${pingsFile}lock" is also used by the data_collecting service.
-			} 9>"${pingsFile}lock"
-		fi
-		return 0
-	fi
-	return 1
-}
-
-check_connectivity_internet_and_collect_ping() {
-	for _addr in "www.google.com.br"$'\n'"www.facebook.com"$'\n'"www.globo.com"; do
-		local pingResult
-		if pingResult=$(ping -q -c 1 -w 2 "$1"); then
-			# won't collect ping if data collecting service is not running.
-			if service data_collecting running; then
-				local data_collecting_dir="/tmp/data_collecting"
-				# creates data_collecting temporary directory if it doesn't exist.
-				mkdir -p "$data_collecting_dir"
-
-				# Removes everything before, and including, 'mdev = '.
-				local rtt=${pingResult##*mdev = }
-				# removes everything after, and including, first forward slash.
-				rtt=${rtt%%/*}
-
-				# file where pings are stored.
-				local pingsFile="${data_collecting_dir}/pings"
-				# using a lock file, in writing mode, to block code while accessing the pings file.
-				# this is because the data_collecting service will also write to the pings file.
-				{
-				flock -x 9
-				# appending $rtt in a new line in pings file.
-				echo "$rtt" >> "$pingsFile"
-				# "${pingsFile}lock" is also used by the data_collecting service.
-				} 9>"${pingsFile}lock"
-			fi
-
-			echo 0
-			return
-		fi
-	done
-	# No successful pings.
-
-	# false.
-	echo 1
-	return
-}
-
 # expects the output of ping, that includes the pings statistics at the end, as a single string input.
-# writes the ping rtt to a file, keeping the latest values from the last minute.
-save_ping_result() {
-	local data_collecting_dir="/tmp/data_collecting"
-	# creates data_collecting temporary directory if it doesn't exist.
-	mkdir -p "$data_collecting_dir"
-	# file where pings are stored.
+# writes the ping rtt to a file inside the data_collecting directory.
+save_connectivity_ping() {
+	local pingResult="$1"
 
-	# Function INPUT is used here. Removes everything before, and including, 'mdev = '.
-	local rtt=${1##*mdev = }
+	# data_collecting directory
+	local data_collecting_dir="/tmp/data_collecting"
+	# file where pings are stored.
+	local connectivityPingsFile="${data_collecting_dir}/connpings"
+
+	# Removes everything before, and including, 'mdev = '.
+	local rtt=${pingResult##*mdev = }
 	# removes everything after, and including, first forward slash.
 	rtt=${rtt%%/*}
 
-	# file where pings are stored.
-	local pingsFile="${data_collecting_dir}/pings"
 	# using a lock file, in writing mode, to block code while accessing the pings file.
 	# this is because the data_collecting service will also write to the pings file.
 	{
 	flock -x 9
+	# creates data_collecting temporary directory if it doesn't exist.
+	mkdir -p "$data_collecting_dir"
 	# appending $rtt in a new line in pings file.
-	echo "$rtt" >> "$pingsFile"
-	# "${pingsFile}lock" is also used by the data_collecting service.
-	} 9>"${pingsFile}lock"
+	echo "$rtt" >> "$connectivityPingsFile"
+	# "${connectivityPingsFile}lock" is also used by the data_collecting service.
+	} 9>"${connectivityPingsFile}lock"
 }
 
 renew_dhcp() {
