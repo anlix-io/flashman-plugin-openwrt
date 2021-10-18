@@ -2,6 +2,7 @@
 
 . /usr/share/libubox/jshn.sh
 . /usr/share/functions/common_functions.sh
+. /usr/share/functions/mesh_functions.sh
 
 get_device_mac_from_ip() {
 	local _ip=$1
