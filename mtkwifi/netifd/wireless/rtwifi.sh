@@ -254,11 +254,6 @@ rtwifi_sta_vif_pre_config() {
 	json_get_vars disabled encryption key key1 key2 key3 key4 ssid mode bssid
 	json_select ..
 
-	[ $stacount -gt 1 ] && {
-		rt2860v2_dbg "Ralink ApSoC drivers only support 1 sta config!"
-		return
-	}
-
 	[ "$disabled" == "1" ] && return
 	
 	echo "Generating sta config for interface $APCLI_IF"
@@ -377,13 +372,13 @@ drv_rtwifi_teardown() {
 	[ "${1}" == "radio0" ] && phy_name=ra || phy_name=rai
 	case "$phy_name" in
 		ra)
-			for vif in ra0 apcli0; do
+			for vif in ra0 ra1 ra2 apcli0; do
 				#iwpriv $vif set DisConnectAllSta=1
 				ifconfig $vif down 2>/dev/null
 			done
 		;;
 		rai)
-			for vif in rai0 apclii0; do
+			for vif in rai0 rai1 rai2 apclii0; do
 				#iwpriv $vif set DisConnectAllSta=1
 				ifconfig $vif down 2>/dev/null
 			done
