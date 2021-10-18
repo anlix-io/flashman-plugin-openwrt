@@ -546,6 +546,19 @@ update_mesh_link() {
 		fi
 	fi
 
+	#Uplinks with rssi higher that -70, discart
+	if [ "$_rssi_5g" -gt "-70" ]
+	then
+		_rssi_5g=""
+		log "MESHLINK" "Discart 5GHz RSSI!"
+	fi
+
+	if [ "$_rssi_2g" -gt "-70" ]
+	then
+		_rssi_2g=""
+		log "MESHLINK" "Discart 2.4GHz RSSI!"
+	fi
+
 	# Can't find an uplink!
 	if [ -z "$_rssi_5g" ] && [ -z "$_rssi_2g" ] 
 	then
@@ -554,31 +567,10 @@ update_mesh_link() {
 	fi
 
 	# Check the best option (RSSI) to connect to
-	# It must choose between 2.4G and 5G
-	local _need_restart=0
-	if ([ -z "$_rssi_5g" ] && [ "$_rssi_2g" ]) || [ "$_rssi_2g" -gt "$_rssi_5g" ]
+	# If there is a 5GHz radio with at least -55 dbm, priorize it.
+	# if not, use a 2.4.
+	if [ ! -z "$_rssi_5g" ] && ([ "$_rssi_5g" -le "-55" ] || [ -z "$_rssi_2g" ])
 	then
-		# Set the configuration for STATION 2.4G
-		if [ "$(uci -q get wireless.radio0.channel)" != "$_channel_2g" ] || 
-			[ "$(uci -q get wireless.mesh2_sta.bssid)" != "$_bssid_2g" ]||
-			[ "$(uci -q get wireless.mesh2_sta.disabled)" != "0" ]
-		then
-			uci set wireless.mesh2_sta.bssid="$_bssid_2g"
-			uci set wireless.mesh2_sta.disabled='0'
-			[ "$(is_5ghz_capable)" == "1" ] && uci set wireless.mesh5_sta.disabled='1'
-
-			if set_wifi_local_config "" "" "$_channel_2g" "" "" "" "" "" \
-				"" "" "auto" "" "" "" "" "" "$_mesh_mode"
-			then
-				log "MESHLINK" "Change 2.4Ghz Backbone ($_channel_2g) ($_bssid_2g) ..."
-				wifi reload
-			else
-				log "MESHLINK" "FAIL in change 2.4Ghz Backbone ($_channel_2g) ($_bssid_2g) ..."
-			fi
-		else
-			log "MESHLINK" "Keep 2.4Ghz Backbone ($_channel_2g) ($_bssid_2g) ..."
-		fi
-	else
 		# Set the configuration for STATION 5G
 		if [ "$(uci -q get wireless.radio1.channel)" != "$_channel_5g" ] || 
 			[ "$(uci -q get wireless.mesh5_sta.bssid)" != "$_bssid_5g" ] ||
@@ -598,6 +590,27 @@ update_mesh_link() {
 			fi
 		else
 			log "MESHLINK" "Keep 5Ghz Backbone ($_channel_5g) ($_bssid_5g) ..."
+		fi
+	else
+		# Set the configuration for STATION 2.4G
+		if [ "$(uci -q get wireless.radio0.channel)" != "$_channel_2g" ] || 
+			[ "$(uci -q get wireless.mesh2_sta.bssid)" != "$_bssid_2g" ]||
+			[ "$(uci -q get wireless.mesh2_sta.disabled)" != "0" ]
+		then
+			uci set wireless.mesh2_sta.bssid="$_bssid_2g"
+			uci set wireless.mesh2_sta.disabled='0'
+			[ "$(is_5ghz_capable)" == "1" ] && uci set wireless.mesh5_sta.disabled='1'
+
+			if set_wifi_local_config "" "" "$_channel_2g" "" "" "" "" "" \
+				"" "" "auto" "" "" "" "" "" "$_mesh_mode"
+			then
+				log "MESHLINK" "Change 2.4Ghz Backbone ($_channel_2g) ($_bssid_2g) ..."
+				wifi reload
+			else
+				log "MESHLINK" "FAIL in change 2.4Ghz Backbone ($_channel_2g) ($_bssid_2g) ..."
+			fi
+		else
+			log "MESHLINK" "Keep 2.4Ghz Backbone ($_channel_2g) ($_bssid_2g) ..."
 		fi
 	fi
 
