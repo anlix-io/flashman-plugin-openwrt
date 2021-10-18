@@ -26,10 +26,13 @@ read_connectivity_pings_collecting_enabled() {
 	json_load_file "/root/flashbox_config.json"
 	# non-existing value is translated to empty string.
 	# reading to global variable.
-	json_get_var collect_pings data_collecting_conn_pings
+	json_get_var data_collecting_conn_pings data_collecting_conn_pings
+	json_get_var data_collecting_is_active data_collecting_is_active
 	json_close_object
 
+	[ "$data_collecting_is_active" -eq 1 ] && [ "$data_collecting_conn_pings" -eq 1 ] && collect_pings=1
 }
+collect_pings=0
 
 # Bootstrap
 reset_leds

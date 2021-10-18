@@ -89,8 +89,8 @@ set_data_collecting_parameters() {
 	json_cleanup
 
 
-	# "true" boolean value is translated as string "1" by jshn.sh
-	# "false" boolean value is translated as string "0" by jshn.sh
+	# "true" boolean value is translated as string "1" by jshn.sh when variable is read.
+	# "false" boolean value is translated as string "0" by jshn.sh when variable is read.
 
 	# if data collecting service is active, reloads data_collecting service (which does 
 	# nothing if it's already running), else stops service. data_collecting service reads 
