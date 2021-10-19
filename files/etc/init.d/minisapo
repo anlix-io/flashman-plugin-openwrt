@@ -12,10 +12,11 @@ USE_PROCD=1
 param_list() {
 
   local _wifi_config="$(get_wifi_local_config)"
-  [ "$(echo "$_wifi_config" | jsonfilter -e '@["local_state_24"]')" == "1" ] && ubus -t 15 wait_for hostapd.wlan0 2>/dev/null
-  [ "$(is_5ghz_capable)" == "1" ] && [ "$(echo "$_wifi_config" | jsonfilter -e '@["local_state_50"]')" == "1" ] && ubus -t 15 wait_for hostapd.wlan1 2>/dev/null
+  local _mesh_master="$(get_mesh_master)"
+  local _mesh_mode="$(get_mesh_mode)"
+  local _macaddr=""
+  config_load wireless
 
-  radios=$(ubus list | grep hostapd.wlan)
   BRIDGE_IP_ADDR=""
   while true
   do
@@ -34,19 +35,30 @@ param_list() {
   json_add_string "ssid" "$(echo "$_wifi_config" | jsonfilter -e '@["local_ssid_24"]')"
   json_add_string "ssid_5" "$(echo "$_wifi_config" | jsonfilter -e '@["local_ssid_50"]')"
   [ "$(is_mesh_capable)" ] && json_add_int "mesh_support" "1"
-  json_add_int "mesh" "$(get_mesh_mode)"
-  [ "$(get_mesh_master)" ] && json_add_string "master" "$(get_mesh_master)" 
-  for i in $radios
-  do 
-    [ "${i: -1}" = "0" ] && tlan="2" || tlan="5"
-    json_add_string "mac_ssid$tlan" "$(ubus call $i rrm_nr_get_own | jsonfilter -e '$.value[0]')"
-    json_add_string "meshid$tlan" "$(ubus call $i rrm_nr_get_own | jsonfilter -e '$.value[2]')"
-  done
-  local _ifA="$(ifconfig mesh0 2>/dev/null)"
-  [ $? == 0 ] && json_add_string "mac_mesh0" "$(echo "$_ifA"| awk '/HWaddr/{print tolower($NF)}')"
-  _ifA="$(ifconfig mesh1 2>/dev/null)"
-  [ $? == 0 ] && json_add_string "mac_mesh1" "$(echo "$_ifA"| awk '/HWaddr/{print tolower($NF)}')"
-  _ifA="$(ifconfig br-lan 2>/dev/null)"
+  json_add_int "mesh" "$_mesh_mode"
+  [ "$_mesh_master" ] && json_add_string "master" "$_mesh_master"
+  # meshid2 meshid5 disable for now (use in 80211k/v)
+
+  config_get _macaddr radio0 macaddr
+  json_add_string "mac_ssid2" "$_macaddr"
+  if [ "$(is_5ghz_capable)" == "1" ]
+  then
+    config_get _macaddr radio1 macaddr
+    json_add_string "mac_ssid5" "$_macaddr"
+  fi
+
+  if [ "$_mesh_mode" -gt "1" ]
+  then
+    config_get _macaddr mesh2_ap macaddr
+    json_add_string "mac_mesh0" "$_macaddr"
+    if [ "$(is_5ghz_capable)" == "1" ]
+    then
+      config_get _macaddr mesh5_ap macaddr
+      json_add_string "mac_mesh1" "$_macaddr"
+    fi
+  fi
+
+  local _ifA="$(ifconfig br-lan 2>/dev/null)"
   [ $? == 0 ] && json_add_string "mac_bridge" "$(echo "$_ifA"| awk '/HWaddr/{print tolower($NF)}')"
 
   echo "$(json_dump)"
