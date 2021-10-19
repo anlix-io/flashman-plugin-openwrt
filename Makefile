@@ -206,6 +206,7 @@ SSID_SUFFIX=
 	endif
 
 define Package/flashman-plugin/install
+
 	$(CP) ./$(FILE_DIR)/* $(1)/
 ifneq ($(CUSTOM_FILE_ARQ),)
 	$(CP) ./custom-files/$(CUSTOM_FILE_ARQ).sh $(1)/usr/share/functions/custom_device.sh
@@ -216,6 +217,13 @@ ifeq ($(CONFIG_TARGET_ramips), y)
 	$(INSTALL_DATA) ./mtkwifi/wifi/rtwifi.sh $(1)/lib/wifi
 	$(INSTALL_BIN) ./mtkwifi/netifd/wireless/rtwifi.sh $(1)/lib/netifd/wireless
 	$(CP) ./driver/rtwifi.sh $(1)/usr/share/functions/custom_wireless_driver.sh
+else ifeq($(CONFIG_TARGET_ath79), y)
+	$(INSTALL_DIR) $(1)/lib/wifi $(1)/lib/netifd/wireless $(1)/lib/firmware
+	$(INSTALL_DATA) ./qcawifi/wifi/qcawifi.sh $(1)/lib/wifi
+	$(INSTALL_DATA) ./qcawifi/wifi/qcawifi_functions.sh $(1)/lib/wifi
+	$(INSTALL_BIN)  ./qcawifi/netifd/wireless/qcawifi.sh $(1)/lib/netifd/wireless
+	$(CP) ./driver/qcawifi.sh $(1)/usr/share/functions/custom_wireless_driver.sh
+	$(CP) ./qcawifi/caldatas/$(CUSTOM_FILE_ARQ)/* $(1)/lib/firmware/
 else
 	$(CP) ./driver/mac80211.sh $(1)/usr/share/functions/custom_wireless_driver.sh
 endif
