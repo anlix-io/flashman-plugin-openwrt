@@ -2,7 +2,6 @@
 
 . /usr/share/libubox/jshn.sh
 . /usr/share/functions/common_functions.sh
-. /usr/share/functions/mesh_functions.sh
 
 get_device_mac_from_ip() {
 	local _ip=$1
@@ -308,6 +307,8 @@ get_online_mesh_routers() {
 }
 
 send_online_devices() {
+	[ "$(type -t get_mesh_mode)" ] && . /usr/share/functions/mesh_functions.sh
+
 	local _res
 
 	json_init
