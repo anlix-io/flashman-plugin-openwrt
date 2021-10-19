@@ -562,7 +562,6 @@ MacAddress=${macaddr}
 CountryRegion=${countryregion:-0}
 CountryRegionABand=${countryregion_a:-0}
 CountryCode=${country:-BR}
-BssidNum=${RTWIFI_DEF_MAX_BSSID:-1}
 WirelessMode=${WirelessMode}
 G_BAND_256QAM=1
 FixedTxMode=
@@ -849,6 +848,8 @@ EOF
 	echo "ApCliKey2Type=${ApCliKey2Type}" >> $RTWIFI_PROFILE_PATH
 	echo "ApCliKey3Type=${ApCliKey3Type}" >> $RTWIFI_PROFILE_PATH
 	echo "ApCliKey4Type=${ApCliKey4Type}" >> $RTWIFI_PROFILE_PATH
+
+	echo "BssidNum=$((ApBssidNum+1))" >> $RTWIFI_PROFILE_PATH
 
 	drv_rtwifi_teardown
 	drv_rtwifi_cleanup
