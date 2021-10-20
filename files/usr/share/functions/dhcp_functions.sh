@@ -307,7 +307,7 @@ get_online_mesh_routers() {
 }
 
 send_online_devices() {
-	[ "$(type -t get_mesh_mode)" ] && . /usr/share/functions/mesh_functions.sh
+	[ "$(type -t get_mesh_mode)" ] || . /usr/share/functions/mesh_functions.sh
 
 	local _res
 
