@@ -547,13 +547,13 @@ update_mesh_link() {
 	fi
 
 	#Uplinks with rssi higher that -70, discart
-	if [ "$_rssi_5g" -gt "-70" ]
+	if [ "$_rssi_5g" -lt "-70" ]
 	then
 		_rssi_5g=""
 		log "MESHLINK" "Discart 5GHz RSSI!"
 	fi
 
-	if [ "$_rssi_2g" -gt "-70" ]
+	if [ "$_rssi_2g" -lt "-70" ]
 	then
 		_rssi_2g=""
 		log "MESHLINK" "Discart 2.4GHz RSSI!"
