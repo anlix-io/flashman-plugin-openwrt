@@ -60,13 +60,15 @@ scan_qcawifi() {
 	local radioidx=${device#radio}
 
 	config_get vifs "$device" vifs
+	echo "[ROMEU] [scan_qcawifi] vifs for device $device is: $vifs " > /dev/console
 	for vif in $vifs; do
 		config_get_bool disabled "$vif" disabled 0
 		[ $disabled = 0 ] || continue
 
 		local vifname
-		[ $ifidx -gt 0 ] && vifname="ath${radioidx}$ifidx" || vifname="ath${radioidx}"
-
+		#[ $ifidx -gt 0 ] && vifname="ath${radioidx}$ifidx" || vifname="ath${radioidx}"
+		vifname="ath${radioidx}"
+		
 		config_set "$vif" ifname $vifname
 
 		config_get mode "$vif" mode
@@ -173,195 +175,6 @@ config_tx_fc_buf() {
 	esac
 }
 
-load_qcawifi() {
-	lock /var/run/wifilock
-	local umac_args
-	local qdf_args
-	local ol_args
-        local cfg_low_targ_clkspeed
-	local qca_da_needed=0
-	local qca_ol_needed=0
-	local device
-	local board_name
-	local def_pktlog_support=1
-	local ath_dev_args
-
-	[ -f /tmp/sysinfo/board_name ] && {
-		board_name=$(cat /tmp/sysinfo/board_name)
-	}
-	memtotal=$(grep MemTotal /proc/meminfo | awk '{print $2}')
-
-	case "$board_name" in
-		ap-dk01.1-c1 | ap-dk01.1-c2 | ap-dk04.1-c1 | ap-dk04.1-c2 | ap-dk04.1-c3)
-			if [ $memtotal -le 131072 ]; then
-				echo 1 > /proc/net/skb_recycler/max_skbs
-				echo 1 > /proc/net/skb_recycler/max_spare_skbs
-				append umac_args "low_mem_system=1"
-			fi
-		;;
-		ap152 | ap147 | ap151 | ap135 | ap137)
-			if [ $memtotal -le 66560 ]; then
-				def_pktlog_support=0
-			fi
-		;;
-	esac
-
-	config_get nss_wifi_olcfg qcawifi nss_wifi_olcfg
-	if [ -n "$nss_wifi_olcfg" ]; then
-		append ol_args "nss_wifi_olcfg=$nss_wifi_olcfg"
-	elif [ -f /lib/wifi/wifi_nss_olcfg ]; then
-		nss_wifi_olcfg="$(cat /lib/wifi/wifi_nss_olcfg)"
-
-		if [ $nss_wifi_olcfg != 0 ]; then
-			if [ -f /lib/wifi/wifi_nss_override ] && [ $(cat /lib/wifi/wifi_nss_override) = 1 ]; then
-				echo "NSS offload disabled due to unsupported config" >&2
-				append ol_args "nss_wifi_olcfg=0"
-			else
-				append ol_args "nss_wifi_olcfg=$nss_wifi_olcfg"
-			fi
-		fi
-	fi
-
-	config_get enable_smart_antenna_da qcawifi enable_smart_antenna_da
-	[ -n "$enable_smart_antenna_da" ] && append umac_args "enable_smart_antenna_da=$enable_smart_antenna_da"
-
-	config_get prealloc_disabled qcawifi prealloc_disabled
-	[ -n "$prealloc_disabled" ] && append qdf_args "prealloc_disabled=$prealloc_disabled"
-
-
-	config_get lteu_support qcawifi lteu_support
-	[ -n "$lteu_support" ] && append ol_args "lteu_support=$lteu_support"
-
-	config_get enable_mesh_support qcawifi enable_mesh_support
-	[ -n "$enable_mesh_support" ] && append ol_args "enable_mesh_support=$enable_mesh_support"
-
-
-    if [ -n "$enable_mesh_support" ]
-    then
-        config_get enable_mesh_peer_cap_update qcawifi enable_mesh_peer_cap_update
-        [ -n "$enable_mesh_peer_cap_update" ] && append umac_args "enable_mesh_peer_cap_update=$enable_mesh_peer_cap_update"
-    fi
-
-	config_get enable_pktlog_support qcawifi enable_pktlog_support $def_pktlog_support
-	[ -n "$enable_pktlog_support" ] && append umac_args "enable_pktlog_support=$enable_pktlog_support"
-
-	for mod in $(cat /lib/wifi/qca-wifi-modules); do
-		case ${mod} in
-			umac) [ -d /sys/module/${mod} ] || { \
-
-				insmod ${mod} ${umac_args} || { \
-					lock -u /var/run/wifilock
-					unload_qcawifi
-					return 1
-				}
-			};;
-
-			qdf) [ -d /sys/module/${mod} ] || { \
-				insmod ${mod} ${qdf_args} || { \
-					lock -u /var/run/wifilock
-					unload_qcawifi
-					return 1
-				}
-			};;
-
-			qca_ol) [ -f /tmp/no_qca_ol ] || { \
-					[ -d /sys/module/${mod} ] || { \
-					insmod ${mod} ${ol_args} || { \
-						lock -u /var/run/wifilock
-						unload_qcawifi
-						return 1
-					}
-				}
-			};;
-
-			ath_dev) [ -f /tmp/no_qca_da ] || { \
-				[ -d /sys/module/${mod} ] || { \
-					insmod ${mod} ${ath_dev_args} || { \
-						lock -u /var/run/wifilock
-						unload_qcawifi
-						return 1
-					}
-				}
-			};;
-
-			qca_da|hst_tx99|ath_rate_atheros|ath_hal) [ -f /tmp/no_qca_da ] || { \
-				[ -d /sys/module/${mod} ] || { \
-					insmod ${mod} || { \
-						lock -u /var/run/wifilock
-						unload_qcawifi
-						return 1
-					}
-				}
-			};;
-
-			ath_pktlog) [ $enable_pktlog_support -eq 0 ] || { \
-				[ -d /sys/module/${mod} ] || { \
-					insmod ${mod} || { \
-						lock -u /var/run/wifilock
-						unload_qcawifi
-						return 1
-					}
-				}
-			};;
-
-			*) [ -d /sys/module/${mod} ] || { \
-				insmod ${mod} || { \
-					lock -u /var/run/wifilock
-					unload_qcawifi
-					return 1
-				}
-			};;
-
-		esac
-	done
-
-       # Remove DA/OL modules, if no DA/OL chipset found
-	for device in $(ls -d /sys/class/net/radio* 2>&-); do
-		[[ -f $device/is_offload ]] || {
-			qca_da_needed=1
-		}
-		[[ -f $device/is_offload ]] && {
-			qca_ol_needed=1
-		}
-	done
-
-	if [ $qca_ol_needed -eq 0 ]; then
-		if [ ! -f /tmp/no_qca_ol ]; then
-			echo "No offload chipsets found." >/dev/console
-			rmmod qca_ol > /dev/null 2> /dev/null
-			cat "1" > /tmp/no_qca_ol
-		fi
-	fi
-
-	if [ $qca_da_needed -eq 0 ]; then
-		if [ ! -f /tmp/no_qca_da ]; then
-			echo "No Direct-Attach chipsets found." >/dev/console
-			rmmod qca_da > /dev/null 2> /dev/null
-			rmmod ath_dev > /dev/null 2> /dev/null
-			rmmod hst_tx99 > /dev/null 2> /dev/null
-			rmmod ath_rate_atheros > /dev/null 2> /dev/null
-			rmmod ath_hal > /dev/null 2> /dev/null
-			cat "1" > /tmp/no_qca_da
-		fi
-	fi
-	lock -u /var/run/wifilock
-}
-
-unload_qcawifi() {
-	config_load wireless
-	config_foreach disable_qcawifi wifi-device
-	eval "type lowi_teardown" >/dev/null 2>&1 && lowi_teardown
-	sleep 3
-	lock /var/run/wifilock
-	for mod in $(cat /lib/wifi/qca-wifi-modules | sed '1!G;h;$!d'); do
-        case ${mod} in
-            mem_manager) continue;
-            esac
-		[ -d /sys/module/${mod} ] && rmmod ${mod}
-	done
-	lock -u /var/run/wifilock
-}
-
 disable_recover_qcawifi() {
 	disable_qcawifi $@ 1
 }
@@ -430,62 +243,13 @@ disable_qcawifi() {
 }
 
 enable_qcawifi() {
+	echo "enable_qcawifi \$1=$1" > /dev/console
 	local device="$1"
 	local count=0
-	echo "$DRIVERS: enable radio $1" >/dev/console
 	local num_radio_instamode=0
 	local recover="$2"
 
 	find_qcawifi_phy "$device" || return 1
-
-	if [ ! -f /lib/wifi/wifi_nss_override ]; then
-		if [ -f /lib/wifi/wifi_nss_olcfg ] && [ $(cat /lib/wifi/wifi_nss_olcfg) != 0 ]; then
-			touch /lib/wifi/wifi_nss_override
-			echo 0 > /lib/wifi/wifi_nss_override
-		fi
-	fi
-
-	if [ -f /lib/wifi/wifi_nss_override ]; then
-		cd /sys/class/net
-		for all_device in $(ls -d radio* 2>&-); do
-			config_get_bool disabled "$all_device" disabled 0
-			[ $disabled = 0 ] || continue
-			config_get vifs "$all_device" vifs
-
-			for vif in $vifs; do
-				config_get mode "$vif" mode
-				if [ $mode = "sta" ]; then
-					num_radio_instamode=$(($num_radio_instamode + 1))
-					break
-				fi
-			done
-			if [ $num_radio_instamode = "0" ]; then
-				break
-			fi
-		done
-
-		nss_override="$(cat /lib/wifi/wifi_nss_override)"
-		if [ $num_radio_instamode = "3" ]; then
-			config_get nss_wifi_olcfg qcawifi nss_wifi_olcfg
-			if [ -n "$nss_wifi_olcfg" ] && [ $nss_wifi_olcfg != 0 ]; then
-				echo " Invalid Configuration: 3 stations in offload not supported"
-				return 1
-			fi
-			if [ $nss_override = "0" ]; then
-				echo 1 > /lib/wifi/wifi_nss_override
-				unload_qcawifi
-				device=$1
-				load_qcawifi
-			fi
-		else
-			if [ $nss_override != "0" ]; then
-				echo 0 > /lib/wifi/wifi_nss_override
-				unload_qcawifi
-				device=$1
-				load_qcawifi
-			fi
-		fi
-	fi
 
 	lock /var/run/wifilock
 
@@ -926,11 +690,11 @@ enable_qcawifi() {
 		esac
 
 		[ "$nosbeacon" = 1 ] || nosbeacon=""
-		[ -n "${DEBUG}" ] && echo wlanconfig "$ifname" create wlandev "$phy" wlanmode "$wlanmode" ${wlanaddr:+wlanaddr "$wlanaddr"} ${nosbeacon:+nosbeacon}
+		echo wlanconfig "$ifname" create wlandev "$phy" wlanmode "$wlanmode" ${wlanaddr:+wlanaddr "$wlanaddr"} ${nosbeacon:+nosbeacon}  > /dev/console
 		if [ -z "$recover" ] || [ "$recover" -eq "0" ]; then
 			ifname=$(/usr/sbin/wlanconfig "$ifname" create wlandev "$phy" wlanmode "$wlanmode" ${wlanaddr:+wlanaddr "$wlanaddr"} ${nosbeacon:+nosbeacon})
 			[ $? -ne 0 ] && {
-				echo "enable_qcawifi($device): Failed to set up $mode vif $ifname" >&2
+				echo "enable_qcawifi($device): Failed to set up $mode vif $ifname" > /dev/console
 				continue
 			}
 			config_set "$vif" ifname "$ifname"
@@ -1977,7 +1741,7 @@ detect_qcawifi() {
 		devidx=$(($devidx + 1))
 	done
 	cd /sys/class/net
-	[ -d radio0 ] || return
+	
 	for dev in $(ls -d radio* 2>&-); do
 		found=0
 		config_foreach check_qcawifi_device wifi-device
@@ -1993,23 +1757,26 @@ detect_qcawifi() {
 		esac
 		
 		config_get type radio${devidx} type;
-		[ "$type" == "qcawifi" ] || uci -q batch <<-EOF
-		set wireless.radio${devidx}=wifi-device
-		set wireless.radio${devidx}.type=qcawifi
-		set wireless.radio${devidx}.macaddr=$(cat /sys/class/net/${dev}/address)
-		set wireless.radio${devidx}.hwmode=11${mode_11}
-		set wireless.radio${devidx}.channel=auto
-		set wireless.radio${devidx}.country=BR
+		[ "$type" == "qcawifi" ] || {
+			
+			uci -q batch <<-EOF
+			set wireless.radio${devidx}=wifi-device
+			set wireless.radio${devidx}.type=qcawifi
+			set wireless.radio${devidx}.phy=radio${devidx}
+			set wireless.radio${devidx}.macaddr=$(cat /sys/class/net/${dev}/address)
+			set wireless.radio${devidx}.hwmode=11${mode_11}
+			set wireless.radio${devidx}.channel=auto
+			set wireless.radio${devidx}.country=BR
 
-		set wireless.default_radio${devidx}=wifi-iface
-		set wireless.default_radio${devidx}.device=radio${devidx}
-		set wireless.default_radio${devidx}.network=lan
-		set wireless.default_radio${devidx}.mode=ap
-		set wireless.default_radio${devidx}.ssid=${ssid}
-		set wireless.default_radio${devidx}.encryption=none
-		EOF
-		
-		uci -q commit wireless
+			set wireless.default_radio${devidx}=wifi-iface
+			set wireless.default_radio${devidx}.device=radio${devidx}
+			set wireless.default_radio${devidx}.network=lan
+			set wireless.default_radio${devidx}.mode=ap
+			set wireless.default_radio${devidx}.ssid=OpenWrt${devidx}
+			set wireless.default_radio${devidx}.encryption=none
+			EOF
+			uci -q commit wireless
+		}
 		devidx=$(($devidx + 1))
 	
 	done
