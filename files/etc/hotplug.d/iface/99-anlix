@@ -6,7 +6,7 @@
 . /usr/share/functions/network_functions.sh
 
 network_find_wan extiface
-network_find_wan ext6iface
+network_find_wan6 ext6iface
 
 update_lan_ip() {
   local _lan_addr=""
@@ -25,6 +25,7 @@ update_lan_ip() {
   sed -i 's/.*anlixrouter/'"$_lan_addr"' anlixrouter/' /etc/hosts
   /etc/init.d/uhttpd restart
 }
+#extiface is lan on bridge and wan on router
 [ "$INTERFACE" = "$extiface" ] && update_lan_ip
 
 set_dns_proxy_config() {
@@ -89,11 +90,18 @@ set_dns_proxy_config() {
     uci commit dhcp
   fi
 }
-# Use proxy or give DNS addresses directly
-set_dns_proxy_config
 
-# Fix dnsmasq and iface race condition
-/etc/init.d/dnsmasq enabled && /etc/init.d/dnsmasq restart
+if [ "$(get_bridge_mode_status)" != "y" ]
+then
+  if [ "$INTERFACE" = "lan" ] || [ "$INTERFACE" = "$extiface" ]
+  then
+    # Use proxy or give DNS addresses directly
+    set_dns_proxy_config
 
-# Fix dhcp and iface wan6 race condition
-[ "$INTERFACE" = "$ext6iface" ] && /etc/init.d/odhcpd enabled && /etc/init.d/odhcpd restart
+    # Fix dnsmasq and iface race condition
+    [ "$INTERFACE" = "$extiface" ] && /etc/init.d/dnsmasq enabled && /etc/init.d/dnsmasq restart
+  fi
+
+  # Fix dhcp and iface wan6 race condition
+  [ "$INTERFACE" = "$ext6iface" ] && /etc/init.d/odhcpd enabled && /etc/init.d/odhcpd restart
+fi
