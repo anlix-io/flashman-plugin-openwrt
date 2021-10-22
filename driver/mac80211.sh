@@ -19,17 +19,6 @@ get_root_ifname() {
 	[ "$1" == "0" ] && echo "wlan0" || echo "wlan1"
 }
 
-# Get the chosen virtual AP ifname
-get_virtual_ap_ifname() {
-	# $1: Which interface:
-		# 0: 2.4G
-		# 1: 5G
-	# $2: Which virtual AP
-
-	#Must be 1,2,3 in Realtek!
-	echo "$(get_root_ifname "$1")-$2"
-}
-
 # Get the station ifname
 get_station_ifname() {
 	# $1: Which interface:
@@ -141,3 +130,52 @@ get_txpower() {
 	fi
 }
 
+# Get different Mesh ap BSSID from own MAC
+get_mesh_ap_bssid() {
+	# $1: 2.4G or 5G
+		# 0: 2.4G
+		# 1: 5G
+	local _mesh_wifi="$1"
+	local _mesh_bssid=""
+	local _mesh_mode="$(get_mesh_mode)"
+
+	local _mac_addr="$(get_mac)"
+	local _mac_middle=${_mac_addr::-3}
+	_mac_middle=${_mac_middle:12}
+	local _mac_end=${_mac_addr:14}
+
+	# Add one to the mac address
+	# XX:XX:XX:XX:(XX + 0x1):XX
+	if [ "$_mesh_wifi" == "0" ]
+	then
+		if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
+		then
+			_mesh_bssid="${_mac_addr::-5}$(printf '%02X' $((0x$_mac_middle + 0x1)))$_mac_end"
+		fi
+	else
+		if [ "$(is_5ghz_capable)" == "1" ]
+		then
+		if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
+			then
+				_mesh_bssid="${_mac_addr::-5}$(printf '%02X' $((0x$_mac_middle + 0x2)))$_mac_end"
+			fi
+		fi
+	fi
+
+	echo "$_mesh_bssid"
+}
+
+get_mesh_ap_ifname() {
+	echo "$(get_root_ifname "$1")-1"
+}
+
+#get the others virtusl aps
+get_virtual_ap_ifname() {
+	# $1: Which interface:
+		# 0: 2.4G
+		# 1: 5G
+	# $2: Which virtual AP
+	local _idx=$2
+	# Return the ifname with ra and the number
+	echo "$(get_root_ifname "$1")-$((_idx+1))"
+}

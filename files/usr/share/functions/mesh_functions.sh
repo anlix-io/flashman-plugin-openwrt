@@ -130,41 +130,6 @@ get_mesh_id() {
 	[ "$_mesh_id" ] && echo "$_mesh_id" || echo "Anlix-MESH"
 }
 
-# Get different Mesh ap BSSID from own MAC
-get_mesh_ap_bssid() {
-	# $1: 2.4G or 5G
-		# 0: 2.4G
-		# 1: 5G
-	local _mesh_wifi="$1"
-	local _mesh_bssid=""
-	local _mesh_mode="$(get_mesh_mode)"
-
-	local _mac_addr="$(get_mac)"
-	local _mac_middle=${_mac_addr::-3}
-	_mac_middle=${_mac_middle:12}
-	local _mac_end=${_mac_addr:14}
-
-	# Add one to the mac address
-	# XX:XX:XX:XX:(XX + 0x1):XX
-	if [ "$_mesh_wifi" == "0" ]
-	then
-		if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
-		then
-			_mesh_bssid="${_mac_addr::-5}$(printf '%02X' $((0x$_mac_middle + 0x1)))$_mac_end"
-		fi
-	else
-		if [ "$(is_5ghz_capable)" == "1" ]
-		then
-		if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
-			then
-				_mesh_bssid="${_mac_addr::-5}$(printf '%02X' $((0x$_mac_middle + 0x2)))$_mac_end"
-			fi
-		fi
-	fi
-
-	echo "$_mesh_bssid"
-}
-
 # Get Mesh Key from configuration file
 get_mesh_key() {
 	local _mesh_key=""
@@ -411,7 +376,7 @@ enable_mesh() {
 		uci set wireless.mesh2_ap.network='lan'
 
 		# Get the first virtual AP
-		uci set wireless.mesh2_ap.ifname="$(get_virtual_ap_ifname "0" "1")"
+		uci set wireless.mesh2_ap.ifname="$(get_mesh_ap_ifname "0")"
 
 		uci set wireless.mesh2_ap.mode='ap'
 		uci set wireless.mesh2_ap.hidden='1'
@@ -451,7 +416,7 @@ enable_mesh() {
 			uci set wireless.mesh5_ap.network='lan'
 
 			# Get the first virtual AP
-			uci set wireless.mesh5_ap.ifname="$(get_virtual_ap_ifname "1" "1")"
+			uci set wireless.mesh5_ap.ifname="$(get_mesh_ap_ifname "1")"
 
 			uci set wireless.mesh5_ap.mode='ap'
 			uci set wireless.mesh5_ap.hidden='1'
