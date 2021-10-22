@@ -512,13 +512,13 @@ update_mesh_link() {
 	fi
 
 	#Uplinks with rssi higher that -70, discart
-	if [ "$_rssi_5g" -lt "-70" ]
+	if [ ! -z "$_rssi_5g" ] && [ "$_rssi_5g" -lt "-70" ]
 	then
 		_rssi_5g=""
 		log "MESHLINK" "Discart 5GHz RSSI!"
 	fi
 
-	if [ "$_rssi_2g" -lt "-70" ]
+	if [ ! -z "$_rssi_2g" ] && [ "$_rssi_2g" -lt "-70" ]
 	then
 		_rssi_2g=""
 		log "MESHLINK" "Discart 2.4GHz RSSI!"
@@ -534,7 +534,7 @@ update_mesh_link() {
 	# Check the best option (RSSI) to connect to
 	# If there is a 5GHz radio with at least -55 dbm, priorize it.
 	# if not, use a 2.4.
-	if [ ! -z "$_rssi_5g" ] && ([ "$_rssi_5g" -le "-55" ] || [ -z "$_rssi_2g" ])
+	if [ ! -z "$_rssi_5g" ] && ([ "$_rssi_5g" -ge "-55" ] || [ -z "$_rssi_2g" ])
 	then
 		# Set the configuration for STATION 5G
 		if [ "$(uci -q get wireless.radio1.channel)" != "$_channel_5g" ] || 
