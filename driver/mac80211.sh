@@ -112,7 +112,7 @@ get_txpower() {
 
 	local _phy
 	local _maxpwr="0"
-	if [ "$_freq" = "0" ]
+	if [ "$_iface" = "0" ]
 	then
 		_phy=$(get_24ghz_phy)
 		[ "$(type -t custom_wifi_24_txpower)" ] && _maxpwr="$(custom_wifi_24_txpower)"
