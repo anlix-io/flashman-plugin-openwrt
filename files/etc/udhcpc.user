@@ -1,0 +1,39 @@
+#!/bin/sh
+
+if [ "$INTERFACE" = "wan" ]
+then
+	json_get_var _link link-up
+	if [ $_link -eq 1 ]
+	then
+		. /lib/functions/network.sh
+		. /usr/share/functions/network_functions.sh
+
+		if [ "$(get_bridge_mode_status)" != "y" ]
+		then
+			#get information from wan dhcp 
+			json_select ipaddr
+			json_select 1
+			json_get_var _ipaddr ipaddr
+			json_get_var _mask mask
+			json_select ..
+			json_select ..
+
+			eval "$(ipcalc.sh $_ipaddr $_mask)"
+			_wan="$NETWORK/$PREFIX"
+			network_get_subnet _net lan
+			eval "$(ipcalc.sh $_net)"
+			_lan="$NETWORK/$PREFIX"
+			if [ "$_lan" = "$_wan" ]
+			then
+				#same network from upstream
+				#change lan address
+				_new_ipaddr="$(uci -q get network.lan.ipaddr | awk -F. '{ $3=$3+1; print $1"."$2"."$3"."$4; }')"
+				log "CHANGE IP" "LAN ip conflicts with WAN. New LAN: $_new_ipaddr"
+				uci set network.lan.ipaddr="$_new_ipaddr"
+				uci commit network
+				ifup lan
+			fi
+		fi
+	fi
+fi
+exit 0
