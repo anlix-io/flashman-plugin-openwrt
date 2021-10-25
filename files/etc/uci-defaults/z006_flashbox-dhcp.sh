@@ -30,6 +30,13 @@ uci set dhcp.dmz.dynamicdhcp='0'
 uci set dhcp.dmz.leasetime='1h'
 uci set dhcp.dmz.force='1'
 
+if [ "$FLM_DHCP_REBIND" == "y" ]
+then
+	uci set dhcp.@dnsmasq[0].rebind_protection='1'
+else
+	uci set dhcp.@dnsmasq[0].rebind_protection='0'
+fi
+
 if [ "$FLM_DHCP_NOPROXY" == "1" ]
 then
 	uci set dhcp.@dnsmasq[0].noproxy='1'
