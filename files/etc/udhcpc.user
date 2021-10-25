@@ -31,6 +31,15 @@ then
 				log "CHANGE IP" "LAN ip conflicts with WAN. New LAN: $_new_ipaddr"
 				uci set network.lan.ipaddr="$_new_ipaddr"
 				uci commit network
+
+				#Change lan information from flashman
+				json_cleanup
+				json_load_file /root/flashbox_config.json
+				json_add_string did_change_lan_local "y"
+				json_dump > /root/flashbox_config.json
+				json_close_object
+				json_cleanup
+
 				ifup lan
 			fi
 		fi

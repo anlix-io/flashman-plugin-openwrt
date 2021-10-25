@@ -82,6 +82,7 @@ then
 	json_get_var _local_bridge_fix_dns bridge_fix_dns
 	json_get_var _local_bridge_did_reset bridge_did_reset
 	json_get_var _local_did_change_wan did_change_wan_local
+	json_get_var _local_did_change_lan did_change_lan_local
 	json_get_var _local_mesh_mode mesh_mode
 	json_get_var _local_mesh_master mesh_master
 	json_close_object
@@ -192,6 +193,10 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 	if [ "$_local_did_change_wan" = "y" ]
 	then
 		_data="$_data&local_change_wan=1"
+	fi
+	if [ "$_local_did_change_lan" = "y" ]
+	then
+		_data="$_data&local_change_lan=1"
 	fi
 	_url="deviceinfo/syn/"
 	_res=$(rest_flashman "$_url" "$_data")
