@@ -550,6 +550,7 @@ update_mesh_link() {
 			then
 				log "MESHLINK" "Change 5Ghz Backbone ($_channel_5g) ($_bssid_5g) ..."
 				wifi reload
+				sleep 5
 			else
 				log "MESHLINK" "FAIL in change 5Ghz Backbone ($_channel_5g) ($_bssid_5g) ..."
 			fi
@@ -571,6 +572,7 @@ update_mesh_link() {
 			then
 				log "MESHLINK" "Change 2.4Ghz Backbone ($_channel_2g) ($_bssid_2g) ..."
 				wifi reload
+				sleep 5
 			else
 				log "MESHLINK" "FAIL in change 2.4Ghz Backbone ($_channel_2g) ($_bssid_2g) ..."
 			fi
