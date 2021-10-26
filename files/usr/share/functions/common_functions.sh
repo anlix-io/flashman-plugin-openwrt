@@ -36,13 +36,20 @@ log() {
 #read a sequence of data into variables
 get_data() {
 	local d=0
-	local prefix=$1
+	local _nuvals=$1
+	shift
+	local _prefix=$1
 	shift
 	while [ "$#" -gt 0 ]
 	do
-		eval "$prefix$d=$1"
+		eval "$_prefix$d=$1"
 		d=$((d+1))
 		shift
+	done
+	while [ "$d" -lt "$_nuvals" ]
+	do
+		eval "$prefix$d=''"
+		d=$((d+1))
 	done
 }
 

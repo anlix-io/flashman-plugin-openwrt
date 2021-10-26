@@ -292,7 +292,7 @@ get_online_mesh_routers() {
 	then
 		local R0 R1 R2 R3
 		_data="$(echo "$_stations"| awk 'NR==1{ print $1, $2 } /RX:/{ print $2 } /TX:/{ print $2 }')"
-		get_data R $_data
+		get_data 4 R $_data
 		json_add_object "$R0"
 		json_add_string "signal" "$R1"
 		json_add_string "rx_bit" "$R2"

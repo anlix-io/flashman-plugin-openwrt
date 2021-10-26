@@ -481,7 +481,7 @@ update_mesh_link() {
 		_iwinfo_2g_data="$(iwinfo $(get_root_ifname 0) scan)"
 
 		_mac_and_channel="$(find_mac_and_channel_by_devices "$_iwinfo_2g_data" $(get_mesh_devices 0))"
-		get_data R $_mac_and_channel
+		get_data 3 R $_mac_and_channel
 
 		_bssid_2g="$R0"
 		_channel_2g="$R1"
@@ -501,7 +501,7 @@ update_mesh_link() {
 			_iwinfo_5g_data="$(iwinfo $(get_root_ifname 1) scan)"
 
 			_mac_and_channel="$(find_mac_and_channel_by_devices "$_iwinfo_5g_data" $(get_mesh_devices 1))"
-			get_data R $_mac_and_channel
+			get_data 3 R $_mac_and_channel
 
 			_bssid_5g="$R0"
 			_channel_5g="$R1"
