@@ -97,6 +97,7 @@ wifi_mode_5ghz=$_local_hwmode_50&\
 wifi_state_5ghz=$_local_state_50&\
 wifi_power_5ghz=$_local_txpower_50&\
 wifi_hidden_5ghz=$_local_hidden_50&\
+n_conn_dev=$(get_connected_devices_number)&\
 connection_type=$(get_wan_type)&\
 ntp=$(ntp_anlix)&\
 sysuptime=$(sys_uptime)&\

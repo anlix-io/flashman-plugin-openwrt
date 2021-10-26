@@ -172,6 +172,7 @@ wifi_mode_5ghz=$_local_hwmode_50&\
 wifi_state_5ghz=$_local_state_50&\
 wifi_power_5ghz=$_local_txpower_50&\
 wifi_hidden_5ghz=$_local_hidden_50&\
+n_conn_dev=$(get_connected_devices_number)&\
 bssid_mesh2=$(get_mesh_ap_bssid 0)&\
 bssid_mesh5=$(get_mesh_ap_bssid 1)&\
 connection_type=$_local_wan_type&\
