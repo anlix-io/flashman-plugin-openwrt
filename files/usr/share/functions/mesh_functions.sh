@@ -582,35 +582,6 @@ update_mesh_link() {
 	return 1
 }
 
-set_mesh_rrm() {
-	local _need_change=0
-	[ "$(get_wifi_state 0)" = "1" ] && ubus -t 15 wait_for hostapd.wlan0 2>/dev/null && _need_change=1
-	[ "$(is_5ghz_capable)" = "1" ] && [ "$(get_wifi_state 1)" = "1" ] && \
-		ubus -t 15 wait_for hostapd.wlan1 2>/dev/null && _need_change=1
-
-	if [ $_need_change -eq 1 ]
-	then
-		local rrm_list
-		local radios=$(ubus list | grep hostapd.wlan)
-		A=$'\n'$(ubus call anlix_sapo get_meshids | jsonfilter -e "@.list[*]")
-		while [ "$A" ]
-		do
-			B=${A##*$'\n'}
-			A=${A%$'\n'*}
-			rrm_list=$rrm_list",$B"
-		done
-		for value in ${radios}
-		do
-			rrm_list=${rrm_list}",$(ubus call ${value} rrm_nr_get_own | jsonfilter -e '$.value')"
-		done
-		for value in ${radios}
-		do
-			ubus call ${value} bss_mgmt_enable '{"neighbor_report": true}'
-			eval "ubus call ${value} rrm_nr_set '{ \"list\": [ ${rrm_list:1} ] }'"
-		done
-	fi
-}
-
 # Check if Mesh is connected
 is_mesh_connected() {
 	local _mesh_mode="$(get_mesh_mode)"
