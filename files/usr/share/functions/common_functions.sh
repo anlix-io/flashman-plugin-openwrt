@@ -48,7 +48,7 @@ get_data() {
 	done
 	while [ "$d" -lt "$_nuvals" ]
 	do
-		eval "$prefix$d=''"
+		eval "$_prefix$d=''"
 		d=$((d+1))
 	done
 }
