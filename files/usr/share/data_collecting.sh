@@ -1,5 +1,7 @@
 #!/bin/sh
 . /usr/share/functions/device_functions.sh
+. /usr/share/functions/common_functions.sh
+. /usr/share/functions/custom_wireless_driver.sh
 . /usr/share/flashman_init.conf
 
 # directory where all data related to data collecting will be stored.
@@ -130,7 +132,7 @@ collect_connectivity_pings() {
 	{
 	flock -x 9
 	# reading connectivity pings file and writing errors to '/dev/null'. 
-	pings=$(cat "$connectivityPingsFile") > /dev/null 2>&1 && \
+	pings=$(cat "$connectivityPingsFile" 2> /dev/null) && \
 		# if file could be read and if amount of lines is greater than zero, sets 'empty' to false and removes file. 
 		[ $(printf "%s" "$pings" | wc -l) -gt 0 ] && empty=false && rm "$connectivityPingsFile"
 	# "${connectivityPingsFile}lock" is also used by the script that writes new values to the file.
@@ -165,8 +167,11 @@ collect_wifi_devices() {
 	local str=""
 	# 0 and 1 are the indexes for wifi interfaces: wlan0 and wlan1, or phy0 and phy1.
 	for i in 0 1; do
-		# getting wifi interface name
-		local lan=$(get_root_ifname "$i")
+		# getting wifi interface name.
+		# 'get_root_ifname()' is defined in /usr/share/functions/custom_wireless_driver.sh.
+		local lan=$(get_root_ifname "$i" 2> /dev/null)
+		# if interface doesn't exist, skips this iteration.
+		[ "$lan" == "" ] && continue
 		# getting info from each connected device on wifi. 
 		# grep returns empty when no devices are connected or if interface doesn't exist.
 		local devices="$(iwinfo "$lan" assoclist | grep ago)"
@@ -357,7 +362,7 @@ checkServerState() {
 sendToServer() {
 	local filepath="$1"
 
-	# defined in /usr/share/functions/device_functions.sh
+	# 'get_mac()' is defined in /usr/share/functions/device_functions.sh.
 	local mac=$(get_mac);
 
 	status=$(curl --write-out '%{http_code}' -s -m 20 --connect-timeout 5 --output /dev/null \
@@ -365,6 +370,7 @@ sendToServer() {
 	-H 'Content-Type: text/plain' -H "X-ANLIX-ID: $mac" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
 	-H "Send-Time: $(date +%s)" --data-binary @"$filepath")
 	curlCode="$?"
+	# 'log()' is defined in /usr/share/functions/common_functions.sh.
 	[ "$curlCode" -ne 0 ] && log "DATA_COLLECTING" "Data sent with curl exit code '${curlCode}'." && return "$curlCode"
 	log "DATA_COLLECTING" "Data sent with response status code '${status}'."
 	[ "$status" -ge 200 ] && [ "$status" -lt 300 ] && return 0
@@ -548,7 +554,7 @@ cleanFiles() {
 	rm "${dataCollectingDir}/serverState" 2> /dev/null
 	# rm "${dataCollectingDir}/backoffCounter" 2> /dev/null
 	rm "${rawDataFile}.gz" 2> /dev/null
-	flock "${connectivityPingsFile}lock" rm "$connectivityPingsFile"
+	rm "${connectivityPingsFile}lock"
 }
 
 # collects and sends data forever.
