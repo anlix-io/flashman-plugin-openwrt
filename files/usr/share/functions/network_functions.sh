@@ -148,15 +148,16 @@ check_connectivity_internet() {
 	then
 		_addrs="$1"
 	fi
-	local collect_enabled="$2"
+	# if second argument is undefined, use value '0'.
+	local collect_enabled="${2:-0}"
 	for _addr in $_addrs
 	do
-		# ping output will be use in case collecting connectivity pings is enabled.
+		# ping output will be used in case collecting connectivity pings is enabled.
 		local pingResult
 		if pingResult=$(ping -q -c 1 -w 2 "$_addr")
 		then
 			# won't collect connectivity ping if data collecting service is not running.
-			[ "$collect_enabled" -eq 1 ] && service data_collecting running && \
+			[ "$collect_enabled" -eq 1 ] && /etc/init.d/data_collecting running && \
 				save_connectivity_ping "$pingResult"
 
 			# true
