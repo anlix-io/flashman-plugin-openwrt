@@ -319,7 +319,7 @@ collectData() {
 	[ "$output" != "" ] && str="${str}|${output}"
 
 	# expected raw data:
-	# '213234556456|loss 0 100 12345 1234|cnpings 10.344 30|wfdvcs aa:bb:cc:dd:ee:ff-22 ab:bb:cc:dd:ee:ff-45'
+	# '213234556456|burstLoss 0 100 12345 1234|connPings 10.344 30|wifiDevices aa:bb:cc:dd:ee:ff-22 ab:bb:cc:dd:ee:ff-45'
 	[ "$str" != "" ] && echo "${timestamp}${str}" >> "$rawDataFile";
 
 	# $(zipFile) returns 0 only if any amount of files has been compressed 

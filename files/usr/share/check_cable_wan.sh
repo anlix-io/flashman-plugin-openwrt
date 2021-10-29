@@ -21,7 +21,7 @@ write_access_start_time() {
 }
 
 # opens 'flashbox_config.json' and reads the connectivity pings boolean.
-read_connectivity_pings_collecting_enabled() {
+read_data_collecting_parameters() {
 	json_cleanup
 	json_load_file "/root/flashbox_config.json"
 	# non-existing value is translated to empty string.
@@ -30,7 +30,9 @@ read_connectivity_pings_collecting_enabled() {
 	json_get_var data_collecting_is_active data_collecting_is_active
 	json_close_object
 
-	[ "$data_collecting_is_active" -eq 1 ] && [ "$data_collecting_conn_pings" -eq 1 ] && collect_pings=1
+	# we collect connectivity pings if both conn_pings and is_active is enabled.
+	[ "$data_collecting_is_active" -eq 1 ] && \
+		[ "$data_collecting_conn_pings" -eq 1 ] && collect_pings=1
 }
 collect_pings=0
 
@@ -38,7 +40,7 @@ collect_pings=0
 reset_leds
 blink_leds "0"
 write_access_start_time 0
-read_connectivity_pings_collecting_enabled
+read_data_collecting_parameters
 
 while true
 do
