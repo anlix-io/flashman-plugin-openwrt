@@ -148,17 +148,11 @@ get_mesh_ap_bssid() {
 	# XX:XX:XX:XX:(XX + 0x1):XX
 	if [ "$_mesh_wifi" == "0" ]
 	then
-		if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
-		then
-			_mesh_bssid="${_mac_addr::-5}$(printf '%02X' $((0x$_mac_middle + 0x1)))$_mac_end"
-		fi
+		_mesh_bssid="${_mac_addr::-5}$(printf '%02X' $((0x$_mac_middle + 0x1)))$_mac_end"
 	else
 		if [ "$(is_5ghz_capable)" == "1" ]
 		then
-		if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
-			then
-				_mesh_bssid="${_mac_addr::-5}$(printf '%02X' $((0x$_mac_middle + 0x2)))$_mac_end"
-			fi
+			_mesh_bssid="${_mac_addr::-5}$(printf '%02X' $((0x$_mac_middle + 0x2)))$_mac_end"
 		fi
 	fi
 
