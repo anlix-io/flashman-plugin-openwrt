@@ -13,6 +13,8 @@ compressedDataDir="${dataCollectingDir}/compressed"
 # file where connectivity pings are stored.
 connectivityPingsFile="${dataCollectingDir}/connpings"
 
+rawData=""
+
 # takes current unix timestamp, executes ping, in burst, to $pingServerAddress server, gets current 
 # rx and tx bytes from wan interface and compares then with values from previous calls to calculate 
 # cross traffic. If latency collecting is enabled, extracts the individual icmp request numbers and 
@@ -74,7 +76,7 @@ collect_QoE_Monitor_data() {
 	# local loss=${pingResult%\% packet loss*} # removes everything after, and including, '% packet loss'.
 	# loss=${loss##* } # removes everything before first space.
 
-	local string="loss $loss $transmitted $rx $tx" # data to be sent.
+	local string="$loss $transmitted $rx $tx" # data to be sent.
 
 	# if latency collecting is enabled.
 	if [ "$hasLatency" -eq 1 ]; then
@@ -116,7 +118,7 @@ collect_QoE_Monitor_data() {
 	
 	# appending string to file.
 	# printf "string is: '%s'\n" "$string"
-	echo "burstLoss $string"
+	rawData="${rawData}|burstLoss ${string}"
 }
 
 collect_connectivity_pings() {
@@ -156,7 +158,7 @@ collect_connectivity_pings() {
 	# dividing back by 1000 by just manipulating the string. Putting a dot before the last 3 digits.
 	local dotPosition=$((${#average}-3))
 	average="${average:0:$dotPosition}.${average:$dotPosition}"
-	echo "connPings $average $count"
+	rawData="${rawData}|connPings ${average} ${count}"
 }
 
 collect_wifi_devices() {
@@ -201,7 +203,7 @@ collect_wifi_devices() {
 		done
 	done
 	# we won't echo if there are no devices.
-	[ ${#str} -gt 0 ] && echo "wifiDevices $str"
+	[ ${#str} -gt 0 ] && rawData="${rawData}|wifiDevices ${str}"
 }
 
 # prints the size of a file, using 'ls', where full file path is given as 
@@ -307,20 +309,16 @@ collectData() {
 	# getting current unix time in seconds.
 	local timestamp=$(date +%s)
 
-	# string to be written to file.
-	local str=""
+	# collecting all measures.
+	collect_QoE_Monitor_data
+	collect_connectivity_pings
+	collect_wifi_devices
 
-	local output
-	output=$(collect_QoE_Monitor_data)
-	[ "$output" != "" ] && str="${str}|${output}"
-	output=$(collect_connectivity_pings)
-	[ "$output" != "" ] && str="${str}|${output}"
-	output=$(collect_wifi_devices)
-	[ "$output" != "" ] && str="${str}|${output}"
-
-	# expected raw data:
+	# example of an expected raw data with all measures present:
 	# '213234556456|burstLoss 0 100 12345 1234|connPings 10.344 30|wifiDevices aa:bb:cc:dd:ee:ff-22 ab:bb:cc:dd:ee:ff-45'
-	[ "$str" != "" ] && echo "${timestamp}${str}" >> "$rawDataFile";
+	[ -n "$rawData" ] && echo "${timestamp}${rawData}" >> "$rawDataFile";
+	# cleaning 'rawData' value from memory and making it ready for next minute.
+	rawData=""
 
 	# $(zipFile) returns 0 only if any amount of files has been compressed 
 	# and, consequently, moved to the directory of compressed files. So
