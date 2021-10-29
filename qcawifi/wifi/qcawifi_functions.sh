@@ -60,8 +60,9 @@ scan_qcawifi() {
 	local radioidx=${device#radio}
 
 	config_get vifs "$device" vifs
-	echo "[ROMEU] [scan_qcawifi] vifs for device $device is: $vifs " > /dev/console
+	
 	for vif in $vifs; do
+	
 		config_get_bool disabled "$vif" disabled 0
 		[ $disabled = 0 ] || continue
 
@@ -94,6 +95,13 @@ scan_qcawifi() {
 	esac
 
 	config_set "$device" vifs "${ap:+$ap }${ap_monitor:+$ap_monitor }${mesh:+$mesh }${ap_smart_monitor:+$ap_smart_monitor }${wrap:+$wrap }${sta:+$sta }${adhoc:+$adhoc }${wds:+$wds }${monitor:+$monitor}${ap_lp_iot:+$ap_lp_iot}"
+	
+	# [ROMEU] GAMBIARRA - Solving issue from /sbin/wifi's config_cb , which duplicates the last vif read
+	config_get vifs "$device" vifs
+	[ -n "$( echo $vifs | grep default_radio1)" ] && vifs="default_radio1" && echo "[ROMEU] Deduplicating default_radio1 in scan_qcawifi " > /dev/console
+	config_set "$device" vifs "$vifs"
+	echo "[ROMEU] [scan_qcawifi2] vifs for device $device is: $vifs " > /dev/console
+	
 }
 
 # The country ID is set at the radio level. When the driver attaches the radio,
@@ -243,16 +251,18 @@ disable_qcawifi() {
 }
 
 enable_qcawifi() {
-	echo "enable_qcawifi \$1=$1" > /dev/console
+	echo "enable_qcawifi \$1=$1"
 	local device="$1"
-	local count=0
+	local count=0 # hostapd count
 	local num_radio_instamode=0
 	local recover="$2"
 
 	find_qcawifi_phy "$device" || return 1
 
+	echo "enable_qcawifi \$1=$1 POST FIND"
 	lock /var/run/wifilock
 
+	echo "enable_qcawifi \$1=$1 POST LOCK"
 	config_get phy "$device" phy
 
 	config_get preCACEn "$device" preCACEn
@@ -944,7 +954,7 @@ enable_qcawifi() {
 
 		config_get oce "$vif" oce
 		[ -n "$oce" ] && iwpriv "$ifname" oce "$oce"
-		[ "$oce" -gt 0 ] && {
+		[ -n "$oce" ] && [ "$oce" -gt 0 ] && {
 			case "$hwmode" in
 				11B*|11G*|11NG*)
 					iwpriv "$ifname" set_bcn_rate 5500
@@ -1068,10 +1078,7 @@ enable_qcawifi() {
                 [ -n "$vsp_enable" ] && iwpriv "$ifname" vsp_enable "$vsp_enable"
 
 		config_get ssid "$vif" ssid
-                [ -n "$ssid" ] && {
-                        iwconfig "$ifname" essid on
-                        iwconfig "$ifname" essid ${ssid:+-- }"$ssid"
-                }
+		[ -n "$ssid" ] && iwconfig "$ifname" essid ${ssid:+-- }"$ssid"
 
 		config_get txqueuelen "$vif" txqueuelen
 		[ -n "$txqueuelen" ] && ifconfig "$ifname" txqueuelen "$txqueuelen"
@@ -1410,6 +1417,7 @@ enable_qcawifi() {
 						wlanconfig "$ifname" destroy
 						continue
 					}
+					ifconfig "$ifname" down # hostapd_setup_vif, for some reason, raise the interface up
 				fi
 			;;
 			wds|sta)
@@ -1487,11 +1495,11 @@ enable_qcawifi() {
 
 	done
 
-        config_get primaryradio "$device" primaryradio
-        [ -n "$primaryradio" ] && iwpriv "$phy" primaryradio "${primaryradio}"
+	config_get primaryradio "$device" primaryradio
+	[ -n "$primaryradio" ] && iwpriv "$phy" primaryradio "${primaryradio}"
 
-        config_get CSwOpts "$device" CSwOpts
-        [ -n "$CSwOpts" ] && iwpriv "$phy" CSwOpts "${CSwOpts}"
+	config_get CSwOpts "$device" CSwOpts
+	[ -n "$CSwOpts" ] && iwpriv "$phy" CSwOpts "${CSwOpts}"
 
 	if [ $disable_qrfs_wifi == 1 ] && [ -f "/lib/update_system_params.sh" ]; then
 		. /lib/update_system_params.sh
