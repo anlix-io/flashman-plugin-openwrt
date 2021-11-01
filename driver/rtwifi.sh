@@ -9,17 +9,6 @@ get_phy_type() {
 	[ "$1" == "ra0" ] && echo "1" || echo "2"
 }
 
-# Get all ifnames from interfaces
-get_ifnames() {
-	# $1: Which interface:
-		# 0: 2.4G
-		# 1: 5G
-
-	# Only show interfaces with apcli or ra
-	[ "$1" == "0" ] && echo "$(ls /sys/devices/virtual/net | grep -E "apcli[0-9]|ra[0-9]")" ||
-	echo "$(ls /sys/devices/virtual/net | grep -E "apclii|rai")"
-}
-
 # Get only the root interface
 get_root_ifname() {
 	# $1: Which interface:
@@ -27,18 +16,7 @@ get_root_ifname() {
 		# 1: 5G
 
 	# Show interfaces ra0 or rai0
-	echo "$(get_ifnames "$1" | grep ra | grep 0)"
-}
-
-# Get the chosen virtual AP ifname
-get_virtual_ap_ifname() {
-	# $1: Which interface:
-		# 0: 2.4G
-		# 1: 5G
-	# $2: Which virtual AP
-
-	# Return the ifname with ra and the number
-	echo "$(get_ifnames "$1" | grep ra | grep "$2")"
+	[ "$1" == "0" ] && echo "ra0" || echo "rai0"
 }
 
 # Get the station ifname
@@ -47,8 +25,8 @@ get_station_ifname() {
 		# 0: 2.4G
 		# 1: 5G
 
-	# Return interface with apcli
-	echo "$(get_ifnames "$1" | grep apcli | grep 0)"
+	# Only one station interface for each radio
+	[ "$1" == "0" ] && echo "apcli0" || echo "apclii0"
 }
 
 get_24ghz_phy() {
@@ -91,3 +69,25 @@ get_txpower() {
 	echo "$_txpower"
 }
 
+#mesh uses the first virtual ap
+get_mesh_ap_bssid() {
+	# $1: 2.4G or 5G
+		# 0: 2.4G
+		# 1: 5G
+	[ "$1" == "0" ] && cat /sys/class/net/ra1/address || cat /sys/class/net/rai1/address
+}
+
+get_mesh_ap_ifname() {
+	[ "$1" == "0" ] && echo "ra1" || echo "rai1"
+}
+
+#get the others virtusl aps
+get_virtual_ap_ifname() {
+	# $1: Which interface:
+		# 0: 2.4G
+		# 1: 5G
+	# $2: Which virtual AP
+	local _idx=$2
+	# Return the ifname with ra and the number
+	[ "$1" == "0" ] && echo "ra$((_idx+1))" || echo "rai$((_idx+1))"
+}

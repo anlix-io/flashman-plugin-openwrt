@@ -254,11 +254,6 @@ rtwifi_sta_vif_pre_config() {
 	json_get_vars disabled encryption key key1 key2 key3 key4 ssid mode bssid
 	json_select ..
 
-	[ $stacount -gt 1 ] && {
-		rt2860v2_dbg "Ralink ApSoC drivers only support 1 sta config!"
-		return
-	}
-
 	[ "$disabled" == "1" ] && return
 	
 	echo "Generating sta config for interface $APCLI_IF"
@@ -362,11 +357,11 @@ rtwifi_sta_vif_post_config() {
 	let stacount+=1
 
 	wireless_add_vif "$name" "$APCLI_IF"
-	#json_get_vars bridge
-	#[ -z `brctl show | grep $APCLI_IF` ] && [ ! -z $bridge ] && {
-	#	echo "Manually bridge interface $APCLI_IF into $bridge"
-	#	brctl addif $bridge $APCLI_IF 
-	#}
+	json_get_vars bridge
+	[ -z `brctl show | grep $APCLI_IF` ] && [ ! -z $bridge ] && {
+		echo "Manually bridge interface $APCLI_IF into $bridge"
+		brctl addif $bridge $APCLI_IF
+	}
 }
 
 drv_rtwifi_cleanup() {
@@ -377,13 +372,13 @@ drv_rtwifi_teardown() {
 	[ "${1}" == "radio0" ] && phy_name=ra || phy_name=rai
 	case "$phy_name" in
 		ra)
-			for vif in ra0 apcli0; do
+			for vif in ra0 ra1 ra2 apcli0; do
 				#iwpriv $vif set DisConnectAllSta=1
 				ifconfig $vif down 2>/dev/null
 			done
 		;;
 		rai)
-			for vif in rai0 apclii0; do
+			for vif in rai0 rai1 rai2 apclii0; do
 				#iwpriv $vif set DisConnectAllSta=1
 				ifconfig $vif down 2>/dev/null
 			done
@@ -567,7 +562,6 @@ MacAddress=${macaddr}
 CountryRegion=${countryregion:-0}
 CountryRegionABand=${countryregion_a:-0}
 CountryCode=${country:-BR}
-BssidNum=${RTWIFI_DEF_MAX_BSSID:-1}
 WirelessMode=${WirelessMode}
 G_BAND_256QAM=1
 FixedTxMode=
@@ -854,6 +848,8 @@ EOF
 	echo "ApCliKey2Type=${ApCliKey2Type}" >> $RTWIFI_PROFILE_PATH
 	echo "ApCliKey3Type=${ApCliKey3Type}" >> $RTWIFI_PROFILE_PATH
 	echo "ApCliKey4Type=${ApCliKey4Type}" >> $RTWIFI_PROFILE_PATH
+
+	echo "BssidNum=$((ApBssidNum+1))" >> $RTWIFI_PROFILE_PATH
 
 	drv_rtwifi_teardown
 	drv_rtwifi_cleanup

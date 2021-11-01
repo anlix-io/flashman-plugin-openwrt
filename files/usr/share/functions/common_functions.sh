@@ -33,6 +33,26 @@ log() {
 	logger -t "$1 " "$2"
 }
 
+#read a sequence of data into variables
+get_data() {
+	local d=0
+	local _nuvals=$1
+	shift
+	local _prefix=$1
+	shift
+	while [ "$#" -gt 0 ]
+	do
+		eval "$_prefix$d=$1"
+		d=$((d+1))
+		shift
+	done
+	while [ "$d" -lt "$_nuvals" ]
+	do
+		eval "$_prefix$d=''"
+		d=$((d+1))
+	done
+}
+
 sh_timeout() {
 	cmd="$1"
 	timeout="$2"

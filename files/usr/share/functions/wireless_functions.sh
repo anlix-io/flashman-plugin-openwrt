@@ -488,3 +488,11 @@ set_wps_push_button() {
 	fi
 }
 
+get_connected_devices_number() {
+	local L1=$(iwinfo $(get_root_ifname 0) a | wc -l)
+	local L2=0
+
+	[ "$(is_5ghz_capable)" == "1" ] && L2=$(iwinfo $(get_root_ifname 1) a | wc -l)
+
+	echo $(((L1/5)+(L2/5)))
+}

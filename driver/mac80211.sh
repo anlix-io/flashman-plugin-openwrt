@@ -9,44 +9,14 @@ get_phy_type() {
 	echo "$(iw phy $1 channels|grep Band|tail -1|cut -c6)"
 }
 
-# Get all ifnames from interfaces
-get_ifnames() {
-	# $1: Which interface:
-		# 0: 2.4G
-		# 1: 5G
-
-	# Do not show interfaces with tmp
-	echo "$(ls /sys/devices/$(uci get wireless.radio$1.path)/net | grep -v "tmp")"
-}
-
 # Get only the root interface
 get_root_ifname() {
 	# $1: Which interface:
 		# 0: 2.4G
 		# 1: 5G
 
-	# Do not show interfaces with "-" (Virtual AP's)
-	echo "$(get_ifnames "$1" | grep -v "-")"
-}
-
-# Get the chosen virtual AP ifname
-get_virtual_ap_ifname() {
-	# $1: Which interface:
-		# 0: 2.4G
-		# 1: 5G
-	# $2: Which virtual AP
-
-	# Check if it is Realtek
-	local _is_realtek="$(lsmod | grep rtl8192cd)"
-
-	if [ "$_is_realtek" ]
-	then
-		# In Realtek, just choose the vap with the number
-		echo "$(get_ifnames "$1" | grep "\-$2")"
-	else
-		# In Atheros, just use the root name with the number
-		echo "$(get_root_ifname "$1")-$2"
-	fi
+	# root are always wlan0 and wlan1
+	[ "$1" == "0" ] && echo "wlan0" || echo "wlan1"
 }
 
 # Get the station ifname
@@ -55,18 +25,8 @@ get_station_ifname() {
 		# 0: 2.4G
 		# 1: 5G
 
-	# Check if it is Realtek
-	local _is_realtek="$(lsmod | grep rtl8192cd)"
-
-	if [ "$_is_realtek" ]
-	then
-		# Return the last interface, which is always the station in Realtek
-		# It contains "-"
-		echo "$(get_ifnames "$1" | grep "-" | tail -1)"
-	else
-		# In Atheros, just use the root name with -sta
-		echo "$(get_root_ifname "$1")-sta"
-	fi
+	#always set the forth interface (hardcoded in Realtek!)
+	echo "$(get_root_ifname "$1")-4"
 }
 
 get_24ghz_phy() {
@@ -152,7 +112,7 @@ get_txpower() {
 
 	local _phy
 	local _maxpwr="0"
-	if [ "$_freq" = "0" ]
+	if [ "$_iface" = "0" ]
 	then
 		_phy=$(get_24ghz_phy)
 		[ "$(type -t custom_wifi_24_txpower)" ] && _maxpwr="$(custom_wifi_24_txpower)"
@@ -170,3 +130,46 @@ get_txpower() {
 	fi
 }
 
+# Get different Mesh ap BSSID from own MAC
+get_mesh_ap_bssid() {
+	# $1: 2.4G or 5G
+		# 0: 2.4G
+		# 1: 5G
+	local _mesh_wifi="$1"
+	local _mesh_bssid=""
+	local _mesh_mode="$(get_mesh_mode)"
+
+	local _mac_addr="$(get_mac)"
+	local _mac_middle=${_mac_addr::-3}
+	_mac_middle=${_mac_middle:12}
+	local _mac_end=${_mac_addr:14}
+
+	# Add one to the mac address
+	# XX:XX:XX:XX:(XX + 0x1):XX
+	if [ "$_mesh_wifi" == "0" ]
+	then
+		_mesh_bssid="${_mac_addr::-5}$(printf '%02X' $((0x$_mac_middle + 0x1)))$_mac_end"
+	else
+		if [ "$(is_5ghz_capable)" == "1" ]
+		then
+			_mesh_bssid="${_mac_addr::-5}$(printf '%02X' $((0x$_mac_middle + 0x2)))$_mac_end"
+		fi
+	fi
+
+	echo "$_mesh_bssid"
+}
+
+get_mesh_ap_ifname() {
+	echo "$(get_root_ifname "$1")-1"
+}
+
+#get the others virtusl aps
+get_virtual_ap_ifname() {
+	# $1: Which interface:
+		# 0: 2.4G
+		# 1: 5G
+	# $2: Which virtual AP
+	local _idx=$2
+	# Return the ifname with ra and the number
+	echo "$(get_root_ifname "$1")-$((_idx+1))"
+}

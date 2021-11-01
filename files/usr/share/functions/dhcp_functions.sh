@@ -1,7 +1,7 @@
 #!/bin/sh
 
 . /usr/share/libubox/jshn.sh
-. /usr/share/functions/device_functions.sh
+. /usr/share/functions/common_functions.sh
 
 get_device_mac_from_ip() {
 	local _ip=$1
@@ -273,55 +273,42 @@ get_online_devices() {
 }
 
 get_online_mesh_routers() {
-	local _routers=""
 	local _stations=""
-	local _r
-	if [ -e /sys/class/net/mesh0 ]
+	local _iface=""
+
+	_stations="$(iwinfo $(get_station_ifname 0) assoclist)"
+	[ "$(echo "$_stations" | grep -v "No station connected")" ] || _stations=""
+	_iface="0"
+
+	if [ -z "$_stations" ] && [ "$(is_5ghz_capable)" == "1" ]
 	then
-		_routers="$(iw dev mesh0 mpath dump | awk '/mesh0/{print $1}')"
-		_stations="$(iw dev mesh0 station dump)"
-	fi
-	if [ -e /sys/class/net/mesh1 ]
-	then
-		if [ "$_routers" ]
-		then
-			_routers="$_routers $(iw dev mesh1 mpath dump | awk '/mesh1/{print $1}')"
-		else
-			_routers="$(iw dev mesh1 mpath dump | awk '/mesh1/{print $1}')"
-		fi
-		if [ "$_stations" ]
-		then
-			_stations="$_stations $(iw dev mesh1 station dump)"
-		else
-			_stations="$(iw dev mesh1 station dump)"
-		fi
+		_stations="$(iwinfo $(get_station_ifname 1) assoclist)"
+		[ "$(echo "$_stations" | grep -v "No station connected")" ] || _stations=""
+		_iface="1"
 	fi
 
-	local _mac
 	json_add_object "mesh_routers"
-	while [ "$(echo "$_stations"|xargs)" ]
-	do
-		_r=${_stations##*Station}
-		_stations=${_stations%Station *}
-		_mac="$(echo ${_r%% (*}|xargs)"
-		case "$_routers" in *"$_mac"*)
-			json_add_object "$_mac"
-			json_add_string "signal" "$(echo "$_r"|awk '/signal:/{print $2}')"
-			json_add_string "conn_time" "$(echo "$_r"|awk '/connected time:/{print $3}')"
-			json_add_string "rx_bytes" "$(echo "$_r"|awk '/rx bytes:/{print $3}')"
-			json_add_string "tx_bytes" "$(echo "$_r"|awk '/tx bytes:/{print $3}')"
-			json_add_string "rx_bit" "$(echo "$_r"|awk '/rx bitrate:/{print $3}')"
-			json_add_string "tx_bit" "$(echo "$_r"|awk '/tx bitrate:/{print $3}')"
-			json_add_string "iface" "$(echo "$_r"| awk '/\(on /{print substr($3, 1, 5)}')"
-			json_close_object
-			;;
-		esac
-	done
-
+	if [ "$_stations" ]
+	then
+		local R0 R1 R2 R3
+		_data="$(echo "$_stations"| awk 'NR==1{ print $1, $2 } /RX:/{ print $2 } /TX:/{ print $2 }')"
+		get_data 4 R $_data
+		json_add_object "$R0"
+		json_add_string "signal" "$R1"
+		json_add_string "rx_bit" "$R2"
+		json_add_string "tx_bit" "$R3"
+		json_add_string "conn_time" "0"
+		json_add_string "rx_bytes" "$(cat /sys/class/net/$(get_station_ifname $_iface)/statistics/rx_bytes)"
+		json_add_string "tx_bytes" "$(cat /sys/class/net/$(get_station_ifname $_iface)/statistics/tx_bytes)"
+		json_add_string "iface" "$_iface"
+		json_close_object
+	fi
 	json_close_object
 }
 
 send_online_devices() {
+	[ "$(type -t get_mesh_mode)" ] || . /usr/share/functions/mesh_functions.sh
+
 	local _res
 
 	json_init
