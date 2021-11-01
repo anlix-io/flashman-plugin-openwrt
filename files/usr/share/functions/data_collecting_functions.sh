@@ -96,7 +96,7 @@ set_data_collecting_parameters() {
 	# nothing if it's already running), else stops service. data_collecting service reads 
 	# it's configuration variables at each iteration (which happens once every minute).
 	[ "$data_collecting_is_active" -eq 1 ] && \
-		/etc/init.d/data_collecting reload || /etc/init.d/data_collecting stop 2> /dev/null 2>&1
+		/etc/init.d/data_collecting reload || /etc/init.d/data_collecting stop > /dev/null 2>&1
 
 	# if connectivity pings has changed, restarts check_cable_wan service.
 	if [ "$saved_data_collecting_conn_pings" != "$data_collecting_conn_pings" ]; then
