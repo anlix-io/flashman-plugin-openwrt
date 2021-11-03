@@ -52,8 +52,6 @@ do
 	fi
 done
 
-MQTTSEC=$(set_mqtt_secret)
-
 log "IMALIVE" "Start main loop (v$_anlix_version)"
 
 numbacks=1
