@@ -13,8 +13,6 @@ compressedDataDir="${dataCollectingDir}/compressed"
 # file where connectivity pings are stored.
 connectivityPingsFile="${dataCollectingDir}/connpings"
 
-rawData=""
-
 # takes current unix timestamp, executes ping, in burst, to $pingServerAddress server, gets current 
 # rx and tx bytes from wan interface and compares then with values from previous calls to calculate 
 # cross traffic. If latency collecting is enabled, extracts the individual icmp request numbers and 
@@ -308,6 +306,8 @@ removeOldFiles() {
 collectData() {
 	# getting current unix time in seconds.
 	local timestamp=$(date +%s)
+	# global variable where current raw data is stored before being written to file.
+	rawData=""
 
 	# collecting all measures.
 	collect_QoE_Monitor_data
@@ -317,16 +317,15 @@ collectData() {
 	# example of an expected raw data with all measures present:
 	# '213234556456|burstLoss 0 100 12345 1234|connPings 10.344 30|wifiDevices aa:bb:cc:dd:ee:ff-22 ab:bb:cc:dd:ee:ff-45'
 	[ -n "$rawData" ] && echo "${timestamp}${rawData}" >> "$rawDataFile";
-	# cleaning 'rawData' value from memory and making it ready for next minute.
+	# cleaning 'rawData' value from memory.
 	rawData=""
 
+	# creates directory of for compressed files, if it doesn't already exists.
+	mkdir -p "$compressedDataDir"
 	# $(zipFile) returns 0 only if any amount of files has been compressed 
 	# and, consequently, moved to the directory of compressed files. So
 	# $(removeOldFiles) is only executed if any new compressed file was 
 	# created.
-
-	# creates directory of for compressed files, if it doesn't already exists.
-	mkdir -p "$compressedDataDir"
 	zipFile $((32*1024)) && removeOldFiles $((24*1024))
 	# the difference between the cap size sent to $(zipFile) and 
 	# $(removeOldFiles) is the size left as a minimum amount for raw data 
