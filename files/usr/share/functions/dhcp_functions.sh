@@ -47,9 +47,11 @@ get_ipv6_dhcp() {
 }
 
 get_online_devices() {
-	local _MACS6 _NUMACS6 _MACS4 _NUMACS4 _MACSW _NUMACSW
+	local _MACS6 _MACS4 _MACSW
+	local _NUMACS4=0
+	local _NUMACS6=0
+	local _NUMACSW=0
 	local _mesh_slave="$(is_mesh_slave)"
-	local _dhcp_ipv6
 	local _mesh_routers
 
 	local _local_itf_macs="$(ip link | awk '/link\/ether/{a[$2]++} END{for(b in a)print b}')"
@@ -98,7 +100,6 @@ get_online_devices() {
 		# _6router# = (ip6 ip6 ... )
 		if [ "$(get_ipv6_enabled)" != "0" ]
 		then
-			_dhcp_ipv6=$(get_ipv6_dhcp)
 			eval "$(ip -6 neigh | awk -v dhcp="$(get_ipv6_dhcp)" '
 				BEGIN{
 					n1=split(dhcp, arr1, "\n");
@@ -126,8 +127,6 @@ get_online_devices() {
 					printf "_NUMACS6=%d", count
 				}')"
 		fi
-	else
-		_mesh_routers="$(ubus call anlix_sapo get_routers_mac | jsonfilter -e '@.routers[@].mac' | awk '{ print tolower($NF) }' | sort | uniq)"
 	fi
 
 	#Get connected wireless devices reported by wireless driver
@@ -346,11 +345,11 @@ get_online_devices() {
 
 	#Cleanup
 	local _idx=0
-	while [ _idx -lt _MACSW ]; do eval unset _wireless$_idx; _idx=$((_idx+1)); done
+	while [ $_idx -lt $_NUMACSW ]; do eval unset _wireless$_idx; _idx=$((_idx+1)); done
 	_idx=0
-	while [ _idx -lt _MACS4 ]; do eval unset _router$_idx; _idx=$((_idx+1)); done
+	while [ $_idx -lt $_NUMACS4 ]; do eval unset _router$_idx; _idx=$((_idx+1)); done
 	_idx=0
-	while [ _idx -lt _MACS6 ]; do eval unset _6router$_idx; _idx=$((_idx+1)); done
+	while [ $_idx -lt $_NUMACS6 ]; do eval unset _6router$_idx; _idx=$((_idx+1)); done
 }
 
 get_online_mesh_routers() {
