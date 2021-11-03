@@ -169,12 +169,12 @@ collect_wifi_devices() {
 	for i in 0 1; do
 		# getting wifi interface name.
 		# 'get_root_ifname()' is defined in /usr/share/functions/custom_wireless_driver.sh.
-		local lan=$(get_root_ifname "$i" 2> /dev/null)
+		local wlan=$(get_root_ifname "$i" 2> /dev/null)
 		# if interface doesn't exist, skips this iteration.
-		[ "$lan" == "" ] && continue
+		[ "$wlan" == "" ] && continue
 		# getting info from each connected device on wifi. 
 		# grep returns empty when no devices are connected or if interface doesn't exist.
-		local devices="$(iwinfo "$lan" assoclist | grep ago)"
+		local devices="$(iwinfo "$wlan" assoclist | grep ago)"
 
 		# first iteration won't put a space before the value.
 		local first=true
@@ -189,15 +189,17 @@ collect_wifi_devices() {
 			local time=${devices%% ms*}
 			# getting everything after the first space.
 			time=${time##* }
-			# getting after 'ago'.
+			# getting everything after 'ago'.
 			devices=${devices#*ago}
-			# getting after '\n'. if it exists. last line won't have it, so nothing will be changed.
+			# getting everything after '\n', if it exists. last line won't have it, so nothing will be changed.
+			# we can't add the line feed along witht the previous parameter expansion because we wouldn't match
+			# the last line and so we wouldn't make $devices length become zero.
 			devices=${devices#*$'\n'}
-			# if time is greater than one minute, we don't use this device's info.
+			# if $time is greater than one minute, we don't use this device's info.
 			[ "$time" -gt 60000 ] && continue
 			# if it's the first data we are storing, don't add a space before appending the data string.
 			[ "$first" == true ] && first=false || str="$str "
-			str="${str}${lan}-${deviceMac}-${snr}"
+			str="${str}${wlan}-${deviceMac}-${snr}"
 		done
 	done
 	# we won't echo if there are no devices.
