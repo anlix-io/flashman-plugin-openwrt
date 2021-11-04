@@ -189,7 +189,8 @@ is_authenticated() {
 organization=$FLM_CLIENT_ORG&\
 secret=$FLM_CLIENT_SECRET&\
 model=$(get_hardware_model)&\
-model_ver=$(get_hardware_version)"
+model_ver=$(get_hardware_version)&\
+firmware_ver=$(get_flashbox_version)"
 
 		_res=$(curl -s \
 			-A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
