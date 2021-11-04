@@ -94,14 +94,14 @@ scan_qcawifi() {
 		*) echo "$device: Invalid mode combination in config"; return 1;;
 	esac
 
-	config_set "$device" vifs "${ap:+$ap }${ap_monitor:+$ap_monitor }${mesh:+$mesh }${ap_smart_monitor:+$ap_smart_monitor }${wrap:+$wrap }${sta:+$sta }${adhoc:+$adhoc }${wds:+$wds }${monitor:+$monitor}${ap_lp_iot:+$ap_lp_iot}"
+	vifs="${ap:+$ap }${ap_monitor:+$ap_monitor }${mesh:+$mesh }${ap_smart_monitor:+$ap_smart_monitor }${wrap:+$wrap }${sta:+$sta }${adhoc:+$adhoc }${wds:+$wds }${monitor:+$monitor}${ap_lp_iot:+$ap_lp_iot}"
 	
-	# [ROMEU] GAMBIARRA - Solving issue from /sbin/wifi's config_cb , which duplicates the last vif read
-	config_get vifs "$device" vifs
-	[ -n "$( echo $vifs | grep default_radio1)" ] && vifs="default_radio1" && echo "[ROMEU] Deduplicating default_radio1 in scan_qcawifi " > /dev/console
+	# [ROMEU] Solving issue from /sbin/wifi's config_cb , which duplicates the last vif read (probably default_radio1). Having a duplicated vif on a device means qcawifi_enable() will 'wlanconfig create' two interfaces
+	vifs=$(echo "$vifs" | tr " " "\n" | sort -u | tr "\n" " ") 
+	
 	config_set "$device" vifs "$vifs"
-	echo "[ROMEU] [scan_qcawifi2] vifs for device $device is: $vifs " > /dev/console
 	
+	echo "vifs for device $device is: $vifs " > /dev/console
 }
 
 # The country ID is set at the radio level. When the driver attaches the radio,
