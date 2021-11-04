@@ -10,32 +10,8 @@ is_5ghz_capable() {
 }
 
 get_wifi_channel(){
-	local _phy=$(get_radio_phy $1)
-	iwinfo $_phy info | awk '/Channel/ { print $4 }'
-}
-
-is_mesh_routing_capable() {
-	local _ret=0
-	local _ret5=0
-
-	if [ -f /usr/sbin/wpad ]
-	then
-		local _24iface=$(get_24ghz_phy)
-		local _5iface=$(get_5ghz_phy)
-		[ "$_24iface" ] && [ "$(iw phy $_24iface info|grep "mesh point")" ] && _ret=1
-		[ "$_5iface" ] && [ "$(iw phy $_5iface info|grep "mesh point")" ] && _ret5=1
-	fi
-
-	if [ "$_ret5" -eq "1" ]
-	then
-		[ "$_ret" -eq "1" ] && echo "3" || echo "2"
-	else
-		echo "$_ret"
-	fi
-}
-
-is_mesh_capable() {
-	[ -f /usr/sbin/wpad ] && [ "$(is_mesh_routing_capable)" != "0" ] && echo "1"
+	local _phy=$(get_root_ifname $1)
+	iwinfo $_phy info | awk '/Channel/ { print $4; exit }'
 }
 
 get_wifi_device_stats() {
@@ -50,9 +26,9 @@ get_wifi_device_stats() {
 	do 
 		if [ "$_ap_freq" == "2.4" ]
 		then
-			_wifi_itf="$(get_radio_phy 0)"
+			_wifi_itf="$(get_root_ifname 0)"
 		else
-			_wifi_itf="$(get_radio_phy 1)"
+			_wifi_itf="$(get_root_ifname 1)"
 		fi
 
 		_dev_info="$(iwinfo $_wifi_itf a 2> /dev/null)"
@@ -109,9 +85,9 @@ is_device_wireless() {
 	do 
 		if [ "$_ap_freq" == "2.4" ]
 		then
-			_wifi_itf="$(get_radio_phy 0)"
+			_wifi_itf="$(get_root_ifname 0)"
 		else
-			_wifi_itf="$(get_radio_phy 1)"
+			_wifi_itf="$(get_root_ifname 1)"
 		fi
 
 		_dev_info="$(iwinfo $_wifi_itf a 2> /dev/null | grep -i $_dev_mac)"
@@ -326,14 +302,6 @@ get_wan_statistics() {
 			echo "0"
 		fi
 	fi
-}
-
-get_wifi_device_signature() {
-	local _dev_mac="$1"
-	local _q=""
-	_q="$(ubus -S call hostapd.wlan0 get_clients | jsonfilter -e '@.clients["'"$_dev_mac"'"].signature')"
-	[ -z "$_q" ] && [ "$(is_5ghz_capable)" -eq "1" ] && _q="$(ubus -S call hostapd.wlan1 get_clients | jsonfilter -e '@.clients["'"$_dev_mac"'"].signature')"
-	echo "$_q"
 }
 
 needs_reboot_change_mode() {

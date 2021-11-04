@@ -6,9 +6,10 @@
 . /usr/share/functions/device_functions.sh
 . /usr/share/functions/network_functions.sh
 . /usr/share/functions/wireless_functions.sh
+. /usr/share/functions/mesh_functions.sh
 
 redo_connections() {
-	[ "$(get_mesh_mode)" -gt "1" ] && [ "$(is_mesh_slave)" = "1" ] && [ ! "$(is_mesh_connected)" ] && auto_change_mesh_slave_channel
+	[ "$(get_mesh_mode)" -gt "1" ] && [ "$(is_mesh_slave)" = "1" ] && [ ! "$(is_mesh_connected)" ] && update_mesh_link
 	renew_dhcp
 }
 
@@ -50,8 +51,6 @@ do
 		redo_connections
 	fi
 done
-
-MQTTSEC=$(set_mqtt_secret)
 
 log "IMALIVE" "Start main loop (v$_anlix_version)"
 

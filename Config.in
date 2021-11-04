@@ -135,6 +135,10 @@ config FLASHMAN_DO_DHCP_RENEW_ON_DISCONNECT
 	bool "Force DHCP renew if DHCP mode is activated on WAN and Flashman connection has been lost"
 	default y
 
+config FLASHMAN_DHCP_REBIND
+	bool "Enable DHCP Rebind protection"
+	default y
+
 config MQTT_PORT
 	string "MQTT port"
 	default "1883"

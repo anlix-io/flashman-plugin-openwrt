@@ -68,6 +68,6 @@ set_data_collecting_parameters() {
 		# reload won't restart data collecting service if it's already running.
 		/etc/init.d/data_collecting reload
 	elif [ "$data_collecting_is_active" != "1" ]; then
-		/etc/init.d/data_collecting stop
+		/etc/init.d/data_collecting stop 2>/dev/null
 	fi
 }

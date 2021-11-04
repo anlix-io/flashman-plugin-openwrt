@@ -33,6 +33,26 @@ log() {
 	logger -t "$1 " "$2"
 }
 
+#read a sequence of data into variables
+get_data() {
+	local d=0
+	local _nuvals=$1
+	shift
+	local _prefix=$1
+	shift
+	while [ "$#" -gt 0 ]
+	do
+		eval "$_prefix$d=$1"
+		d=$((d+1))
+		shift
+	done
+	while [ "$d" -lt "$_nuvals" ]
+	do
+		eval "$_prefix$d=''"
+		d=$((d+1))
+	done
+}
+
 sh_timeout() {
 	cmd="$1"
 	timeout="$2"
@@ -155,18 +175,6 @@ rest_flashman() {
 	fi
 }
 
-is_mesh_slave() {
-	local _mesh_mode=""
-	local _mesh_master=""
-	json_cleanup
-	json_load_file /root/flashbox_config.json
-	json_get_var _mesh_mode mesh_mode
-	json_get_var _mesh_master mesh_master
-	json_close_object
-
-	[ -n "$_mesh_mode" ] && [ "$_mesh_mode" != "0" ] && [ -n "$_mesh_master" ] && echo "1" || echo "0"
-}
-
 is_authenticated() {
 	local _res
 	local _is_authenticated=1
@@ -182,7 +190,7 @@ organization=$FLM_CLIENT_ORG&\
 secret=$FLM_CLIENT_SECRET&\
 model=$(get_hardware_model)&\
 model_ver=$(get_hardware_version)&\
-is_mesh_active=$(is_mesh_slave)"
+firmware_ver=$(get_flashbox_version)"
 
 		_res=$(curl -s \
 			-A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
@@ -210,47 +218,4 @@ is_mesh_active=$(is_mesh_slave)"
 	fi
 
 	return $_is_authenticated
-}
-
-is_mesh_license_available() {
-	local _res
-	local _slave_mac=$1
-	local _is_available=1
-
-	if [ "$FLM_USE_AUTH_SVADDR" == "y" ]
-	then
-		#
-		# WARNING! No spaces or tabs inside the following string!
-		#
-		local _data
-		_data="organization=$FLM_CLIENT_ORG&\
-mac=$_slave_mac&\
-secret=$FLM_CLIENT_SECRET"
-
-		_res=$(curl -s \
-			-A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
-			--tlsv1.2 --connect-timeout 5 --retry 1 \
-			--data "$_data" \
-			"https://$FLM_AUTH_SVADDR/api/device/mesh/available")
-
-		local _curl_res=$?
-		if [ $_curl_res -eq 0 ]
-		then
-			json_cleanup
-			json_load "$_res" 2>/dev/null
-			if [ $? == 0 ]
-			then
-				json_get_var _is_available is_available
-				json_close_object
-			else
-				log "AUTHENTICATOR" "Invalid answer from controler"
-			fi
-		else
-			log "AUTHENTICATOR" "Error connecting to controler ($_curl_res)"
-		fi
-	else
-		_is_available=0
-	fi
-
-	return $_is_available
 }
