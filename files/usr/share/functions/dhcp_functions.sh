@@ -139,8 +139,10 @@ get_online_devices() {
 		/ago/ {
 			M=tolower($1)
 			SIGNAL[M]=$2
-			SNR[M]=$2-$5
-			IDLE[M]=$9
+			noise=$5
+			if(noise == "unknown" || noise < -95) noise=-95
+			SNR[M]=$2-noise
+			IDLE[M]=$(NF-2)
 			FREQ[M]=f
 			if(f == 5.0)
 				MODE[M]="AC"
@@ -150,7 +152,7 @@ get_online_devices() {
 
 		/TX/ {
 			TXBITRATE[M]=$2
-			TXPKT[M]=$7
+			TXPKT[M]=$(NF-1)
 		}
 
 		/5GHZ/{
