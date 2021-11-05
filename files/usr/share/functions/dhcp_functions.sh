@@ -139,7 +139,7 @@ get_online_devices() {
 		/ago/ {
 			M=tolower($1)
 			SIGNAL[M]=$2
-			SNR[M]=$5-$2
+			SNR[M]=$2-$5
 			IDLE[M]=$9
 			FREQ[M]=f
 			if(f == 5.0)
