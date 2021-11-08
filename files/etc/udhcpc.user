@@ -1,28 +1,48 @@
 #!/bin/sh
-[ -z "$opt43" ] && exit 1
 
-. /usr/share/functions/common_functions.sh
-. /usr/share/functions/network_functions.sh
-. /usr/share/functions/device_functions.sh
-
-#format is "43 <numval> <val1> FF"
-if [ "${opt43:0: -4}" == "2b01" ]
+if [ "$INTERFACE" = "wan" ]
 then
-	[ ! "$(is_mesh_capable)" ] && exit 1
-	
-	#get the mesh mode
-	_mesh_mode="${opt43:5: -2}"
-	if [ "$_mesh_mode" != "0" ]
+	json_get_var _link link-up
+	if [ $_link -eq 1 ]
 	then
-		#Enable bridge and let sapo do the rest
+		. /lib/functions/network.sh
+		. /usr/share/functions/network_functions.sh
+
 		if [ "$(get_bridge_mode_status)" != "y" ]
 		then
-			json_cleanup
-			json_load_file /root/flashbox_config.json
-			json_add_string did_change_wan_local "y"
-			json_dump > /root/flashbox_config.json
-			json_close_object
-			enable_bridge_mode y n n "" "" ""
+			#get information from wan dhcp 
+			json_select ipaddr
+			json_select 1
+			json_get_var _ipaddr ipaddr
+			json_get_var _mask mask
+			json_select ..
+			json_select ..
+
+			eval "$(ipcalc.sh $_ipaddr $_mask)"
+			_wan="$NETWORK/$PREFIX"
+			network_get_subnet _net lan
+			eval "$(ipcalc.sh $_net)"
+			_lan="$NETWORK/$PREFIX"
+			if [ "$_lan" = "$_wan" ]
+			then
+				#same network from upstream
+				#change lan address
+				_new_ipaddr="$(uci -q get network.lan.ipaddr | awk -F. '{ $3=$3+1; print $1"."$2"."$3"."$4; }')"
+				log "CHANGE IP" "LAN ip conflicts with WAN. New LAN: $_new_ipaddr"
+				uci set network.lan.ipaddr="$_new_ipaddr"
+				uci commit network
+
+				#Change lan information from flashman
+				json_cleanup
+				json_load_file /root/flashbox_config.json
+				json_add_string did_change_lan_local "y"
+				json_dump > /root/flashbox_config.json
+				json_close_object
+				json_cleanup
+
+				ifup lan
+			fi
 		fi
 	fi
 fi
+exit 0

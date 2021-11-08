@@ -80,7 +80,6 @@ FILE_DIR=
 		FILE_DIR="files"
 	endif
 
-CUSTOM_FILE_DIR=
 CUSTOM_FILE_ARQ=
 	ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_tplink_c2-v1), y)
 		CUSTOM_FILE_ARQ="tplink_archer-c2-v1"
@@ -136,14 +135,22 @@ CUSTOM_FILE_ARQ=
 		CUSTOM_FILE_ARQ="tplink_tl-wdr4300"
 	else ifeq ($(CONFIG_TARGET_ath79_generic_DEVICE_tplink_tl-wdr3600-v1), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wdr3600"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v4), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v4"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v5), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v5-v6"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v6), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v5-v6"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr840n-v62), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v62"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v4), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v4"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v5), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v5-v6"
 	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v6), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v5-v6"
+	else ifeq ($(CONFIG_TARGET_ramips_mt76x8_DEVICE_tl-wr849n-v62), y)
+		CUSTOM_FILE_ARQ="tplink_tl-wr84Xn-v62"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr940n-v4), y)
 		CUSTOM_FILE_ARQ="tplink_tl-wr940n-v4-v5"
 	else ifeq ($(CONFIG_TARGET_ar71xx_tiny_DEVICE_tl-wr940n-v5), y)
@@ -157,9 +164,7 @@ CUSTOM_FILE_ARQ=
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_dlink_dwr-116-a1), y)
 		CUSTOM_FILE_ARQ="dlink_dl-dwr116-a3"
 	else ifeq ($(CONFIG_TARGET_ramips_mt7620_DEVICE_itlb-ncloud-v1), y)
-		CUSTOM_FILE_DIR="custom-files/itlb-ncloud-v1"
-	else ifeq ($(CONFIG_TARGET_realtek_rtl8197d_DEVICE_DIR815D1), y)
-		CUSTOM_FILE_DIR="custom-files/dir-815-d1"
+		CUSTOM_FILE_ARQ="intelbras_ncloud-v1"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8196e_DEVICE_GWR300N), y)
 		CUSTOM_FILE_ARQ="greatek_gwr300-v1"
 	else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_GWR1200AC-V1), y)
@@ -202,15 +207,17 @@ SSID_SUFFIX=
 
 define Package/flashman-plugin/install
 	$(CP) ./$(FILE_DIR)/* $(1)/
-ifneq ($(CUSTOM_FILE_DIR),)
-	$(CP) ./$(CUSTOM_FILE_DIR)/* $(1)/
-endif
 ifneq ($(CUSTOM_FILE_ARQ),)
 	$(CP) ./custom-files/$(CUSTOM_FILE_ARQ).sh $(1)/usr/share/functions/custom_device.sh
-	if [ -d ./calibration/$(CUSTOM_FILE_ARQ) ]; then \
-		mkdir -p $(1)/lib/firmware ; \
-		$(CP) ./calibration/$(CUSTOM_FILE_ARQ)/* $(1)/lib/firmware/ ; \
-	fi
+endif
+
+ifeq ($(CONFIG_TARGET_ramips), y)
+	$(INSTALL_DIR) $(1)/lib/wifi $(1)/lib/netifd/wireless
+	$(INSTALL_DATA) ./mtkwifi/wifi/rtwifi.sh $(1)/lib/wifi
+	$(INSTALL_BIN) ./mtkwifi/netifd/wireless/rtwifi.sh $(1)/lib/netifd/wireless
+	$(CP) ./driver/rtwifi.sh $(1)/usr/share/functions/custom_wireless_driver.sh
+else
+	$(CP) ./driver/mac80211.sh $(1)/usr/share/functions/custom_wireless_driver.sh
 endif
 
 	$(INSTALL_DIR) $(1)/usr/bin
@@ -239,6 +246,7 @@ endif
 	echo 'FLM_LAN_IPV6_PREFIX=$(CONFIG_FLASHMAN_LAN_IPV6_PREFIX)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_DHCP_NOPROXY=$(CONFIG_FLASHMAN_DHCP_NOPROXY)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_DO_DHCP_RENEW_ON_DISCONNECT=$(CONFIG_FLASHMAN_DO_DHCP_RENEW_ON_DISCONNECT)' >>$(1)/usr/share/flashman_init.conf
+	echo 'FLM_DHCP_REBIND=$(CONFIG_FLASHMAN_DHCP_REBIND)' >>$(1)/usr/share/flashman_init.conf
 	echo 'MQTT_PORT=$(CONFIG_MQTT_PORT)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_CLIENT_ORG=$(CONFIG_FLASHMAN_CLIENT_ORG)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_WAN_PPPOE_USER=$(CONFIG_FLASHMAN_PPPOE_USER)' >>$(1)/usr/share/flashman_init.conf

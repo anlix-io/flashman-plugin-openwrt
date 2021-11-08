@@ -1,5 +1,6 @@
 #!/bin/sh
 . /usr/share/functions/device_functions.sh
+. /usr/share/functions/common_functions.sh
 . /usr/share/flashman_init.conf
 
 # directory where all data related to data collecting will be stored.
@@ -25,12 +26,11 @@ collect_QoE_Monitor_data() {
 
 	# Even if the ping could not be executed, we'll read the wan bytes to keep tracking the amount of bytes up and down.
 
-	# name of the wan interface.
-	local wanName=$(ifstatus wan | jsonfilter -e '@.device')
 	# bytes received by the interface.
-	local rxBytes=$(cat /sys/class/net/$wanName/statistics/rx_bytes)
+	local rxBytes=$(get_wan_statistics RX)
 	# bytes sent by the interface.
-	local txBytes=$(cat /sys/class/net/$wanName/statistics/tx_bytes)
+	local txBytes=$(get_wan_statistics TX)
+
 	# if last bytes are not defined. define them using the current wan interface bytes value. then we skip this measure.
 	if [ -z "$last_rxBytes" ] || [ -z "$last_txBytes" ]; then
 		# echo last bytes are undefined
@@ -41,6 +41,7 @@ collect_QoE_Monitor_data() {
 		# don't write data this round. we need a full minute of bytes to calculate cross traffic.
 		return
 	fi
+
 	# bytes received since last time.
 	local rx=$(($rxBytes - $last_rxBytes))
 	# bytes transmitted since last time

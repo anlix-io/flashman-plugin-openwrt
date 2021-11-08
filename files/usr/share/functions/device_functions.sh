@@ -3,151 +3,36 @@
 [ -e /usr/share/functions/custom_device.sh ] && . /usr/share/functions/custom_device.sh
 . /lib/functions.sh
 . /lib/functions/leds.sh
-
-get_radio_phy() {
-	echo "$(ls /sys/devices/$(uci get wireless.radio$1.path)/ieee80211)"
-}
-
-get_phy_type() {
-	#1: 2.4 2: 5GHz
-	echo "$(iw phy $1 channels|grep Band|tail -1|cut -c6)"
-}
-
-get_24ghz_phy() {
-	for i in /sys/class/ieee80211/* 
-	do 
-		iface=`basename $i` 
-		[ "$(get_phy_type $iface)" -eq "1" ] && echo $iface
-	done
-}
-
-get_5ghz_phy() {
-	for i in /sys/class/ieee80211/* 
-	do 
-		iface=`basename $i` 
-		[ "$(get_phy_type $iface)" -eq "2" ] && echo $iface
-	done
-}
-
-is_5ghz_vht() {
-	local _5iface=$(get_5ghz_phy)
-	[ "$_5iface" ] && [ "$(iw phy $_5iface info|grep "VHT")" ] && echo "1"
-}
+. /usr/share/functions/custom_wireless_driver.sh
 
 is_5ghz_capable() {
 	[ "$(get_5ghz_phy)" ] && echo "1" || echo "0"
 }
 
-is_mesh_routing_capable() {
-	local _ret=0
-	local _ret5=0
-	local _24iface=$(get_24ghz_phy)
-	local _5iface=$(get_5ghz_phy)
-	[ "$_24iface" ] && [ "$(iw phy $_24iface info|grep "mesh point")" ] && _ret=1
-	[ "$_5iface" ] && [ "$(iw phy $_5iface info|grep "mesh point")" ] && _ret5=1
-	if [ "$_ret5" -eq "1" ] 
-	then
-		[ "$_ret" -eq "1" ] && echo "3" || echo "2"
-	else
-		echo "$_ret"
-	fi
-}
-
-is_mesh_capable() {
-	[ -f /usr/sbin/wpad ] && [ "$(is_mesh_routing_capable)" != "0" ] && echo "1"
-}
-
-get_wifi_device_stats() {
-	local _dev_mac="$1"
-	local _dev_info
-	local _wifi_stats=""
-	local _retstatus
-	local _cmd_res
-	local _wifi_itf="wlan0"
-	local _ap_freq="2.4"
-	local _base_noise="-92"
-
-	_cmd_res=$(command -v iw)
-	_retstatus=$?
-
-	if [ $_retstatus -eq 0 ]
-	then
-		_dev_info="$(iw dev $_wifi_itf station get $_dev_mac 2> /dev/null)"
-		_retstatus=$?
-
-		if [ $_retstatus -ne 0 ]
-		then
-			_wifi_itf="wlan1"
-			_ap_freq="5.0"
-			_dev_info="$(iw dev $_wifi_itf station get $_dev_mac 2> /dev/null)"
-			_retstatus=$?
-		fi
-
-		if [ $_retstatus -eq 0 ]
-		then
-			local _dev_txbitrate="$(echo "$_dev_info" | grep 'tx bitrate:' | awk '{print $3}')"
-			local _dev_rxbitrate="$(echo "$_dev_info" | grep 'rx bitrate:' | awk '{print $3}')"
-			local _dev_mcs="$(echo "$_dev_info" | grep 'tx bitrate:' | awk '{print $5}')"
-			local _dev_signal="$(echo "$_dev_info" | grep -m1 'signal:' | awk '{print $2}' | awk -F. '{print $1}')"
-			local _ap_noise="$(iwinfo $_wifi_itf info | grep 'Noise:' | awk '{print $5}' | awk -F. '{print $1}')"
-			local _dev_txbytes="$(echo "$_dev_info" | grep 'tx bytes:' | awk '{print $3}')"
-			local _dev_rxbytes="$(echo "$_dev_info" | grep 'rx bytes:' | awk '{print $3}')"
-			local _dev_txpackets="$(echo "$_dev_info" | grep 'tx packets:' | awk '{print $3}')"
-			local _dev_rxpackets="$(echo "$_dev_info" | grep 'rx packets:' | awk '{print $3}')"
-			local _dev_conntime="$(echo "$_dev_info" | grep 'connected time:' | awk '{print $3}')"
-
-			_ap_noise=$([ "$_ap_noise" == "unknown" ] && echo "$_base_noise" || echo "$_ap_noise")
-			if [ "$_ap_noise" -lt "$_base_noise" ]
-			then
-				_ap_noise="$_base_noise"
-			fi
-
-			# Calculate SNR
-			local _dev_snr="$(($_dev_signal - $_ap_noise))"
-
-			_wifi_stats="$_dev_txbitrate $_dev_rxbitrate $_dev_signal"
-			_wifi_stats="$_wifi_stats $_dev_snr $_ap_freq"
-
-			[ "$_dev_mcs" == "VHT-MCS" ] && _wifi_stats="$_wifi_stats AC" || _wifi_stats="$_wifi_stats N"
-			# Traffic data
-			_wifi_stats="$_wifi_stats $_dev_txbytes $_dev_rxbytes"
-			_wifi_stats="$_wifi_stats $_dev_txpackets $_dev_rxpackets"
-			_wifi_stats="$_wifi_stats $_dev_conntime"
-			echo "$_wifi_stats"
-		else
-			echo "0.0 0.0 0.0 0.0 0 Z 0 0 0 0 0"
-		fi
-	else
-		echo "0.0 0.0 0.0 0.0 0 Z 0 0 0 0 0"
-	fi
+get_wifi_channel(){
+	local _phy=$(get_root_ifname $1)
+	iwinfo $_phy info | awk '/Channel/ { print $4; exit }'
 }
 
 is_device_wireless() {
 	local _dev_mac="$1"
 	local _dev_info
-	local _retstatus
-	local _cmd_res
-	local _wifi_itf="wlan0"
+	local _wifi_itf
 
-	_cmd_res=$(command -v iw)
-	_retstatus=$?
-
-	if [ $_retstatus -eq 0 ]
-	then
-		_dev_info="$(iw dev $_wifi_itf station get $_dev_mac 2> /dev/null)"
-		_retstatus=$?
-
-		if [ $_retstatus -ne 0 ]
+	for _ap_freq in "2.4" "5.0"
+	do 
+		if [ "$_ap_freq" == "2.4" ]
 		then
-			_wifi_itf="wlan1"
-			_dev_info="$(iw dev $_wifi_itf station get $_dev_mac 2> /dev/null)"
-			_retstatus=$?
+			_wifi_itf="$(get_root_ifname 0)"
+		else
+			_wifi_itf="$(get_root_ifname 1)"
 		fi
 
-		[ $_retstatus -eq 0 ] && return 0 || return 1
-	else
-		return 1
-	fi
+		_dev_info="$(iwinfo $_wifi_itf a 2> /dev/null | grep -i $_dev_mac)"
+
+		[ "$_dev_info" ] && return 0  
+	done
+	return 1
 }
 
 leds_off() {
@@ -201,10 +86,10 @@ get_mac() {
 }
 
 get_vlan_device() {
-	parse_get_switch() { 
-		config_get device $2 device 
+	parse_get_switch() {
+		config_get device $2 device
 		config_get vlan $2 vlan
-		[ $vlan -eq $1 ] && echo "${device}" 
+		[ $vlan -eq $1 ] && echo "${device}"
 	}
 	config_load network
 	swt=$(config_foreach "parse_get_switch $1" switch_vlan)
@@ -224,8 +109,8 @@ get_wan_device() {
 get_switch_device() {
 	local _switch
 	for i in $(swconfig list)
-	do 
-		[ -z "${i%switch*}" ] && _switch="$i" 
+	do
+		[ -z "${i%switch*}" ] && _switch="$i"
 	done
 	echo "$_switch"
 }
@@ -320,12 +205,41 @@ get_lan_dev_negotiated_speed() {
 	echo "$_speed"
 }
 
-get_wifi_device_signature() {
-	local _dev_mac="$1"
-	local _q=""
-	_q="$(ubus -S call hostapd.wlan0 get_clients | jsonfilter -e '@.clients["'"$_dev_mac"'"].signature')"
-	[ -z "$_q" ] && [ "$(is_5ghz_capable)" -eq "1" ] && _q="$(ubus -S call hostapd.wlan1 get_clients | jsonfilter -e '@.clients["'"$_dev_mac"'"].signature')"
-	echo "$_q"
+get_wan_statistics() {
+	local _param=$1
+
+	if [ "$(lsmod | grep hwnat)" ]
+	then
+		# MT7620 routers read data from swconfig, as hwnat mascarede the wan bytes
+		if [ "$(type -t custom_switch_ports)" ]; then
+			local _switch="$(custom_switch_ports 1)"
+			local _wan_port="$(custom_switch_ports 2)"
+		else
+			local _switch="$(switch_ports 1)"
+			local _wan_port="$(switch_ports 2)"
+		fi
+		A=$(swconfig dev $_switch port $_wan_port get mib 2>/dev/null)
+		if [ "$A" ]
+		then
+			case "$1" in
+				"TX") echo "$(echo "$A" | awk '/ifOutOctets/ { print $3 }')" ;;
+				"RX") echo "$(echo "$A" | awk '/ifInOctets/ { print $3 }')" ;;
+			esac
+		else
+			echo "0"
+		fi
+	else
+		local _wan=$(get_wan_device)
+		if [ -f /sys/class/net/$_wan/statistics/tx_bytes ]
+		then
+			case "$1" in
+				"TX") echo "$(cat /sys/class/net/$_wan/statistics/rx_bytes)" ;;
+				"RX") echo "$(cat /sys/class/net/$_wan/statistics/tx_bytes)" ;;
+			esac
+		else
+			echo "0"
+		fi
+	fi
 }
 
 needs_reboot_change_mode() {

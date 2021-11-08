@@ -15,3 +15,23 @@ get_custom_mac() {
 
 	echo "$_mac_address_tag"
 }
+
+hw_offload_support() {
+	echo "1"
+}
+
+wireless_firmware() {
+	. /lib/functions.sh
+	local board=$(board_name)
+	#Firmware files - Clean this in the future (use firmware api in driver)
+	case $board in
+		dlink,dir-819-a1)
+			[ ! -e /lib/firmware/MT7620_AP_2T2R-4L_V15.BIN ] && dd if=/dev/mtd0ro of=/lib/firmware/MT7620_AP_2T2R-4L_V15.BIN bs=1 skip=66080 count=512
+			[ ! -e /lib/firmware/MT7610_EEPROM.bin ] && dd if=/dev/mtd0ro of=/lib/firmware/MT7610_EEPROM.bin bs=1 skip=65554 count=512
+		;;
+		zyxel,emg1702-t10a-a1)
+			[ ! -e /lib/firmware/MT7620_AP_2T2R-4L_V15.BIN ] && dd if=/dev/mtd0ro of=/lib/firmware/MT7620_AP_2T2R-4L_V15.BIN bs=1 skip=65552 count=512
+			[ ! -e /lib/firmware/MT7610_EEPROM.bin ] && dd if=/dev/mtd0ro of=/lib/firmware/MT7610_EEPROM.bin bs=1 skip=66080 count=512
+		;;
+	esac
+}

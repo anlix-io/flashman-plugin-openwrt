@@ -4,6 +4,7 @@
 . /usr/share/libubox/jshn.sh
 . /usr/share/functions/network_functions.sh
 . /usr/share/functions/device_functions.sh
+. /usr/share/functions/mesh_functions.sh
 
 json_cleanup
 json_load_file /root/flashbox_config.json
@@ -52,8 +53,9 @@ then
 	_lan_netmask="24"
 else
 	_ipcalc_res="$(/bin/ipcalc.sh $_lan_addr $_lan_netmask 1)"
+	eval "$_ipcalc_res"
 
-	_ipcalc_netmask=$(echo "$_ipcalc_res" | grep "PREFIX" | awk -F= '{print $2}')
+	_ipcalc_netmask="$PREFIX"
 	# Accepted netmasks: 24 to 26
 	if [ $_ipcalc_netmask -lt 24 ] || [ $_ipcalc_netmask -gt 26 ]
 	then
@@ -64,7 +66,7 @@ else
 		# Valid netmask
 		_lan_netmask="$_ipcalc_netmask"
 		# Use first address available returned by ipcalc
-		_ipcalc_addr=$(echo "$_ipcalc_res" | grep "START" | awk -F= '{print $2}')
+		_ipcalc_addr="$START"
 		_lan_addr="$_ipcalc_addr"
 	fi
 fi
@@ -73,21 +75,14 @@ fi
 uci set network.wan.proto="$FLM_WAN_PROTO"
 uci set network.wan.mtu="$FLM_WAN_MTU"
 uci set network.wan.service="$FLM_WAN_PPPOE_SERVICE"
+uci set network.wan.vendorid="ANLIXAP"
 uci set network.wan.keepalive="60 3"
 # Configure LAN
 uci set network.lan.ipaddr="$_lan_addr"
 uci set network.lan.netmask="$_lan_netmask"
 uci set network.lan.ip6assign="$_lan_ipv6prefix"
 uci set network.lan.igmp_snooping='1'
-
-if [ "$(is_mesh_capable)" ]
-then
-	uci set network.wan.vendorid="ANLIX02"
-	uci set network.wan.reqopts="43"
-	uci set network.lan.stp='1'
-else
-	uci set network.wan.vendorid="ANLIX01"
-fi
+uci set network.lan.stp='1'
 
 uci set network.dmz=interface
 uci set network.dmz.proto='static'

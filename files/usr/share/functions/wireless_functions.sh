@@ -27,17 +27,9 @@ get_htmode_50() {
 	[ "$_noscan_50" == "0" ] && echo "auto" || echo "$_htmode_50"
 }
 
-get_wifi_htmode(){
-	iw dev wlan$1 info 2>/dev/null|grep width|awk '{print $6}'
-}
-
 get_wifi_state() {
 	local _q=$(uci -q get wireless.default_radio$1.disabled)
 	[ "$_q" ] && [ "$_q" = "1" ] && echo "0" || echo "1"
-}
-
-get_wifi_channel(){
-	iw dev wlan$1 info 2>/dev/null|grep channel|awk '{print $2}'
 }
 
 auto_channel_selection() {
@@ -50,91 +42,6 @@ auto_channel_selection() {
 			echo "40"
 		;;
 	esac
-}
-
-convert_txpower() {
-	local _freq="$1"
-	local _channel="$2"
-	local _txprct="$3"
-	local _maxpwr
-
-	if [ "$_freq" = "24" ] 
-	then
-		_maxpwr=20
-		[ "$(type -t custom_wifi_24_txpower)" ] && _maxpwr="$(custom_wifi_24_txpower)"
-	else
-		_maxpwr=30
-		[ "$(type -t custom_wifi_50_txpower)" ] && _maxpwr="$(custom_wifi_50_txpower)"
-	fi
-
-	if [ "$_channel" = "auto" ] 
-	then
-		echo "$_maxpwr"
-		return
-	fi
-
-	local _phy
-	local _reload=0
-	if [ "$_freq" = "24" ]
-	then
-		_phy=$(get_24ghz_phy)
-		[ ! "$(type -t custom_wifi_24_txpower)" ] && _reload=1
-	else
-		_phy=$(get_5ghz_phy)
-		[ ! "$(type -t custom_wifi_50_txpower)" ] && _reload=1
-	fi
-	[ $_reload = 1 ] && _maxpwr=$(iw $_phy info | awk '/\['$_channel'\]/{ print substr($5,2,2) }')
-
-	echo $(( ((_maxpwr * _txprct)+50) / 100 ))
-}
-
-get_txpower() {
-	local _freq="$1"
-	local _txpower="$(uci -q get wireless.radio$_freq.txpower)"
-	local _channel="$(uci -q get wireless.radio$_freq.channel)"
-
-	if [ "$_channel" = "auto" ] 
-	then
-		echo "100" 
-		return
-	fi
-
-	local _phy
-	local _maxpwr="0"
-	if [ "$_freq" = "0" ]
-	then
-		_phy=$(get_24ghz_phy)
-		[ "$(type -t custom_wifi_24_txpower)" ] && _maxpwr="$(custom_wifi_24_txpower)"
-	else
-		_phy=$(get_5ghz_phy)
-		[ "$(type -t custom_wifi_50_txpower)" ] && _maxpwr="$(custom_wifi_50_txpower)"
-	fi
-	[ "$_maxpwr" = "0" ] && _maxpwr=$(iw $_phy info | awk '/\['$_channel'\]/{ print substr($5,2,2) }')
-
-	local _txprct="$(( (_txpower * 100) / _maxpwr ))"
-	if   [ $_txprct -ge 100 ]; then echo "100"
-	elif [ $_txprct -ge 75 ]; then echo "75"
-	elif [ $_txprct -ge 50 ]; then echo "50"
-	else echo "25"
-	fi
-}
-
-change_fast_transition() {
-	local _radio="$1"
-	local _enabled="$2"
-	if [ "$_enabled" = "1" ]
-	then
-		# Enable Fast Transition
-		uci set wireless.default_radio$_radio.ieee80211r="1"
-		uci set wireless.default_radio$_radio.ieee80211v="1"
-		uci set wireless.default_radio$_radio.bss_transition="1"
-		uci set wireless.default_radio$_radio.ieee80211k="1"
-	else
-		uci delete wireless.default_radio$_radio.ieee80211r
-		uci delete wireless.default_radio$_radio.ieee80211v
-		uci delete wireless.default_radio$_radio.bss_transition
-		uci delete wireless.default_radio$_radio.ieee80211k
-	fi
 }
 
 change_wps_state() {
@@ -342,12 +249,12 @@ set_wifi_local_config() {
 
 	if [ -n "$_mesh_mode" ]
 	then
-		local _new_channel="$([ "$_remote_channel_24" != "" ] && echo "$_remote_channel_24" || echo $_local_channel_24)"
-		if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ] && [ "$_new_channel" = "auto" ]
+		# Set the channel back to what was set in enable_mesh
+		# if it is a slave and remote channel is auto
+		if [ "$_remote_channel_24" = "auto" ] && 
+		   [ "$(is_mesh_slave)" -eq "1" ]
 		then
-			#MESH cant run auto!
-			_new_channel="$(auto_channel_selection wlan0)"
-			uci set wireless.radio0.channel="$_new_channel"
+			uci set wireless.radio0.channel="$_local_channel_24"
 			_do_reload=1
 		fi
 
@@ -448,12 +355,12 @@ set_wifi_local_config() {
 
 		if [ -n "$_mesh_mode" ]
 		then
-			local _new_channel="$([ "$_remote_channel_50" != "" ] && echo "$_remote_channel_50" || echo $_local_channel_50)"
-			if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ] && [ "$_new_channel" = "auto" ]
+			# Set the channel back to what was set in enable_mesh
+			# if it is a slave and remote channel is auto
+			if [ "$_remote_channel_50" = "auto" ] && 
+			[ "$(is_mesh_slave)" -eq "1" ]
 			then
-				#MESH cant run auto!
-				_new_channel="$(auto_channel_selection wlan1)"
-				uci set wireless.radio1.channel="$_new_channel"
+				uci set wireless.radio1.channel="$_local_channel_50"
 				_do_reload=1
 			fi
 
@@ -509,107 +416,6 @@ set_wifi_local_config() {
 	return 1
 }
 
-get_mesh_id() {
-	local _mesh_id=""
-	json_cleanup
-	json_load_file /root/flashbox_config.json
-	json_get_var _mesh_id mesh_id
-	json_close_object
-	[ "$_mesh_id" ] && echo "$_mesh_id" || echo "anlix"
-}
-
-get_mesh_key() {
-	local _mesh_key=""
-	json_cleanup
-	json_load_file /root/flashbox_config.json
-	json_get_var _mesh_key mesh_key
-	json_close_object
-	[ "$_mesh_key" ] && echo "$_mesh_key" || echo "tempkey1234"
-}
-
-enable_mesh_routing() {
-	local _new_mesh_id
-	local _new_mesh_key
-	local _mesh_mode=$1
-	local _do_save=0
-	local _local_mesh_id="$(get_mesh_id)"
-	if [ "$#" -eq 3 ]
-	then
-		_new_mesh_id="$2"
-		_new_mesh_key="$3"
-	else
-		_new_mesh_id="$(get_mesh_id)"
-		_new_mesh_key="$(get_mesh_key)"
-	fi
-
-	if [ "$_local_mesh_id" != "$_new_mesh_id" ]
-	then
-		json_cleanup
-		json_load_file /root/flashbox_config.json
-		json_add_string mesh_id "$_new_mesh_id"
-		json_add_string mesh_key "$_new_mesh_key"
-		json_dump > /root/flashbox_config.json
-		json_close_object
-	fi
-
-	if [ "$(type -t is_mesh_routing_capable)" ]
-	then
-		local _mrc=$(is_mesh_routing_capable)
-		if [ "$_mrc" -gt "0" ]
-		then
-			if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
-			then
-				if [ "$_mrc" -eq "1" ] || [ "$_mrc" -eq "3" ]
-				then
-					uci set wireless.mesh2=wifi-iface
-					uci set wireless.mesh2.device='radio0'
-					uci set wireless.mesh2.ifname='mesh0'
-					uci set wireless.mesh2.network='lan'
-					uci set wireless.mesh2.mode='mesh'
-					uci set wireless.mesh2.mesh_id="$_new_mesh_id"
-					uci set wireless.mesh2.encryption='psk2'
-					uci set wireless.mesh2.key="$_new_mesh_key"
-					_do_save=1
-				fi
-			else
-				if [ "$(uci -q get wireless.mesh2)" ]
-				then
-					uci delete wireless.mesh2
-					_do_save=1
-				fi
-			fi
-			if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
-			then
-				if [ "$_mrc" -eq "2" ] || [ "$_mrc" -eq "3" ]
-				then
-					uci set wireless.mesh5=wifi-iface
-					uci set wireless.mesh5.device='radio1'
-					uci set wireless.mesh5.ifname='mesh1'
-					uci set wireless.mesh5.network='lan'
-					uci set wireless.mesh5.mode='mesh'
-					uci set wireless.mesh5.mesh_id="$_new_mesh_id"
-					uci set wireless.mesh5.encryption='psk2'
-					uci set wireless.mesh5.key="$_new_mesh_key"
-					_do_save=1
-				fi
-			else
-				if [ "$(uci -q get wireless.mesh5)" ]
-				then
-					uci delete wireless.mesh5
-					_do_save=1
-				fi
-			fi
-		fi
-
-		if [ $_do_save -eq 1 ]
-		then
-			uci commit wireless
-			return 0
-		fi
-	fi
-	return 1
-}
-
 change_wifi_state() {
 	local _state
 	local _itf_num
@@ -634,108 +440,47 @@ change_wifi_state() {
 					"" && wifi reload && /etc/init.d/minisapo reload
 }
 
-auto_change_mesh_slave_channel() {
-	scan_channel(){
-		local _new_NCh=""
-		local _iface="$1"
-		local _mesh_id="$2"
-		A=$(iw dev $_iface scan -u);
-		while [ "$A" ]
-		do
-			AP=${A##*BSS }
-			A=${A%BSS *}
-			case "$AP" in
-				*"MESH ID: $_mesh_id"*)
-					_new_NCh="$(echo "$AP"|awk 'BEGIN{CH=""}/primary channel/{CH=$4}END{print CH}')"
-					;;
-			esac
-		done
-		echo "$_new_NCh"
-	}
-
-	local _mesh_mode="$(get_mesh_mode)"
-	local _mesh_id="$(get_mesh_id)"
-	local _NCh2=""
-	local _NCh5=""
-	if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
-	then
-		log "AUTOCHANNEL" "Scanning MESH channel for mesh0..."
-		iw dev mesh0 info 1>/dev/null 2> /dev/null && _NCh2=$(sh_timeout "scan_channel mesh0 $_mesh_id" 10)
-	fi
-	if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
-	then
-		log "AUTOCHANNEL" "Scanning MESH channel for mesh1..."
-		iw dev mesh1 info 1>/dev/null 2> /dev/null && _NCh5=$(sh_timeout "scan_channel mesh1 $_mesh_id" 10)
-	fi
-
-	if [ "$_NCh2" ] || [ "$_NCh5" ]
-	then
-		if set_wifi_local_config "" "" "$_NCh2" "" "" "" "" "" \
-			"" "" "$_NCh5" "" "" "" "" "" "$_mesh_mode"
-		then
-			log "AUTOCHANNEL" "MESH Channel change ($_NCh2) ($_NCh5)"
-			wifi reload
-		else
-			log "AUTOCHANNEL" "No need to change MESH channel"
-		fi
-	else
-		log "AUTOCHANNEL" "No MESH signal found"
-	fi
-}
-
-set_mesh_rrm() {
-	local _need_change=0
-	[ "$(get_wifi_state 0)" = "1" ] && ubus -t 15 wait_for hostapd.wlan0 2>/dev/null && _need_change=1
-	[ "$(is_5ghz_capable)" = "1" ] && [ "$(get_wifi_state 1)" = "1" ] && \
-		ubus -t 15 wait_for hostapd.wlan1 2>/dev/null && _need_change=1
-
-	if [ $_need_change -eq 1 ]
-	then
-		local rrm_list
-		local radios=$(ubus list | grep hostapd.wlan)
-		A=$'\n'$(ubus call anlix_sapo get_meshids | jsonfilter -e "@.list[*]")
-		while [ "$A" ]
-		do
-			B=${A##*$'\n'}
-			A=${A%$'\n'*}
-			rrm_list=$rrm_list",$B"
-		done
-		for value in ${radios}
-		do
-			rrm_list=${rrm_list}",$(ubus call ${value} rrm_nr_get_own | jsonfilter -e '$.value')"
-		done
-		for value in ${radios}
-		do
-			ubus call ${value} bss_mgmt_enable '{"neighbor_report": true}'
-			eval "ubus call ${value} rrm_nr_set '{ \"list\": [ ${rrm_list:1} ] }'"
-		done
-	fi
-}
-
 set_wps_push_button() {
 	local _state
+	local _device0
+	local _device1
 
 	_state=$1
-
-	if [ ! "$(type -t hostapd_cli)" ]
-	then
-		return 1
-	fi
+	_device0=$(get_radio_phy 0)
+	_device1=$(get_radio_phy 1)
 
 	if [ "$_state" = "1" ]
 	then
 		# Push button will last 2 min active or until first conn succeeds
-		hostapd_cli -i wlan0 wps_pbc
+		if [ "$_device0" == "ra0" ]
+		then
+			iwpriv ra0 wsc_start 1
+			/usr/share/hostapdstats.sh ra0 WPS-PBC-ACTIVE & # Call this once
+		else
+			hostapd_cli -i wlan0 wps_pbc
+		fi
 
-		if [ "$(is_5ghz_capable)" == "1" ]
+		if [ "$(is_5ghz_capable)" == "1" ] && [ "$_device1" == "rai0" ]
+		then
+			iwpriv rai0 wsc_start 1
+		elif [ "$(is_5ghz_capable)" == "1" ]
 		then
 			hostapd_cli -i wlan1 wps_pbc
 		fi
 		return 0
 	else
-		hostapd_cli -i wlan0 wps_cancel
-
-		if [ "$(is_5ghz_capable)" == "1" ]
+		# Cancel WPS
+		if [ "$_device0" == "ra0" ]
+		then
+			iwpriv ra0 wsc_start 0
+			/usr/share/hostapdstats.sh ra0 WPS-PBC-DISABLE # Call this only once
+		else
+			hostapd_cli -i wlan0 wps_cancel
+		fi
+		if [ "$(is_5ghz_capable)" == "1" ] && [ "$_device1" == "rai0" ]
+		then
+			iwpriv rai0 wsc_start 0
+		elif [ "$(is_5ghz_capable)" == "1" ]
 		then
 			hostapd_cli -i wlan1 wps_cancel
 		fi
@@ -743,3 +488,11 @@ set_wps_push_button() {
 	fi
 }
 
+get_connected_devices_number() {
+	local L1=$(iwinfo $(get_root_ifname 0) a | wc -l)
+	local L2=0
+
+	[ "$(is_5ghz_capable)" == "1" ] && L2=$(iwinfo $(get_root_ifname 1) a | wc -l)
+
+	echo $(((L1/5)+(L2/5)))
+}
