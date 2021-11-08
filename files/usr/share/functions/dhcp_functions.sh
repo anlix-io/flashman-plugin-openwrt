@@ -179,7 +179,7 @@ get_online_devices() {
 		case "$1" in
 			*"$2"*)
 				_idxn=${1##*"$2":}
-				echo ${_idxn::1}
+				echo ${_idxn%% *}
 			;;
 		esac
 	}
