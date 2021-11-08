@@ -77,7 +77,7 @@ get_online_devices() {
 			}
 			{
 				A[$2]=$1;
-				split($4, ar, "=");
+				split($(NF-1), ar, "=");
 				B[$2]=ar[2];
 			}
 			END{
