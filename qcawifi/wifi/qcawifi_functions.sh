@@ -1736,11 +1736,6 @@ check_qcawifi_device() {
 
 detect_qcawifi() {
 	devidx=0
-	olcfg_ng=0
-	olcfg_ac=0
-	nss_olcfg=0
-	nss_ol_num=0
-	reload=0
 	sleep 3
 	config_load wireless
 	while :; do

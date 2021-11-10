@@ -2,7 +2,7 @@
 #
 # Initialize ramips wireless driver
 
-[ -n "$DRIVERS" ] || append DRIVERS "qcawifi"
+append DRIVERS "qcawifi"
 
 . /lib/functions.sh
 . /lib/functions/system.sh
