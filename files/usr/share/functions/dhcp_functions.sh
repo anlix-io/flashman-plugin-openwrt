@@ -30,8 +30,6 @@ get_ipv6_dhcp() {
 					json_select "$((Index_Addr++))"
 					json_get_var addrv6 "address"
 
-					# We need to "wake up" the ip to get the mac from ip neigh
-					ping6 -I br-lan -q -c 1 -w 1 "$addrv6" > /dev/null 2>&1
 					local _macaddr=$(ip -6 neigh | grep "$addrv6" | awk '{ if($4 == "lladdr") print $5 }')
 					if [ ! -z $_macaddr ]; then
 						echo $duid $_macaddr $addrv6
@@ -59,9 +57,11 @@ get_online_devices() {
 	#Information that only master have
 	if [ "$_mesh_slave" = "0" ]
 	then
+		# Get IPv4 devices
 		# Get all connected devices using arp (cable and wifi)
 		# Get hostname from dhcp.lease
-		# _router# = (ip RTT hostname)
+		# Trust (believe it is online) ips that return arp response
+		# _router# = (ip RTT Trust hostname)
 		local _dhcp_info_ipv4=$([ -f /tmp/dhcp.leases ] && cat /tmp/dhcp.leases)
 		eval "$(arp-scan -l -D -x -r1 2>/dev/null | awk -v dhcp="$_dhcp_info_ipv4" '
 			BEGIN{
@@ -69,6 +69,7 @@ get_online_devices() {
 				for (i=1;i<=n1;i++) {
 					n2=split(arr1[i], ar);
 					A[ar[2]]=ar[3];
+					T[ar[2]]=0;
 					if (ar[4]=="*")
 						C[ar[2]]="!"
 					else
@@ -77,8 +78,9 @@ get_online_devices() {
 			}
 			{
 				A[$2]=$1;
-				split($4, ar, "=");
+				split($(NF-1), ar, "=");
 				B[$2]=ar[2];
+				T[$2]=1;
 			}
 			END{
 				count=0
@@ -87,6 +89,7 @@ get_online_devices() {
 					printf "_router%d=\"", count;
 					printf "\\\"%s\\\" ", A[b];
 					printf "\\\"%s\\\" ", B[b];
+					printf "\\\"%d\\\" ", T[b];
 					printf "\\\"%s\\\" ", C[b];
 					print "\";"
 					MA=MA b ":" count " "
@@ -97,7 +100,9 @@ get_online_devices() {
 			}')"
 
 		#Get IPv6 dhcp information
+		# Can only trust ipv6 which are reachable
 		# _6router# = (ip6 ip6 ... )
+		# _Trouter# = Trust
 		if [ "$(get_ipv6_enabled)" != "0" ]
 		then
 			eval "$(ip -6 neigh | awk -v dhcp="$(get_ipv6_dhcp)" '
@@ -106,11 +111,14 @@ get_online_devices() {
 					for (i=1;i<=n1;i++) {
 						n2=split(arr1[i], ar);
 						A[ar[2]]=A[ar[2]]" "ar[3];
+						T[ar[2]]=0;
 					}
 				}
 				{
 					if($3 == "br-lan" && $4 == "lladdr") {
 						A[$5]=A[$5]" "$1
+						if(T[$5]!=1) T[$5]=0
+						if($(NF)=="REACHABLE") T[$5]=1
 					}
 				}
 				END{
@@ -118,8 +126,8 @@ get_online_devices() {
 					MA6=""
 					for (b in A) {
 						printf "_6router%d=\"", count;
-						printf "%s ", A[b];
-						print "\";"
+						printf "%s \";", A[b];
+						printf "_Trouter%d=%d;", count, T[b];
 						MA6=MA6 b ":" count " "
 						count++;
 					}
@@ -139,8 +147,10 @@ get_online_devices() {
 		/ago/ {
 			M=tolower($1)
 			SIGNAL[M]=$2
-			SNR[M]=$5-$2
-			IDLE[M]=$9
+			noise=$5
+			if(noise == "unknown" || noise < -95) noise=-95
+			SNR[M]=$2-noise
+			IDLE[M]=$(NF-2)
 			FREQ[M]=f
 			if(f == 5.0)
 				MODE[M]="AC"
@@ -150,7 +160,7 @@ get_online_devices() {
 
 		/TX/ {
 			TXBITRATE[M]=$2
-			TXPKT[M]=$7
+			TXPKT[M]=$(NF-1)
 		}
 
 		/5GHZ/{
@@ -177,7 +187,7 @@ get_online_devices() {
 		case "$1" in
 			*"$2"*)
 				_idxn=${1##*"$2":}
-				echo ${_idxn::1}
+				echo ${_idxn%% *}
 			;;
 		esac
 	}
@@ -188,7 +198,7 @@ get_online_devices() {
 	local _processed_macs=""
 	local _mac _i6 _dhcp_signature _dhcp_vendor_class
 
-	# 1. Send all wireless devices
+	# 1. Send all wireless devices. We trust they are connected
 	for _mac in $_MACSW
 	do
 		local _idxf
@@ -199,11 +209,11 @@ get_online_devices() {
 		_idxf=$(get_index_array "$_MACS4" "$_rmac")
 		if [ $_idxf ]
 		then
-			local I0 I1 I2
-			get_data 3 I $(eval echo \$_router$_idxf)
+			local I0 I1 I2 I3
+			get_data 4 I $(eval echo \$_router$_idxf)
 			json_add_string "ip" "$I0"
 			json_add_string "ping" "$I1"
-			json_add_string "hostname" "$I2"
+			json_add_string "hostname" "$I3"
 		fi
 
 		json_add_array "ipv6"
@@ -262,13 +272,19 @@ get_online_devices() {
 			*"$_rmac"*) continue;;
 		esac
 
+		_processed_macs="$_processed_macs $_rmac"
+
+		local I0 I1 I2 I3
+		get_data 4 I $(eval echo \$_router$_idx)
+
+		# Continue if we cant sure if device is connected (untrusted) ...
+		[ "$I2" = "0" ] && continue
+
 		json_add_object "$_rmac"
 
-		local I0 I1 I2
-		get_data 3 I $(eval echo \$_router$_idx)
 		json_add_string "ip" "$I0"
 		json_add_string "ping" "$I1"
-		json_add_string "hostname" "$I2"
+		json_add_string "hostname" "$I3"
 
 		json_add_array "ipv6"
 		_idxf=$(get_index_array "$_MACS6" "$_rmac")
@@ -296,13 +312,11 @@ get_online_devices() {
 		json_add_string "dhcp_signature" "$_dhcp_signature"
 		json_add_string "dhcp_vendor_class" "$_dhcp_vendor_class"
 		json_close_object
-		_processed_macs="$_processed_macs $_rmac"
 	done
 
 	# 3. Send cable ipv6 devs
 	for _mac in $_MACS6
 	do
-		local _idxf
 		local _idx=${_mac##*:}
 		local _rmac=${_mac%:*}
 
@@ -310,17 +324,17 @@ get_online_devices() {
 			*"$_rmac"*) continue;;
 		esac
 
-		json_add_object "$_rmac"
+		_processed_macs="$_processed_macs $_rmac"
 
+		# Continue if we cant sure if device is connected (untrusted) ...
+		[ "$(eval echo \$_Trouter$_idx)" = "0" ] && continue
+
+		json_add_object "$_rmac"
 		json_add_array "ipv6"
-		_idxf=$(get_index_array "$_MACS6" "$_rmac")
-		if [ $_idxf ]
-		then
-			for _i6 in $(eval echo \$_6router$_idxf)
-			do
-				json_add_string "" "$_i6"
-			done
-		fi
+		for _i6 in $(eval echo \$_6router$_idx)
+		do
+			json_add_string "" "$_i6"
+		done
 		json_close_array
 
 		_dhcp_signature=""
@@ -338,7 +352,6 @@ get_online_devices() {
 		json_add_string "dhcp_signature" "$_dhcp_signature"
 		json_add_string "dhcp_vendor_class" "$_dhcp_vendor_class"
 		json_close_object
-		_processed_macs="$_processed_macs $_rmac"
 	done
 
 	json_close_object
@@ -349,7 +362,7 @@ get_online_devices() {
 	_idx=0
 	while [ $_idx -lt $_NUMACS4 ]; do eval unset _router$_idx; _idx=$((_idx+1)); done
 	_idx=0
-	while [ $_idx -lt $_NUMACS6 ]; do eval unset _6router$_idx; _idx=$((_idx+1)); done
+	while [ $_idx -lt $_NUMACS6 ]; do eval unset _6router$_idx _Trouter$_idx; _idx=$((_idx+1)); done
 }
 
 get_online_mesh_routers() {

@@ -14,68 +14,6 @@ get_wifi_channel(){
 	iwinfo $_phy info | awk '/Channel/ { print $4; exit }'
 }
 
-get_wifi_device_stats() {
-	local _dev_mac="$1"
-	local _dev_info
-	local _wifi_itf
-	local _ap_freq
-	local _res
-	local _base_noise="-92"
-
-	for _ap_freq in "2.4" "5.0"
-	do 
-		if [ "$_ap_freq" == "2.4" ]
-		then
-			_wifi_itf="$(get_root_ifname 0)"
-		else
-			_wifi_itf="$(get_root_ifname 1)"
-		fi
-
-		_dev_info="$(iwinfo $_wifi_itf a 2> /dev/null)"
-		_res=$(echo "$_dev_info" | awk -v MAC=$_dev_mac -v FREQ=$_ap_freq -e '
-			BEGIN {
-			  A=0;
-			  F=0;
-			} 
-
-			/ago/ {
-			  if (tolower($1) == tolower(MAC)) {
-			    A=1;
-			    F=1;
-			    M=$1
-			    S=$2
-			    N=$5
-			    I=$9
-			  } else {
-			    A=0;
-			  }
-			} 
-
-			/TX/ {
-			  if(A == 1) {
-			    TXBITRATE=$2
-			    TXPKT=$7
-			  }
-			}
-
-			END {
-			  if(FREQ == 5.0) 
-			    FTYPE="AC"
-			  else
-			    FTYPE="N"
-
-			  if(F == 1)
-			    print TXBITRATE, "0.0", S, S-N, FREQ, FTYPE, "0.0", "0.0", TXPKT, "0.0", "1.0" 
-			  else
-			    print "0.0 0.0 0.0 0.0 0 Z 0 0 0 0 0"
-			}
-		')
-
-		[ "${_res::3}" != "0.0" ] && break  
-	done
-	echo "$_res"
-}
-
 is_device_wireless() {
 	local _dev_mac="$1"
 	local _dev_info
