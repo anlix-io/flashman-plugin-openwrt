@@ -1,27 +1,40 @@
 #!/bin/sh
 
+generate_pwdiffs_realtek() {
+	for i in `seq 70`; do printf 0; done;
+	for i in `seq 10`; do printf $1; done;
+	for i in `seq 42`; do printf 0; done
+}
+
 anlix_bootup_defaults() {
+	local _PARAMS="$(strings /dev/mtd1ro)"
+
 	ifconfig wlan0 up
-	iwpriv wlan0 set_mib xcap=32
-	iwpriv wlan0 set_mib ther=34
-	iwpriv wlan0 set_mib pwrlevelCCK_A=1616161919191919191B1B1B1B1B
-	iwpriv wlan0 set_mib pwrlevelCCK_B=1010101313131313131515151515
-	iwpriv wlan0 set_mib pwrlevelHT40_1S_A=1919191A1A1A1A1A1A1C1C1C1C1C
-	iwpriv wlan0 set_mib pwrlevelHT40_1S_B=1414141515151515151616161616
-	iwpriv wlan0 set_mib pwrdiffHT40_2S=0000000000000000000000000000
-	iwpriv wlan0 set_mib pwrdiffHT20=0000001111111111112222222222
-	iwpriv wlan0 set_mib pwrdiffOFDM=1111112222222222223333333333
+	iwpriv wlan0 set_mib xcap=$(echo "$_PARAMS" | sed -n 's/^HW_WLAN1_11N_XCAP=//p')
+	iwpriv wlan0 set_mib ther=$(echo "$_PARAMS" | sed -n 's/^HW_WLAN1_11N_THER=//p')
+	iwpriv wlan0 set_mib pwrlevelCCK_A=$(echo "$_PARAMS" | sed -n 's/^HW_WLAN1_TX_POWER_CCK_A=//p')
+	iwpriv wlan0 set_mib pwrlevelCCK_B=$(echo "$_PARAMS" | sed -n 's/^HW_WLAN1_TX_POWER_CCK_B=//p')
+	iwpriv wlan0 set_mib pwrlevelHT40_1S_A=$(echo "$_PARAMS" | sed -n 's/^HW_WLAN1_TX_POWER_HT40_1S_A=//p')
+	iwpriv wlan0 set_mib pwrlevelHT40_1S_B=$(echo "$_PARAMS" | sed -n 's/^HW_WLAN1_TX_POWER_HT40_1S_B=//p')
+	iwpriv wlan0 set_mib pwrdiffHT40_2S=$(echo "$_PARAMS" | sed -n 's/^HW_WLAN1_TX_POWER_DIFF_HT40_2S=//p')
+	iwpriv wlan0 set_mib pwrdiffHT20=$(echo "$_PARAMS" | sed -n 's/^HW_WLAN1_TX_POWER_DIFF_HT20=//p')
+	iwpriv wlan0 set_mib pwrdiffOFDM=$(echo "$_PARAMS" | sed -n 's/^HW_WLAN1_TX_POWER_DIFF_OFDM=//p')
 	ifconfig wlan0 down
 
 	ifconfig wlan1 up
-	iwpriv wlan1 set_mib xcap=37
-	iwpriv wlan1 set_mib ther=28
-	iwpriv wlan1 set_mib pwrlevel5GHT40_1S_A=00000000000000000000000000000000000000000000000000000000000000000000001D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D1D
-	iwpriv wlan1 set_mib pwrlevel5GHT40_1S_B=00000000000000000000000000000000000000000000000000000000000000000000001F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F1F
-	iwpriv wlan1 set_mib pwrdiff_5G_20BW1S_OFDM1T_A=1212121212121212121212121212
-	iwpriv wlan1 set_mib pwrdiff_5G_20BW1S_OFDM1T_B=1212121212121212121212121212
-	iwpriv wlan1 set_mib pwrdiff_5G_40BW2S_20BW2S_A=0101010101010101010101010101
-	iwpriv wlan1 set_mib pwrdiff_5G_40BW2S_20BW2S_B=0101010101010101010101010101
+	iwpriv wlan1 set_mib xcap=$(echo "$_PARAMS" | sed -n 's/^HW_WLAN0_11N_XCAP=//p')
+	iwpriv wlan1 set_mib ther=$(echo "$_PARAMS" | sed -n 's/^HW_WLAN0_11N_THER=//p')
+	iwpriv wlan1 set_mib pwrlevel5GHT40_1S_A=$(echo "$_PARAMS" | sed -n 's/^HW_WLAN0_TX_POWER_5G_HT40_1S_A=//p')
+	iwpriv wlan1 set_mib pwrlevel5GHT40_1S_B=$(echo "$_PARAMS" | sed -n 's/^HW_WLAN0_TX_POWER_5G_HT40_1S_B=//p')
+
+	local _pwrdiff=$(echo "$_PARAMS" | sed -n 's/^HW_WLAN0_TX_POWER_DIFF_5G_20BW1S_OFDM1T_A=//p')
+	iwpriv wlan1 set_mib pwrdiff_5G_20BW1S_OFDM1T_A=$(generate_pwdiffs_realtek $_pwrdiff)
+	_pwrdiff=$(echo "$_PARAMS" | sed -n 's/^HW_WLAN0_TX_POWER_DIFF_5G_20BW1S_OFDM1T_B=//p')
+	iwpriv wlan1 set_mib pwrdiff_5G_20BW1S_OFDM1T_B=$(generate_pwdiffs_realtek $_pwrdiff)
+	_pwrdiff=$(echo "$_PARAMS" | sed -n 's/^HW_WLAN0_TX_POWER_DIFF_5G_40BW2S_20BW2S_A=//p')
+	iwpriv wlan1 set_mib pwrdiff_5G_40BW2S_20BW2S_A=$(generate_pwdiffs_realtek $_pwrdiff)
+	_pwrdiff=$(echo "$_PARAMS" | sed -n 's/^HW_WLAN0_TX_POWER_DIFF_5G_40BW2S_20BW2S_B=//p')
+	iwpriv wlan1 set_mib pwrdiff_5G_40BW2S_20BW2S_B=$(generate_pwdiffs_realtek $_pwrdiff)
 	ifconfig wlan1 down
 }
 
@@ -30,7 +43,7 @@ get_custom_mac() {
 	local _mac_address_tag=""
 	local _p1
 
-	_p1=$(mtd_get_mac_ascii boot HW_NIC0_ADDR | awk '{print toupper($1)}')
+	_p1=$(mtd_get_mac_ascii config HW_NIC0_ADDR | awk '{print toupper($1)}')
 	[ ! -z "$_p1" ] && _mac_address_tag=$_p1
 
 	echo "$_mac_address_tag"
