@@ -61,14 +61,17 @@ scan_qcawifi() {
 
 	config_get vifs "$device" vifs
 	
+	# [ROMEU] Solving issue from /sbin/wifi's config_cb , which duplicates the last vif read (probably default_radio1). Having a duplicated vif on a device means qcawifi_enable() will 'wlanconfig create' two interfaces
+	vifs=$(echo "$vifs" | tr " " "\n" | sort -u | tr "\n" " ") 
+	
 	for vif in $vifs; do
 	
 		config_get_bool disabled "$vif" disabled 0
 		[ $disabled = 0 ] || continue
 
 		local vifname
-		#[ $ifidx -gt 0 ] && vifname="ath${radioidx}$ifidx" || vifname="ath${radioidx}"
-		vifname="ath${radioidx}"
+		[ $ifidx -gt 0 ] && vifname="ath${radioidx}$ifidx" || vifname="ath${radioidx}"
+		#vifname="ath${radioidx}"
 		
 		config_set "$vif" ifname $vifname
 
@@ -95,9 +98,6 @@ scan_qcawifi() {
 	esac
 
 	vifs="${ap:+$ap }${ap_monitor:+$ap_monitor }${mesh:+$mesh }${ap_smart_monitor:+$ap_smart_monitor }${wrap:+$wrap }${sta:+$sta }${adhoc:+$adhoc }${wds:+$wds }${monitor:+$monitor}${ap_lp_iot:+$ap_lp_iot}"
-	
-	# [ROMEU] Solving issue from /sbin/wifi's config_cb , which duplicates the last vif read (probably default_radio1). Having a duplicated vif on a device means qcawifi_enable() will 'wlanconfig create' two interfaces
-	vifs=$(echo "$vifs" | tr " " "\n" | sort -u | tr "\n" " ") 
 	
 	config_set "$device" vifs "$vifs"
 	
@@ -314,8 +314,8 @@ enable_qcawifi() {
 	config_get rxchainmask "$device" rxchainmask
 	[ -n "$rxchainmask" ] && iwpriv "$phy" rxchainmask "$rxchainmask"
 
-        config_get regdomain "$device" regdomain
-        [ -n "$regdomain" ] && iwpriv "$phy" setRegdomain "$regdomain"
+	config_get regdomain "$device" regdomain
+	[ -n "$regdomain" ] && iwpriv "$phy" setRegdomain "$regdomain"
 
 	config_get AMPDU "$device" AMPDU
 	[ -n "$AMPDU" ] && iwpriv "$phy" AMPDU "$AMPDU"
@@ -378,7 +378,7 @@ enable_qcawifi() {
 	[ -n "$ant_train_thres" ] && iwpriv "$phy" train_threshold "$ant_train_thres"
 
 	config_get ant_train_min_thres "$device" ant_train_min_thres
-	[ -n "$ant_train_min_thres" ] && iwpriv "$phy" train_threshold "$ant_train_min_thres"
+	[ -n "$ant_train_min_thres" ] && iwpriv "$phy" ant_train_min_thres "$ant_train_min_thres"
 
 	config_get ant_traffic_timer "$device" ant_traffic_timer
 	[ -n "$ant_traffic_timer" ] && iwpriv "$phy" traffic_timer "$ant_traffic_timer"
@@ -709,6 +709,9 @@ enable_qcawifi() {
 			}
 			config_set "$vif" ifname "$ifname"
 		fi
+
+		# ROMEU - the whole debug mask , except IEEE80211_MSG_ELEMID and SCANENTRY
+		#iwpriv $ifname dbgLVL 0xfdfffff7 
 
 		config_get hwmode "$device" hwmode auto
 		config_get htmode "$device" htmode auto
@@ -1294,13 +1297,13 @@ enable_qcawifi() {
 		config_get_bool vhtsubfee "$vif" vhtsubfee
 		[ -n "$vhtsubfee" ] && iwpriv "$ifname" vhtsubfee "${vhtsubfee}"
 
-		config_get_bool vhtmubfee "$vif" vhtmubfee
+		config_get_bool vhtmubfee "$vif" vhtmubfee 1
 		[ -n "$vhtmubfee" ] && iwpriv "$ifname" vhtmubfee "${vhtmubfee}"
 
 		config_get_bool vhtsubfer "$vif" vhtsubfer
 		[ -n "$vhtsubfer" ] && iwpriv "$ifname" vhtsubfer "${vhtsubfer}"
 
-		config_get_bool vhtmubfer "$vif" vhtmubfer
+		config_get_bool vhtmubfer "$vif" vhtmubfer 1
 		[ -n "$vhtmubfer" ] && iwpriv "$ifname" vhtmubfer "${vhtmubfer}"
 
 		config_get vhtstscap "$vif" vhtstscap
@@ -1449,6 +1452,10 @@ enable_qcawifi() {
 
 		ifconfig "$ifname" up
 		set_wifi_up "$vif" "$ifname"
+
+		# No idea why, but this is necessary in order to WDS/extAP work
+		ifconfig "$ifname" down
+		ifconfig "$ifname" up
 
 		config_get set11NRates "$vif" set11NRates
 		[ -n "$set11NRates" ] && iwpriv "$ifname" set11NRates "$set11NRates"

@@ -28,12 +28,12 @@ drv_qcawifi_teardown() {
 	[ "${1}" == "radio0" ] && phy_name=radio0 || phy_name=radio1
 	case "$phy_name" in
 		radio0)
-			for vif in ath0; do
+			for vif in ath0 ath01 ath02; do
 				ifconfig $vif down 2>/dev/null
 			done
 		;;
 		radio1)
-			for vif in ath1; do
+			for vif in ath1 ath11 ath12; do
 				ifconfig $vif down 2>/dev/null
 			done
 		;;
