@@ -19,6 +19,8 @@ anlix_bootup_defaults() {
 	iwpriv wlan0 set_mib pwrdiffHT40_2S=$(echo "$_PARAMS" | sed -n 's/^HW_WLAN1_TX_POWER_DIFF_HT40_2S=//p')
 	iwpriv wlan0 set_mib pwrdiffHT20=$(echo "$_PARAMS" | sed -n 's/^HW_WLAN1_TX_POWER_DIFF_HT20=//p')
 	iwpriv wlan0 set_mib pwrdiffOFDM=$(echo "$_PARAMS" | sed -n 's/^HW_WLAN1_TX_POWER_DIFF_OFDM=//p')
+	iwpriv wlan0 set_mib txbf=1
+	iwpriv wlan0 set_mib adaptivity_enable=2
 	ifconfig wlan0 down
 
 	ifconfig wlan1 up
