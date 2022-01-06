@@ -730,24 +730,11 @@ enable_qcawifi() {
 			*na:HT40+) hwmode=11NAHT40PLUS;;
 			*na:HT40) hwmode=11NAHT40;;
 			*na:*) hwmode=11NAHT40;;
-			*ac:HT20) hwmode=11ACVHT20;;
-			*ac:HT40+) hwmode=11ACVHT40PLUS;;
-			*ac:HT40-) hwmode=11ACVHT40MINUS;;
-			*ac:HT40) hwmode=11ACVHT40;;
-			*ac:HT80) hwmode=11ACVHT80;;
-			*ac:HT160) hwmode=11ACVHT160;;
-			*ac:HT80_80) hwmode=11ACVHT80_80;;
-                        *ac:*) hwmode=11ACVHT80
-			       if [ -f /sys/class/net/$device/5g_maxchwidth ]; then
-			           maxchwidth="$(cat /sys/class/net/$device/5g_maxchwidth)"
-				   [ -n "$maxchwidth" ] && hwmode=11ACVHT$maxchwidth
-			       fi
-                               if [ "$mode" == "sta" ]; then
-                                   cat /sys/class/net/$device/hwmodes | grep  "11AC_VHT80_80"
-				   if [ $? -eq 0 ]; then
-			               hwmode=11ACVHT80_80
-				   fi
-			       fi;;
+			*ac:*T20) hwmode=11ACVHT20;;
+			*ac:*T40+) hwmode=11ACVHT40PLUS;;
+			*ac:*T40-) hwmode=11ACVHT40MINUS;;
+			*ac:*T40) hwmode=11ACVHT40;;
+			*ac:) hwmode=11ACVHT80;;
 			*b:*) hwmode=11B;;
 			*bg:*) hwmode=11G;;
 			*g:*) hwmode=11G; pureg=1;;
@@ -1297,13 +1284,13 @@ enable_qcawifi() {
 		config_get_bool vhtsubfee "$vif" vhtsubfee
 		[ -n "$vhtsubfee" ] && iwpriv "$ifname" vhtsubfee "${vhtsubfee}"
 
-		config_get_bool vhtmubfee "$vif" vhtmubfee 1
+		config_get_bool vhtmubfee "$vif" vhtmubfee
 		[ -n "$vhtmubfee" ] && iwpriv "$ifname" vhtmubfee "${vhtmubfee}"
 
 		config_get_bool vhtsubfer "$vif" vhtsubfer
 		[ -n "$vhtsubfer" ] && iwpriv "$ifname" vhtsubfer "${vhtsubfer}"
 
-		config_get_bool vhtmubfer "$vif" vhtmubfer 1
+		config_get_bool vhtmubfer "$vif" vhtmubfer
 		[ -n "$vhtmubfer" ] && iwpriv "$ifname" vhtmubfer "${vhtmubfer}"
 
 		config_get vhtstscap "$vif" vhtstscap
@@ -1373,7 +1360,7 @@ enable_qcawifi() {
 		config_get rept_spl  "$vif" rept_spl
 		[ -n "$rept_spl" ] && iwpriv "$ifname" rept_spl "$rept_spl"
 
-		config_get cactimeout  "$vif" cactimeout
+		config_get cactimeout  "$vif" cactimeout 5
 		[ -n "$cactimeout" ] && iwpriv "$ifname" set_cactimeout "$cactimeout"
 
 		config_get pref_uplink "$device" pref_uplink
@@ -1769,11 +1756,17 @@ detect_qcawifi() {
 		config_get type radio${devidx} type;
 		[ "$type" == "qcawifi" ] || {
 			
+			eth_mac=$(cat /sys/class/net/eth0/address)
+			eth_mac=$(echo $eth_mac | tr -d ':')
+			wifi_mac=$((0x$eth_mac + 2 + $devidx))
+			wifi_mac=$(printf "%012x" $wifi_mac)
+			wifi_mac=$(echo $wifi_mac | sed 's/../&:/g;s/:$//')
+
 			uci -q batch <<-EOF
 			set wireless.radio${devidx}=wifi-device
 			set wireless.radio${devidx}.type=qcawifi
 			set wireless.radio${devidx}.phy=radio${devidx}
-			set wireless.radio${devidx}.macaddr=$(cat /sys/class/net/${dev}/address)
+			set wireless.radio${devidx}.macaddr=${wifi_mac}
 			set wireless.radio${devidx}.hwmode=11${mode_11}
 			set wireless.radio${devidx}.channel=auto
 			set wireless.radio${devidx}.country=BR
