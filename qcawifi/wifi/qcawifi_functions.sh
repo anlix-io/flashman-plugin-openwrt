@@ -734,7 +734,7 @@ enable_qcawifi() {
 			*ac:*T40+) hwmode=11ACVHT40PLUS;;
 			*ac:*T40-) hwmode=11ACVHT40MINUS;;
 			*ac:*T40) hwmode=11ACVHT40;;
-			*ac:) hwmode=11ACVHT80;;
+			*ac:*) hwmode=11ACVHT80;;
 			*b:*) hwmode=11B;;
 			*bg:*) hwmode=11G;;
 			*g:*) hwmode=11G; pureg=1;;
@@ -872,7 +872,7 @@ enable_qcawifi() {
 		[ -n "$vap_ind" ] && iwpriv "$ifname" vap_ind "${vap_ind}"
 
 		#support extender ap & STA
-		config_get extap "$vif" extap
+		config_get extap "$vif" extap 1
 		[ -n "$extap" ] && iwpriv "$ifname" extap "${extap}"
 
 		config_get scanband "$vif" scanband
@@ -1775,6 +1775,7 @@ detect_qcawifi() {
 			set wireless.default_radio${devidx}.device=radio${devidx}
 			set wireless.default_radio${devidx}.network=lan
 			set wireless.default_radio${devidx}.mode=ap
+			set wireless.default_radio${devidx}.bss_transition=1
 			set wireless.default_radio${devidx}.ssid=OpenWrt${devidx}
 			set wireless.default_radio${devidx}.encryption=none
 			EOF
