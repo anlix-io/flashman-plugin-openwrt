@@ -1,0 +1,27 @@
+#!/bin/sh
+# Copyright (C) 2006 OpenWrt.org
+# Copyright (C) 2010 Vertical Communications
+
+download_caldatas() {
+    
+    board_name=$(cat /tmp/sysinfo/board_name)
+    art_block=/dev/$(cat /proc/mtd  | grep \"art\" | cut -f 1 -d :)
+    file24=/tmp/wifi0.caldata
+    file50=/tmp/wifi1.caldata
+    
+    [ -f $file24 ] || download_24ghz=1
+    [ -f $file50 ] || download_50ghz=1
+
+    case "$board_name" in
+        tplink,archer-c60-v3|\
+        tplink,archer-c6-v2-us)
+            [ -n "$download_24ghz" ] && dd if=$art_block of=$file24 bs=1 skip=4096 count=1088
+            [ -n "$download_50ghz" ] && dd if=$art_block of=$file50 bs=1 skip=20480 count=12064
+        ;;
+        *)
+        ;; 
+    esac
+    
+}
+
+boot_hook_add preinit_main download_caldatas

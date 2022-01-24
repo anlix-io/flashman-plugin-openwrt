@@ -183,14 +183,6 @@ config_tx_fc_buf() {
 	esac
 }
 
-disable_recover_qcawifi() {
-	disable_qcawifi $@ 1
-}
-
-enable_recover_qcawifi() {
-	enable_qcawifi $@ 1
-}
-
 _disable_qcawifi() {
 	local device="$1"
 	local parent

@@ -2,10 +2,10 @@
 
 
 . /lib/netifd/netifd-wireless.sh
-init_wireless_driver "$@"
-
-
 . /lib/wifi/qcawifi_functions.sh
+
+
+init_wireless_driver "$@"
 
 drv_qcawifi_init_device_config() {
 	config_add_string channel hwmode htmode country macaddr

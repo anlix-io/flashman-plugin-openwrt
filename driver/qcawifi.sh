@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# It actually returns the logical device from the kernel, created with qsdk's wlanconfig tool
+# It actually returns the logical device from the kernel, not the physical
 get_radio_phy() {
 	[ "$1" == "0" ] && echo "ath0" || echo "ath1"
 }
@@ -75,3 +75,31 @@ get_txpower() {
 	fi
 }
 
+
+# Should return the macaddr of the interface we will use for the hidden mesh backbone
+get_mesh_ap_bssid() {
+	# $1: 2.4G or 5G
+		# 0: 2.4G
+		# 1: 5G
+	if [ "$1" == "0" ]
+	then
+		cat /sys/class/net/ath01/address
+	else
+		[ -f /sys/class/net/ath11/address ] && cat /sys/class/net/ath11/address
+	fi
+}
+
+get_mesh_ap_ifname() {
+	[ "$1" == "0" ] && echo "ath01" || echo "ath11"
+}
+
+#get the others virtusl aps
+get_virtual_ap_ifname() {
+	# $1: Which interface:
+		# 0: 2.4G
+		# 1: 5G
+	# $2: Which virtual AP
+	local _idx=$2
+	# Return the ifname with ra and the number
+	[ "$1" == "0" ] && echo "ath0$((_idx+1))" || echo "ath1$((_idx+1))"
+}

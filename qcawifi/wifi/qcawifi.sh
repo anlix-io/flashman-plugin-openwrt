@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Initialize ramips wireless driver
+# Initialize QSDK wireless driver
 
 append DRIVERS "qcawifi"
 
