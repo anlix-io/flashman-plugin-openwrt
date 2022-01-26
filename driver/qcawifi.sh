@@ -83,7 +83,7 @@ get_mesh_ap_bssid() {
 		# 1: 5G
 	if [ "$1" == "0" ]
 	then
-		cat /sys/class/net/ath01/address
+		[ -f /sys/class/net/ath01/address ] && cat /sys/class/net/ath01/address
 	else
 		[ -f /sys/class/net/ath11/address ] && cat /sys/class/net/ath11/address
 	fi
