@@ -299,6 +299,9 @@ enable_qcawifi() {
 	[ -n "$antenna" ] && echo "antenna option not supported on this driver"
 	[ -n "$distance" ] && echo "distance option not supported on this driver"
 
+	# Shutting up the log from radio1 (the only one with this debug option)
+	[ "$phy" = "radio1" ] && iwpriv "$phy" dbglog_ratelim 1 
+
 	# Advanced QCA wifi per-radio parameters configuration
 	config_get txchainmask "$device" txchainmask
 	[ -n "$txchainmask" ] && iwpriv "$phy" txchainmask "$txchainmask"
