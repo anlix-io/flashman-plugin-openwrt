@@ -602,15 +602,13 @@ is_mesh_connected() {
 	local conn=""
 	if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
 	then
-		ifconfig $(get_station_ifname 0) &>/dev/null && conn="1"
-		[ "$(iwinfo $(get_station_ifname 0) assoclist | grep -v "No station connected")" ] && conn="1"
+		ifconfig $(get_station_ifname 0) &>/dev/null && [ "$(iwinfo $(get_station_ifname 0) assoclist | grep -v "No station connected")" ] && conn="1"
 	fi
 	if [ "$(is_5ghz_capable)" == "1" ]
 	then
 		if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
 		then
-			ifconfig $(get_station_ifname 1) &>/dev/null && conn="1"
-			[ "$(iwinfo $(get_station_ifname 1) assoclist | grep -v "No station connected")" ] && conn="1"
+			ifconfig $(get_station_ifname 1) &>/dev/null && [ "$(iwinfo $(get_station_ifname 1) assoclist | grep -v "No station connected")" ] && conn="1"
 		fi
 	fi
 	echo "$conn"
