@@ -259,20 +259,21 @@ set_wifi_local_config() {
 		fi
 
 		# Enable Fast Transition
-		if [ "$_mesh_mode" != "0" ] && \
-			 [ "$_local_ft_24" != "1" ]
-		then
-			change_fast_transition "0" "1"
-			_do_reload=1
-		fi
+		# Fast transition is disable for now for mesh v2
+		#if [ "$_mesh_mode" != "0" ] && \
+		#	 [ "$_local_ft_24" != "1" ]
+		#then
+		#	change_fast_transition "0" "1"
+		#	_do_reload=1
+		#fi
 
 		#Disable Fast Transition
-		if [ "$_mesh_mode" == "0" ] && \
-			 [ "$_local_ft_24" == "1" ]
-		then
-			change_fast_transition "0" "0"
-			_do_reload=1
-		fi 
+		#if [ "$_mesh_mode" == "0" ] && \
+		#	 [ "$_local_ft_24" == "1" ]
+		#then
+		#	change_fast_transition "0" "0"
+		#	_do_reload=1
+		#fi 
 	fi
 
 	if [ "$_remote_state_24" != "" ]
@@ -365,20 +366,21 @@ set_wifi_local_config() {
 			fi
 
 			# Enable Fast Transition
-			if [ "$_mesh_mode" != "0" ] && \
-				 [ "$_local_ft_50" != "1" ]
-			then
-				change_fast_transition "1" "1"
-				_do_reload=1
-			fi
+			# Fast transition is disable for now for mesh v2
+			#if [ "$_mesh_mode" != "0" ] && \
+			#	 [ "$_local_ft_50" != "1" ]
+			#then
+			#	change_fast_transition "1" "1"
+			#	_do_reload=1
+			#fi
 
 			#Disable Fast Transition
-			if [ "$_mesh_mode" == "0" ] && \
-				 [ "$_local_ft_50" == "1" ]
-			then
-				change_fast_transition "1" "0"
-				_do_reload=1
-			fi
+			#if [ "$_mesh_mode" == "0" ] && \
+			#	 [ "$_local_ft_50" == "1" ]
+			#then
+			#	change_fast_transition "1" "0"
+			#	_do_reload=1
+			#fi
 		fi
 
 		if [ "$_remote_state_50" != "" ]
