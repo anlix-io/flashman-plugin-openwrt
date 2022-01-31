@@ -44,6 +44,17 @@ get_wifi_htmode(){
 	iwpriv ath$1 get_mode | sed -r -e 's/.*HT//g' -e 's/([0-9]+).*/\1/'
 }
 
+
+# Get the station ifname
+get_station_ifname() {
+	# $1: Which interface:
+		# 0: 2.4G
+		# 1: 5G
+
+	# Only one station interface for each radio
+	[ "$1" == "0" ] && echo "ath02" || echo "ath12"
+}
+
 convert_txpower() {
 	local _freq="$1"
 	local _channel="$2"
