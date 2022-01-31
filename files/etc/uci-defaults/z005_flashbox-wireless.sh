@@ -178,11 +178,12 @@ then
 	fi
 
 	# Enable Fast Transition
-	change_fast_transition "0" "1"
-	if [ "$(is_5ghz_capable)" = "1" ]
-	then
-		change_fast_transition "1" "1"
-	fi
+	# Fast transition is disable for now for mesh v2
+	#change_fast_transition "0" "1"
+	#if [ "$(is_5ghz_capable)" = "1" ]
+	#then
+	#	change_fast_transition "1" "1"
+	#fi
 
 	enable_mesh "$_mesh_mode"
 fi
