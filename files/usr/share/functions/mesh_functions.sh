@@ -595,18 +595,21 @@ update_mesh_link() {
 }
 
 # Check if Mesh is connected
+# ** Should print any non-empty string if mesh is connected **
 is_mesh_connected() {
 	local _mesh_mode="$(get_mesh_mode)"
 	local _mesh_master="$(get_mesh_master)"
 	local conn=""
 	if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
 	then
+		ifconfig $(get_station_ifname 0) &>/dev/null && conn="1"
 		[ "$(iwinfo $(get_station_ifname 0) assoclist | grep -v "No station connected")" ] && conn="1"
 	fi
 	if [ "$(is_5ghz_capable)" == "1" ]
 	then
 		if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
 		then
+			ifconfig $(get_station_ifname 1) &>/dev/null && conn="1"
 			[ "$(iwinfo $(get_station_ifname 1) assoclist | grep -v "No station connected")" ] && conn="1"
 		fi
 	fi
