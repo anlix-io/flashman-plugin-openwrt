@@ -404,7 +404,7 @@ enable_mesh() {
 			uci set wireless.mesh2_sta.anlix_ap='1'
 			
 			# Atheros specific properties
-			[ -n "$(get_station_ifname 0 | grep ath)"] &&\
+			[ -n "$(get_station_ifname 0 | grep ath)" ] &&\
 				uci set wireless.mesh2_sta.extap='1'
 			
 		fi
@@ -449,7 +449,7 @@ enable_mesh() {
 				uci set wireless.mesh5_sta.anlix_ap='1'
 				
 				# Atheros specific properties
-				[ -n "$(get_station_ifname 1 | grep ath)"] &&\
+				[ -n "$(get_station_ifname 1 | grep ath)" ] &&\
 					uci set wireless.mesh5_sta.extap='1'
 				
 			fi
