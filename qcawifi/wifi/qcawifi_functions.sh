@@ -828,6 +828,9 @@ enable_qcawifi() {
 
 		config_get_bool uapsd "$vif" uapsd 1
 		iwpriv "$ifname" uapsd "$uapsd"
+		
+		# "son" is the proprietary mesh solution for qualcomm devices
+		iwpriv "$ifname" son 0 
 
 		config_get mcast_rate "$vif" mcast_rate
 		[ -n "$mcast_rate" ] && iwpriv "$ifname" mcast_rate "${mcast_rate%%.*}"
@@ -1327,8 +1330,8 @@ enable_qcawifi() {
 		config_get root_distance "$vif" root_distance
 		[ -n "$root_distance" ] && iwpriv "$ifname" set_whc_dist "$root_distance"
 
-                config_get caprssi "$vif" caprssi
-                [ -n "$caprssi" ] && iwpriv "$ifname" caprssi "${caprssi}"
+		config_get caprssi "$vif" caprssi
+		[ -n "$caprssi" ] && iwpriv "$ifname" caprssi "${caprssi}"
 
 		config_get_bool ap_isolation_enabled $device ap_isolation_enabled 0
 		config_get_bool isolate "$vif" isolate 0
@@ -1337,8 +1340,8 @@ enable_qcawifi() {
 			[ "$mode" = "wrap" ] && isolate=1
 		fi
 
-                config_get_bool ctsprt_dtmbcn "$vif" ctsprt_dtmbcn
-                [ -n "$ctsprt_dtmbcn" ] && iwpriv "$ifname" ctsprt_dtmbcn "${ctsprt_dtmbcn}"
+		config_get_bool ctsprt_dtmbcn "$vif" ctsprt_dtmbcn
+		[ -n "$ctsprt_dtmbcn" ] && iwpriv "$ifname" ctsprt_dtmbcn "${ctsprt_dtmbcn}"
 
 		config_get assocwar160  "$vif" assocwar160
 		[ -n "$assocwar160" ] && iwpriv "$ifname" assocwar160 "$assocwar160"
@@ -1640,10 +1643,7 @@ pre_qcawifi() {
 			[ -r /var/run/iface_mgr.pid ] && kill "$(cat "/var/run/iface_mgr.pid")"
                         rm -f /var/run/iface_mgr.pid
 			killall iface-mgr
-
-                        if [ -f  "/var/run/son.conf" ]; then
-                                rm /var/run/son.conf
-                        fi
+			
 		;;
 	esac
 	lock -u /var/run/wifilock
@@ -1701,11 +1701,10 @@ post_qcawifi() {
 			}
 
 			config_load wireless
-			config_foreach son_get_config wifi-device
 
-                        rm -f /etc/ath/iface_mgr.conf
-                        rm -f /var/run/iface_mgr.pid
-                        iface_mgr_setup
+			rm -f /etc/ath/iface_mgr.conf
+			rm -f /var/run/iface_mgr.pid
+			iface_mgr_setup
 
 		;;
 	esac
@@ -1770,6 +1769,7 @@ detect_qcawifi() {
 			set wireless.default_radio${devidx}.device=radio${devidx}
 			set wireless.default_radio${devidx}.network=lan
 			set wireless.default_radio${devidx}.mode=ap
+			set wireless.default_radio${devidx}.ieee80211r=0
 			set wireless.default_radio${devidx}.bss_transition=1
 			set wireless.default_radio${devidx}.ssid=OpenWrt${devidx}
 			set wireless.default_radio${devidx}.encryption=none
@@ -1785,27 +1785,4 @@ detect_qcawifi() {
 trap_qcawifi() {
 	# Release any locks taken
 	lock -u /var/run/wifilock
-}
-
-son_get_config()
-{
-	config_load wireless
-	local device="$1"
-	config_get disabled $device disabled 0
-	if [ $disabled -eq 0 ]; then
-	config_get vifs $device vifs
-	for vif in $vifs; do
-		config_get_bool disabled "$vif" disabled 0
-		[ $disabled = 0 ] || continue
-		config_get backhaul "$vif" backhaul 0
-		config_get mode $vif mode
-		config_get ifname $vif ifname
-		local macaddr="$(config_get "$device" macaddr)"
-		if [ $backhaul -eq 1 ]; then
-			echo " $mode $ifname $device $macaddr"  >> /var/run/son.conf
-		else
-			echo " nbh_$mode $ifname $device $macaddr"  >> /var/run/son.conf
-		fi
-	done
-	fi
 }
