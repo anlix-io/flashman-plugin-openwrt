@@ -217,9 +217,9 @@ ifeq ($(CONFIG_TARGET_ramips), y)
 	$(INSTALL_DATA) ./mtkwifi/wifi/rtwifi.sh $(1)/lib/wifi
 	$(INSTALL_BIN) ./mtkwifi/netifd/wireless/rtwifi.sh $(1)/lib/netifd/wireless
 	$(CP) ./driver/rtwifi.sh $(1)/usr/share/functions/custom_wireless_driver.sh
-else ifneq($(filter,
-	$(CONFIG_TARGET_ath79_generic_DEVICE_tplink_archer-c60-v3)
-	$(CONFIG_TARGET_ath79_generic_DEVICE_tplink_archer-c6-v2-us)
+else ifneq ($(filter \
+	$(CONFIG_TARGET_ath79_generic_DEVICE_tplink_archer-c60-v3)\
+	$(CONFIG_TARGET_ath79_generic_DEVICE_tplink_archer-c6-v2-us)\
 ,y),)
 	$(INSTALL_DIR) $(1)/lib/wifi $(1)/lib/netifd/wireless $(1)/lib/firmware $(1)/lib/preinit/
 	$(INSTALL_DATA) ./qcawifi/wifi/qcawifi.sh $(1)/lib/wifi
