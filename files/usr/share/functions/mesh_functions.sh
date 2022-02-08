@@ -561,6 +561,8 @@ update_mesh_link() {
 				log "MESHLINK" "Change 5Ghz Backbone ($_channel_5g) ($_bssid_5g) ..."
 				wifi reload
 				sleep 5
+				# Atheros stations needs some extra time to connect and prevent a deadloop on backbone probing
+				[ -n "$(uci -q get wireless.mesh5_sta.ifname | grep ath )" ] && sleep 15
 			else
 				log "MESHLINK" "FAIL in change 5Ghz Backbone ($_channel_5g) ($_bssid_5g) ..."
 			fi
@@ -583,6 +585,8 @@ update_mesh_link() {
 				log "MESHLINK" "Change 2.4Ghz Backbone ($_channel_2g) ($_bssid_2g) ..."
 				wifi reload
 				sleep 5
+				# Atheros stations needs some extra time to connect and prevent a deadloop on backbone probing
+				[ -n "$(uci -q get wireless.mesh2_sta.ifname | grep ath )" ] && sleep 15
 			else
 				log "MESHLINK" "FAIL in change 2.4Ghz Backbone ($_channel_2g) ($_bssid_2g) ..."
 			fi
