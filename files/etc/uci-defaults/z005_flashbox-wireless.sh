@@ -25,6 +25,9 @@ json_get_var _htmode_24 htmode_24
 json_get_var _state_24 state_24
 json_get_var _txpower_24 txpower_24 "100"
 json_get_var _hidden_24 hidden_24 "0"
+json_get_var _devices_bssid_mesh2 devices_bssid_mesh2
+json_get_var _devices_bssid_mesh5 devices_bssid_mesh5
+
 if [ "$(is_5ghz_capable)" == "1" ]
 then
 	json_get_var _ssid_50 ssid_50
@@ -184,6 +187,17 @@ then
 	#then
 	#	change_fast_transition "1" "1"
 	#fi
+
+	# After booting from a upgrade from mesh v1 to v2, we don't have the fields "_devices_bssid_meshX"
+	# So we set the backbone APs as public until all mesh devices go online
+	if [ -z "$_devices_bssid_mesh2" ]
+		then
+		[ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ] && uci set wireless.mesh2_ap.hidden='0'
+	fi
+	if [ -z "$_devices_bssid_mesh5" ]
+	then
+		[ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ] && uci set wireless.mesh5_ap.hidden='0'
+	fi
 
 	enable_mesh "$_mesh_mode"
 fi

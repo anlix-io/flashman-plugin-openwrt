@@ -95,6 +95,7 @@ get_mesh_master() {
 }
 
 # Get all bssids in the mesh
+# After updating from v1 to v2, it doesnt have the "_devices_bssid" field in /root/flashbox_config.json
 get_mesh_devices() {
 	# $1: 2.4G or 5G
 		# 0: 2.4G
@@ -199,8 +200,8 @@ find_mac_address() {
 		do
 			local _cell="$(get_iwinfo_cell "$_iwinfo_data" "$_cell_num")"
 
-			# Check if has the SSID
-			if [ "$(echo "$_cell" | grep "$_mesh_id")" ]
+			# Check if it has the SSID or the BSSID
+			if [ "$(echo "$_cell" | grep -E "(Address)|(ESSID)" | grep "$_mesh_id")" ]
 			then
 				# Assign mac and exit, 5th element of the line
 				_mac_addr="$(echo "$_cell" | grep Address | awk '{print $5}' | tail -1)"
@@ -234,8 +235,8 @@ find_channel() {
 		do
 			local _cell="$(get_iwinfo_cell "$_iwinfo_data" "$_cell_num")"
 
-			# Check if has the SSID
-			if [ "$(echo "$_cell" | grep "$_mesh_id")" ]
+			# Check if it has the SSID or the BSSID
+			if [ "$(echo "$_cell" | grep -E "(Address)|(ESSID)" | grep "$_mesh_id")" ]
 			then
 				# Assign channel and exit
 				# The channel is on the same line as the mode, 4th item
@@ -307,8 +308,8 @@ find_quality() {
 		do
 			local _cell="$(get_iwinfo_cell "$_iwinfo_data" "$_cell_num")"
 
-			# Check if has the SSID
-			if [ "$(echo "$_cell" | grep "$_mesh_id")" ]
+			# Check if it has the SSID or the BSSID
+			if [ "$(echo "$_cell" | grep -E "(Address)|(ESSID)" | grep "$_mesh_id")" ]
 			then
 				# Assign quality and exit, 2nd element of the line
 				_quality="$(echo "$_cell" | grep Signal | awk '{print $2}' | tail -1)"
@@ -485,12 +486,16 @@ update_mesh_link() {
 	if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
 	then
 		local _mac_and_channel=""
+		local _mesh_hint="$(get_mesh_devices 0)"
 		local R0 R1 R2
+
+		[ -z "$_mesh_hint" ] && _mesh_hint="$(_mesh_id)" 
 
 		log "MESHLINK" "Scanning MESH APs in 2.4GHz ..."
 		_iwinfo_2g_data="$(iwinfo $(get_root_ifname 0) scan)"
 
-		_mac_and_channel="$(find_mac_and_channel_by_devices "$_iwinfo_2g_data" $(get_mesh_devices 0))"
+
+		_mac_and_channel="$(find_mac_and_channel_by_devices "$_iwinfo_2g_data" $_mesh_hint)"
 		get_data 3 R $_mac_and_channel
 
 		_bssid_2g="$R0"
@@ -505,12 +510,15 @@ update_mesh_link() {
 		if [ "$(is_5ghz_capable)" == "1" ]
 		then
 			local _mac_and_channel=""
+			local _mesh_hint="$(get_mesh_devices 1)"
 			local R0 R1 R2
+
+			[ -z "$_mesh_hint" ] && _mesh_hint="$(_mesh_id)" 
 
 			log "MESHLINK" "Scanning MESH APs in 5GHz ..."
 			_iwinfo_5g_data="$(iwinfo $(get_root_ifname 1) scan)"
 
-			_mac_and_channel="$(find_mac_and_channel_by_devices "$_iwinfo_5g_data" $(get_mesh_devices 1))"
+			_mac_and_channel="$(find_mac_and_channel_by_devices "$_iwinfo_5g_data" $_mesh_hint)"
 			get_data 3 R $_mac_and_channel
 
 			_bssid_5g="$R0"
