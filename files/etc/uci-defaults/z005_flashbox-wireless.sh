@@ -188,6 +188,8 @@ then
 	#	change_fast_transition "1" "1"
 	#fi
 
+	enable_mesh "$_mesh_mode"
+	
 	# After booting from a upgrade from mesh v1 to v2, we don't have the fields "_devices_bssid_meshX"
 	# So we set the backbone APs as public until all mesh devices go online
 	if [ -z "$_devices_bssid_mesh2" ]
@@ -199,7 +201,6 @@ then
 		[ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ] && uci set wireless.mesh5_ap.hidden='0'
 	fi
 
-	enable_mesh "$_mesh_mode"
 fi
 
 uci commit wireless
