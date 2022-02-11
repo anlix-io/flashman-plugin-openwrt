@@ -272,7 +272,7 @@ mac_ch_signal_from_bssid() {
 
 	while [ ! -z "$_bssid_new" ]
 	do
-		if [ -z "$_bssid_best" ] || [ "$_quality_new" -gt "$_quality_best" ]
+		if [ -z "$_bssid_best" ] || [ -z "$_quality_best" ] || [ "$_quality_new" -gt "$_quality_best" ]
 		then
 			_bssid_best="$_bssid_new"
 			_quality_best="$_quality_new"
