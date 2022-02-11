@@ -201,7 +201,7 @@ find_mac_address() {
 			local _cell="$(get_iwinfo_cell "$_iwinfo_data" "$_cell_num")"
 
 			# Check if it has the SSID or the BSSID
-			if [ "$(echo "$_cell" | grep -E "(Address)|(ESSID)" | grep "$_mesh_id")" ]
+			if [ "$(echo "$_cell" | grep -E "(Address|ESSID)" | grep "$_mesh_id")" ]
 			then
 				# Assign mac and exit, 5th element of the line
 				_mac_addr="$(echo "$_cell" | grep Address | awk '{print $5}' | tail -1)"
@@ -236,7 +236,7 @@ find_channel() {
 			local _cell="$(get_iwinfo_cell "$_iwinfo_data" "$_cell_num")"
 
 			# Check if it has the SSID or the BSSID
-			if [ "$(echo "$_cell" | grep -E "(Address)|(ESSID)" | grep "$_mesh_id")" ]
+			if [ "$(echo "$_cell" | grep -E "(Address|ESSID)" | grep "$_mesh_id")" ]
 			then
 				# Assign channel and exit
 				# The channel is on the same line as the mode, 4th item
@@ -249,10 +249,10 @@ find_channel() {
 	echo "$_channel"
 }
 
-# Get the mac address and the channel of the device with the best quality
-find_mac_and_channel_by_devices() {
+# Get the mac address, the channel and the signal quality of the best quality device
+mac_ch_signal_from_bssid() {
 	# $1: Iwinfo Data
-	# $2: Mesh BSSID devices
+	# $2: Mesh BSSID devices 
 
 	local _iwinfo_data="$1"
 	shift
@@ -309,7 +309,7 @@ find_quality() {
 			local _cell="$(get_iwinfo_cell "$_iwinfo_data" "$_cell_num")"
 
 			# Check if it has the SSID or the BSSID
-			if [ "$(echo "$_cell" | grep -E "(Address)|(ESSID)" | grep "$_mesh_id")" ]
+			if [ "$(echo "$_cell" | grep -E "(Address|ESSID)" | grep "$_mesh_id")" ]
 			then
 				# Assign quality and exit, 2nd element of the line
 				_quality="$(echo "$_cell" | grep Signal | awk '{print $2}' | tail -1)"
@@ -386,7 +386,9 @@ enable_mesh() {
 		uci set wireless.mesh2_ap.encryption='psk2'
 		uci set wireless.mesh2_ap.key="$_new_mesh_key"
 		uci set wireless.mesh2_ap.disabled='0'
-		# Use the mac address and increment the last byte
+		# This address is set on realteks, 
+		# read from an existing interface on mediateks
+		# and runtime generated on atheros 
 		uci set wireless.mesh2_ap.macaddr="$(get_mesh_ap_bssid 0)"
 
 		if [ "$_mesh_master" ]
@@ -405,8 +407,7 @@ enable_mesh() {
 			uci set wireless.mesh2_sta.anlix_ap='1'
 			
 			# Atheros specific properties
-			[ -n "$(get_station_ifname 0 | grep ath)" ] &&\
-				uci set wireless.mesh2_sta.extap='1'
+			[ -n "$(get_station_ifname 0 | grep ath)" ] && uci set wireless.mesh2_sta.extap='1'
 			
 		fi
 	fi
@@ -431,7 +432,9 @@ enable_mesh() {
 			uci set wireless.mesh5_ap.encryption='psk2'
 			uci set wireless.mesh5_ap.key="$_new_mesh_key"
 			uci set wireless.mesh5_ap.disabled='0'
-			# Use the mac address and increment the byte
+			# This address is set on realteks, 
+			# read from an existing interface on mediateks
+			# and runtime generated on atheros
 			uci set wireless.mesh5_ap.macaddr="$(get_mesh_ap_bssid 1)"
 
 			if [ "$_mesh_master" ]
@@ -450,8 +453,7 @@ enable_mesh() {
 				uci set wireless.mesh5_sta.anlix_ap='1'
 				
 				# Atheros specific properties
-				[ -n "$(get_station_ifname 1 | grep ath)" ] &&\
-					uci set wireless.mesh5_sta.extap='1'
+				[ -n "$(get_station_ifname 1 | grep ath)" ] && uci set wireless.mesh5_sta.extap='1'
 				
 			fi
 		fi
@@ -485,18 +487,16 @@ update_mesh_link() {
 	# Scan
 	if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
 	then
-		local _mac_and_channel=""
-		local _mesh_hint="$(get_mesh_devices 0)"
+		local _mac_channel_rssi=""
+		local _mesh_bssid="$(get_mesh_devices 0)"
 		local R0 R1 R2
-
-		[ -z "$_mesh_hint" ] && _mesh_hint="$(_mesh_id)" 
 
 		log "MESHLINK" "Scanning MESH APs in 2.4GHz ..."
 		_iwinfo_2g_data="$(iwinfo $(get_root_ifname 0) scan)"
 
 
-		_mac_and_channel="$(find_mac_and_channel_by_devices "$_iwinfo_2g_data" $_mesh_hint)"
-		get_data 3 R $_mac_and_channel
+		_mac_channel_rssi="$(mac_ch_signal_from_bssid "$_iwinfo_2g_data" $_mesh_bssid)"
+		get_data 3 R $_mac_channel_rssi
 
 		_bssid_2g="$R0"
 		_channel_2g="$R1"
@@ -509,17 +509,15 @@ update_mesh_link() {
 	then
 		if [ "$(is_5ghz_capable)" == "1" ]
 		then
-			local _mac_and_channel=""
-			local _mesh_hint="$(get_mesh_devices 1)"
+			local _mac_channel_rssi=""
+			local _mesh_bssid="$(get_mesh_devices 1)"
 			local R0 R1 R2
-
-			[ -z "$_mesh_hint" ] && _mesh_hint="$(_mesh_id)" 
 
 			log "MESHLINK" "Scanning MESH APs in 5GHz ..."
 			_iwinfo_5g_data="$(iwinfo $(get_root_ifname 1) scan)"
 
-			_mac_and_channel="$(find_mac_and_channel_by_devices "$_iwinfo_5g_data" $_mesh_hint)"
-			get_data 3 R $_mac_and_channel
+			_mac_channel_rssi="$(mac_ch_signal_from_bssid "$_iwinfo_5g_data" $_mesh_bssid)"
+			get_data 3 R $_mac_channel_rssi
 
 			_bssid_5g="$R0"
 			_channel_5g="$R1"

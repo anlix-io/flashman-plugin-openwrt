@@ -188,18 +188,82 @@ then
 	#	change_fast_transition "1" "1"
 	#fi
 
-	enable_mesh "$_mesh_mode"
-	
+
+	# ==================================================================================================
+	# ==== Mesh v1 -> v2 workaround (delete me when there isn't any mesh v1 device in the world) =======
+	# ==================================================================================================
 	# After booting from a upgrade from mesh v1 to v2, we don't have the fields "_devices_bssid_meshX"
-	# So we set the backbone APs as public until all mesh devices go online
-	if [ -z "$_devices_bssid_mesh2" ]
+	# So, we are assuming that this device is coming from a mesh where it was client of a mediatek or atheros
+	# We have the "mesh_master" field, which isn't the bssid we are looking for, but we are going to infer from it
+	# In our devices, we don't control exactly how these bssids are generated, 
+	# but I hope these next 2 functions acts correctly
+	# Also, as we don't know if the master is mediatek or atheros, we fill 'devices_bssid_meshN' with both inferences
+	get_mediatek_mesh_bssid() {
+		# $1: Mediatek master mac address
+		# $2: Freq:
+			# 0 -> 2.4GHz
+			# 1 -> 5.0GHz
+		
+		local base="$1"
+		local freq="$2"
+		
+		ret=$(echo $base | awk 'BEGIN{FS=":"}{print $1$2$3$4$5$6}')
+		ret=$(( 0x$ret ))
+
+		if [ $freq = "0" ]
 		then
-		[ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ] && uci set wireless.mesh2_ap.hidden='0'
-	fi
-	if [ -z "$_devices_bssid_mesh5" ]
+			ret=$(( $ret - 1 ))
+		else
+			ret=$(( $ret - 2 ))
+		fi
+		
+		ret=$(( $ret ^ 0x20000010000 ))
+
+		ret=$(printf "%012X" $ret | sed 's/../&:/g;s/:$//' )
+		echo $ret
+
+	}
+
+	get_ath_mesh_bssid() {
+		# $1: Atheros master mac address
+		# $2: Freq:
+			# 0 -> 2.4GHz
+			# 1 -> 5.0GHz
+
+		local base="$1"
+		local freq="$2"
+		
+		ret=$(echo $base | awk 'BEGIN{FS=":"}{print $1$2$3$4$5$6}')
+		ret=$(( 0x$ret ))
+
+		if [ $freq = "0" ]
+		then
+			ret=$(( $ret + 2 ))
+		else
+			ret=$(( $ret + 3 ))
+		fi
+		
+		ret=$(( $ret & 0xE1FFFFFFFFFF ))
+		ret=$(( $ret | 0xA0000000000 ))
+
+		ret=$(printf "%012X" $ret | sed 's/../&:/g;s/:$//' )
+		echo $ret
+
+	}
+	# Just to make sure that it doesn't have any spaces, as I have seen
+	_mesh_master=$(echo $_mesh_master | sed 's/ //g')
+	if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ] && [ -z "$_devices_bssid_mesh2" ]	
 	then
-		[ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ] && uci set wireless.mesh5_ap.hidden='0'
+		set_mesh_devices_2 "$(get_mediatek_mesh_bssid $_mesh_master 0) $(get_ath_mesh_bssid $_mesh_master 0)"
 	fi
+	
+	if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ] && [ -z "$_devices_bssid_mesh2" ]	
+	then
+		set_mesh_devices_5 "$(get_mediatek_mesh_bssid $_mesh_master 1) $(get_ath_mesh_bssid $_mesh_master 1)"
+	fi
+	# ==================================================================================================
+	
+	enable_mesh "$_mesh_mode"
 
 fi
 
