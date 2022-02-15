@@ -489,7 +489,7 @@ update_mesh_link() {
 		local R0 R1 R2
 
 		log "MESHLINK" "Scanning MESH APs in 2.4GHz ..."
-		ifconfig "$_root_24" up 
+		[ -n "$(echo $_root24 | grep ath)" ] && ifconfig "$_root_24" up 
 		_iwinfo_2g_data="$(iwinfo $_root_24 scan)"
 
 
@@ -513,7 +513,7 @@ update_mesh_link() {
 			local R0 R1 R2
 
 			log "MESHLINK" "Scanning MESH APs in 5GHz ..."
-			ifconfig "$_root_50" up 
+			[ -n "$(echo $_root50 | grep ath)" ] && ifconfig "$_root_50" up 
 			_iwinfo_5g_data="$(iwinfo $_root_50 scan)"
 
 			_mac_channel_rssi="$(mac_ch_signal_from_bssid "$_iwinfo_5g_data" $_mesh_bssid)"
