@@ -463,11 +463,13 @@ drv_rtwifi_setup() {
 			WirelessMode=14
 			ITxBfEn=1
 			HT_HTC=1
+			HT_AMSDU=1
 		;;
 		g)
 			WirelessMode=9
 			ITxBfEn=0
-			HT_HTC=1
+			HT_HTC=0
+			HT_AMSDU=0
 		;;
 		*) 
 			echo "Unknown wireless mode.Use default value:${WirelessMode}"
@@ -555,6 +557,16 @@ drv_rtwifi_setup() {
 		;;
 	esac
 
+#7615/7663 Removed keys
+# G_BAND_256QAM=1
+# PERCENTAGEenable=0
+# BFBACKOFFenable=0
+# CalCacheApply=0
+# SKUenable=0
+# FineAGC=0
+# VOW_Airtime_Fairness_En=1
+# RED_Enable=1
+
 	cat > $RTWIFI_PROFILE_PATH <<EOF
 #The word of "Default" must not be removed
 Default
@@ -563,7 +575,6 @@ CountryRegion=${countryregion:-0}
 CountryRegionABand=${countryregion_a:-0}
 CountryCode=${country:-BR}
 WirelessMode=${WirelessMode}
-G_BAND_256QAM=1
 FixedTxMode=
 TxRate=0
 Channel=${channel}
@@ -571,10 +582,6 @@ BasicRate=15
 BeaconPeriod=100
 DtimPeriod=1
 TxPower=${txpower:-100}
-SKUenable=0
-PERCENTAGEenable=0
-BFBACKOFFenable=0
-CalCacheApply=0
 DisableOLBC=0
 BGProtection=0
 TxAntenna=
@@ -621,7 +628,6 @@ MUTxRxEnable=3
 DfsEnable=0
 DfsZeroWait=0
 DfsZeroWaitCacTime=255
-FineAGC=0
 StreamMode=0
 StreamModeMac0=
 StreamModeMac1=
@@ -686,7 +692,7 @@ MeshWPAKEY=
 MeshId=
 HSCounter=0
 HT_HTC=${HT_HTC}
-HT_RDG=1
+HT_RDG=${HT_HTC}
 HT_LinkAdapt=0
 HT_OpMode=${greenfield:-0}
 HT_MpduDensity=5
@@ -694,7 +700,7 @@ HT_EXTCHA=${EXTCHA}
 HT_BW=${HT_BW:-0}
 HT_AutoBA=1
 HT_BADecline=0
-HT_AMSDU=1
+HT_AMSDU=${HT_AMSDU:-0}
 HT_BAWinSize=64
 HT_GI=${HT_GI:-1}
 HT_STBC=${tx_stbc:-1}
@@ -708,8 +714,9 @@ VHT_DisallowNonVHT=${VHT_DisallowNonVHT:-0}
 VHT_LDPC=${ldpc:-1}
 HT_TxStream=2
 HT_RxStream=2
-HT_PROTECT=0
+HT_PROTECT=1
 HT_DisallowTKIP=${HT_DisallowTKIP:-0}
+HT_40MHZ_INTOLERANT=0
 HT_BSSCoexistence=${HT_CE:-1}
 HT_BSSCoexApCntThr=10
 GreenAP=${greenap:-0}
@@ -765,8 +772,6 @@ IgmpSnEnable=0
 BGMultiClient=1
 EDCCA=0
 HT_MIMOPSMode=3
-RED_Enable=1
-VOW_Airtime_Fairness_En=1
 CP_SUPPORT=2
 BandSteering=0
 BndStrgRssiDiff=15
