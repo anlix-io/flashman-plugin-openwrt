@@ -243,22 +243,32 @@ then
 
 		local base="$1"
 		local freq="$2"
-		
-		ret=$(echo $base | awk 'BEGIN{FS=":"}{print $1$2$3$4$5$6}')
-		ret=$(( 0x$ret ))
+		local ret1
+		local ret2
+
+		ret1=$(echo $base | awk 'BEGIN{FS=":"}{print $1$2$3$4$5$6}')
+		ret1=$(( 0x$ret1 ))
 
 		if [ $freq = "0" ]
 		then
-			ret=$(( $ret + 2 ))
+			ret1=$(( $ret1 + 2 ))
 		else
-			ret=$(( $ret + 3 ))
+			ret1=$(( $ret1 + 3 ))
 		fi
 		
-		ret=$(( $ret & 0xE1FFFFFFFFFF ))
-		ret=$(( $ret | 0x0A0000000000 ))
+		ret2="$ret1"
 
-		ret=$(printf "%012X" $ret | sed 's/../&:/g;s/:$//' )
-		echo $ret
+		# These are two guesses of mine - better safe than sorry
+		ret1=$(( $ret1 & 0xE1FFFFFFFFFF ))
+		ret1=$(( $ret1 | 0x0A0000000000 ))
+
+		ret2=$(( $ret2 | 0x020000000000 ))
+		ret2=$(( $ret2 + 0x40000000000 ))
+
+		ret1=$(printf "%012X" $ret1 | sed 's/../&:/g;s/:$//' )
+		ret2=$(printf "%012X" $ret2 | sed 's/../&:/g;s/:$//' )
+		
+		echo "$ret1 $ret2"
 
 	}
 	# Just to make sure that it doesn't have any spaces, as I have seen
