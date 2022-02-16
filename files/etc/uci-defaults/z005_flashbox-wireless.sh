@@ -206,22 +206,33 @@ then
 		
 		local base="$1"
 		local freq="$2"
-		
-		ret=$(echo $base | awk 'BEGIN{FS=":"}{print $1$2$3$4$5$6}')
-		ret=$(( 0x$ret ))
+		local ret1
+		local ret2
+
+		ret1=$(echo $base | awk 'BEGIN{FS=":"}{print $1$2$3$4$5$6}')
+		ret1=$(( 0x$ret1 ))
 
 		if [ $freq = "0" ]
 		then
-			ret=$(( $ret - 1 ))
+			ret1=$(( $ret1 - 1 ))
 		else
-			ret=$(( $ret - 2 ))
+			ret1=$(( $ret1 - 2 ))
 		fi
 		
-		ret=$(( $ret ^ 0x20000010000 ))
+		ret2="$ret1"
 
-		ret=$(printf "%012X" $ret | sed 's/../&:/g;s/:$//' )
-		echo $ret
-
+		# non mt7628 pattern
+		ret1=$(( $ret1 & 0xFFFFFFFCFFFF ))
+		ret1=$(( $ret1 | 0x020000000000 ))
+		ret1=$(printf "%012X" $ret1 | sed 's/../&:/g;s/:$//' )
+		
+		# mt7628 pattern
+		ret2=$(( $ret2 & 0xFFFFFFCFFFFF ))
+		ret2=$(( $ret2 | 0x000000100000 ))
+		ret2=$(( $ret2 | 0x020000000000 ))
+		ret2=$(printf "%012X" $ret2 | sed 's/../&:/g;s/:$//' )
+		
+		echo "$ret1 $ret2"
 	}
 
 	get_ath_mesh_bssid() {
@@ -244,7 +255,7 @@ then
 		fi
 		
 		ret=$(( $ret & 0xE1FFFFFFFFFF ))
-		ret=$(( $ret | 0xA0000000000 ))
+		ret=$(( $ret | 0x0A0000000000 ))
 
 		ret=$(printf "%012X" $ret | sed 's/../&:/g;s/:$//' )
 		echo $ret

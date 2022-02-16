@@ -468,10 +468,6 @@ update_mesh_link() {
 	local _mesh_id="$(get_mesh_id)"
 	local _mesh_mode="$(get_mesh_mode)"
 
-	# Choose between 2.4G or 5G if mesh mode is for
-	# 0: 2.4G     1: 5G
-	local _wifi_option=""
-
 	local _iwinfo_2g_data=""
 	local _iwinfo_5g_data=""
 
@@ -489,10 +485,12 @@ update_mesh_link() {
 	then
 		local _mac_channel_rssi=""
 		local _mesh_bssid="$(get_mesh_devices 0)"
+		local _root_24="$(get_root_ifname 0)"
 		local R0 R1 R2
 
 		log "MESHLINK" "Scanning MESH APs in 2.4GHz ..."
-		_iwinfo_2g_data="$(iwinfo $(get_root_ifname 0) scan)"
+		[ -n "$(echo $_root24 | grep ath)" ] && ifconfig "$_root_24" up 
+		_iwinfo_2g_data="$(iwinfo $_root_24 scan)"
 
 
 		_mac_channel_rssi="$(mac_ch_signal_from_bssid "$_iwinfo_2g_data" $_mesh_bssid)"
@@ -511,10 +509,12 @@ update_mesh_link() {
 		then
 			local _mac_channel_rssi=""
 			local _mesh_bssid="$(get_mesh_devices 1)"
+			local _root_50="$(get_root_ifname 1)"
 			local R0 R1 R2
 
 			log "MESHLINK" "Scanning MESH APs in 5GHz ..."
-			_iwinfo_5g_data="$(iwinfo $(get_root_ifname 1) scan)"
+			[ -n "$(echo $_root50 | grep ath)" ] && ifconfig "$_root_50" up 
+			_iwinfo_5g_data="$(iwinfo $_root_50 scan)"
 
 			_mac_channel_rssi="$(mac_ch_signal_from_bssid "$_iwinfo_5g_data" $_mesh_bssid)"
 			get_data 3 R $_mac_channel_rssi
@@ -527,7 +527,7 @@ update_mesh_link() {
 		fi
 	fi
 
-	#Uplinks with rssi higher that -70, discart
+	#Uplinks with rssi higher that -70, discard
 	if [ ! -z "$_rssi_5g" ] && [ "$_rssi_5g" -lt "-70" ]
 	then
 		_rssi_5g=""
