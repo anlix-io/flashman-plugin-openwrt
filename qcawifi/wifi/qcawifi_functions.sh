@@ -50,61 +50,6 @@ find_qcawifi_phy() {
 	return 0
 }
 
-scan_qcawifi() {
-	local device="$1"
-	local wds
-	local adhoc sta ap monitor ap_monitor ap_smart_monitor mesh ap_lp_iot disabled
-
-	[ ${device%[0-9]} = "radio" ] && config_set "$device" phy "$device"
-
-	local ifidx=0
-	local radioidx=${device#radio}
-
-	config_get vifs "$device" vifs
-	
-	# [ROMEU] Solving issue from /sbin/wifi's config_cb , which duplicates the last vif read (probably default_radio1). Having a duplicated vif on a device means qcawifi_enable() will 'wlanconfig create' two interfaces
-	vifs=$(echo "$vifs" | tr " " "\n" | sort -u | tr "\n" " ") 
-	
-	for vif in $vifs; do
-	
-		config_get_bool disabled "$vif" disabled 0
-		[ $disabled = 0 ] || continue
-
-		local vifname
-		[ $ifidx -gt 0 ] && vifname="ath${radioidx}$ifidx" || vifname="ath${radioidx}"
-		#vifname="ath${radioidx}"
-		
-		config_set "$vif" ifname $vifname
-
-		config_get mode "$vif" mode
-		case "$mode" in
-			adhoc|sta|ap|monitor|wrap|ap_monitor|ap_smart_monitor|mesh|ap_lp_iot)
-				append "$mode" "$vif"
-			;;
-			*) echo "$device($vif): Invalid mode, ignored."; continue;;
-		esac
-
-		ifidx=$(($ifidx + 1))
-	done
-
-	case "${adhoc:+1}:${sta:+1}:${ap:+1}" in
-		# valid mode combinations
-		1::) wds="";;
-		1::1);;
-		:1:1)config_set "$device" nosbeacon 1;; # AP+STA, cant use beacon timers for STA
-		:1:);;
-		::1);;
-		::);;
-		*) echo "$device: Invalid mode combination in config"; return 1;;
-	esac
-
-	vifs="${ap:+$ap }${ap_monitor:+$ap_monitor }${mesh:+$mesh }${ap_smart_monitor:+$ap_smart_monitor }${wrap:+$wrap }${sta:+$sta }${adhoc:+$adhoc }${wds:+$wds }${monitor:+$monitor}${ap_lp_iot:+$ap_lp_iot}"
-	
-	config_set "$device" vifs "$vifs"
-	
-	echo "vifs for device $device is: $vifs " > /dev/console
-}
-
 # The country ID is set at the radio level. When the driver attaches the radio,
 # it sets the default country ID to 840 (US STA). This is because the desired
 # VAP modes are not known at radio attach time, and STA functionality is the
@@ -686,7 +631,7 @@ enable_qcawifi() {
 
 		case "$mode" in
 			sta)
-				config_get_bool nosbeacon "$device" nosbeacon
+				nosbeacon="1"
 				config_get qwrap_enable "$device" qwrap_enable 0
 				[ $qwrap_enable -gt 0 ] && wlanaddr="00:00:00:00:00:00"
 				;;
@@ -1437,6 +1382,7 @@ enable_qcawifi() {
 		}
 
 		ifconfig "$ifname" up
+		[ "$ifname" = "ath0" ] && sleep 5
 		set_wifi_up "$vif" "$ifname"
 
 		# No idea why, but this is necessary in order to WDS/extAP work
