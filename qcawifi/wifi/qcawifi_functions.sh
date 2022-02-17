@@ -9,6 +9,7 @@
 #
 #
 
+. /lib/functions.sh
 
 wlanconfig() {
 	[ -n "${DEBUG}" ] && echo wlanconfig "$@"
@@ -536,8 +537,8 @@ enable_qcawifi() {
 	config_get obss_rx_rssi_th "$device" obss_rx_rssi_th 35
 	[ -n "$obss_rx_rssi_th" ] && iwpriv "$phy" obss_rxrssi_th "${obss_rx_rssi_th}"
 
-        config_get acs_txpwr_opt "$device" acs_txpwr_opt
-        [ -n "$acs_txpwr_opt" ] && iwpriv "$phy" acs_tcpwr_opt "${acs_txpwr_opt}"
+	config_get acs_txpwr_opt "$device" acs_txpwr_opt
+	[ -n "$acs_txpwr_opt" ] && iwpriv "$phy" acs_txpwr_opt "${acs_txpwr_opt}"
 
 	config_get obss_long_slot "$device" obss_long_slot
 	[ -n "$obss_long_slot" ] && iwpriv "$phy" obss_long_slot "${obss_long_slot}"
