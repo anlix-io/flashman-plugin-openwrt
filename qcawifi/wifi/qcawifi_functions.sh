@@ -229,6 +229,9 @@ enable_qcawifi() {
 	config_get vifs "$device" vifs
 	config_get txpower "$device" txpower
 
+	# wifi's config_cb duplicates last wifi-iface entry ; deduplicating now
+	vifs=$(echo "$vifs" | tr " " "\n" | sort -u | tr "\n" " ") 
+	
 	[ auto = "$channel" ] && channel=0
 
 	config_get_bool antdiv "$device" diversity
@@ -571,6 +574,10 @@ enable_qcawifi() {
 	fi
 
 	for vif in $vifs; do
+
+		config_get_bool disabled "$vif" disabled 0
+		[ $disabled = 0 ] || continue
+		
 		local start_hostapd=
 		config_get mode "$vif" mode
 		config_get enc "$vif" encryption "none"
@@ -593,6 +600,10 @@ enable_qcawifi() {
 	done
 
 	for vif in $vifs; do
+		
+		config_get_bool disabled "$vif" disabled 0
+		[ $disabled = 0 ] || continue
+		
 		local start_hostapd= vif_txpower= nosbeacon= wlanaddr=""
 		local wlanmode
 		config_get ifname "$vif" ifname
