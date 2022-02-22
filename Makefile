@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=flasman-plugin
-PKG_VERSION:=0.33.0
+PKG_VERSION:=0.35.0
 PKG_RELEASE:=1
 
 PKG_LICENSE:=GPL
@@ -206,6 +206,7 @@ SSID_SUFFIX=
 	endif
 
 define Package/flashman-plugin/install
+
 	$(CP) ./$(FILE_DIR)/* $(1)/
 ifneq ($(CUSTOM_FILE_ARQ),)
 	$(CP) ./custom-files/$(CUSTOM_FILE_ARQ).sh $(1)/usr/share/functions/custom_device.sh
@@ -216,6 +217,17 @@ ifeq ($(CONFIG_TARGET_ramips), y)
 	$(INSTALL_DATA) ./mtkwifi/wifi/rtwifi.sh $(1)/lib/wifi
 	$(INSTALL_BIN) ./mtkwifi/netifd/wireless/rtwifi.sh $(1)/lib/netifd/wireless
 	$(CP) ./driver/rtwifi.sh $(1)/usr/share/functions/custom_wireless_driver.sh
+else ifneq ($(filter \
+	$(CONFIG_TARGET_ath79_generic_DEVICE_tplink_archer-c60-v3)\
+	$(CONFIG_TARGET_ath79_generic_DEVICE_tplink_archer-c60-v2)\
+	$(CONFIG_TARGET_ath79_generic_DEVICE_tplink_archer-c6-v2-us)\
+,y),)
+	$(INSTALL_DIR) $(1)/lib/wifi $(1)/lib/netifd/wireless $(1)/lib/firmware $(1)/lib/preinit/
+	$(INSTALL_DATA) ./qcawifi/wifi/qcawifi.sh $(1)/lib/wifi
+	$(INSTALL_DATA) ./qcawifi/wifi/qcawifi_functions.sh $(1)/lib/wifi
+	$(INSTALL_BIN)  ./qcawifi/netifd/wireless/qcawifi.sh $(1)/lib/netifd/wireless
+	$(CP) ./driver/qcawifi.sh $(1)/usr/share/functions/custom_wireless_driver.sh
+	$(INSTALL_DATA) ./qcawifi/preinit/82_downloading_caldata $(1)/lib/preinit/
 else
 	$(CP) ./driver/mac80211.sh $(1)/usr/share/functions/custom_wireless_driver.sh
 endif

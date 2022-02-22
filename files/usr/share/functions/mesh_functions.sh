@@ -95,6 +95,7 @@ get_mesh_master() {
 }
 
 # Get all bssids in the mesh
+# After updating from v1 to v2, it doesnt have the "_devices_bssid" field in /root/flashbox_config.json
 get_mesh_devices() {
 	# $1: 2.4G or 5G
 		# 0: 2.4G
@@ -199,8 +200,8 @@ find_mac_address() {
 		do
 			local _cell="$(get_iwinfo_cell "$_iwinfo_data" "$_cell_num")"
 
-			# Check if has the SSID
-			if [ "$(echo "$_cell" | grep "$_mesh_id")" ]
+			# Check if it has the SSID or the BSSID
+			if [ "$(echo "$_cell" | grep -E "(Address|ESSID)" | grep "$_mesh_id")" ]
 			then
 				# Assign mac and exit, 5th element of the line
 				_mac_addr="$(echo "$_cell" | grep Address | awk '{print $5}' | tail -1)"
@@ -234,8 +235,8 @@ find_channel() {
 		do
 			local _cell="$(get_iwinfo_cell "$_iwinfo_data" "$_cell_num")"
 
-			# Check if has the SSID
-			if [ "$(echo "$_cell" | grep "$_mesh_id")" ]
+			# Check if it has the SSID or the BSSID
+			if [ "$(echo "$_cell" | grep -E "(Address|ESSID)" | grep "$_mesh_id")" ]
 			then
 				# Assign channel and exit
 				# The channel is on the same line as the mode, 4th item
@@ -248,10 +249,10 @@ find_channel() {
 	echo "$_channel"
 }
 
-# Get the mac address and the channel of the device with the best quality
-find_mac_and_channel_by_devices() {
+# Get the mac address, the channel and the signal quality of the best quality device
+mac_ch_signal_from_bssid() {
 	# $1: Iwinfo Data
-	# $2: Mesh BSSID devices
+	# $2: Mesh BSSID devices 
 
 	local _iwinfo_data="$1"
 	shift
@@ -271,7 +272,7 @@ find_mac_and_channel_by_devices() {
 
 	while [ ! -z "$_bssid_new" ]
 	do
-		if [ -z "$_bssid_best" ] || [ "$_quality_new" -gt "$_quality_best" ]
+		if [ -z "$_bssid_best" ] || [ -z "$_quality_best" ] || [ "$_quality_new" -gt "$_quality_best" ]
 		then
 			_bssid_best="$_bssid_new"
 			_quality_best="$_quality_new"
@@ -307,8 +308,8 @@ find_quality() {
 		do
 			local _cell="$(get_iwinfo_cell "$_iwinfo_data" "$_cell_num")"
 
-			# Check if has the SSID
-			if [ "$(echo "$_cell" | grep "$_mesh_id")" ]
+			# Check if it has the SSID or the BSSID
+			if [ "$(echo "$_cell" | grep -E "(Address|ESSID)" | grep "$_mesh_id")" ]
 			then
 				# Assign quality and exit, 2nd element of the line
 				_quality="$(echo "$_cell" | grep Signal | awk '{print $2}' | tail -1)"
@@ -385,7 +386,9 @@ enable_mesh() {
 		uci set wireless.mesh2_ap.encryption='psk2'
 		uci set wireless.mesh2_ap.key="$_new_mesh_key"
 		uci set wireless.mesh2_ap.disabled='0'
-		# Use the mac address and increment the last byte
+		# This address is set on realteks, 
+		# read from an existing interface on mediateks
+		# and runtime generated on atheros 
 		uci set wireless.mesh2_ap.macaddr="$(get_mesh_ap_bssid 0)"
 
 		if [ "$_mesh_master" ]
@@ -402,6 +405,10 @@ enable_mesh() {
 			uci set wireless.mesh2_sta.key="$_new_mesh_key"
 			uci set wireless.mesh2_sta.disabled='1'
 			uci set wireless.mesh2_sta.anlix_ap='1'
+			
+			# Atheros specific properties
+			[ -n "$(get_station_ifname 0 | grep ath)" ] && uci set wireless.mesh2_sta.extap='1'
+			
 		fi
 	fi
 	
@@ -425,7 +432,9 @@ enable_mesh() {
 			uci set wireless.mesh5_ap.encryption='psk2'
 			uci set wireless.mesh5_ap.key="$_new_mesh_key"
 			uci set wireless.mesh5_ap.disabled='0'
-			# Use the mac address and increment the byte
+			# This address is set on realteks, 
+			# read from an existing interface on mediateks
+			# and runtime generated on atheros
 			uci set wireless.mesh5_ap.macaddr="$(get_mesh_ap_bssid 1)"
 
 			if [ "$_mesh_master" ]
@@ -442,6 +451,10 @@ enable_mesh() {
 				uci set wireless.mesh5_sta.key="$_new_mesh_key"
 				uci set wireless.mesh5_sta.disabled='1'
 				uci set wireless.mesh5_sta.anlix_ap='1'
+				
+				# Atheros specific properties
+				[ -n "$(get_station_ifname 1 | grep ath)" ] && uci set wireless.mesh5_sta.extap='1'
+				
 			fi
 		fi
 	fi
@@ -454,10 +467,6 @@ enable_mesh() {
 update_mesh_link() {
 	local _mesh_id="$(get_mesh_id)"
 	local _mesh_mode="$(get_mesh_mode)"
-
-	# Choose between 2.4G or 5G if mesh mode is for
-	# 0: 2.4G     1: 5G
-	local _wifi_option=""
 
 	local _iwinfo_2g_data=""
 	local _iwinfo_5g_data=""
@@ -474,14 +483,18 @@ update_mesh_link() {
 	# Scan
 	if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
 	then
-		local _mac_and_channel=""
+		local _mac_channel_rssi=""
+		local _mesh_bssid="$(get_mesh_devices 0)"
+		local _root_24="$(get_root_ifname 0)"
 		local R0 R1 R2
 
 		log "MESHLINK" "Scanning MESH APs in 2.4GHz ..."
-		_iwinfo_2g_data="$(iwinfo $(get_root_ifname 0) scan)"
+		[ -n "$(echo $_root24 | grep ath)" ] && ifconfig "$_root_24" up 
+		_iwinfo_2g_data="$(iwinfo $_root_24 scan)"
 
-		_mac_and_channel="$(find_mac_and_channel_by_devices "$_iwinfo_2g_data" $(get_mesh_devices 0))"
-		get_data 3 R $_mac_and_channel
+
+		_mac_channel_rssi="$(mac_ch_signal_from_bssid "$_iwinfo_2g_data" $_mesh_bssid)"
+		get_data 3 R $_mac_channel_rssi
 
 		_bssid_2g="$R0"
 		_channel_2g="$R1"
@@ -494,14 +507,17 @@ update_mesh_link() {
 	then
 		if [ "$(is_5ghz_capable)" == "1" ]
 		then
-			local _mac_and_channel=""
+			local _mac_channel_rssi=""
+			local _mesh_bssid="$(get_mesh_devices 1)"
+			local _root_50="$(get_root_ifname 1)"
 			local R0 R1 R2
 
 			log "MESHLINK" "Scanning MESH APs in 5GHz ..."
-			_iwinfo_5g_data="$(iwinfo $(get_root_ifname 1) scan)"
+			[ -n "$(echo $_root50 | grep ath)" ] && ifconfig "$_root_50" up 
+			_iwinfo_5g_data="$(iwinfo $_root_50 scan)"
 
-			_mac_and_channel="$(find_mac_and_channel_by_devices "$_iwinfo_5g_data" $(get_mesh_devices 1))"
-			get_data 3 R $_mac_and_channel
+			_mac_channel_rssi="$(mac_ch_signal_from_bssid "$_iwinfo_5g_data" $_mesh_bssid)"
+			get_data 3 R $_mac_channel_rssi
 
 			_bssid_5g="$R0"
 			_channel_5g="$R1"
@@ -511,7 +527,7 @@ update_mesh_link() {
 		fi
 	fi
 
-	#Uplinks with rssi higher that -70, discart
+	#Uplinks with rssi higher that -70, discard
 	if [ ! -z "$_rssi_5g" ] && [ "$_rssi_5g" -lt "-70" ]
 	then
 		_rssi_5g=""
@@ -551,6 +567,8 @@ update_mesh_link() {
 				log "MESHLINK" "Change 5Ghz Backbone ($_channel_5g) ($_bssid_5g) ..."
 				wifi reload
 				sleep 5
+				# Atheros stations needs some extra time to connect and prevent a deadloop on backbone probing
+				[ -n "$(uci -q get wireless.mesh5_sta.ifname | grep ath )" ] && sleep 15
 			else
 				log "MESHLINK" "FAIL in change 5Ghz Backbone ($_channel_5g) ($_bssid_5g) ..."
 			fi
@@ -573,6 +591,8 @@ update_mesh_link() {
 				log "MESHLINK" "Change 2.4Ghz Backbone ($_channel_2g) ($_bssid_2g) ..."
 				wifi reload
 				sleep 5
+				# Atheros stations needs some extra time to connect and prevent a deadloop on backbone probing
+				[ -n "$(uci -q get wireless.mesh2_sta.ifname | grep ath )" ] && sleep 15
 			else
 				log "MESHLINK" "FAIL in change 2.4Ghz Backbone ($_channel_2g) ($_bssid_2g) ..."
 			fi
@@ -585,19 +605,20 @@ update_mesh_link() {
 }
 
 # Check if Mesh is connected
+# ** Should print any non-empty string if mesh is connected **
 is_mesh_connected() {
 	local _mesh_mode="$(get_mesh_mode)"
 	local _mesh_master="$(get_mesh_master)"
 	local conn=""
 	if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ]
 	then
-		[ "$(iwinfo $(get_station_ifname 0) assoclist | grep -v "No station connected")" ] && conn="1"
+		ifconfig $(get_station_ifname 0) &>/dev/null && [ "$(iwinfo $(get_station_ifname 0) assoclist | grep -v "No station connected")" ] && conn="1"
 	fi
 	if [ "$(is_5ghz_capable)" == "1" ]
 	then
 		if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ]
 		then
-			[ "$(iwinfo $(get_station_ifname 1) assoclist | grep -v "No station connected")" ] && conn="1"
+			ifconfig $(get_station_ifname 1) &>/dev/null && [ "$(iwinfo $(get_station_ifname 1) assoclist | grep -v "No station connected")" ] && conn="1"
 		fi
 	fi
 	echo "$conn"
