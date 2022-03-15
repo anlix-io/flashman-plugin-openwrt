@@ -561,17 +561,15 @@ update_mesh_link() {
 			uci set wireless.mesh5_sta.disabled='0'
 			uci set wireless.mesh2_sta.disabled='1'
 
-			if set_wifi_local_config "" "" "auto" "" "" "" "" "" \
+			uci commit wireless
+
+			set_wifi_local_config "" "" "auto" "" "" "" "" "" \
 				"" "" "$_channel_5g" "" "" "" "" "" "$_mesh_mode"
-			then
-				log "MESHLINK" "Change 5Ghz Backbone ($_channel_5g) ($_bssid_5g) ..."
-				wifi reload
-				sleep 5
-				# Atheros stations needs some extra time to connect and prevent a deadloop on backbone probing
-				[ -n "$(uci -q get wireless.mesh5_sta.ifname | grep ath )" ] && sleep 15
-			else
-				log "MESHLINK" "FAIL in change 5Ghz Backbone ($_channel_5g) ($_bssid_5g) ..."
-			fi
+			log "MESHLINK" "Change 5Ghz Backbone ($_channel_5g) ($_bssid_5g) ..."
+			wifi reload
+			sleep 5
+			# Atheros stations needs some extra time to connect and prevent a deadloop on backbone probing
+			[ -n "$(uci -q get wireless.mesh5_sta.ifname | grep ath )" ] && sleep 15
 		else
 			log "MESHLINK" "Keep 5Ghz Backbone ($_channel_5g) ($_bssid_5g) ..."
 		fi
@@ -585,17 +583,15 @@ update_mesh_link() {
 			uci set wireless.mesh2_sta.disabled='0'
 			[ "$(is_5ghz_capable)" == "1" ] && uci set wireless.mesh5_sta.disabled='1'
 
-			if set_wifi_local_config "" "" "$_channel_2g" "" "" "" "" "" \
+			uci commit wireless
+
+			set_wifi_local_config "" "" "$_channel_2g" "" "" "" "" "" \
 				"" "" "auto" "" "" "" "" "" "$_mesh_mode"
-			then
-				log "MESHLINK" "Change 2.4Ghz Backbone ($_channel_2g) ($_bssid_2g) ..."
-				wifi reload
-				sleep 5
-				# Atheros stations needs some extra time to connect and prevent a deadloop on backbone probing
-				[ -n "$(uci -q get wireless.mesh2_sta.ifname | grep ath )" ] && sleep 15
-			else
-				log "MESHLINK" "FAIL in change 2.4Ghz Backbone ($_channel_2g) ($_bssid_2g) ..."
-			fi
+			log "MESHLINK" "Change 2.4Ghz Backbone ($_channel_2g) ($_bssid_2g) ..."
+			wifi reload
+			sleep 5
+			# Atheros stations needs some extra time to connect and prevent a deadloop on backbone probing
+			[ -n "$(uci -q get wireless.mesh2_sta.ifname | grep ath )" ] && sleep 15
 		else
 			log "MESHLINK" "Keep 2.4Ghz Backbone ($_channel_2g) ($_bssid_2g) ..."
 		fi
