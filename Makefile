@@ -235,6 +235,7 @@ endif
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/anlix-mqtt $(1)/usr/bin/
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/pk $(1)/usr/bin/
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/anlix-flash-utils $(1)/usr/bin/
 
 	mkdir -p $(1)/usr/share
 	echo 'FLM_SSID_SUFFIX=$(SSID_SUFFIX)' >>$(1)/usr/share/flashman_init.conf
