@@ -9,12 +9,13 @@ all:
 # Only add anlix-flash-utils if W5
 ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_W51200F), y)
 all: anlix-mqtt pk anlix-flash-utils
+EXTRA_CFLAGS += -DCONFIG_DEVICE_W5_1200F
 else
 all: anlix-mqtt pk
 endif
 
 %.o: %.c
-	$(CC) $(CFLAGS) -Ipaho -c -o $@ $<
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -Ipaho -c -o $@ $<
 
 anlix-mqtt: $(OBJS) MQTTClient.o anlix-mqtt-transport.o anlix-mqtt.o
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) MQTTClient.o anlix-mqtt-transport.o anlix-mqtt.o -lmbedtls -lmbedx509 -lmbedcrypto
