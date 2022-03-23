@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=flasman-plugin
-PKG_VERSION:=0.35.0
+PKG_VERSION:=0.35.1
 PKG_RELEASE:=1
 
 PKG_LICENSE:=GPL
@@ -235,6 +235,10 @@ endif
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/anlix-mqtt $(1)/usr/bin/
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/pk $(1)/usr/bin/
+
+ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_W51200F), y)
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/anlix-flash-utils $(1)/usr/bin/
+endif
 
 	mkdir -p $(1)/usr/share
 	echo 'FLM_SSID_SUFFIX=$(SSID_SUFFIX)' >>$(1)/usr/share/flashman_init.conf
