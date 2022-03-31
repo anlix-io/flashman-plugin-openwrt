@@ -6,10 +6,14 @@ OBJS-FLASH-UTILS = flash-utils/flash-utils.o
 
 all:
 
-# Only add anlix-flash-utils if W5
+# Only add anlix-flash-utils if W5 or GWR 1200 V2
 ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_W51200F), y)
 all: anlix-mqtt pk anlix-flash-utils
 EXTRA_CFLAGS += -DCONFIG_DEVICE_W5_1200F
+
+else ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_GWR1200AC-V2), y)
+all: anlix-mqtt pk anlix-flash-utils
+
 else
 all: anlix-mqtt pk
 endif

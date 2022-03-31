@@ -31,8 +31,14 @@ anlix_bootup_defaults() {
 1 tx_power_5g_ht40_1s_a \
 1 tx_power_5g_ht40_1s_b \
 1 tx_power_diff_5g_ofdm \
+1 tx_power_diff_5g_20bw1s_ofdm1t_a \
+1 tx_power_diff_5g_40bw2s_20bw2s_a \
 1 tx_power_diff_5g_80bw1s_160bw1s_a \
+1 tx_power_diff_5g_80bw2s_160bw2s_a \
+1 tx_power_diff_5g_20bw1s_ofdm1t_b \
+1 tx_power_diff_5g_40bw2s_20bw2s_b \
 1 tx_power_diff_5g_80bw1s_160bw1s_b \
+1 tx_power_diff_5g_80bw2s_160bw2s_b \
 1 tx_power_tssi_5g_ht40_1s_a \
 1 tx_power_tssi_5g_ht40_1s_b \
 1 tssi_enable)"
@@ -43,7 +49,7 @@ anlix_bootup_defaults() {
 	then
 
 		get_data 15 _parameter_24g $_parameters_24g
-		get_data 13 _parameter_5g $_parameters_5g
+		get_data 19 _parameter_5g $_parameters_5g
 
 		ifconfig wlan0 up
 		iwpriv wlan0 set_mib regdomain=$_parameter_24g0
@@ -73,11 +79,17 @@ anlix_bootup_defaults() {
 		iwpriv wlan1 set_mib pwrlevel5GHT40_1S_A=$_parameter_5g5
 		iwpriv wlan1 set_mib pwrlevel5GHT40_1S_B=$_parameter_5g6
 		iwpriv wlan1 set_mib pwrdiff5GOFDM=$_parameter_5g7
-		iwpriv wlan1 set_mib pwrdiff_5G_80BW1S_160BW1S_A=$_parameter_5g8
-		iwpriv wlan1 set_mib pwrdiff_5G_80BW1S_160BW1S_B=$_parameter_5g9
-		iwpriv wlan1 set_mib pwrlevel_TSSI5GHT40_1S_A=$_parameter_5g10
-		iwpriv wlan1 set_mib pwrlevel_TSSI5GHT40_1S_B=$_parameter_5g11
-		iwpriv wlan1 set_mib tssi_enable=$_parameter_5g12
+		iwpriv wlan1 set_mib pwrdiff_5G_20BW1S_OFDM1T_A=$_parameter_5g8
+		iwpriv wlan1 set_mib pwrdiff_5G_40BW2S_20BW2S_A=$_parameter_5g9
+		iwpriv wlan1 set_mib pwrdiff_5G_80BW1S_160BW1S_A=$_parameter_5g10
+		iwpriv wlan1 set_mib pwrdiff_5G_80BW2S_160BW2S_A=$_parameter_5g11
+		iwpriv wlan1 set_mib pwrdiff_5G_20BW1S_OFDM1T_B=$_parameter_5g12
+		iwpriv wlan1 set_mib pwrdiff_5G_40BW2S_20BW2S_B=$_parameter_5g13
+		iwpriv wlan1 set_mib pwrdiff_5G_80BW1S_160BW1S_B=$_parameter_5g14
+		iwpriv wlan1 set_mib pwrdiff_5G_80BW2S_160BW2S_B=$_parameter_5g15
+		iwpriv wlan1 set_mib pwrlevel_TSSI5GHT40_1S_A=$_parameter_5g16
+		iwpriv wlan1 set_mib pwrlevel_TSSI5GHT40_1S_B=$_parameter_5g17
+		iwpriv wlan1 set_mib tssi_enable=$_parameter_5g18
 		ifconfig wlan1 down
 
 	else
