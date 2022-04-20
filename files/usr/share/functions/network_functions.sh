@@ -120,46 +120,16 @@ check_connectivity_flashman() {
 	check_connectivity_internet "$_addrs"
 }
 
-# check_connectivity_internet() {
-# 	_addrs="www.google.com.br"$'\n'"www.facebook.com"$'\n'"www.globo.com"
-# 	if [ "$1" != "" ]
-# 	then
-# 		_addrs="$1"
-# 	fi
-# 	for _addr in $_addrs
-# 	do
-# 		if ping -q -c 1 -w 2 "$_addr"  > /dev/null 2>&1
-# 		then
-# 			# true
-# 			echo 0
-# 			return
-# 		fi
-# 	done
-# 	# No successfull pings
-
-# 	# false
-# 	echo 1
-# 	return
-# }
-
 check_connectivity_internet() {
 	_addrs="www.google.com.br"$'\n'"www.facebook.com"$'\n'"www.globo.com"
 	if [ "$1" != "" ]
 	then
 		_addrs="$1"
 	fi
-	# if second argument is undefined, use value '0'.
-	local collect_enabled="${2:-0}"
 	for _addr in $_addrs
 	do
-		# ping output will be used in case collecting connectivity pings is enabled.
-		local pingResult
-		if pingResult=$(ping -q -c 1 -w 2 "$_addr")
+		if ping -q -c 1 -w 2 "$_addr"  > /dev/null 2>&1
 		then
-			# won't collect connectivity ping if data collecting service is not running.
-			[ "$collect_enabled" -eq 1 ] && /etc/init.d/data_collecting running && \
-				save_connectivity_ping "$pingResult"
-
 			# true
 			echo 0
 			return
@@ -170,33 +140,6 @@ check_connectivity_internet() {
 	# false
 	echo 1
 	return
-}
-
-# expects the output of ping, that includes the pings statistics at the end, as a single string input.
-# writes the ping rtt to a file inside the data_collecting directory.
-save_connectivity_ping() {
-	local pingResult="$1"
-
-	# data_collecting directory
-	local data_collecting_dir="/tmp/data_collecting"
-	# file where pings are stored.
-	local connectivityPingsFile="${data_collecting_dir}/connpings"
-
-	# Removes everything before, and including, 'mdev = '.
-	local rtt=${pingResult##*mdev = }
-	# removes everything after, and including, first forward slash.
-	rtt=${rtt%%/*}
-
-	# using a lock file, in writing mode, to block code while accessing the pings file.
-	# this is because the data_collecting service will also write to the pings file.
-	{
-	flock -x 9
-	# creates data_collecting temporary directory if it doesn't exist.
-	mkdir -p "$data_collecting_dir"
-	# appending $rtt in a new line in pings file.
-	echo "$rtt" >> "$connectivityPingsFile"
-	# "${connectivityPingsFile}lock" is also used by the data_collecting service.
-	} 9>"${connectivityPingsFile}lock"
 }
 
 renew_dhcp() {

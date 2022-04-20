@@ -11,8 +11,7 @@ set_data_collecting_parameters() {
 	local data_collecting_ping_fqdn="${4:-$FLM_SVADDR}"
 	local data_collecting_ping_packets="${5:-100}"
 	local data_collecting_burst_loss="${6:-0}"
-	local data_collecting_conn_pings="${7:-0}"
-	local data_collecting_wifi_devices="${8:-0}"
+	local data_collecting_wifi_devices="${7:-0}"
 
 	json_cleanup
 	json_load_file "/root/flashbox_config.json"
@@ -22,7 +21,6 @@ set_data_collecting_parameters() {
 	json_get_var saved_data_collecting_ping_fqdn data_collecting_ping_fqdn
 	json_get_var saved_data_collecting_ping_packets data_collecting_ping_packets
 	json_get_var saved_data_collecting_burst_loss data_collecting_burst_loss
-	json_get_var saved_data_collecting_conn_pings data_collecting_conn_pings
 	json_get_var saved_data_collecting_wifi_devices data_collecting_wifi_devices
 
 	local anyChange=false
@@ -70,13 +68,6 @@ set_data_collecting_parameters() {
 	fi
 
 	# Updating value if $data_collecting_alarm_fqdn has changed.
-	if [ "$saved_data_collecting_conn_pings" != "$data_collecting_conn_pings" ]; then
-		anyChange=true
-		json_add_boolean data_collecting_conn_pings "$data_collecting_conn_pings"
-		log "DATA_COLLECTING" "Updated 'data_collecting_conn_pings' parameter to '$data_collecting_conn_pings'."
-	fi
-
-	# Updating value if $data_collecting_alarm_fqdn has changed.
 	if [ "$saved_data_collecting_wifi_devices" != "$data_collecting_wifi_devices" ]; then
 		anyChange=true
 		json_add_boolean data_collecting_wifi_devices "$data_collecting_wifi_devices"
@@ -97,10 +88,4 @@ set_data_collecting_parameters() {
 	# it's configuration variables at each iteration (which happens once every minute).
 	[ "$data_collecting_is_active" -eq 1 ] && \
 		/etc/init.d/data_collecting reload || /etc/init.d/data_collecting stop > /dev/null 2>&1
-
-	# if connectivity pings has changed, restarts check_cable_wan service.
-	if [ "$saved_data_collecting_conn_pings" != "$data_collecting_conn_pings" ]; then
-		/etc/init.d/check_cable_wan stop
-		/etc/init.d/check_cable_wan start
-	fi
 }

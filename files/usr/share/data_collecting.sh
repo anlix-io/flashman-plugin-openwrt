@@ -10,8 +10,6 @@ dataCollectingDir="/tmp/data_collecting"
 rawDataFile="${dataCollectingDir}/raw"
 # directory where data will be stored if compressing old data is necessary.
 compressedDataDir="${dataCollectingDir}/compressed"
-# file where connectivity pings are stored.
-connectivityPingsFile="${dataCollectingDir}/connpings"
 
 # takes current unix timestamp, executes ping, in burst, to $pingServerAddress server, gets current 
 # rx and tx bytes from wan interface and compares then with values from previous calls to calculate 
@@ -117,46 +115,6 @@ collect_QoE_Monitor_data() {
 	# appending string to file.
 	# printf "string is: '%s'\n" "$string"
 	rawData="${rawData}|burstLoss ${string}"
-}
-
-collect_connectivity_pings() {
-	# checking if this data collecting is enabled.
-	[ "$connPings" -ne 1 ] && return
-
-	# content from pings file will be assign to this variable.
-	local pings
-	# boolean that will become false if connectivity pings file is not empty.
-	local empty=true
-	# using a lock file, in writing mode, to block code while accessing the pings file.
-	# this is to prevent writing conflict to the script that writes new values to the pings file.
-	{
-	flock -x 9
-	# reading connectivity pings file and writing errors to '/dev/null'. 
-	pings=$(cat "$connectivityPingsFile" 2> /dev/null) && \
-		# if file could be read and if amount of lines is greater than zero, sets 'empty' to false and removes file. 
-		[ $(printf "%s" "$pings" | wc -l) -gt 0 ] && empty=false && rm "$connectivityPingsFile"
-	# "${connectivityPingsFile}lock" is also used by the script that writes new values to the file.
-	} 9>"${connectivityPingsFile}lock"
-
-	# if there are no pings, we do nothing.
-	[ "$empty" == true ] && return
-
-	# counter and total for pings. we later divide them to get an average.
-	local count=0
-	local average=0
-	for rtt in $pings; do
-		count=$(($count + 1))
-		# removing floating point. which means multiplying by 1000 as 'ping' times always have 3 floating point digits.
-		# we are using integers only in our math because flashboxes don't have floating point numbers in ash.
-		average=$(($average + ${rtt//.}))
-	done
-
-	# using integer division isn't perfect but it's precise enough for us.
-	average=$(($average / $count))
-	# dividing back by 1000 by just manipulating the string. Putting a dot before the last 3 digits.
-	local dotPosition=$((${#average}-3))
-	average="${average:0:$dotPosition}.${average:$dotPosition}"
-	rawData="${rawData}|connPings ${average} ${count}"
 }
 
 collect_wifi_devices() {
@@ -313,11 +271,10 @@ collectData() {
 
 	# collecting all measures.
 	collect_QoE_Monitor_data
-	collect_connectivity_pings
 	collect_wifi_devices
 
 	# example of an expected raw data with all measures present:
-	# '213234556456|burstLoss 0 100 12345 1234|connPings 10.344 30|wifiDevices aa:bb:cc:dd:ee:ff-22 ab:bb:cc:dd:ee:ff-45'
+	# '213234556456|burstLoss 0 100 12345 1234|wifiDevices aa:bb:cc:dd:ee:ff-22 ab:bb:cc:dd:ee:ff-45'
 	[ -n "$rawData" ] && echo "${timestamp}${rawData}" >> "$rawDataFile";
 	# cleaning 'rawData' value from memory.
 	rawData=""
@@ -553,7 +510,6 @@ cleanFiles() {
 	rm "${dataCollectingDir}/serverState" 2> /dev/null
 	# rm "${dataCollectingDir}/backoffCounter" 2> /dev/null
 	rm "${rawDataFile}.gz" 2> /dev/null
-	rm "${connectivityPingsFile}lock"
 }
 
 # collects and sends data forever.
@@ -579,7 +535,6 @@ loop() {
 			-e "pingServerAddress=@.data_collecting_ping_fqdn" \
 			-e "pingPackets=@.data_collecting_ping_packets" \
 			-e "burstLoss=@.data_collecting_burst_loss" \
-			-e "connPings=@.data_collecting_conn_pings" \
 			-e "wifiDevices=@.data_collecting_wifi_devices" \
 		)
 
