@@ -11,30 +11,13 @@ rawDataFile="${dataCollectingDir}/raw"
 # directory where data will be stored if compressing old data is necessary.
 compressedDataDir="${dataCollectingDir}/compressed"
 
-# takes current unix timestamp, executes ping, in burst, to $pingServerAddress server, gets current 
-# rx and tx bytes from wan interface and compares then with values from previous calls to calculate 
-# cross traffic. If latency collecting is enabled, extracts the individual icmp request numbers and 
-# their respective ping times. Builds a string with all this information and write them to file.
-collect_QoE_Monitor_data() {
-	# checking if this data collecting is enabled
-	[ "$burstLoss" -ne 1 ] && return
-
-	# burst ping with $pingPackets amount of packets.
-	local pingResult=$(ping -i 0.01 -c "$pingPackets" "$pingServerAddress")
-	# ping return value.
-	local pingError="$?"
-
-	# Even if the ping could not be executed, we'll read the wan bytes to keep tracking the amount of bytes up and down.
-
+# gets current rx and tx bytes/packets from wan interface and compares them
+# with values from previous calls to calculate cross traffic
+collect_wan() {
 	# bytes received by the interface.
 	local rxBytes=$(get_wan_bytes_statistics RX)
 	# bytes sent by the interface.
 	local txBytes=$(get_wan_bytes_statistics TX)
-
-	# packets received by the interface.
-	local rxPackets=$(get_wan_packets_statistics RX)
-	# packets sent by the interface.
-	local txPackets=$(get_wan_packets_statistics TX)
 
 	# if last bytes are not defined. define them using the current wan interface bytes value. then we skip this measure.
 	if [ -z "$last_rxBytes" ] || [ -z "$last_txBytes" ]; then
@@ -44,8 +27,25 @@ collect_QoE_Monitor_data() {
 		# bytes sent by the interface. will be used next time.
 		last_txBytes="$txBytes"
 		# don't write data this round. we need a full minute of bytes to calculate cross traffic.
-		return
+		return -1
 	fi
+
+	# bytes received since last time.
+	local rxBytesDiff=$(($rxBytes - $last_rxBytes))
+	# bytes transmitted since last time
+	local txBytesDiff=$(($txBytes - $last_txBytes))
+	# if subtraction created a negative value, it means it has overflown or interface has been restarted.
+	# we skip this measure.
+	{ [ "$rxBytesDiff" -lt 0 ] || [ "$txBytesDiff" -lt 0 ]; } && return -1
+	# saves current interface bytes value as last value.
+	last_rxBytes=$rxBytes
+	# saves current interface bytes value as last value.
+	last_txBytes=$txBytes
+
+	# packets received by the interface.
+	local rxPackets=$(get_wan_packets_statistics RX)
+	# packets sent by the interface.
+	local txPackets=$(get_wan_packets_statistics TX)
 
 	# if last packets are not defined. define them using the current wan interface packets value. then we skip this measure.
 	if [ -z "$last_rxPackets" ] || [ -z "$last_txPackets" ]; then
@@ -55,20 +55,8 @@ collect_QoE_Monitor_data() {
 		# packets sent by the interface. will be used next time.
 		last_txPackets="$txPackets"
 		# don't write data this round. we need a full minute of packets to calculate cross traffic.
-		return
+		return -1
 	fi
-
-	# bytes received since last time.
-	local rxBytesDiff=$(($rxBytes - $last_rxBytes))
-	# bytes transmitted since last time
-	local txBytesDiff=$(($txBytes - $last_txBytes))
-	# if subtraction created a negative value, it means it has overflown or interface has been restarted.
-	# we skip this measure.
-	{ [ "$rxBytesDiff" -lt 0 ] || [ "$txBytesDiff" -lt 0 ]; } && return
-	# saves current interface bytes value as last value.
-	last_rxBytes=$rxBytes
-	# saves current interface bytes value as last value.
-	last_txBytes=$txBytes
 
 	# packets received since last time.
 	local rxPacketsDiff=$(($rxPackets - $last_rxPackets))
@@ -76,11 +64,28 @@ collect_QoE_Monitor_data() {
 	local txPacketsDiff=$(($txPackets - $last_txPackets))
 	# if subtraction created a negative value, it means it has overflown or interface has been restarted.
 	# we skip this measure.
-	{ [ "$rxPacketsDiff" -lt 0 ] || [ "$txPacketsDiff" -lt 0 ]; } && return
+	{ [ "$rxPacketsDiff" -lt 0 ] || [ "$txPacketsDiff" -lt 0 ]; } && return -1
 	# saves current interface packets value as last value.
 	last_rxPackets=$rxPackets
 	# saves current interface packets value as last value.
 	last_txPackets=$txPackets
+
+	# data to be sent.
+	local string="$rxBytesDiff $txBytesDiff $rxPacketsDiff $txPacketsDiff"
+	rawData="${rawData}|wan_stats ${string}"
+}
+
+# takes current unix timestamp, executes ping, in burst, to $pingServerAddress server.
+# If latency collecting is enabled, extracts the individual icmp request numbers and 
+# their respective ping times. Builds a string with all this information and write them to file.
+collect_burst() {
+	# checking if this data collecting is enabled
+	[ "$burstLoss" -ne 1 ] && return
+
+	# burst ping with $pingPackets amount of packets.
+	local pingResult=$(ping -i 0.01 -c "$pingPackets" "$pingServerAddress")
+	# ping return value.
+	local pingError="$?"
 
 	# if ping could not be executed, we skip this measure.
 	[ "$pingError" -eq 2 ] && return;
@@ -100,7 +105,19 @@ collect_QoE_Monitor_data() {
 	# local loss=${pingResult%\% packet loss*} # removes everything after, and including, '% packet loss'.
 	# loss=${loss##* } # removes everything before first space.
 
-	local string="$loss $transmitted $rxBytesDiff $txBytesDiff $rxPacketsDiff $txPacketsDiff" # data to be sent.
+	# removes everything before and including 'mdev = '
+	local latencyStats=${pingResult#*/mdev = }
+	# removes everything before first backslash
+	local latencyAvg=${latencyStats#*/}
+	# removes everything after first backslash
+	latencyAvg=${latencyAvg%%/*}
+	# removes everything before and including last backslash
+	local latencyStd=${latencyStats##*/}
+	# removes everything after and including first space
+	latencyStd=${latencyStd% *}
+
+	# data to be sent.
+	local string="$loss $transmitted $latencyAvg $latencyStd"
 
 	# if latency collecting is enabled.
 	if [ "$hasLatency" -eq 1 ]; then
@@ -298,11 +315,12 @@ collectData() {
 	rawData=""
 
 	# collecting all measures.
-	collect_QoE_Monitor_data
+	# only collect burst data if we have one minute of wan measurements already
+	collect_wan && collect_burst
 	collect_wifi_devices
 
 	# example of an expected raw data with all measures present:
-	# '213234556456|burstLoss 0 100 12345 1234|wifiDevices aa:bb:cc:dd:ee:ff-22 ab:bb:cc:dd:ee:ff-45'
+	# '213234556456|burstLoss 0 100 1.246 0.161|wan_stats 12345 1234 1000 100|wifiDevices aa:bb:cc:dd:ee:ff-22 ab:bb:cc:dd:ee:ff-45'
 	[ -n "$rawData" ] && echo "${timestamp}${rawData}" >> "$rawDataFile";
 	# cleaning 'rawData' value from memory.
 	rawData=""
