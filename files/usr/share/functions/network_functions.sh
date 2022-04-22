@@ -658,8 +658,8 @@ set_use_dns_proxy() {
 
 store_wan_bytes() {
 	local _epoch=$(date +%s)
-	local _wan_rx=$(get_wan_statistics RX)
-	local _wan_tx=$(get_wan_statistics TX)
+	local _wan_rx=$(get_wan_bytes_statistics RX)
+	local _wan_tx=$(get_wan_bytes_statistics TX)
 
 	json_init
 

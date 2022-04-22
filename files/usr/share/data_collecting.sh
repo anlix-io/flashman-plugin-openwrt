@@ -27,9 +27,14 @@ collect_QoE_Monitor_data() {
 	# Even if the ping could not be executed, we'll read the wan bytes to keep tracking the amount of bytes up and down.
 
 	# bytes received by the interface.
-	local rxBytes=$(get_wan_statistics RX)
+	local rxBytes=$(get_wan_bytes_statistics RX)
 	# bytes sent by the interface.
-	local txBytes=$(get_wan_statistics TX)
+	local txBytes=$(get_wan_bytes_statistics TX)
+
+	# packets received by the interface.
+	local rxPackets=$(get_wan_packets_statistics RX)
+	# packets sent by the interface.
+	local txPackets=$(get_wan_packets_statistics TX)
 
 	# if last bytes are not defined. define them using the current wan interface bytes value. then we skip this measure.
 	if [ -z "$last_rxBytes" ] || [ -z "$last_txBytes" ]; then
@@ -42,17 +47,40 @@ collect_QoE_Monitor_data() {
 		return
 	fi
 
+	# if last packets are not defined. define them using the current wan interface packets value. then we skip this measure.
+	if [ -z "$last_rxPackets" ] || [ -z "$last_txPackets" ]; then
+		# echo last packets are undefined
+		# packets received by the interface. will be used next time.
+		last_rxPackets="$rxPackets"
+		# packets sent by the interface. will be used next time.
+		last_txPackets="$txPackets"
+		# don't write data this round. we need a full minute of packets to calculate cross traffic.
+		return
+	fi
+
 	# bytes received since last time.
-	local rx=$(($rxBytes - $last_rxBytes))
+	local rxBytesDiff=$(($rxBytes - $last_rxBytes))
 	# bytes transmitted since last time
-	local tx=$(($txBytes - $last_txBytes))
+	local txBytesDiff=$(($txBytes - $last_txBytes))
 	# if subtraction created a negative value, it means it has overflown or interface has been restarted.
 	# we skip this measure.
-	{ [ "$rx" -lt 0 ] || [ "$tx" -lt 0 ]; } && return
+	{ [ "$rxBytesDiff" -lt 0 ] || [ "$txBytesDiff" -lt 0 ]; } && return
 	# saves current interface bytes value as last value.
 	last_rxBytes=$rxBytes
 	# saves current interface bytes value as last value.
 	last_txBytes=$txBytes
+
+	# packets received since last time.
+	local rxPacketsDiff=$(($rxPackets - $last_rxPackets))
+	# packets transmitted since last time
+	local txPacketsDiff=$(($txPackets - $last_txPackets))
+	# if subtraction created a negative value, it means it has overflown or interface has been restarted.
+	# we skip this measure.
+	{ [ "$rxPacketsDiff" -lt 0 ] || [ "$txPacketsDiff" -lt 0 ]; } && return
+	# saves current interface packets value as last value.
+	last_rxPackets=$rxPackets
+	# saves current interface packets value as last value.
+	last_txPackets=$txPackets
 
 	# if ping could not be executed, we skip this measure.
 	[ "$pingError" -eq 2 ] && return;
@@ -72,7 +100,7 @@ collect_QoE_Monitor_data() {
 	# local loss=${pingResult%\% packet loss*} # removes everything after, and including, '% packet loss'.
 	# loss=${loss##* } # removes everything before first space.
 
-	local string="$loss $transmitted $rx $tx" # data to be sent.
+	local string="$loss $transmitted $rxBytesDiff $txBytesDiff $rxPacketsDiff $txPacketsDiff" # data to be sent.
 
 	# if latency collecting is enabled.
 	if [ "$hasLatency" -eq 1 ]; then
