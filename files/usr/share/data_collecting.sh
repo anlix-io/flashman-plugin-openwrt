@@ -168,6 +168,7 @@ collect_wifi_devices() {
 
 	# devices and their data will be stored in this string variable.
 	local str=""
+
 	# 0 and 1 are the indexes for wifi interfaces: wlan0 and wlan1, or phy0 and phy1.
 	for i in 0 1; do
 		# getting wifi interface name.
@@ -178,32 +179,93 @@ collect_wifi_devices() {
 		# getting info from each connected device on wifi. 
 		# grep returns empty when no devices are connected or if interface doesn't exist.
 		local devices="$(iwinfo "$wlan" assoclist | grep ago)"
+		local devices_rx_pkts="$(iwinfo "$wlan" assoclist | grep RX | grep -o '[0-9]\+ Pkts')"
+		local devices_tx_pkts="$(iwinfo "$wlan" assoclist | grep TX | grep -o '[0-9]\+ Pkts')"
 
 		# first iteration won't put a space before the value.
 		local first=true
+
+		# string to be appended to devices packets file
+		local fileStr=""
+
+		local fileName="/root/devices_24_pkts.txt"
+		if [[ "$i" -eq 1 ]]; then
+			fileName="/root/devices_5_pkts.txt"
+		fi
+
 		while [ ${#devices} -gt 0 ]; do
+
 			# getting everything before the first space.
 			local deviceMac=${devices%% *}
+
 			# getting after '(SNR '. 
 			devices=${devices#*\(SNR }
+
 			# getting everything before the first closing parenthesis.
 			local snr=${devices%%\)*}
+
 			# getting everything before ' ms'.
 			local time=${devices%% ms*}
+
 			# getting everything after the first space.
 			time=${time##* }
+
 			# getting everything after 'ago'.
 			devices=${devices#*ago}
+
 			# getting everything after '\n', if it exists. last line won't have it, so nothing will be changed.
 			# we can't add the line feed along witht the previous parameter expansion because we wouldn't match
 			# the last line and so we wouldn't make $devices length become zero.
 			devices=${devices#*$'\n'}
+
 			# if $time is greater than one minute, we don't use this device's info.
 			[ "$time" -gt 60000 ] && continue
+			
+			local rx_pkts=${devices_rx_pkts%% *}
+			devices_rx_pkts=${devices_rx_pkts#*$'\n'}
+
+			local tx_pkts=${devices_tx_pkts%% *}
+			devices_tx_pkts=${devices_tx_pkts#*$'\n'}
+
+			[ "$rx_pkts" == "" ] && continue
+			[ "$tx_pkts" == "" ] && continue
+
+			[ "$first" == true ] && first=false || fileStr="$fileStr "
+			fileStr="${fileStr}${deviceMac}_${rx_pkts}_${tx_pkts}"
+
+			local rx_pkts_diff=""
+			local tx_pkts_diff=""
+
+			if [ -f "$fileName" ]; then
+                local devices_pkts=$(cat "$fileName")
+
+				local last_pkts=${devices_pkts#*"$deviceMac"_}
+				last_pkts=${last_pkts%% *}
+
+				local last_rx_pkts=${last_pkts%_*}
+				[ "$last_rx_pkts" == "" ] && continue
+				rx_pkts_diff=$(($rx_pkts - $last_rx_pkts))
+				
+				local last_tx_pkts=${last_pkts#*_}
+				[ "$last_tx_pkts" == "" ] && continue
+				tx_pkts_diff=$(($tx_pkts - $last_tx_pkts))
+
+				# if subtraction created a negative value, it means it has overflown or interface has been restarted.
+				# we skip this measure.
+				{ [ "$rx_pkts_diff" -lt 0 ] || [ "$tx_pkts_diff" -lt 0 ]; } && continue
+			else
+				continue
+			fi
+
 			# if it's the first data we are storing, don't add a space before appending the data string.
 			[ "$first" == true ] && first=false || str="$str "
-			str="${str}${wlan}-${deviceMac}-${snr}"
+			str="${str}${wlan}_${deviceMac}_${snr}_${rx_pkts_diff}_${tx_pkts_diff}"
 		done
+		# empty out file (we only need last minute info)
+		> "$fileName"
+
+		# write to it if there are device infos
+		[ ${#fileStr} -gt 0 ] && echo "$fileStr" >> "$fileName"
 	done
 	# we won't echo if there are no devices.
 	[ ${#str} -gt 0 ] && rawData="${rawData}|wifiDevices ${str}"
