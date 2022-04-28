@@ -188,9 +188,9 @@ collect_wifi_devices() {
 		# string to be appended to devices packets file
 		local fileStr=""
 
-		local fileName="/root/devices_24_pkts.txt"
+		local fileName="${dataCollectingDir}/devices_24_pkts"
 		if [[ "$i" -eq 1 ]]; then
-			fileName="/root/devices_5_pkts.txt"
+			fileName="{dataCollectingDir}/devices_24_pkts"
 		fi
 
 		while [ ${#devices} -gt 0 ]; do
