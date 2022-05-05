@@ -466,7 +466,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 									"$_wifi_htmode_50" "$_wifi_state_50" \
 									"$_wifi_txpower_50" "$_wifi_hidden_50" \
 									"$_mesh_mode" && _need_wifi_reload=1
-		[ $_need_wifi_reload -eq 1 ] && wifi reload && /etc/init.d/minisapo reload
+		[ $_need_wifi_reload -eq 1 ] && wifi && /etc/init.d/minisapo reload
 
 		# If in mesh as slave, update the devices in mesh
 		if [ "$_mesh_mode" -gt 1 ] && [ ! -z "$_mesh_master" ]

@@ -566,7 +566,7 @@ update_mesh_link() {
 			set_wifi_local_config "" "" "auto" "" "" "" "" "" \
 				"" "" "$_channel_5g" "" "" "" "" "" "$_mesh_mode"
 			log "MESHLINK" "Change 5Ghz Backbone ($_channel_5g) ($_bssid_5g) ..."
-			wifi reload
+			wifi
 			sleep 5
 			# Atheros stations needs some extra time to connect and prevent a deadloop on backbone probing
 			[ -n "$(uci -q get wireless.mesh5_sta.ifname | grep ath )" ] && sleep 15
@@ -588,7 +588,7 @@ update_mesh_link() {
 			set_wifi_local_config "" "" "$_channel_2g" "" "" "" "" "" \
 				"" "" "auto" "" "" "" "" "" "$_mesh_mode"
 			log "MESHLINK" "Change 2.4Ghz Backbone ($_channel_2g) ($_bssid_2g) ..."
-			wifi reload
+			wifi
 			sleep 5
 			# Atheros stations needs some extra time to connect and prevent a deadloop on backbone probing
 			[ -n "$(uci -q get wireless.mesh2_sta.ifname | grep ath )" ] && sleep 15

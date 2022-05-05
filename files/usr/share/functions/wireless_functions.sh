@@ -463,7 +463,7 @@ change_wifi_state() {
 	[ "$_itf_num" = "1" ] && _wifi_state=""
 	set_wifi_local_config "" "" "" "" "" "$_wifi_state" "" "" \
 					"" "" "" "" "" "$_wifi_state_50" "" "" \
-					"" && wifi reload && /etc/init.d/minisapo reload
+					"" && wifi && /etc/init.d/minisapo reload
 }
 
 set_wps_push_button() {
