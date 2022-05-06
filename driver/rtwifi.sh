@@ -74,7 +74,12 @@ get_mesh_ap_bssid() {
 	# $1: 2.4G or 5G
 		# 0: 2.4G
 		# 1: 5G
-	[ "$1" == "0" ] && cat /sys/class/net/ra1/address || cat /sys/class/net/rai1/address
+	if [ "$1" == "0" ]
+	then
+		cat /sys/class/net/ra1/address
+	else
+		[ -f /sys/class/net/rai1/address ] && cat /sys/class/net/rai1/address
+	fi
 }
 
 get_mesh_ap_ifname() {

@@ -9,39 +9,6 @@ get_device_mac_from_ip() {
 	echo "$_arp_mac"
 }
 
-get_device_conn_type() {
-	local _mac=$1
-	local _online=$2
-	local _retstatus
-
-	is_device_wireless "$_mac"
-	_retstatus=$?
-	if [ $_retstatus -eq 0 ]
-	then
-		# Wireless
-		echo "1"
-	else
-		if [ "$_online" == "1" ]
-		then
-			# Wired
-			echo "0"
-			return
-		fi
-		local _state=$(ip neigh | grep "$_mac" | awk '{print $NF}')
-		for i in $_state
-		do
-			if [ "$i" == "REACHABLE" ]
-			then
-				# Wired
-				echo "0"
-				return
-			fi
-		done
-		# Not connected
-		echo "2"
-	fi
-}
-
 # IPV6 dhcp are uid not mac
 # Send a probe to search for mac in ip neigh
 get_ipv6_dhcp() {
@@ -63,8 +30,6 @@ get_ipv6_dhcp() {
 					json_select "$((Index_Addr++))"
 					json_get_var addrv6 "address"
 
-					# We need to "wake up" the ip to get the mac from ip neigh
-					ping6 -I br-lan -q -c 1 -w 1 "$addrv6" > /dev/null 2>&1
 					local _macaddr=$(ip -6 neigh | grep "$addrv6" | awk '{ if($4 == "lladdr") print $5 }')
 					if [ ! -z $_macaddr ]; then
 						echo $duid $_macaddr $addrv6
@@ -79,197 +44,325 @@ get_ipv6_dhcp() {
 	fi
 }
 
-check_dev_online_status() {
-	local _mac="$1"
-	local _ipv4_neigh="$2"
-	local _ipv6_neigh="$3"
-	local _ipv4="$(echo "$_ipv4_neigh" | grep "$_mac" | awk '{ print $2 }')"
-	local _ipv6="$(echo "$_ipv6_neigh" | grep "$_mac" | awk '{ print $2 }')"
-	local _res
-
-	# check online in ipv4
-	_res="$(ping -q -c 1 -w 1 "$i" 2>/dev/null)"
-	if [ $? -eq 0 ]
-	then
-		mv "/tmp/onlinedevscheck/$_mac.wait" "/tmp/onlinedevscheck/$_mac.on"
-		echo "$(echo $_res|sed -ne 's/.* = \([0-9\.]*\)*.*/\1/p')" > "/tmp/onlinedevscheck/$_mac.on"
-		return
-	fi
-
-	for i in $_ipv6
-	do
-		_res=$(ping6 -I br-lan -q -c 1 -w 1 "$i" 2>/dev/null)
-		if [ $? -eq 0 ]
-		then
-			mv "/tmp/onlinedevscheck/$_mac.wait" "/tmp/onlinedevscheck/$_mac.on"
-			echo "$(echo $_res|sed -ne 's/.* = \([0-9\.]*\)*.*/\1/p')" > "/tmp/onlinedevscheck/$_mac.on"
-			return
-		fi
-	done
-
-	# if cant connect, check arp table
-	local _count=0
-	local _state=$(ip neigh | grep "$_mac" | awk '{print $NF}')
-	local _ctrl=$(echo "$_state" | grep "DELAY")
-	while [ ! -z "$_ctrl" ] || [ $_count -eq 2 ]
-	do
-		sleep 2
-		_state=$(ip neigh | grep "$_mac" | awk '{print $NF}')
-		_ctrl=$(echo "$_state" | grep "DELAY")
-		_count=$((_count+1))
-	done
-
-	for s in $_state
-	do
-		if [ "$s" == "REACHABLE" ]
-		then
-			mv "/tmp/onlinedevscheck/$_mac.wait" "/tmp/onlinedevscheck/$_mac.on"
-			return
-		fi
-	done
-
-	mv "/tmp/onlinedevscheck/$_mac.wait" "/tmp/onlinedevscheck/$_mac.off"
-	return
-}
-
 get_online_devices() {
-	local _dhcp_ipv6=""
-	[ "$(get_ipv6_enabled)" != "0" ] && _dhcp_ipv6=$(get_ipv6_dhcp)
-	local _ipv4_neigh="$(ip -4 neigh | grep lladdr | awk '{ if($3 == "br-lan") print $5, $1}')"
-	local _ipv6_neigh=""
-	[ "$(get_ipv6_enabled)" != "0" ] &&_ipv6_neigh="$(ip -6 neigh | grep lladdr | awk '{ if($3 == "br-lan") print $5, $1}')"
-	local _macs_v4="$(echo "$_ipv4_neigh" | awk '{ print $1 }')"
-	local _macs_v6="$(echo "$_ipv6_neigh" | awk '{ print $1 }')"
-	local _macs="$(printf %s\\n%s "$_macs_v4" "$_macs_v6" | sort | uniq)"
-	local _local_itf_macs="$(ifconfig | grep HWaddr | awk '{ print tolower($NF) }' | sort | uniq)"
-	local _mesh_routers="$(ubus call anlix_sapo get_routers_mac | jsonfilter -e '@.routers[@].mac' | awk '{ print tolower($NF) }' | sort | uniq)"
+	local _MACS6 _MACS4 _MACSW
+	local _NUMACS4=0
+	local _NUMACS6=0
+	local _NUMACSW=0
+	local _mesh_slave="$(is_mesh_slave)"
+	local _mesh_routers
 
-	# Remove MACs related to the router itself and mesh neighbors
-	local _local_mac_duplicates="$(printf %s\\n%s\\n%s "$_macs" "$_local_itf_macs" "$_mesh_routers" | sort | uniq -d)"
-	for _mac in $_local_mac_duplicates
-	do
-		_macs="$(printf %s\\n%s "$_macs" | sed "/$_mac/d")"
-	done
+	local _local_itf_macs="$(ip link | awk '/link\/ether/{a[$2]++} END{for(b in a)print b}')"
 
-	# Create control dir with device status
-	[ -d /tmp/onlinedevscheck ] && rm -rf /tmp/onlinedevscheck
-	mkdir /tmp/onlinedevscheck
-	for _mac in $_macs
-	do
-		touch "/tmp/onlinedevscheck/$_mac.wait"
-	done
-	# Dispatch pings and arp checks for each device
-	for _mac in $_macs
-	do
-		(check_dev_online_status "$_mac" "$_ipv4_neigh" "$_ipv6_neigh" & )
-	done
-	# Wait pings and arp checks completion
-	local _wait_complete=1
-	while [ $_wait_complete -eq 1 ]
-	do
-		ls /tmp/onlinedevscheck | grep -q "wait"
-		if [ $? -eq 0 ]
-		then
-			sleep 1
-		else
-			break
-		fi
-	done
-	# Filter only online devs
-	_macs=$(ls /tmp/onlinedevscheck | grep ".on" | awk -F. '{print $1}')
-	# Create JSON with online devices
-	json_add_object "Devices"
-	for _mac in $_macs
-	do
-		local _ipv4="$(echo "$_ipv4_neigh" | grep "$_mac" | awk '{ print $2 }')"
+	#Information that only master have
+	if [ "$_mesh_slave" = "0" ]
+	then
+		# Get IPv4 devices
+		# Get all connected devices using arp (cable and wifi)
+		# Get hostname from dhcp.lease
+		# Trust (believe it is online) ips that return arp response
+		# _router# = (ip RTT Trust hostname)
+		local _dhcp_info_ipv4=$([ -f /tmp/dhcp.leases ] && cat /tmp/dhcp.leases)
+		eval "$(arp-scan -l -D -x -r1 2>/dev/null | awk -v dhcp="$_dhcp_info_ipv4" '
+			BEGIN{
+				n1=split(dhcp, arr1, "\n");
+				for (i=1;i<=n1;i++) {
+					n2=split(arr1[i], ar);
+					A[ar[2]]=ar[3];
+					T[ar[2]]=0;
+					if (ar[4]=="*")
+						C[ar[2]]="!"
+					else
+						C[ar[2]]=ar[4]
+				}
+			}
+			{
+				A[$2]=$1;
+				split($(NF-1), ar, "=");
+				B[$2]=ar[2];
+				T[$2]=1;
+			}
+			END{
+				count=0
+				MA=""
+				for (b in A) {
+					printf "_router%d=\"", count;
+					printf "\\\"%s\\\" ", A[b];
+					printf "\\\"%s\\\" ", B[b];
+					printf "\\\"%d\\\" ", T[b];
+					printf "\\\"%s\\\" ", C[b];
+					print "\";"
+					MA=MA b ":" count " "
+					count++;
+				}
+				printf "_MACS4=\"%s\";", MA
+				printf "_NUMACS4=%d", count
+			}')"
 
-		local _ipv6=""
-		[ "$(get_ipv6_enabled)" != "0" ] && _ipv6="$(echo "$_ipv6_neigh" | grep "$_mac" | awk '{ print $2 }')"
-
-		local _hostname=""
-		local _conn_type="$(get_device_conn_type $_mac $_online)"
-		local _conn_speed=""
-		local _dev_signal=""
-		local _dev_snr=""
-		local _dev_freq=""
-		local _dev_mode=""
-		local _dev_ping=""
-		local _dev_rx=""
-		local _dev_tx=""
-		local _dev_conntime=""
-		local _dev_signature=""
-		local _dhcp_signature=""
-		local _dhcp_vendor_class=""
-
-		if [ -f /tmp/dhcp.leases ]
-		then
-			_hostname="$(cat /tmp/dhcp.leases | grep $_mac | awk '{ if ($4=="*") print "!"; else print $4 }')"
-		fi
-
-		if [ "$_conn_type" == "0" ]
-		then
-			# Get speed from LAN ports
-			_conn_speed=$(get_lan_dev_negotiated_speed $_mac)
-		elif [ "$_conn_type" == "1" ]
-		then
-			local _wifi_stats="$(get_wifi_device_stats $_mac)"
-			# Get wireless bitrate
-			_conn_speed=$(echo $_wifi_stats | awk '{print $1}')
-			_dev_signal=$(echo $_wifi_stats | awk '{print $3}')
-			_dev_snr=$(echo $_wifi_stats | awk '{print $4}')
-			_dev_freq=$(echo $_wifi_stats | awk '{print $5}')
-			_dev_mode=$(echo $_wifi_stats | awk '{print $6}')
-			_dev_tx=$(echo $_wifi_stats | awk '{print $7}')
-			_dev_rx=$(echo $_wifi_stats | awk '{print $8}')
-			_dev_conntime=$(echo $_wifi_stats | awk '{print $11}')
-
-			if [ "$(type -t get_wifi_device_signature)" ]
-			then
-				_dev_signature="$(get_wifi_device_signature $_mac)"
-			fi
-		fi
-		_dev_ping=$([ -s "/tmp/onlinedevscheck/$_mac.on" ] && cat "/tmp/onlinedevscheck/$_mac.on")
-
-		if [ -e "/tmp/dhcpinfo/$_mac" ]
-		then
-			_dhcp_signature="$(cat /tmp/dhcpinfo/"$_mac" | awk '{print $1}')"
-			_dhcp_vendor_class="$(cat /tmp/dhcpinfo/"$_mac" | awk '{print $2}')"
-		fi
-
-		json_add_object "$_mac"
-		json_add_string "ip" "$_ipv4"
-		json_add_array "ipv6"
-		for _i6 in $_ipv6
-		do
-			json_add_string "" "$_i6"
-		done
-		json_close_array
-		json_add_array "dhcpv6"
+		#Get IPv6 dhcp information
+		# Can only trust ipv6 which are reachable
+		# _6router# = (ip6 ip6 ... )
+		# _Trouter# = Trust
 		if [ "$(get_ipv6_enabled)" != "0" ]
 		then
-			for _i6 in $(echo  "$_dhcp_ipv6" | grep $_mac | awk '{print $3}')
+			eval "$(ip -6 neigh | awk -v dhcp="$(get_ipv6_dhcp)" '
+				BEGIN{
+					n1=split(dhcp, arr1, "\n");
+					for (i=1;i<=n1;i++) {
+						n2=split(arr1[i], ar);
+						A[ar[2]]=A[ar[2]]" "ar[3];
+						T[ar[2]]=0;
+					}
+				}
+				{
+					if($3 == "br-lan" && $4 == "lladdr") {
+						A[$5]=A[$5]" "$1
+						if(T[$5]!=1) T[$5]=0
+						if($(NF)=="REACHABLE") T[$5]=1
+					}
+				}
+				END{
+					count=0
+					MA6=""
+					for (b in A) {
+						printf "_6router%d=\"", count;
+						printf "%s \";", A[b];
+						printf "_Trouter%d=%d;", count, T[b];
+						MA6=MA6 b ":" count " "
+						count++;
+					}
+					printf "_MACS6=\"%s\";", MA6
+					printf "_NUMACS6=%d", count
+				}')"
+		fi
+	fi
+
+	#Get connected wireless devices reported by wireless driver
+	# _Wireless# = ( SIGNAL SNR IDLE FREQ MODE TXBITRATE TXPKT )
+	local _dev_info="$(iwinfo $(get_root_ifname 0) a 2> /dev/null)"
+	[ "$(is_5ghz_capable)" == "1" ] && _dev_info=$_dev_info$'\n'"5GHZ"$'\n'"$(iwinfo $(get_root_ifname 1) a 2> /dev/null)"
+	eval "$(echo "$_dev_info" | awk  '
+		BEGIN{f=2.4}
+
+		/ago/ {
+			M=tolower($1)
+			SIGNAL[M]=$2
+			noise=$5
+			if(noise == "unknown" || noise < -95) noise=-95
+			SNR[M]=$2-noise
+			IDLE[M]=$(NF-2)
+			FREQ[M]=f
+			if(f == 5.0)
+				MODE[M]="AC"
+			else
+				MODE[M]="N"
+		}
+
+		/TX/ {
+			TXBITRATE[M]=$2
+			TXPKT[M]=$(NF-1)
+		}
+
+		/5GHZ/{
+			f=5.0
+		}
+
+		END {
+			count=0
+			MW=""
+			for (b in SIGNAL) {
+				printf "_wireless%d=\"", count;
+				printf "%s %s %s %s %s %s %s", SIGNAL[b], SNR[b], IDLE[b], FREQ[b], MODE[b], TXBITRATE[b], TXPKT[b];
+				print "\";"
+				MW=MW b ":" count " "
+				count++;
+			}
+			printf "_MACSW=\"%s\";", MW
+			printf "_NUMACSW=%d", count
+		}
+	')"
+
+	get_index_array() {
+		local _idxn
+		case "$1" in
+			*"$2"*)
+				_idxn=${1##*"$2":}
+				echo ${_idxn%% *}
+			;;
+		esac
+	}
+
+	# Create JSON with online devices
+	json_init
+	json_add_object "Devices"
+	local _processed_macs=""
+	local _mac _i6 _dhcp_signature _dhcp_vendor_class
+
+	# 1. Send all wireless devices. We trust they are connected
+	for _mac in $_MACSW
+	do
+		local _idxf
+		local _idx=${_mac##*:}
+		local _rmac=${_mac%:*}
+		json_add_object "$_rmac"
+
+		_idxf=$(get_index_array "$_MACS4" "$_rmac")
+		if [ $_idxf ]
+		then
+			local I0 I1 I2 I3
+			get_data 4 I $(eval echo \$_router$_idxf)
+			json_add_string "ip" "$I0"
+			json_add_string "ping" "$I1"
+			json_add_string "hostname" "$I3"
+		fi
+
+		json_add_array "ipv6"
+		_idxf=$(get_index_array "$_MACS6" "$_rmac")
+		if [ $_idxf ]
+		then
+			for _i6 in $(eval echo \$_6router$_idxf)
 			do
 				json_add_string "" "$_i6"
 			done
 		fi
 		json_close_array
-		json_add_string "hostname" "$_hostname"
-		json_add_string "conn_type" "$_conn_type"
-		json_add_string "conn_speed" "$_conn_speed"
-		json_add_string "wifi_signal" "$_dev_signal"
-		json_add_string "wifi_snr" "$_dev_snr"
-		json_add_string "wifi_freq" "$_dev_freq"
-		json_add_string "wifi_mode" "$_dev_mode"
-		json_add_string "ping" "$_dev_ping"
-		json_add_string "tx_bytes" "$_dev_tx"
-		json_add_string "rx_bytes" "$_dev_rx"
-		json_add_string "conn_time" "$_dev_conntime"
+
+		local R0 R1 R2 R3 R4 R5 R6
+		get_data 7 R $(eval echo \$_wireless$_idx)
+
+		_dhcp_signature=""
+		_dhcp_vendor_class=""
+		if [ -e "/tmp/dhcpinfo/$_rmac" ]
+		then
+			local D0 D1
+			get_data 2 D $(cat /tmp/dhcpinfo/$_rmac)
+			_dhcp_signature="$D0"
+			_dhcp_vendor_class="$D1"
+		fi
+
+		if [ "$(type -t get_wifi_device_signature)" ]
+		then
+			_dev_signature="$(get_wifi_device_signature $_rmac)"
+		fi
+
+		json_add_string "conn_type" "1"
+		json_add_string "conn_speed" "$R5"
+		json_add_string "wifi_signal" "$R0"
+		json_add_string "wifi_snr" "$R1"
+		json_add_string "wifi_freq" "$R3"
+		json_add_string "wifi_mode" "$R4"
+		json_add_string "tx_bytes" ""
+		json_add_string "rx_bytes" ""
+		json_add_string "conn_time" ""
 		json_add_string "wifi_signature" "$_dev_signature"
 		json_add_string "dhcp_signature" "$_dhcp_signature"
 		json_add_string "dhcp_vendor_class" "$_dhcp_vendor_class"
 		json_close_object
+		_processed_macs="$_processed_macs $_rmac"
 	done
+
+	# 2. Send cable ipv4 devs
+	for _mac in $_MACS4
+	do
+		local _idxf
+		local _idx=${_mac##*:}
+		local _rmac=${_mac%:*}
+
+		case "$_processed_macs" in
+			*"$_rmac"*) continue;;
+		esac
+
+		_processed_macs="$_processed_macs $_rmac"
+
+		local I0 I1 I2 I3
+		get_data 4 I $(eval echo \$_router$_idx)
+
+		# Continue if we cant sure if device is connected (untrusted) ...
+		[ "$I2" = "0" ] && continue
+
+		json_add_object "$_rmac"
+
+		json_add_string "ip" "$I0"
+		json_add_string "ping" "$I1"
+		json_add_string "hostname" "$I3"
+
+		json_add_array "ipv6"
+		_idxf=$(get_index_array "$_MACS6" "$_rmac")
+		if [ $_idxf ]
+		then
+			for _i6 in $(eval echo \$_6router$_idxf)
+			do
+				json_add_string "" "$_i6"
+			done
+		fi
+		json_close_array
+
+		_dhcp_signature=""
+		_dhcp_vendor_class=""
+		if [ -e "/tmp/dhcpinfo/$_rmac" ]
+		then
+			local D0 D1
+			get_data 2 D $(cat /tmp/dhcpinfo/$_rmac)
+			_dhcp_signature="$D0"
+			_dhcp_vendor_class="$D1"
+		fi
+
+		json_add_string "conn_type" "0"
+		json_add_string "conn_speed" ""
+		json_add_string "dhcp_signature" "$_dhcp_signature"
+		json_add_string "dhcp_vendor_class" "$_dhcp_vendor_class"
+		json_close_object
+	done
+
+	# 3. Send cable ipv6 devs
+	for _mac in $_MACS6
+	do
+		local _idx=${_mac##*:}
+		local _rmac=${_mac%:*}
+
+		case "$_processed_macs" in
+			*"$_rmac"*) continue;;
+		esac
+
+		_processed_macs="$_processed_macs $_rmac"
+
+		# Continue if we cant sure if device is connected (untrusted) ...
+		[ "$(eval echo \$_Trouter$_idx)" = "0" ] && continue
+
+		json_add_object "$_rmac"
+		json_add_array "ipv6"
+		for _i6 in $(eval echo \$_6router$_idx)
+		do
+			json_add_string "" "$_i6"
+		done
+		json_close_array
+
+		_dhcp_signature=""
+		_dhcp_vendor_class=""
+		if [ -e "/tmp/dhcpinfo/$_rmac" ]
+		then
+			local D0 D1
+			get_data 2 D $(cat /tmp/dhcpinfo/$_rmac)
+			_dhcp_signature="$D0"
+			_dhcp_vendor_class="$D1"
+		fi
+
+		json_add_string "conn_type" "0"
+		json_add_string "conn_speed" ""
+		json_add_string "dhcp_signature" "$_dhcp_signature"
+		json_add_string "dhcp_vendor_class" "$_dhcp_vendor_class"
+		json_close_object
+	done
+
 	json_close_object
+
+	#Cleanup
+	local _idx=0
+	while [ $_idx -lt $_NUMACSW ]; do eval unset _wireless$_idx; _idx=$((_idx+1)); done
+	_idx=0
+	while [ $_idx -lt $_NUMACS4 ]; do eval unset _router$_idx; _idx=$((_idx+1)); done
+	_idx=0
+	while [ $_idx -lt $_NUMACS6 ]; do eval unset _6router$_idx _Trouter$_idx; _idx=$((_idx+1)); done
 }
 
 get_online_mesh_routers() {
@@ -311,7 +404,6 @@ send_online_devices() {
 
 	local _res
 
-	json_init
 	get_online_devices
 	[ "$(get_mesh_mode)" -gt 1 ] && get_online_mesh_routers
 
@@ -326,21 +418,4 @@ send_online_devices() {
 	json_close_object
 
 	return $_processed
-}
-
-get_active_device_leases() {
-	local _devarraystr="{\"data\":["
-	local _devlist
-	[ -f /tmp/dhcp.leases ] && _devlist=$(cat /tmp/dhcp.leases | awk '{ print $2 }')
-	local _hostname
-	local _dev
-	for _dev in $_devlist
-	do
-		_hostname=""
-		_hostname=$(cat /tmp/dhcp.leases | grep "$_dev" | awk '{ print $4 }')
-		_devarraystr="$_devarraystr\
-{\"{#MAC}\":\"$_dev\", \"{#DEVHOSTNAME}\":\"$_hostname\"},"
-	done
-	_devarraystr=$_devarraystr"]}"
-	echo $_devarraystr | sed 's/\(.*\),/\1/'
 }

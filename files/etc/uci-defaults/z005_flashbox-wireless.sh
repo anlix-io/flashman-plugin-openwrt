@@ -25,6 +25,9 @@ json_get_var _htmode_24 htmode_24
 json_get_var _state_24 state_24
 json_get_var _txpower_24 txpower_24 "100"
 json_get_var _hidden_24 hidden_24 "0"
+json_get_var _devices_bssid_mesh2 devices_bssid_mesh2
+json_get_var _devices_bssid_mesh5 devices_bssid_mesh5
+
 if [ "$(is_5ghz_capable)" == "1" ]
 then
 	json_get_var _ssid_50 ssid_50
@@ -178,13 +181,111 @@ then
 	fi
 
 	# Enable Fast Transition
-	change_fast_transition "0" "1"
-	if [ "$(is_5ghz_capable)" = "1" ]
-	then
-		change_fast_transition "1" "1"
-	fi
+	# Fast transition is disable for now for mesh v2
+	#change_fast_transition "0" "1"
+	#if [ "$(is_5ghz_capable)" = "1" ]
+	#then
+	#	change_fast_transition "1" "1"
+	#fi
 
+
+	# ==================================================================================================
+	# ==== Mesh v1 -> v2 workaround (delete me when there isn't any mesh v1 device in the world) =======
+	# ==================================================================================================
+	# After booting from a upgrade from mesh v1 to v2, we don't have the fields "_devices_bssid_meshX"
+	# So, we are assuming that this device is coming from a mesh where it was client of a mediatek or atheros
+	# We have the "mesh_master" field, which isn't the bssid we are looking for, but we are going to infer from it
+	# In our devices, we don't control exactly how these bssids are generated, 
+	# but I hope these next 2 functions acts correctly
+	# Also, as we don't know if the master is mediatek or atheros, we fill 'devices_bssid_meshN' with both inferences
+	get_mediatek_mesh_bssid() {
+		# $1: Mediatek master mac address
+		# $2: Freq:
+			# 0 -> 2.4GHz
+			# 1 -> 5.0GHz
+		
+		local base="$1"
+		local freq="$2"
+		local ret1
+		local ret2
+
+		ret1=$(echo $base | awk 'BEGIN{FS=":"}{print $1$2$3$4$5$6}')
+		ret1=$(( 0x$ret1 ))
+
+		if [ $freq = "0" ]
+		then
+			ret1=$(( $ret1 - 1 ))
+		else
+			ret1=$(( $ret1 - 2 ))
+		fi
+		
+		ret2="$ret1"
+
+		# non mt7628 pattern
+		ret1=$(( $ret1 & 0xFFFFFFFCFFFF ))
+		ret1=$(( $ret1 | 0x020000000000 ))
+		ret1=$(printf "%012X" $ret1 | sed 's/../&:/g;s/:$//' )
+		
+		# mt7628 pattern
+		ret2=$(( $ret2 & 0xFFFFFFCFFFFF ))
+		ret2=$(( $ret2 | 0x000000100000 ))
+		ret2=$(( $ret2 | 0x020000000000 ))
+		ret2=$(printf "%012X" $ret2 | sed 's/../&:/g;s/:$//' )
+		
+		echo "$ret1 $ret2"
+	}
+
+	get_ath_mesh_bssid() {
+		# $1: Atheros master mac address
+		# $2: Freq:
+			# 0 -> 2.4GHz
+			# 1 -> 5.0GHz
+
+		local base="$1"
+		local freq="$2"
+		local ret1
+		local ret2
+
+		ret1=$(echo $base | awk 'BEGIN{FS=":"}{print $1$2$3$4$5$6}')
+		ret1=$(( 0x$ret1 ))
+
+		if [ $freq = "0" ]
+		then
+			ret1=$(( $ret1 + 2 ))
+		else
+			ret1=$(( $ret1 + 3 ))
+		fi
+		
+		ret2="$ret1"
+
+		# These are two guesses of mine - better safe than sorry
+		ret1=$(( $ret1 & 0xE1FFFFFFFFFF ))
+		ret1=$(( $ret1 | 0x0A0000000000 ))
+
+		ret2=$(( $ret2 | 0x020000000000 ))
+		ret2=$(( $ret2 + 0x40000000000 ))
+
+		ret1=$(printf "%012X" $ret1 | sed 's/../&:/g;s/:$//' )
+		ret2=$(printf "%012X" $ret2 | sed 's/../&:/g;s/:$//' )
+		
+		echo "$ret1 $ret2"
+
+	}
+	# Just to make sure that it doesn't have any spaces, as I have seen
+	_mesh_master=$(echo $_mesh_master | sed 's/ //g')
+	if [ "$_mesh_mode" -eq "2" ] || [ "$_mesh_mode" -eq "4" ] && [ -z "$_devices_bssid_mesh2" ]	
+	then
+		set_mesh_devices_2 "$(get_mediatek_mesh_bssid $_mesh_master 0) $(get_ath_mesh_bssid $_mesh_master 0)"
+	fi
+	
+	if [ "$_mesh_mode" -eq "3" ] || [ "$_mesh_mode" -eq "4" ] && [ -z "$_devices_bssid_mesh2" ]	
+	then
+		set_mesh_devices_5 "$(get_mediatek_mesh_bssid $_mesh_master 1) $(get_ath_mesh_bssid $_mesh_master 1)"
+	fi
+	# ==================================================================================================
+	
 	enable_mesh "$_mesh_mode"
+
 fi
 
 uci commit wireless

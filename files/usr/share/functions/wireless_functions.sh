@@ -200,12 +200,14 @@ set_wifi_local_config() {
 	if [ "$_remote_ssid_24" != "" ] && \
 		 [ "$_remote_ssid_24" != "$_local_ssid_24" ]
 	then
+		log "FLASHMAN UPDATER" "Reloading configuration due SSID(2.4GHz)"
 		uci set wireless.default_radio0.ssid="$_remote_ssid_24"
 		_do_reload=1
 	fi
 	if [ "$_remote_password_24" != "" ] && \
 		 [ "$_remote_password_24" != "$_local_password_24" ]
 	then
+		log "FLASHMAN UPDATER" "Reloading configuration due password(2.4GHz)"
 		uci set wireless.default_radio0.key="$_remote_password_24"
 		_do_reload=1
 	fi
@@ -222,6 +224,7 @@ set_wifi_local_config() {
 
 		if [ "$_newchan" != "$_local_channel_24" ]
 		then
+			log "FLASHMAN UPDATER" "Reloading configuration due channel(2.4GHz)"
 			uci set wireless.radio0.channel="$_newchan"
 			_do_reload=1
 		fi
@@ -229,6 +232,7 @@ set_wifi_local_config() {
 	if [ "$_remote_hwmode_24" != "" ] && \
 		 [ "$_remote_hwmode_24" != "$_local_hwmode_24" ]
 	then
+		log "FLASHMAN UPDATER" "Reloading configuration due hwmode(2.4GHz)"
 		# hostapd use only 11g (11n is defined in htmode)
 		[ "$_remote_hwmode_24" = "11g" ] && uci set wireless.radio0.htmode="NOHT"
 		[ "$_remote_hwmode_24" = "11n" ] && uci set wireless.radio0.htmode="HT20"
@@ -240,6 +244,7 @@ set_wifi_local_config() {
 		local _newht=$(uci -q get wireless.radio0.htmode)
 		if [ "$_newht" != "NOHT" ]
 		then
+			log "FLASHMAN UPDATER" "Reloading configuration due htmode(2.4GHz)"
 			[ "$_remote_htmode_24" = "HT40" ] && uci set wireless.radio0.htmode="HT40"  && uci set wireless.radio0.noscan="1"
 			[ "$_remote_htmode_24" = "HT20" ] && uci set wireless.radio0.htmode="HT20" && uci set wireless.radio0.noscan="1"
 			[ "$_remote_htmode_24" = "auto" ] && uci set wireless.radio0.htmode="HT40" && uci set wireless.radio0.noscan="0"
@@ -254,47 +259,56 @@ set_wifi_local_config() {
 		if [ "$_remote_channel_24" = "auto" ] && 
 		   [ "$(is_mesh_slave)" -eq "1" ]
 		then
+			log "FLASHMAN UPDATER" "Reloading configuration due auto channel in mesh(2.4GHz)"
 			uci set wireless.radio0.channel="$_local_channel_24"
 			_do_reload=1
 		fi
 
-		# Enable Fast Transition
-		if [ "$_mesh_mode" != "0" ] && \
-			 [ "$_local_ft_24" != "1" ]
-		then
-			change_fast_transition "0" "1"
-			_do_reload=1
-		fi
-
-		#Disable Fast Transition
-		if [ "$_mesh_mode" == "0" ] && \
-			 [ "$_local_ft_24" == "1" ]
-		then
-			change_fast_transition "0" "0"
-			_do_reload=1
-		fi 
+		# Fast transition is disable for now for mesh v2
+			
+		## Enable Fast Transition
+		#if [ "$_mesh_mode" != "0" ] && \
+		#	 [ "$_local_ft_24" != "1" ]
+		#then
+		#	log "FLASHMAN UPDATER" "Reloading configuration due fast transition(2.4GHz)"
+		#	change_fast_transition "0" "1"
+		#	_do_reload=1
+		#fi
+		#
+		##Disable Fast Transition
+		#if [ "$_mesh_mode" == "0" ] && \
+		#	 [ "$_local_ft_24" == "1" ]
+		#then
+		#	log "FLASHMAN UPDATER" "Reloading configuration due fast transition(2.4GHz)"
+		#	change_fast_transition "0" "0"
+		#	_do_reload=1
+		#fi 
 	fi
 
 	if [ "$_remote_state_24" != "" ]
 	then
 		if [ "$_remote_state_24" = "0" ] && [ "$_local_state_24" = "1" ]
 		then
+			log "FLASHMAN UPDATER" "Reloading configuration due state(2.4GHz)"
 			uci set wireless.default_radio0.disabled="1"
 			_do_reload=1
 		elif [ "$_remote_state_24" = "1" ] && [ "$_local_state_24" = "0" ]
 		then
+			log "FLASHMAN UPDATER" "Reloading configuration due state(2.4GHz)"
 			uci set wireless.default_radio0.disabled="0"
 			_do_reload=1
 		fi
 	fi
 	if [ "$_remote_txpower_24" != "" ] && [ "$_remote_txpower_24" != "$_local_txpower_24" ]
 	then
+		log "FLASHMAN UPDATER" "Reloading configuration due txpower(2.4GHz)"
 		_conv_channel=$([ "$_remote_channel_24" ] && echo "$_remote_channel_24" || echo "$_local_channel_24")
 		uci set wireless.radio0.txpower="$(convert_txpower "24" "$_conv_channel" "$_remote_txpower_24")"
 		_do_reload=1
 	fi
 	if [ "$_remote_hidden_24" != "" ] && [ "$_remote_hidden_24" != "$_local_hidden_24" ]
 	then
+		log "FLASHMAN UPDATER" "Reloading configuration due visibility(2.4GHz)"
 		uci set wireless.default_radio0.hidden="$_remote_hidden_24"
 		_do_reload=1
 	fi
@@ -305,12 +319,14 @@ set_wifi_local_config() {
 		if [ "$_remote_ssid_50" != "" ] && \
 			 [ "$_remote_ssid_50" != "$_local_ssid_50" ]
 		then
+			log "FLASHMAN UPDATER" "Reloading configuration due SSID(5Ghz)"
 			uci set wireless.default_radio1.ssid="$_remote_ssid_50"
 			_do_reload=1
 		fi
 		if [ "$_remote_password_50" != "" ] && \
 			 [ "$_remote_password_50" != "$_local_password_50" ]
 		then
+			log "FLASHMAN UPDATER" "Reloading configuration due password(5Ghz)"
 			uci set wireless.default_radio1.key="$_remote_password_50"
 			_do_reload=1
 		fi
@@ -327,6 +343,7 @@ set_wifi_local_config() {
 
 			if [ "$_newchan" != "$_local_channel_50" ]
 			then
+				log "FLASHMAN UPDATER" "Reloading configuration due channel(5Ghz)"
 				uci set wireless.radio1.channel="$_newchan"
 				_do_reload=1
 			fi
@@ -335,6 +352,7 @@ set_wifi_local_config() {
 		if [ "$_remote_htmode_50" != "" ] && \
 			 [ "$_remote_htmode_50" != "$_local_htmode_50" ]
 		then
+			log "FLASHMAN UPDATER" "Reloading configuration due htmode(5Ghz)"
 			if [ "$_remote_htmode_50" == "auto" ]
 			then
 				uci set wireless.radio1.noscan="0"
@@ -360,48 +378,56 @@ set_wifi_local_config() {
 			if [ "$_remote_channel_50" = "auto" ] && 
 			[ "$(is_mesh_slave)" -eq "1" ]
 			then
+				log "FLASHMAN UPDATER" "Reloading configuration due auto channel in mesh(5Ghz)"
 				uci set wireless.radio1.channel="$_local_channel_50"
 				_do_reload=1
 			fi
 
-			# Enable Fast Transition
-			if [ "$_mesh_mode" != "0" ] && \
-				 [ "$_local_ft_50" != "1" ]
-			then
-				change_fast_transition "1" "1"
-				_do_reload=1
-			fi
+			# Fast transition is disable for now for mesh v2
 
-			#Disable Fast Transition
-			if [ "$_mesh_mode" == "0" ] && \
-				 [ "$_local_ft_50" == "1" ]
-			then
-				change_fast_transition "1" "0"
-				_do_reload=1
-			fi
+			# Enable Fast Transition
+			#if [ "$_mesh_mode" != "0" ] && \
+			#	 [ "$_local_ft_50" != "1" ]
+			#then
+			#	log "FLASHMAN UPDATER" "Reloading configuration due fast transition(5Ghz)"
+			#	change_fast_transition "1" "1"
+			#	_do_reload=1
+			#fi
+			#
+			##Disable Fast Transition
+			#if [ "$_mesh_mode" == "0" ] && \
+			#	 [ "$_local_ft_50" == "1" ]
+			#then
+			#	log "FLASHMAN UPDATER" "Reloading configuration due fast transition(5Ghz)"
+			#	change_fast_transition "1" "0"
+			#	_do_reload=1
+			#fi
 		fi
 
 		if [ "$_remote_state_50" != "" ]
 		then
 			if [ "$_remote_state_50" = "0" ] && [ "$_local_state_50" = "1" ]
 			then
+				log "FLASHMAN UPDATER" "Reloading configuration due state(5Ghz)"
 				uci set wireless.default_radio1.disabled="1"
 				_do_reload=1
 			elif [ "$_remote_state_50" = "1" ] && [ "$_local_state_50" = "0" ]
 			then
+				log "FLASHMAN UPDATER" "Reloading configuration due state(5Ghz)"
 				uci set wireless.default_radio1.disabled="0"
 				_do_reload=1
 			fi
 		fi
 		if [ "$_remote_txpower_50" != "" ] && [ "$_remote_txpower_50" != "$_local_txpower_50" ]
 		then
-
+			log "FLASHMAN UPDATER" "Reloading configuration due txpower(5Ghz)"
 			_conv_channel=$([ "$_remote_channel_50" ] && echo "$_remote_channel_50" || echo "$_local_channel_50")
 			uci set wireless.radio1.txpower="$(convert_txpower "50" "$_conv_channel" "$_remote_txpower_50")"
 			_do_reload=1
 		fi
 		if [ "$_remote_hidden_50" != "" ] && [ "$_remote_hidden_50" != "$_local_hidden_50" ]
 		then
+			log "FLASHMAN UPDATER" "Reloading configuration due visibility(5Ghz)"
 			uci set wireless.default_radio1.hidden="$_remote_hidden_50"
 			_do_reload=1
 		fi
