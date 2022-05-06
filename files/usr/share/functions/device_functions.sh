@@ -304,6 +304,20 @@ get_wan_bytes_statistics() {
 	fi
 }
 
+get_wan_packets_statistics() {
+	local _param=$1
+	local _wan=$(get_wan_device)
+	if [ -f /sys/class/net/$_wan/statistics/tx_packets ]
+	then
+		case "$1" in
+			"TX") echo "$(cat /sys/class/net/$_wan/statistics/rx_packets)" ;;
+			"RX") echo "$(cat /sys/class/net/$_wan/statistics/tx_packets)" ;;
+		esac
+	else
+		echo "0"
+	fi
+}
+
 get_wifi_device_signature() {
 	local _dev_mac="$1"
 	local _q=""
