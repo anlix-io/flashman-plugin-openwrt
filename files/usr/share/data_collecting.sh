@@ -42,36 +42,8 @@ collect_wan() {
 	# saves current interface bytes value as last value.
 	last_txBytes=$txBytes
 
-	# packets received by the interface.
-	local rxPackets=$(get_wan_packets_statistics RX)
-	# packets sent by the interface.
-	local txPackets=$(get_wan_packets_statistics TX)
-
-	# if last packets are not defined. define them using the current wan interface packets value. then we skip this measure.
-	if [ -z "$last_rxPackets" ] || [ -z "$last_txPackets" ]; then
-		# echo last packets are undefined
-		# packets received by the interface. will be used next time.
-		last_rxPackets="$rxPackets"
-		# packets sent by the interface. will be used next time.
-		last_txPackets="$txPackets"
-		# don't write data this round. we need a full minute of packets to calculate cross traffic.
-		return -1
-	fi
-
-	# packets received since last time.
-	local rxPacketsDiff=$(($rxPackets - $last_rxPackets))
-	# packets transmitted since last time
-	local txPacketsDiff=$(($txPackets - $last_txPackets))
-	# if subtraction created a negative value, it means it has overflown or interface has been restarted.
-	# we skip this measure.
-	{ [ "$rxPacketsDiff" -lt 0 ] || [ "$txPacketsDiff" -lt 0 ]; } && return -1
-	# saves current interface packets value as last value.
-	last_rxPackets=$rxPackets
-	# saves current interface packets value as last value.
-	last_txPackets=$txPackets
-
 	# data to be sent.
-	local string="$rxBytesDiff $txBytesDiff $rxPacketsDiff $txPacketsDiff"
+	local string="$rxBytesDiff $txBytesDiff"
 	rawData="${rawData}|wan_stats ${string}"
 }
 
@@ -382,7 +354,7 @@ collectData() {
 	collect_wifi_devices
 
 	# example of an expected raw data with all measures present:
-	# '213234556456|burstLoss 0 100 1.246 0.161|wan_stats 12345 1234 1000 100|wifiDevices aa:bb:cc:dd:ee:ff-22 ab:bb:cc:dd:ee:ff-45'
+	# '213234556456|burstLoss 0 100 1.246 0.161|wan_stats 12345 1234|wifiDevices aa:bb:cc:dd:ee:ff_22_12345_1234 ab:bb:cc:dd:ee:ff_45_1000_100'
 	[ -n "$rawData" ] && echo "${timestamp}${rawData}" >> "$rawDataFile";
 	# cleaning 'rawData' value from memory.
 	rawData=""
