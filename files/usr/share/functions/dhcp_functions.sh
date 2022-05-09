@@ -158,6 +158,10 @@ get_online_devices() {
 				MODE[M]="N"
 		}
 
+		/RX/ {
+			RXPKT[M]=$(NF-1)
+		}
+
 		/TX/ {
 			TXBITRATE[M]=$2
 			TXPKT[M]=$(NF-1)
@@ -172,7 +176,7 @@ get_online_devices() {
 			MW=""
 			for (b in SIGNAL) {
 				printf "_wireless%d=\"", count;
-				printf "%s %s %s %s %s %s %s", SIGNAL[b], SNR[b], IDLE[b], FREQ[b], MODE[b], TXBITRATE[b], TXPKT[b];
+				printf "%s %s %s %s %s %s %s %s", SIGNAL[b], SNR[b], IDLE[b], FREQ[b], MODE[b], TXBITRATE[b], TXPKT[b], RXPKT[b];
 				print "\";"
 				MW=MW b ":" count " "
 				count++;
@@ -227,8 +231,8 @@ get_online_devices() {
 		fi
 		json_close_array
 
-		local R0 R1 R2 R3 R4 R5 R6
-		get_data 7 R $(eval echo \$_wireless$_idx)
+		local R0 R1 R2 R3 R4 R5 R6 R7
+		get_data 8 R $(eval echo \$_wireless$_idx)
 
 		_dhcp_signature=""
 		_dhcp_vendor_class=""
@@ -254,6 +258,9 @@ get_online_devices() {
 		json_add_string "tx_bytes" ""
 		json_add_string "rx_bytes" ""
 		json_add_string "conn_time" ""
+		json_add_string "tx_packets" "$R6"
+		json_add_string "rx_packets" "$R7"
+		json_add_string "idle_time" "$R2"
 		json_add_string "wifi_signature" "$_dev_signature"
 		json_add_string "dhcp_signature" "$_dhcp_signature"
 		json_add_string "dhcp_vendor_class" "$_dhcp_vendor_class"
