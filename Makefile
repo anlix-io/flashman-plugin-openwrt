@@ -240,6 +240,10 @@ ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_W51200F), y)
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/anlix-flash-utils $(1)/usr/bin/
 endif
 
+ifeq ($(CONFIG_TARGET_realtek_rtl8197f_DEVICE_GWR1200AC-V2), y)
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/anlix-flash-utils $(1)/usr/bin/
+endif
+
 	mkdir -p $(1)/usr/share
 	echo 'FLM_SSID_SUFFIX=$(SSID_SUFFIX)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_SSID=$(CONFIG_FLASHMAN_WIFI_SSID)' >>$(1)/usr/share/flashman_init.conf
