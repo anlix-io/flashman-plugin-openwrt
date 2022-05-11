@@ -695,6 +695,48 @@ get_bridge_mode_status() {
 	echo "$_status"
 }
 
+# This function changes wan interfaces to use the new virtual interface
+# after changing the vlan configuration for wan
+update_wan_interfaces() {
+	# $1: New virtual interface name
+	local _vlan_id=$1
+	local _old_wan_ifname=""
+	local _wan_ifname=""
+
+	# Get the old configuration wan ifname
+	if [ -z "$(get_station_ifname 0 | grep ath)" ]
+	then
+		# This field only exists for Mediatek and Realtek
+		_old_wan_ifname=$(uci show network | sed -n "s/network.wan_\(.*\)_dev=device/\1/p")
+
+		# Remove the vlan id from the wan ifname
+		# Ex.: eth0 from eth0_2
+		_wan_ifname=${_old_wan_ifname%_*}
+	else
+		_old_wan_ifname=$(uci show network | sed -n "s/network.wan.ifname=\'\(.*\)\' /\1/p")
+
+		# Remove the vlan id from the wan ifname
+		# Ex.: eth1 from eth1.10
+		_wan_ifname=${_old_wan_ifname%.*}
+	fi
+
+	# Assign it to wan and wan6 interface
+	# If it is Atheros and vlan = 2, clear the wan vlan
+	# If the _vlan_id come empty, clear Atheros wan vlan
+	# TODO! This function is partially implemented for Atheros
+	uci set network.wan.ifname="${_wan_ifname}.${_vlan_id}"
+	uci set network.wan6.ifname="${_wan_ifname}.${_vlan_id}"
+
+	# Assign it to dev interface if it is not Atheros
+	if [ -z "$(get_station_ifname 0 | grep ath)" ]
+	then
+		uci set network.wan_${_old_wan_ifname}_dev.name="${_wan_ifname}.${_vlan_id}"
+	fi
+
+	# Commit the changes
+	uci commit network
+}
+
 update_vlan() {
 	if [ -f /root/vlan_config.json ]; then
 		local _restart_network=$1
