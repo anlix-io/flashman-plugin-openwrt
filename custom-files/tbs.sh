@@ -10,7 +10,9 @@ get_custom_mac() {
 	local _mac_address_tag=""
 	local _p1
 
-	_p1=$(uci get network.wan_eth0_2_dev.macaddr | awk '{print toupper($1)}')
+	local _wan_ifname=$(uci show network | sed -n "s/network.wan_\(.*\)_dev=device/\1/p")
+
+	_p1=$(uci get network.wan_${_wan_ifname}_dev.macaddr | awk '{print toupper($1)}')
 	[ ! -z "$_p1" ] && _mac_address_tag=$_p1
 
 	echo "$_mac_address_tag"
