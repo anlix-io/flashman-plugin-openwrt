@@ -1205,6 +1205,77 @@ save_bridge_mode_vlan_config() {
 }
 
 
+# This function is intended to be used with Tecnico's app
+# It saves the configuration received from config.lua
+set_vlan_config() {
+	# $1: Vlan Configuration
+	local _vlan_config=$1
+	local _result="ok"
+	local _ports=""
+
+	json_cleanup
+	json_load "$_vlan_config"
+	json_get_values _ports
+	json_close_object
+
+	# Get ports
+	if [ "$(type -t custom_switch_ports)" ]
+	then
+		local _wan_port=$(custom_switch_ports 2) 
+		local _lan_ports=$(custom_switch_ports 3)
+		local _cpu_port=$(custom_switch_ports 4) 
+	else
+		local _wan_port=$(switch_ports 2) 
+		local _lan_ports=$(switch_ports 3)
+		local _cpu_port=$(switch_ports 4) 
+	fi
+
+	# Loop every port and check if it's valid
+	for _port in $_ports; do
+
+		# CPU without tag do exist but is not included here
+		# With proprietary Atheros driver, the wan port does not exist
+		if [ "$_port" != "$_wan_port" ] && \
+		   [ "$_port" != "${_wan_port}t" ] && \
+		   [ "$_port" != "${_cpu_port}t" ]
+		then
+
+			# Loop every lan port
+			for _lan_port in $_lan_ports; do
+				if [ "$_port" != "$_lan_port" ] && \
+				   [ "$_port" != "${_lan_port}t" ]
+				then
+					# Invalid parameters
+					_result=""
+				
+				else
+					# Found a valid port, break
+					_result="ok"
+					break
+				fi
+			done
+
+		fi
+
+		# Check if result is valid, otherwise quit
+		if [[ -z "$_result" ]]
+		then
+			break
+		fi
+	done
+
+	if [[ -n "$_ports" ]] && [[ -n "$_result" ]]
+	then
+		# Change the vlan json file
+		echo "$_vlan_config" > /root/vlan_config.json
+	else
+		# If the json could not be loaded, it is an error
+		_result=""
+	fi
+
+	echo "$_result"
+}
+
 
 # This function is intended to be used with Tecnico's app
 # It returns the vlan configuration as a json
