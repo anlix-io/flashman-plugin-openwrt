@@ -177,4 +177,14 @@ function flashman.update(remote_addr, app_id, app_secret)
   end
 end
 
+-- This function returns the vlan configuration json
+function flashman.get_vlan_config()
+  local result = run_process("sh -c \". /usr/share/functions/network_functions.sh; get_vlan_config\"")
+  
+  if result == nil or result == "" then
+    result = nil
+  end
+
+  return result
+end
 return flashman

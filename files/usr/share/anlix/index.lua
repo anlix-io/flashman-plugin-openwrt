@@ -170,6 +170,25 @@ function handle_request(env)
 		resp["data"] = data
 		web.send_json(resp)
 		return
+
+	-- Get the vlan configuration
+	elseif command == "getVlanConfig" then
+		local data = {}
+		local config = flashman.get_vlan_config()
+
+		-- Check if configuration is valid
+		if config == nil then
+			data["ok"] = false
+		else
+			data["ok"] = true
+			data["vlan_config"] = config
+		end
+
+		-- Send response
+		local resp = {}
+		resp["data"] = data
+		web.send_json(resp)
+		return
 	end
 
 	if tonumber(app_protocol_ver) == 1 then
