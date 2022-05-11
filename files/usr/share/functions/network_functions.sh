@@ -766,17 +766,49 @@ update_vlan() {
 				# do exists in the new vlan config file (vlan_config.json)
 				if [ -n "$(echo "${_vlans} " | grep "${_vid} ")" ]
 				then
+					
+					# Reassign the ports to the vlan
+					# If it is an Atheros and wan configuration, bypass
 					json_get_var _ports $_vid
 					uci set network.@switch_vlan[$_idx].ports="$_ports"
-				else # _vid isn't in _vlans
+
+					# Get the wan and cpu port
+					if [ "$(type -t custom_switch_ports)" ]; then
+						local _wan_port=$(custom_switch_ports 2) 
+						local _cpu_port=$(custom_switch_ports 4) 
+					else
+						local _wan_port=$(switch_ports 2) 
+						local _cpu_port=$(switch_ports 4) 
+					fi
+
+					# If the wan configuration was changed
+					# TODO! This function is not implemented yet for Atheros, check if Atheros
+					# and based on vlan, configure the wan properly
+					if [[ -n "$(echo "$_ports" | grep "${_wan_port}t ${_cpu_port}t")" ]] || \
+					   [[ -n "$(echo "$_ports" | grep "${_wan_port} ${_cpu_port}t")" ]]; then
+
+						# Change the virtual interface name of wan 
+						# interfaces
+						$(update_wan_interfaces $_vid)
+
+					fi
+
+					# Concatenate vlan ids
+					if [ "$_vids" == '' ]; then
+						_vids="$_vid"
+					else
+						_vids="$_vids $_vid"
+					fi
+
+				# Indicates that the vlan that already exists in config/network
+				# do not exists in the new vlan config file (vlan_config.json)
+				else
+
+					# Delete the switch_vlan entry
 					uci delete network.@switch_vlan[$_idx]
 					_idx=$(( _idx - 1 ))
 				fi
-				if [ "$_vids" = '' ]; then
-					_vids="$_vid"
-				else
-					_vids="$_vids $_vid"
-				fi
+
 				# Next switch_vlan in config/network
 				_idx=$(( _idx + 1 ))
 			done
@@ -795,6 +827,28 @@ update_vlan() {
 					uci set network.@switch_vlan[-1].device="$(get_switch_device)"
 					uci set network.@switch_vlan[-1].vlan="$_vlan"
 					uci set network.@switch_vlan[-1].ports="$_ports"
+
+					# Get the wan and cpu port
+					if [ "$(type -t custom_switch_ports)" ]; then
+						local _wan_port=$(custom_switch_ports 2) 
+						local _cpu_port=$(custom_switch_ports 4) 
+					else
+						local _wan_port=$(switch_ports 2) 
+						local _cpu_port=$(switch_ports 4) 
+					fi
+
+					# If the wan configuration was changed
+					# TODO! This function is not implemented yet for Atheros, check if Atheros
+					# and based on vlan, configure the wan properly
+					if [[ -n "$(echo "$_ports" | grep "${_wan_port}t ${_cpu_port}t")" ]] || \
+					   [[ -n "$(echo "$_ports" | grep "${_wan_port} ${_cpu_port}t")" ]]; then
+
+						# Change the virtual interface name of wan 
+						# interfaces
+						$(update_wan_interfaces $_vlan)
+
+					fi
+
 				fi
 			done
 
