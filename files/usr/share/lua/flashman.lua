@@ -177,6 +177,25 @@ function flashman.update(remote_addr, app_id, app_secret)
   end
 end
 
+-- This function change the vlan configuration
+function flashman.set_vlan_config(vlan_config)
+  local result = run_process("sh -c \". /usr/share/functions/network_functions.sh; set_vlan_config ".. vlan_config .."\"")
+
+  if result ~= "ok" then
+    result = nil
+  end
+
+  return result
+end
+
+-- This function configures the vlan based on the 
+-- configuration already provided
+function flashman.configure_vlan()
+  run_process("sh -c \". /usr/share/functions/network_functions.sh; update_vlan \'y\'\"")
+
+  return
+end
+
 -- This function returns the vlan configuration json
 function flashman.get_vlan_config()
   local result = run_process("sh -c \". /usr/share/functions/network_functions.sh; get_vlan_config\"")
