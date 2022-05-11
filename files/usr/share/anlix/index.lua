@@ -189,6 +189,27 @@ function handle_request(env)
 		resp["data"] = data
 		web.send_json(resp)
 		return
+
+	-- Get the ports to be used with vlan
+	elseif command == "getPorts" then
+		local data = {}
+		-- subcommands:
+		--   wan, lan, cpu
+		local ports = flashman.get_ports(subcommand)
+
+		-- Check if port is valid
+		if ports == nil then
+			data["ok"] = false
+		else
+			data["ok"] = true
+			data["ports"] = ports
+		end
+
+		-- Send response
+		local resp = {}
+		resp["data"] = data
+		web.send_json(resp)
+		return
 	end
 
 	if tonumber(app_protocol_ver) == 1 then

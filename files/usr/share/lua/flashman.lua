@@ -187,4 +187,16 @@ function flashman.get_vlan_config()
 
   return result
 end
+
+-- This function returns the ports in use
+function flashman.get_ports(port_name)
+  local result = run_process("sh -c \". /usr/share/functions/network_functions.sh; get_ports ".. port_name .."\"")
+  
+  if result == nil or result == "" then
+    result = nil
+  end
+
+  return result
+end
+
 return flashman
