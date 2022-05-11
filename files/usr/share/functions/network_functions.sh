@@ -1207,6 +1207,23 @@ save_bridge_mode_vlan_config() {
 
 
 # This function is intended to be used with Tecnico's app
+# It returns the vlan configuration as a json
+get_vlan_config() {
+
+	local _vlan_json=""
+
+	if [ -f /root/vlan_config.json ]; then
+		json_cleanup
+		json_load_file /root/vlan_config.json
+		json_close_object
+		_vlan_json=`json_dump`
+	fi
+
+	echo "$_vlan_json"
+}
+
+
+# This function is intended to be used with Tecnico's app
 # It returns wan, cpu or lan ports, to check possible configurations
 get_ports() {
 	# $1: Which port
