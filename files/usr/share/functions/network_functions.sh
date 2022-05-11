@@ -1203,3 +1203,41 @@ save_bridge_mode_vlan_config() {
 	echo "$_vlan" > /root/vlan_config.json
 	update_vlan "n"
 }
+
+
+
+# This function is intended to be used with Tecnico's app
+# It returns wan, cpu or lan ports, to check possible configurations
+get_ports() {
+	# $1: Which port
+		# wan: Wan port
+		# lan: Lan ports
+		# cpu: CPU port
+	local _port_type="$1"
+	local _ports=""
+
+	if [ "$(type -t custom_switch_ports)" ]
+	then
+		local _wan_port=$(custom_switch_ports 2) 
+		local _lan_ports=$(custom_switch_ports 3)
+		local _cpu_port=$(custom_switch_ports 4) 
+	else
+		local _wan_port=$(switch_ports 2) 
+		local _lan_ports=$(switch_ports 3)
+		local _cpu_port=$(switch_ports 4) 
+	fi
+
+	if [ "$_port_type" = "wan" ]; then
+		_ports="$_wan_port"
+
+	elif [ "$_port_type" = "lan" ]; then
+		_ports="$_lan_ports"
+
+	elif [ "$_port_type" = "cpu" ]; then
+		_ports="$_cpu_port"
+
+	fi
+
+	# If the configuration sent to it is wrong, it will return an empty string
+	echo "$_ports"
+}
