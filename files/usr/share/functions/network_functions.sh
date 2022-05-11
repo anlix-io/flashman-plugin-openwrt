@@ -755,12 +755,17 @@ update_vlan() {
 			local _vids=''
 			local _idx=0
 
+			# Loop through every vlan that already exists
 			for _vlan in $_input; do
+				
+				# Extract the vlan id from each the line
 				_vid=${_vlan#*\'}
 				_vid=${_vid%\'}
-				local _test=${_vlans#*$_vid}
-				# Indicates _vid is in _vlans
-				if [ $(( ${#_test} < ${#_vlans} )) = 1 ]; then
+
+				# Indicates that the vlan that already exists in config/network
+				# do exists in the new vlan config file (vlan_config.json)
+				if [ -n "$(echo "${_vlans} " | grep "${_vid} ")" ]
+				then
 					json_get_var _ports $_vid
 					uci set network.@switch_vlan[$_idx].ports="$_ports"
 				else # _vid isn't in _vlans
@@ -772,15 +777,19 @@ update_vlan() {
 				else
 					_vids="$_vids $_vid"
 				fi
+				# Next switch_vlan in config/network
 				_idx=$(( _idx + 1 ))
 			done
 
 			IFS=$' '
 
+			# Loop though every entry in vlan_config.json
 			for _vlan in $_vlans; do
-				_test=${_vids#*$_vlan}
-				# Indicates _vlan isn't in _vids
-				if [ $(( ${#_test} < ${#_vids} )) = 0 ]; then
+
+				# If the vlan id does not exists yet in config/network
+				if [ -z "$(echo "${_vids} " | grep "${_vlan} ")" ]; then
+
+					# Create the new entry
 					json_get_var _ports $_vlan
 					uci add network switch_vlan
 					uci set network.@switch_vlan[-1].device="$(get_switch_device)"
