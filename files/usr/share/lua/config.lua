@@ -111,6 +111,21 @@ function handle_config(command, data)
 				flashman.update_bridge(disable_switch, ip, gateway, dns)
 			end
 		end
+
+	-- Create a new function with different name to 
+	-- not interfere with wan conn_type
+	elseif command == "wan-vlan" then
+		-- Change vlan and reply with ok so that
+		local status = flashman.set_vlan_config()
+
+		if status == nil then
+			web.error_handle(web.ERROR_PARAMETERS, nil)
+		else
+			web.send_json({success = true}) -- reply before changing network
+			flashman.configure_vlan()
+		end
+		
+		return
 	end
 
 end
