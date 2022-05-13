@@ -10,6 +10,10 @@ dataCollectingDir="/tmp/data_collecting"
 rawDataFile="${dataCollectingDir}/raw"
 # directory where data will be stored if compressing old data is necessary.
 compressedDataDir="${dataCollectingDir}/compressed"
+# file where wan rx/tx bytes will be stored
+wanBytesFile="${dataCollectingDir}/wan_bytes"
+# file where wan rx/tx packets will be stored
+wanPacketsFile="${dataCollectingDir}/wan_pkts"
 
 # gets current rx and tx bytes/packets from wan interface and compares them
 # with values from previous calls to calculate cross traffic
@@ -19,13 +23,22 @@ collect_wan() {
 	# bytes sent by the interface.
 	local txBytes=$(get_wan_bytes_statistics TX)
 
-	# if last bytes are not defined. define them using the current wan interface bytes value. then we skip this measure.
-	if [ -z "$last_rxBytes" ] || [ -z "$last_txBytes" ]; then
-		# echo last bytes are undefined
-		# bytes received by the interface. will be used next time.
-		last_rxBytes="$rxBytes"
-		# bytes sent by the interface. will be used next time.
-		last_txBytes="$txBytes"
+	local last_rxBytes=""
+	local last_txBytes=""
+
+	if [ -f "$wanBytesFile" ]; then
+		last_rxBytes=$(cat "$wanBytesFile")
+		# gets second value
+		last_txBytes=${last_rxBytes##* }
+		# gets first value
+		last_rxBytes=${last_rxBytes%% *}
+	fi
+
+	if [ "$last_rxBytes" == "" ] || [ "$last_txBytes" == "" ]; then
+		# if last bytes are not defined. define them using the current wan interface bytes value. then we skip this measure.
+		# empty out file (we only need last minute info)
+		> "$wanBytesFile"
+		echo "$rxBytes $txBytes" >> "$wanBytesFile"
 		# don't write data this round. we need a full minute of bytes to calculate cross traffic.
 		return -1
 	fi
@@ -47,13 +60,22 @@ collect_wan() {
 	# packets sent by the interface.
 	local txPackets=$(get_wan_packets_statistics TX)
 
-	# if last packets are not defined. define them using the current wan interface packets value. then we skip this measure.
-	if [ -z "$last_rxPackets" ] || [ -z "$last_txPackets" ]; then
-		# echo last packets are undefined
-		# packets received by the interface. will be used next time.
-		last_rxPackets="$rxPackets"
-		# packets sent by the interface. will be used next time.
-		last_txPackets="$txPackets"
+	local last_rxPackets=""
+	local last_txPackets=""
+
+	if [ -f "$wanPacketsFile" ]; then
+		last_rxPackets=$(cat "$wanPacketsFile")
+		# gets second value
+		last_txPackets=${last_rxPackets##* }
+		# gets first value
+		last_rxPackets=${last_rxPackets%% *}
+	fi
+
+	if [ "$last_rxPackets" == "" ] || [ "$last_txPackets" == "" ]; then
+		# if last packets are not defined. define them using the current wan interface Packets value. then we skip this measure.
+		# empty out file (we only need last minute info)
+		> "$wanPacketsFile"
+		echo "$rxPackets $txPackets" >> "$wanPacketsFile"
 		# don't write data this round. we need a full minute of packets to calculate cross traffic.
 		return -1
 	fi
@@ -71,8 +93,8 @@ collect_wan() {
 	last_txPackets=$txPackets
 
 	# data to be sent.
-	local string="$rxBytesDiff $txBytesDiff rxPacketsDiff $txPacketsDiff"
-	rawData="${rawData}|wan_stats ${string}"
+	local string="$rxBytesDiff $txBytesDiff $rxPacketsDiff $txPacketsDiff"
+	rawData="${rawData}|wanStats ${string}"
 }
 
 # takes current unix timestamp, executes ping, in burst, to $pingServerAddress server.
@@ -80,7 +102,7 @@ collect_wan() {
 # their respective ping times. Builds a string with all this information and write them to file.
 collect_burst() {
 	# checking if this data collecting is enabled
-	[ "$burstLoss" -ne 1 ] && return
+	[ "$burstPing" -ne 1 ] && return
 
 	# burst ping with $pingPackets amount of packets.
 	local pingResult=$(ping -i 0.01 -c "$pingPackets" "$pingServerAddress")
@@ -159,7 +181,7 @@ collect_burst() {
 	
 	# appending string to file.
 	# printf "string is: '%s'\n" "$string"
-	rawData="${rawData}|burstLoss ${string}"
+	rawData="${rawData}|burstPing ${string}"
 }
 
 collect_wifi_devices() {
@@ -183,14 +205,15 @@ collect_wifi_devices() {
 		local devices_tx_pkts="$(iwinfo "$wlan" assoclist | grep TX | grep -o '[0-9]\+ Pkts')"
 
 		# first iteration won't put a space before the value.
-		local first=true
+		local firstFileWrite=true
+		local firstRawWrite=true
 
 		# string to be appended to devices packets file
 		local fileStr=""
 
-		local fileName="${dataCollectingDir}/devices_24_pkts"
+		local lastPktsFile="${dataCollectingDir}/devices_24_pkts"
 		if [[ "$i" -eq 1 ]]; then
-			fileName="{dataCollectingDir}/devices_24_pkts"
+			lastPktsFile="{dataCollectingDir}/devices_5_pkts"
 		fi
 
 		while [ ${#devices} -gt 0 ]; do
@@ -230,14 +253,14 @@ collect_wifi_devices() {
 			[ "$rx_pkts" == "" ] && continue
 			[ "$tx_pkts" == "" ] && continue
 
-			[ "$first" == true ] && first=false || fileStr="$fileStr "
+			[ "$firstFileWrite" == true ] && firstFileWrite=false || fileStr="$fileStr "
 			fileStr="${fileStr}${deviceMac}_${rx_pkts}_${tx_pkts}"
 
 			local rx_pkts_diff=""
 			local tx_pkts_diff=""
 
-			if [ -f "$fileName" ]; then
-                local devices_pkts=$(cat "$fileName")
+			if [ -f "$lastPktsFile" ]; then
+                local devices_pkts=$(cat "$lastPktsFile")
 
 				local last_pkts=${devices_pkts#*"$deviceMac"_}
 				last_pkts=${last_pkts%% *}
@@ -258,14 +281,14 @@ collect_wifi_devices() {
 			fi
 
 			# if it's the first data we are storing, don't add a space before appending the data string.
-			[ "$first" == true ] && first=false || str="$str "
-			str="${str}${wlan}_${deviceMac}_${snr}_${rx_pkts_diff}_${tx_pkts_diff}"
+			[ "$firstRawWrite" == true ] && firstRawWrite=false || str="$str "
+			str="${str}${i}_${deviceMac}_${snr}_${rx_pkts_diff}_${tx_pkts_diff}"
 		done
 		# empty out file (we only need last minute info)
-		> "$fileName"
+		> "$lastPktsFile"
 
 		# write to it if there are device infos
-		[ ${#fileStr} -gt 0 ] && echo "$fileStr" >> "$fileName"
+		[ ${#fileStr} -gt 0 ] && echo "$fileStr" >> "$lastPktsFile"
 	done
 	# we won't echo if there are no devices.
 	[ ${#str} -gt 0 ] && rawData="${rawData}|wifiDevices ${str}"
@@ -382,7 +405,7 @@ collectData() {
 	collect_wifi_devices
 
 	# example of an expected raw data with all measures present:
-	# '213234556456|burstLoss 0 100 1.246 0.161|wan_stats 12345 1234|wifiDevices aa:bb:cc:dd:ee:ff_22_12345_1234 ab:bb:cc:dd:ee:ff_45_1000_100'
+	# '213234556456|burstPing 0 100 1.246 0.161|wanStats 12345 1234 1234 123|wifiDevices 0_D0:9C:7A:EC:FF:FF_33_285_5136'
 	[ -n "$rawData" ] && echo "${timestamp}${rawData}" >> "$rawDataFile";
 	# cleaning 'rawData' value from memory.
 	rawData=""
@@ -642,7 +665,7 @@ loop() {
 			-e "alarmServerAddress=@.data_collecting_alarm_fqdn" \
 			-e "pingServerAddress=@.data_collecting_ping_fqdn" \
 			-e "pingPackets=@.data_collecting_ping_packets" \
-			-e "burstLoss=@.data_collecting_burst_loss" \
+			-e "burstPing=@.data_collecting_burst_loss" \
 			-e "wifiDevices=@.data_collecting_wifi_devices" \
 		)
 
