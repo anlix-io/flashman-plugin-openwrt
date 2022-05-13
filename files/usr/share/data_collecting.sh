@@ -40,7 +40,7 @@ collect_wan() {
 		> "$wanBytesFile"
 		echo "$rxBytes $txBytes" >> "$wanBytesFile"
 		# don't write data this round. we need a full minute of bytes to calculate cross traffic.
-		return -1
+		return 1
 	fi
 
 	# bytes received since last time.
@@ -49,7 +49,7 @@ collect_wan() {
 	local txBytesDiff=$(($txBytes - $last_txBytes))
 	# if subtraction created a negative value, it means it has overflown or interface has been restarted.
 	# we skip this measure.
-	{ [ "$rxBytesDiff" -lt 0 ] || [ "$txBytesDiff" -lt 0 ]; } && return -1
+	{ [ "$rxBytesDiff" -lt 0 ] || [ "$txBytesDiff" -lt 0 ]; } && return 1
 	# saves current interface bytes value as last value.
 	last_rxBytes=$rxBytes
 	# saves current interface bytes value as last value.
@@ -77,7 +77,7 @@ collect_wan() {
 		> "$wanPacketsFile"
 		echo "$rxPackets $txPackets" >> "$wanPacketsFile"
 		# don't write data this round. we need a full minute of packets to calculate cross traffic.
-		return -1
+		return 1
 	fi
 
 	# packets received since last time.
@@ -86,7 +86,7 @@ collect_wan() {
 	local txPacketsDiff=$(($txPackets - $last_txPackets))
 	# if subtraction created a negative value, it means it has overflown or interface has been restarted.
 	# we skip this measure.
-	{ [ "$rxPacketsDiff" -lt 0 ] || [ "$txPacketsDiff" -lt 0 ]; } && return -1
+	{ [ "$rxPacketsDiff" -lt 0 ] || [ "$txPacketsDiff" -lt 0 ]; } && return 1
 	# saves current interface packets value as last value.
 	last_rxPackets=$rxPackets
 	# saves current interface packets value as last value.
