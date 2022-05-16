@@ -758,7 +758,7 @@ update_vlan() {
 			# Loop through every vlan that already exists
 			for _vlan in $_input; do
 				
-				# Extract the vlan id from each the line
+				# Extract the vlan id from each line
 				_vid=${_vlan#*\'}
 				_vid=${_vid%\'}
 
@@ -784,8 +784,8 @@ update_vlan() {
 					# If the wan configuration was changed
 					# TODO! This function is not implemented yet for Atheros, check if Atheros
 					# and based on vlan, configure the wan properly
-					if [[ -n "$(echo "$_ports" | grep "${_wan_port}t ${_cpu_port}t")" ]] || \
-					   [[ -n "$(echo "$_ports" | grep "${_wan_port} ${_cpu_port}t")" ]]; then
+					if [[ -n "$(echo "$_ports" | grep "${_wan_port}" | grep "${_cpu_port}")" ]]
+					then
 
 						# Change the virtual interface name of wan 
 						# interfaces
@@ -840,8 +840,8 @@ update_vlan() {
 					# If the wan configuration was changed
 					# TODO! This function is not implemented yet for Atheros, check if Atheros
 					# and based on vlan, configure the wan properly
-					if [[ -n "$(echo "$_ports" | grep "${_wan_port}t ${_cpu_port}t")" ]] || \
-					   [[ -n "$(echo "$_ports" | grep "${_wan_port} ${_cpu_port}t")" ]]; then
+					if [[ -n "$(echo "$_ports" | grep "${_wan_port}" | grep "${_cpu_port}")" ]]
+					then
 
 						# Change the virtual interface name of wan 
 						# interfaces
@@ -1305,13 +1305,13 @@ get_ports() {
 		local _cpu_port=$(switch_ports 4) 
 	fi
 
-	if [ "$_port_type" = "wan" ]; then
+	if [ "$_port_type" == "wan" ]; then
 		_ports="$_wan_port"
 
-	elif [ "$_port_type" = "lan" ]; then
+	elif [ "$_port_type" == "lan" ]; then
 		_ports="$_lan_ports"
 
-	elif [ "$_port_type" = "cpu" ]; then
+	elif [ "$_port_type" == "cpu" ]; then
 		_ports="$_cpu_port"
 
 	fi
