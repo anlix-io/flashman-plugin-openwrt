@@ -143,6 +143,10 @@ config MQTT_PORT
 	string "MQTT port"
 	default "1883"
 
+config FLASHMAN_WAN_VLAN
+	string "VLAN WAN"
+	default "2"
+
 config FLASHMAN_USE_AUTH_SERVER
 	bool "Use authentication server to authorize remote commands."
 
