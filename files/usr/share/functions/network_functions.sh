@@ -720,16 +720,16 @@ update_wan_interfaces() {
 		_wan_ifname=${_old_wan_ifname%.*}
 	fi
 
-	# Assign it to wan and wan6 interface
-	# If it is Atheros and vlan = 2, clear the wan vlan
-	# If the _vlan_id come empty, clear Atheros wan vlan
-	# TODO! This function is partially implemented for Atheros
-	uci set network.wan.ifname="${_wan_ifname}.${_vlan_id}"
-	uci set network.wan6.ifname="${_wan_ifname}.${_vlan_id}"
-
 	# Assign it to dev interface if it is not Atheros
 	if [ -z "$(get_station_ifname 0 | grep ath)" ]
 	then
+		# Assign it to wan and wan6 interface
+		# If it is Atheros and vlan = 2, clear the wan vlan
+		# If the _vlan_id come empty, clear Atheros wan vlan
+		# TODO! This function is partially implemented for Atheros
+		uci set network.wan.ifname="${_wan_ifname}.${_vlan_id}"
+		uci set network.wan6.ifname="${_wan_ifname}.${_vlan_id}"
+
 		uci set network.wan_${_old_wan_ifname}_dev.name="${_wan_ifname}.${_vlan_id}"
 	fi
 
