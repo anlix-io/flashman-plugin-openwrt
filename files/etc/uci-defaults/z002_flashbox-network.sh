@@ -83,13 +83,19 @@ uci set network.lan.netmask="$_lan_netmask"
 uci set network.lan.ip6assign="$_lan_ipv6prefix"
 uci set network.lan.igmp_snooping='1'
 uci set network.lan.stp='1'
-
+# Configure dmz
 uci set network.dmz=interface
 uci set network.dmz.proto='static'
 uci set network.dmz.netmask='24'
 uci set network.dmz.ifname='@lan'
 uci set network.dmz.ipaddr='192.168.43.1'
 uci set network.dmz.ipv6='0'
+# Configure vlan
+if [ -z "$(get_station_ifname 0 | grep ath)" ]
+then
+	configure_boot_vlan "$FLM_WAN_VLAN"
+	update_vlan "n"
+fi
 
 # Check custom wan type
 if [ "$_wan_conn_type" = "pppoe" ] || [ "$_wan_conn_type" = "dhcp" ]

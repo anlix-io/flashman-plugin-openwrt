@@ -16,6 +16,9 @@ web.ERROR_COMM_AUTH_PROVIDER = 22
 web.ERROR_AUTH_PROVIDER = 23
 web.ERROR_NO_CHANGE = 30
 
+-- VLAN Specific errors
+web.ERROR_OPEN_VLAN_CONFIG_FILE = 40		-- Vlan configuration file does not exist
+
 function web.error_string(errid)
 	if errid == web.ERROR_PROT_VER then return "Invalid Protocol Version"
 	elseif errid == web.ERROR_GEN_SECRET then return "Error generating secret for app"
@@ -32,6 +35,9 @@ function web.error_string(errid)
 	elseif errid == web.ERROR_COMM_AUTH_PROVIDER then return "Command need provider authorization"
 	elseif errid == web.ERROR_AUTH_PROVIDER then return "Provider Authorization Fail"
 	elseif errid == web.ERROR_NO_CHANGE then return "No changes to current configuration"
+
+	-- VLAN
+	elseif errid == web.ERROR_VLAN_CONFIG_FILE then return "Invalid Vlan configuration file"
 	else return "Unknown Error"
 	end
 end
