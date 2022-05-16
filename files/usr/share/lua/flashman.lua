@@ -177,15 +177,52 @@ function flashman.update(remote_addr, app_id, app_secret)
   end
 end
 
--- This function change the vlan configuration
-function flashman.set_vlan_config(vlan_config)
-  local result = run_process("sh -c \". /usr/share/functions/network_functions.sh; set_vlan_config ".. vlan_config .."\"")
 
-  if result ~= "ok" then
-    result = nil
+-- This function change the vlan configuration
+function flashman.set_vlan_wan(wan_vlan)
+
+  -- Open the vlan configuration file
+  local vlan_config = read_file("/root/vlan_config.json")
+
+  -- Check if the file is valid
+  if vlan_config == nil then
+    result = web.ERROR_OPEN_VLAN_CONFIG_FILE
+    return result
   end
 
-  return result
+  -- Decode the json
+  vlan_config = json.decode(vlan_config)
+
+  -- Get the wan and cpu port number
+  local wan_port = flashman.get_ports("wan")
+  local cpu_port = flashman.get_ports("cpu")
+
+  -- Loop through every key and value, ignoring the vlan of the wan
+  local new_vlan_config = {}
+
+  for key, value in pairs(vlan_config) do
+
+    -- If it can find both the cpu and wan port in the vlan, ignore
+    -- Otherwise, add to the new configuration
+    if not (string.find(value, wan_port) ~= nil and 
+        string.find(value, cpu_port) ~= nil) then
+      new_vlan_config[key] = value
+    end
+  end
+
+  -- Add the new configuration for wan
+  -- If the wan_vlan came empty or nil, assign the default configuration
+  if (wan_vlan == nil or wan_vlan == "")
+    wan_vlan = run_process("sh -c \". /usr/share/functions/network_functions.sh; get_default_vlan \'wan\'\"")
+    new_vlan_config[wan_vlan] = wan_port .. " " .. cpu_port .. "t"
+  else
+    new_vlan_config[wan_vlan] = wan_port .. "t " .. cpu_port .. "t"
+  end
+
+  -- Write the new configuration
+  write_file("/root/vlan_config.json", json.encode(new_vlan_config))
+
+  return "ok"
 end
 
 -- This function configures the vlan based on the 

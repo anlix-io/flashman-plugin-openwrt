@@ -1319,3 +1319,21 @@ get_ports() {
 	# If the configuration sent to it is wrong, it will return an empty string
 	echo "$_ports"
 }
+
+
+# This function reports the default vlan for lan or wan
+get_default_vlan() {
+	# $1: Which port
+		# wan: Wan default vlan
+		# lan: Lan default vlan
+	local _port_type="$1"
+	local _vlan=""
+
+	if [ "$_port_type" == "lan" ]; then
+		_vlan="1"
+	else
+		_vlan="2"
+	fi
+
+	echo "$_vlan"
+}
