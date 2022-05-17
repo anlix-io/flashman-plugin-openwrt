@@ -21,6 +21,9 @@ anlix_bootup_defaults() {
 	iwpriv wlan0 set_mib pwrdiffOFDM=$(echo "$_PARAMS" | sed -n 's/^HW_WLAN1_TX_POWER_DIFF_OFDM=//p')
 	iwpriv wlan0 set_mib txbf=1
 	iwpriv wlan0 set_mib adaptivity_enable=2
+	iwpriv wlan0 set_mib regdomain=3
+	iwpriv wlan0 set_mib amsduNum=15
+	iwpriv wlan0 set_mib amsduTimeout=400
 	ifconfig wlan0 down
 
 	ifconfig wlan1 up
@@ -37,6 +40,10 @@ anlix_bootup_defaults() {
 	iwpriv wlan1 set_mib pwrdiff_5G_40BW2S_20BW2S_A=$(generate_pwdiffs_realtek $_pwrdiff)
 	_pwrdiff=$(echo "$_PARAMS" | sed -n 's/^HW_WLAN0_TX_POWER_DIFF_5G_40BW2S_20BW2S_B=//p')
 	iwpriv wlan1 set_mib pwrdiff_5G_40BW2S_20BW2S_B=$(generate_pwdiffs_realtek $_pwrdiff)
+	iwpriv wlan1 set_mib txbf=1
+	iwpriv wlan1 set_mib regdomain=1
+	iwpriv wlan1 set_mib amsduNum=15
+	iwpriv wlan1 set_mib amsduTimeout=400
 	ifconfig wlan1 down
 }
 
