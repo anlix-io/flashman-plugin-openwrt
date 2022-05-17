@@ -18,6 +18,16 @@ wanPacketsFile="${dataCollectingDir}/wan_pkts"
 # gets current rx and tx bytes/packets from wan interface and compares them
 # with values from previous calls to calculate cross traffic
 collect_wan() {
+	# checking if this data collecting is enabled
+
+	local isBurstLossActive=${activeMeasures/*bl*/bl}
+
+	local isPingAndWanActive=${activeMeasures/*p&w*/p&w}
+
+	[ "$isBurstLossActive" != "bl" ] && [ "$isPingAndWanActive" != "p&w" ] && return
+
+	local sendThisRound=1
+
 	# bytes received by the interface.
 	local rxBytes=$(get_wan_bytes_statistics RX)
 	# bytes sent by the interface.
@@ -34,28 +44,48 @@ collect_wan() {
 		last_rxBytes=${last_rxBytes%% *}
 	fi
 
+	local rxBytesDiff=0
+	local txBytesDiff=0
+
 	if [ "$last_rxBytes" == "" ] || [ "$last_txBytes" == "" ]; then
 		# if last bytes are not defined. define them using the current wan interface bytes value. then we skip this measure.
 		# empty out file (we only need last minute info)
 		> "$wanBytesFile"
 		echo "$rxBytes $txBytes" >> "$wanBytesFile"
 		# don't write data this round. we need a full minute of bytes to calculate cross traffic.
-		return 1
+		sendThisRound=0
+	else
+		# bytes received since last time.
+		rxBytesDiff=$(($rxBytes - $last_rxBytes))
+		# bytes transmitted since last time
+		txBytesDiff=$(($txBytes - $last_txBytes))
+		# if subtraction created a negative value, it means it has overflown or interface has been restarted.
+		# we skip this measure.
+		{ [ "$rxBytesDiff" -lt 0 ] || [ "$txBytesDiff" -lt 0 ]; } && sendThisRound=0
 	fi
 
-	# bytes received since last time.
-	local rxBytesDiff=$(($rxBytes - $last_rxBytes))
-	# bytes transmitted since last time
-	local txBytesDiff=$(($txBytes - $last_txBytes))
-	# if subtraction created a negative value, it means it has overflown or interface has been restarted.
-	# we skip this measure.
-	{ [ "$rxBytesDiff" -lt 0 ] || [ "$txBytesDiff" -lt 0 ]; } && return 1
-	# saves current interface bytes value as last value.
-	last_rxBytes=$rxBytes
-	# saves current interface bytes value as last value.
-	last_txBytes=$txBytes
+	# empty out file (we only need last minute info)
+	> "$wanBytesFile"
+	echo "$rxBytes $txBytes" >> "$wanBytesFile"
 
-		# packets received by the interface.
+	if [ "$sendThisRound" -eq 1 ]; then
+		local string="$rxBytesDiff $txBytesDiff"
+		rawData="${rawData}|wanStats ${string}"
+	else
+		activeMeasures="${activeMeasures/bl /}"
+		activeMeasures="${activeMeasures/ bl/}"
+		activeMeasures="${activeMeasures/bl/}"
+		activeMeasures="${activeMeasures/p&w /}"
+		activeMeasures="${activeMeasures/ p&w/}"
+		activeMeasures="${activeMeasures/p&w/}"
+	fi
+
+	# burstLoss only gathers byte data
+	if [ "$isPingAndWanActive" != "p&w" ]; then
+		return
+	fi
+
+	# packets received by the interface.
 	local rxPackets=$(get_wan_packets_statistics RX)
 	# packets sent by the interface.
 	local txPackets=$(get_wan_packets_statistics TX)
@@ -71,30 +101,41 @@ collect_wan() {
 		last_rxPackets=${last_rxPackets%% *}
 	fi
 
+	local rxPacketsDiff=0
+	local txPacketsDiff=0
+
 	if [ "$last_rxPackets" == "" ] || [ "$last_txPackets" == "" ]; then
 		# if last packets are not defined. define them using the current wan interface Packets value. then we skip this measure.
 		# empty out file (we only need last minute info)
 		> "$wanPacketsFile"
 		echo "$rxPackets $txPackets" >> "$wanPacketsFile"
 		# don't write data this round. we need a full minute of packets to calculate cross traffic.
-		return 1
+		sendThisRound=0
+	else
+		# packets received since last time.
+		rxPacketsDiff=$(($rxPackets - $last_rxPackets))
+		# packets transmitted since last time
+		txPacketsDiff=$(($txPackets - $last_txPackets))
+		# if subtraction created a negative value, it means it has overflown or interface has been restarted.
+		# we skip this measure.
+		{ [ "$rxPacketsDiff" -lt 0 ] || [ "$txPacketsDiff" -lt 0 ]; } && sendThisRound=0
 	fi
 
-	# packets received since last time.
-	local rxPacketsDiff=$(($rxPackets - $last_rxPackets))
-	# packets transmitted since last time
-	local txPacketsDiff=$(($txPackets - $last_txPackets))
-	# if subtraction created a negative value, it means it has overflown or interface has been restarted.
-	# we skip this measure.
-	{ [ "$rxPacketsDiff" -lt 0 ] || [ "$txPacketsDiff" -lt 0 ]; } && return 1
-	# saves current interface packets value as last value.
-	last_rxPackets=$rxPackets
-	# saves current interface packets value as last value.
-	last_txPackets=$txPackets
+	# empty out file (we only need last minute info)
+	> "$wanPacketsFile"
+	echo "$rxPackets $txPackets" >> "$wanPacketsFile"
+
+	# needs to gather one more minute
+	if [ "$sendThisRound" -ne 1 ]; then
+		activeMeasures="${activeMeasures/p&w /}"
+		activeMeasures="${activeMeasures/ p&w/}"
+		activeMeasures="${activeMeasures/p&w/}"
+		return
+	fi
 
 	# data to be sent.
-	local string="$rxBytesDiff $txBytesDiff $rxPacketsDiff $txPacketsDiff"
-	rawData="${rawData}|wanStats ${string}"
+	local string="$rxPacketsDiff $txPacketsDiff"
+	rawData="$rawData $string"
 }
 
 # takes current unix timestamp, executes ping, in burst, to $pingServerAddress server.
@@ -102,7 +143,12 @@ collect_wan() {
 # their respective ping times. Builds a string with all this information and write them to file.
 collect_burst() {
 	# checking if this data collecting is enabled
-	[ "$burstPing" -ne 1 ] && return
+
+	local isBurstLossActive=${activeMeasures/*bl*/bl}
+
+	local isPingAndWanActive=${activeMeasures/*p&w*/p&w}
+
+	[ "$isBurstLossActive" != "bl" ] && [ "$isPingAndWanActive" != "p&w" ] && return
 
 	# burst ping with $pingPackets amount of packets.
 	local pingResult=$(ping -i 0.01 -c "$pingPackets" "$pingServerAddress")
@@ -110,7 +156,15 @@ collect_burst() {
 	local pingError="$?"
 
 	# if ping could not be executed, we skip this measure.
-	[ "$pingError" -eq 2 ] && return;
+	if [ "$pingError" -eq 2 ]; then
+		activeMeasures="${activeMeasures/bl /}"
+		activeMeasures="${activeMeasures/ bl/}"
+		activeMeasures="${activeMeasures/bl/}"
+		activeMeasures="${activeMeasures/p&w /}"
+		activeMeasures="${activeMeasures/ p&w/}"
+		activeMeasures="${activeMeasures/p&w/}"
+		return
+	fi
 
 	# An skipped measure will become missing data, for this minute, in the server.
 
@@ -127,19 +181,25 @@ collect_burst() {
 	# local loss=${pingResult%\% packet loss*} # removes everything after, and including, '% packet loss'.
 	# loss=${loss##* } # removes everything before first space.
 
-	# removes everything before and including 'mdev = '
-	local latencyStats=${pingResult#*/mdev = }
-	# removes everything before first backslash
-	local latencyAvg=${latencyStats#*/}
-	# removes everything after first backslash
-	latencyAvg=${latencyAvg%%/*}
-	# removes everything before and including last backslash
-	local latencyStd=${latencyStats##*/}
-	# removes everything after and including first space
-	latencyStd=${latencyStd% *}
-
 	# data to be sent.
-	local string="$loss $transmitted $latencyAvg $latencyStd"
+	local string="$loss $transmitted"
+
+	# only collect latency stats if pingAndWan is activated
+	# burstLoss only collects loss data
+	if [ "$isPingAndWanActive" == "p&w" ]; then
+		# removes everything before and including 'mdev = '
+		local latencyStats=${pingResult#*/mdev = }
+		# removes everything before first backslash
+		local latencyAvg=${latencyStats#*/}
+		# removes everything after first backslash
+		latencyAvg=${latencyAvg%%/*}
+		# removes everything before and including last backslash
+		local latencyStd=${latencyStats##*/}
+		# removes everything after and including first space
+		latencyStd=${latencyStd% *}
+
+		string="$string $latencyAvg $latencyStd"
+	fi
 
 	# if latency collecting is enabled.
 	if [ "$hasLatency" -eq 1 ]; then
@@ -181,7 +241,7 @@ collect_burst() {
 	
 	# appending string to file.
 	# printf "string is: '%s'\n" "$string"
-	rawData="${rawData}|burstPing ${string}"
+	rawData="${rawData}|pingStats ${string}"
 }
 
 collect_wifi_devices() {
@@ -213,7 +273,7 @@ collect_wifi_devices() {
 
 		local lastPktsFile="${dataCollectingDir}/devices_24_pkts"
 		if [[ "$i" -eq 1 ]]; then
-			lastPktsFile="{dataCollectingDir}/devices_5_pkts"
+			lastPktsFile="${dataCollectingDir}/devices_5_pkts"
 		fi
 
 		while [ ${#devices} -gt 0 ]; do
@@ -290,8 +350,14 @@ collect_wifi_devices() {
 		# write to it if there are device infos
 		[ ${#fileStr} -gt 0 ] && echo "$fileStr" >> "$lastPktsFile"
 	done
-	# we won't echo if there are no devices.
-	[ ${#str} -gt 0 ] && rawData="${rawData}|wifiDevices ${str}"
+	if [ "$str" == "" ]; then
+		# only send data if there is something to send
+		activeMeasures="${activeMeasures/wd /}"
+		activeMeasures="${activeMeasures/ wd/}"
+		activeMeasures="${activeMeasures/wd/}"
+	else
+		rawData="${rawData}|wifiDevsStats ${str}"
+	fi
 }
 
 # prints the size of a file, using 'ls', where full file path is given as 
@@ -396,17 +462,53 @@ removeOldFiles() {
 collectData() {
 	# getting current unix time in seconds.
 	local timestamp=$(date +%s)
+
 	# global variable where current raw data is stored before being written to file.
 	rawData=""
 
+	# global variable that controls which measures are active
+	activeMeasures=""
+
+	local firstMeasurement=1
+
+	if [ "$burstLoss" -eq 1 ]; then
+		if [ "$firstMeasurement" -ne 1 ]; then
+			# add space before active measurement name
+			activeMeasures="$activeMeasures "
+		else
+			firstMeasurement=0
+		fi
+		activeMeasures="${activeMeasures}bl"
+	fi
+
+	if [ "$pingAndWan" -eq 1 ]; then
+		if [ "$firstMeasurement" -ne 1 ]; then
+			# add space before active measurement name
+			activeMeasures="$activeMeasures "
+		else
+			firstMeasurement=0
+		fi
+		activeMeasures="${activeMeasures}p&w"
+	fi
+
+	if [ "$wifiDevices" -eq 1 ]; then
+		if [ "$firstMeasurement" -ne 1 ]; then
+			# add space before active measurement name
+			activeMeasures="$activeMeasures "
+		else
+			firstMeasurement=0
+		fi
+		activeMeasures="${activeMeasures}wd"
+	fi
+
 	# collecting all measures.
-	# only collect burst data if we have one minute of wan measurements already
-	collect_wan && collect_burst
+	collect_burst
+	collect_wan
 	collect_wifi_devices
 
 	# example of an expected raw data with all measures present:
-	# '213234556456|burstPing 0 100 1.246 0.161|wanStats 12345 1234 1234 123|wifiDevices 0_D0:9C:7A:EC:FF:FF_33_285_5136'
-	[ -n "$rawData" ] && echo "${timestamp}${rawData}" >> "$rawDataFile";
+	# 'bl p&w wd|ts 213234556456|pingStats 0 100 1.246 0.161|wanStats 12345 1234 1234 123|wifiDevsStats 0_D0:9C:7A:EC:FF:FF_33_285_5136'
+	[ -n "$rawData" ] && [ ${#activeMeasures} -gt 0 ] && echo "${activeMeasures}|ts ${timestamp}${rawData}" >> "$rawDataFile";
 	# cleaning 'rawData' value from memory.
 	rawData=""
 
@@ -665,8 +767,9 @@ loop() {
 			-e "alarmServerAddress=@.data_collecting_alarm_fqdn" \
 			-e "pingServerAddress=@.data_collecting_ping_fqdn" \
 			-e "pingPackets=@.data_collecting_ping_packets" \
-			-e "burstPing=@.data_collecting_burst_loss" \
+			-e "burstLoss=@.data_collecting_burst_loss" \
 			-e "wifiDevices=@.data_collecting_wifi_devices" \
+			-e "pingAndWan=@.data_collecting_ping_and_wan" \
 		)
 
 		# does everything related to collecting and storing data.`
