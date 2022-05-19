@@ -508,7 +508,7 @@ collectData() {
 
 	# example of an expected raw data with all measures present:
 	# 'bl p&w wd|ts 213234556456|pingStats 0 100 1.246 0.161|wanStats 12345 1234 1234 123|wifiDevsStats 0_D0:9C:7A:EC:FF:FF_33_285_5136'
-	[ -n "$rawData" ] && [ ${#activeMeasures} -gt 0 ] && echo "${activeMeasures}|ts ${timestamp}${rawData}" >> "$rawDataFile";
+	[ -n "$rawData" ] && [ ${#activeMeasures} -gt 0 ] && echo "${activeMeasures}|${timestamp}${rawData}" >> "$rawDataFile";
 	# cleaning 'rawData' value from memory.
 	rawData=""
 
