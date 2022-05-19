@@ -69,8 +69,8 @@ collect_wan() {
 	echo "$rxBytes $txBytes" >> "$wanBytesFile"
 
 	if [ "$sendThisRound" -eq 1 ]; then
-		local string="$rxBytesDiff $txBytesDiff"
-		rawData="${rawData}|wanStats ${string}"
+		local string="|wanBytes $rxBytesDiff $txBytesDiff"
+		rawData="$rawData $string"
 	else
 		activeMeasures="${activeMeasures/bl /}"
 		activeMeasures="${activeMeasures/ bl/}"
@@ -134,7 +134,7 @@ collect_wan() {
 	fi
 
 	# data to be sent.
-	local string="$rxPacketsDiff $txPacketsDiff"
+	local string="|wanPkts $rxPacketsDiff $txPacketsDiff"
 	rawData="$rawData $string"
 }
 
@@ -184,22 +184,18 @@ collect_burst() {
 	# data to be sent.
 	local string="$loss $transmitted"
 
-	# only collect latency stats if pingAndWan is activated
-	# burstLoss only collects loss data
-	if [ "$isPingAndWanActive" == "p&w" ]; then
-		# removes everything before and including 'mdev = '
-		local latencyStats=${pingResult#*/mdev = }
-		# removes everything before first backslash
-		local latencyAvg=${latencyStats#*/}
-		# removes everything after first backslash
-		latencyAvg=${latencyAvg%%/*}
-		# removes everything before and including last backslash
-		local latencyStd=${latencyStats##*/}
-		# removes everything after and including first space
-		latencyStd=${latencyStd% *}
+	# removes everything before and including 'mdev = '
+	local latencyStats=${pingResult#*/mdev = }
+	# removes everything before first backslash
+	local latencyAvg=${latencyStats#*/}
+	# removes everything after first backslash
+	latencyAvg=${latencyAvg%%/*}
+	# removes everything before and including last backslash
+	local latencyStd=${latencyStats##*/}
+	# removes everything after and including first space
+	latencyStd=${latencyStd% *}
 
-		string="$string $latencyAvg $latencyStd"
-	fi
+	string="$string $latencyAvg $latencyStd"
 
 	# if latency collecting is enabled.
 	if [ "$hasLatency" -eq 1 ]; then
@@ -241,7 +237,7 @@ collect_burst() {
 	
 	# appending string to file.
 	# printf "string is: '%s'\n" "$string"
-	rawData="${rawData}|pingStats ${string}"
+	rawData="${rawData}|burstPing $string"
 }
 
 collect_wifi_devices() {
@@ -507,7 +503,7 @@ collectData() {
 	collect_wifi_devices
 
 	# example of an expected raw data with all measures present:
-	# 'bl p&w wd|ts 213234556456|pingStats 0 100 1.246 0.161|wanStats 12345 1234 1234 123|wifiDevsStats 0_D0:9C:7A:EC:FF:FF_33_285_5136'
+	# 'bl p&w wd|213234556456|burstPing 0 100 1.246 0.161|wanBytes 12345 1234|wanPkts 1234 123|wifiDevsStats 0_D0:9C:7A:EC:FF:FF_33_285_5136'
 	[ -n "$rawData" ] && [ ${#activeMeasures} -gt 0 ] && echo "${activeMeasures}|${timestamp}${rawData}" >> "$rawDataFile";
 	# cleaning 'rawData' value from memory.
 	rawData=""
