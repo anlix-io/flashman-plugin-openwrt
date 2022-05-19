@@ -502,6 +502,11 @@ collectData() {
 	collect_wan
 	collect_wifi_devices
 
+	# mapping from measurement names to collected artifacts:
+	# bl (burstLoss) -> burstPing, wanBytes
+	# p&w (pingAndWan) -> burstPing, wanBytes, wanPkts
+	# wd (wifiDevices) -> wifiDevsStats
+
 	# example of an expected raw data with all measures present:
 	# 'bl p&w wd|213234556456|burstPing 0 100 1.246 0.161|wanBytes 12345 1234|wanPkts 1234 123|wifiDevsStats 0_D0:9C:7A:EC:FF:FF_33_285_5136'
 	[ -n "$rawData" ] && [ ${#activeMeasures} -gt 0 ] && echo "${activeMeasures}|${timestamp}${rawData}" >> "$rawDataFile";
