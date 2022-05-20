@@ -212,7 +212,7 @@ function flashman.set_vlan_wan(wan_vlan)
 
   -- Add the new configuration for wan
   -- If the wan_vlan came empty or nil, assign the default configuration
-  if (wan_vlan == nil or wan_vlan == "")
+  if (wan_vlan == nil or wan_vlan == "") then
     wan_vlan = run_process("sh -c \". /usr/share/functions/network_functions.sh; get_default_vlan \'wan\'\"")
     new_vlan_config[wan_vlan] = wan_port .. " " .. cpu_port .. "t"
   else
