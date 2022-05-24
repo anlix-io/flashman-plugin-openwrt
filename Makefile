@@ -25,7 +25,8 @@ PKG_CONFIG_DEPENDS:= \
 	CONFIG_FLASHMAN_WIFI_5GHZ_CHANNEL \
 	CONFIG_FLASHMAN_WIFI_DISASSOC_LOW_ACK \
 	CONFIG_FLASHMAN_RELEASE_ID \
-	CONFIG_FLASHMAN_CLIENT_ORG
+	CONFIG_FLASHMAN_CLIENT_ORG \
+	CONFIG_CONNECTIVITY_SVADDRS_LIST
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -37,7 +38,7 @@ define Package/flashman-plugin/Default
 endef
 
 define Package/flashman-plugin/description
-	Dependencies and scripts for communicating with FlashMan server
+	Dependencies and scripts for communicating with Flashman server
 endef
 
 define Package/flashman-plugin
@@ -274,6 +275,7 @@ endif
 	echo 'FLM_WAN_PPPOE_SERVICE=$(CONFIG_FLASHMAN_PPPOE_SERVICE)' >>$(1)/usr/share/flashman_init.conf
 
 	echo 'FLM_USE_AUTH_SVADDR=$(CONFIG_FLASHMAN_USE_AUTH_SERVER)' >>$(1)/usr/share/flashman_init.conf
+	echo 'FLM_CONNECTIVITY_SVADDRS_LIST=$(CONFIG_CONNECTIVITY_SVADDRS_LIST)' >>$(1)/usr/share/flashman_init.conf
 
 ifeq ($(CONFIG_FLASHMAN_USE_AUTH_SERVER), y)
 	echo 'FLM_AUTH_SVADDR=$(CONFIG_FLASHMAN_AUTH_SERVER_ADDR)' >>$(1)/usr/share/flashman_init.conf
