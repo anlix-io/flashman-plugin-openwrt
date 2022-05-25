@@ -146,6 +146,10 @@ config MQTT_PORT
 config FLASHMAN_USE_AUTH_SERVER
 	bool "Use authentication server to authorize remote commands."
 
+config CONNECTIVITY_SVADDRS_LIST
+	string "List of servers to be tested when checking internet connectivity"
+	default "www.google.com.br www.facebook.com www.globo.com"
+
 if FLASHMAN_USE_AUTH_SERVER
 	config FLASHMAN_AUTH_SERVER_ADDR
 		string "Authentication server IP or FQDN"
