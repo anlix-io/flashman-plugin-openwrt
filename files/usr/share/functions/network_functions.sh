@@ -121,7 +121,8 @@ check_connectivity_flashman() {
 }
 
 check_connectivity_internet() {
-	_addrs="www.google.com.br"$'\n'"www.facebook.com"$'\n'"www.globo.com"
+	# Default will be "www.google.com.br www.facebook.com www.globo.com"
+	_addrs="$FLM_CONNECTIVITY_SVADDRS_LIST"
 	if [ "$1" != "" ]
 	then
 		_addrs="$1"
