@@ -1245,7 +1245,9 @@ configure_boot_vlan() {
 		if [ -n "$(echo "$_ports" | grep "${_wan_port}" | grep "${_cpu_port}")" ]
 		then
 			# Check if wan vlan port is not the default
-			if [ "${_wan_vlan}" != "$(get_default_vlan wan)" ]
+			if [ "${_wan_vlan}" != "$(get_default_vlan wan)" ] && \
+				[ "${_wan_vlan}" != "$(get_default_vlan lan)" ] && \
+				[ -n "${_wan_vlan}" ] 
 			then
 				_vlan="$_wan_vlan"
 				_ports="${_wan_port}t ${_cpu_port}t"
