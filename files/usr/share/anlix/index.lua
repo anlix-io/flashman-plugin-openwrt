@@ -324,7 +324,7 @@ function handle_request(env)
 
 	-- Get the vlan configuration
 	elseif command == "getVlanConfig" then
-		local config = flashman.get_vlan_config()
+		local config = flashman.get_wan_vlan()
 
 		-- Check if configuration is valid
 		if config == nil then

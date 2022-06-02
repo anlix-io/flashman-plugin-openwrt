@@ -234,8 +234,8 @@ function flashman.configure_vlan()
 end
 
 -- This function returns the vlan configuration json
-function flashman.get_vlan_config()
-  local result = run_process("sh -c \". /usr/share/functions/network_functions.sh; get_vlan_config\"")
+function flashman.get_wan_vlan()
+  local result = run_process("sh -c \". /usr/share/functions/network_functions.sh; get_wan_vlan\"")
   
   if result == nil or result == "" then
     result = nil

@@ -1340,3 +1340,47 @@ get_default_vlan() {
 
 	echo "$_vlan"
 }
+
+
+# Get the wan vlan
+get_wan_vlan() {
+	local _wan_vlan=""
+
+	if [ -f /root/vlan_config.json ]; then
+		local _restart_network=$1
+		json_cleanup
+		json_load_file /root/vlan_config.json
+		json_get_keys _vlans
+
+		# Loop through every vlan that already exists
+		for _vlan in $_vlans; do
+
+			# Create the new entry
+			json_get_var _ports $_vlan
+
+			# Get the wan and cpu port
+			if [ "$(type -t custom_switch_ports)" ]; then
+				local _wan_port=$(custom_switch_ports 2) 
+				local _cpu_port=$(custom_switch_ports 4) 
+			else
+				local _wan_port=$(switch_ports 2) 
+				local _cpu_port=$(switch_ports 4) 
+			fi
+
+			# If it has the wan and cpu port
+			if [[ -n "$(echo "$_ports" | grep "${_wan_port}" | grep "${_cpu_port}")" ]]
+			then
+
+				# Assign the the vlan
+				_wan_vlan="$_vlan"
+
+			fi
+
+		done
+		
+	fi
+
+	json_close_object
+
+	echo "$_wan_vlan"
+}
