@@ -1347,7 +1347,6 @@ get_wan_vlan() {
 	local _wan_vlan=""
 
 	if [ -f /root/vlan_config.json ]; then
-		local _restart_network=$1
 		json_cleanup
 		json_load_file /root/vlan_config.json
 		json_get_keys _vlans
