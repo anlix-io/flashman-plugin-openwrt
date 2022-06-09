@@ -70,7 +70,7 @@ collect_wan() {
 
 	if [ "$sendThisRound" -eq 1 ]; then
 		local string="|wanBytes $rxBytesDiff $txBytesDiff"
-		rawData="$rawData $string"
+		rawData="${rawData}${string}"
 	else
 		activeMeasures="${activeMeasures/bl /}"
 		activeMeasures="${activeMeasures/ bl/}"
@@ -135,7 +135,7 @@ collect_wan() {
 
 	# data to be sent.
 	local string="|wanPkts $rxPacketsDiff $txPacketsDiff"
-	rawData="$rawData $string"
+	rawData="${rawData}${string}"
 }
 
 # takes current unix timestamp, executes ping, in burst, to $pingServerAddress server.
@@ -193,7 +193,7 @@ collect_burst() {
 	# removes everything before and including last backslash
 	local latencyStd=${latencyStats##*/}
 	# removes everything after and including first space
-	latencyStd=${latencyStd% *}
+	latencyStd=${latencyStd%% *}
 
 	string="$string $latencyAvg $latencyStd"
 
@@ -232,7 +232,7 @@ collect_burst() {
 		# prints final $string in this sub shell back to $string.
 		echo $pairs))
 		# appending latencies to string to be sent.
-		string="${string} ${latencies}"
+		[ ${#latencies} -gt 0 ] && string="${string} ${latencies}"
 	fi
 	
 	# appending string to file.
