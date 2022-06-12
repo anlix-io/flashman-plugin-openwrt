@@ -247,6 +247,8 @@ collect_wifi_devices() {
 	# devices and their data will be stored in this string variable.
 	local str=""
 
+	local firstRawWrite=true
+
 	# 0 and 1 are the indexes for wifi interfaces: wlan0 and wlan1, or phy0 and phy1.
 	for i in 0 1; do
 		# getting wifi interface name.
@@ -262,7 +264,6 @@ collect_wifi_devices() {
 
 		# first iteration won't put a space before the value.
 		local firstFileWrite=true
-		local firstRawWrite=true
 
 		# string to be appended to devices packets file
 		local fileStr=""
