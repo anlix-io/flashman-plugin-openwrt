@@ -318,6 +318,11 @@ collect_wifi_devices() {
 			if [ -f "$lastPktsFile" ]; then
                 local devices_pkts=$(cat "$lastPktsFile")
 
+				local pkts_device_removed=${devices_pkts/"$deviceMac"/""}
+
+				# if deviceMac not in recorded devices continue
+				[ ${#pkts_device_removed} -ge ${#devices_pkts} ] && continue
+
 				local last_pkts=${devices_pkts#*"$deviceMac"_}
 				last_pkts=${last_pkts%% *}
 
