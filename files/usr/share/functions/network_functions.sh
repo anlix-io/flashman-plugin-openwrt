@@ -159,6 +159,8 @@ renew_dhcp() {
 	fi
 }
 
+
+# Wan IP
 get_wan_ip() {
 	local _ip=""
 	if [ "$(get_bridge_mode_status)" != "y" ]
@@ -170,6 +172,19 @@ get_wan_ip() {
 	fi
 	echo "$_ip"
 }
+
+get_wan_ipv6() {
+	local _ip=""
+	if [ "$(get_bridge_mode_status)" != "y" ]
+	then
+		network_get_ipaddr6 _ip wan6
+	else
+		# Do not write "none" in case of bridge
+		_ip="$(get_lan_bridge_ipv6addr)"
+	fi
+	echo "$_ip"
+}
+
 
 get_wan_type() {
 	echo "$(uci get network.wan.proto | awk '{ print tolower($1) }')"

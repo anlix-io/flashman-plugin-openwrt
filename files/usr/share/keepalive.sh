@@ -72,6 +72,7 @@ release_id=$FLM_RELID&\
 pppoe_user=$(uci -q get network.wan.username)&\
 pppoe_password=$(uci -q get network.wan.password)&\
 wan_ip=$(get_wan_ip)&\
+wan_ipv6=$(get_wan_ipv6)&\
 wan_negociated_speed=$(get_wan_negotiated_speed)&\
 wan_negociated_duplex=$(get_wan_negotiated_duplex)&\
 lan_addr=$(get_lan_ipaddr)&\
