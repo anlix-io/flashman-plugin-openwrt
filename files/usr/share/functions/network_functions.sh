@@ -359,6 +359,10 @@ get_lan_bridge_ipaddr() {
 	echo "$(ifstatus lan | jsonfilter -e '@["ipv4-address"][0]["address"]')"
 }
 
+get_lan_bridge_ipv6addr() {
+	echo "$(ifstatus lan | jsonfilter -e '@["ipv6-address"][0]["address"]')"
+}
+
 get_lan_ipaddr() {
 	local _uci_lan_ipaddr
 	_uci_lan_ipaddr=$(uci get network.lan.ipaddr)
