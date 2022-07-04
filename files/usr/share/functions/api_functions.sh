@@ -309,6 +309,50 @@ send_wan_info() {
 	fi
 }
 
+send_lan_info() {
+	local _prefix
+	local _mask
+	local _local_addr
+
+	local _out_file="/tmp/wan_info.json"
+
+	# Set the values
+	_prefix="$(get_prefix_delegation_addres)"
+	_mask="$(get_prefix_delegation_mask)"
+	_local_addr="$(get_prefix_delegation_local_address)"
+
+	# Create an auxiliar file
+	json_init
+	json_add_string "prefix_delegation_addr" "$_prefix"
+	json_add_string "prefix_delegation_mask" "$_mask"
+	json_add_string "prefix_delegation_local" "$_local_addr"
+	json_dump > "$_out_file"
+	json_cleanup
+
+	# Check if file is valid
+	if [ -f "$_out_file" ]
+	then
+		# Send the json
+		_res=""
+		_res=$(cat "$_out_file" | curl -s --tlsv1.2 --connect-timeout 5 \
+					--retry 1 -H "Content-Type: application/json" \
+					-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
+					--data @- "https://$FLM_SVADDR/deviceinfo/receive/laninfo")
+
+		# Check server response
+		json_load "$_res"
+		json_get_var _processed processed
+		json_close_object
+
+		# Delete auxiliar file
+		rm "$_out_file"
+
+		return $_processed
+	else
+		return 0
+	fi
+}
+
 run_speed_ondemand_test() {
 	local _sv_ip_addr="$1"
 	local _username="$2"
