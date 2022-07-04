@@ -251,6 +251,64 @@ router_status() {
 	fi
 }
 
+send_wan_info() {
+	local _wan_conn_type
+	local _dns_server
+	local _default_gateway_v4
+	local _default_gateway_v6
+	local _pppoe_mac
+	local _pppoe_ip
+
+	local _out_file="/tmp/wan_info.json"
+
+	# Set the values
+	json_cleanup
+	json_load_file /root/flashbox_config.json
+	json_get_var _wan_conn_type wan_conn_type
+	json_close_object
+
+	_default_gateway_v4="$(get_gateway)"
+	_default_gateway_v6="$(get_gateway6)"
+	_dns_server="$(get_dns_server)"
+	_pppoe_mac="$(get_pppoe_mac)"
+	_pppoe_ip="$(get_pppoe_ip)"
+
+	# Create an auxiliar file
+	json_cleanup
+	json_init
+	json_add_string "wan_conn_type" "$_wan_conn_type"
+	json_add_string "default_gateway_v4" "$_default_gateway_v4"
+	json_add_string "default_gateway_v6" "$_default_gateway_v6"
+	json_add_string "dns_server" "$_dns_server"
+	json_add_string "pppoe_mac" "$_pppoe_mac"
+	json_add_string "pppoe_ip" "$_pppoe_ip"
+	json_dump > "$_out_file"
+	json_cleanup
+
+	# Check if file is valid
+	if [ -f "$_out_file" ]
+	then
+		# Send the json
+		_res=""
+		_res=$(cat "$_out_file" | curl -s --tlsv1.2 --connect-timeout 5 \
+					--retry 1 -H "Content-Type: application/json" \
+					-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
+					--data @- "https://$FLM_SVADDR/deviceinfo/receive/waninfo")
+
+		# Check server response
+		json_load "$_res"
+		json_get_var _processed processed
+		json_close_object
+
+		# Delete auxiliar file
+		rm "$_out_file"
+
+		return $_processed
+	else
+		return 0
+	fi
+}
+
 run_speed_ondemand_test() {
 	local _sv_ip_addr="$1"
 	local _username="$2"
