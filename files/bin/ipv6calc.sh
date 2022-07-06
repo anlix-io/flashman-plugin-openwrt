@@ -39,7 +39,7 @@ function ipv6mask(octets, mask, ipv6) {
 	for (i in octets) {
 		if (mask > 0) {
 			x = 16 - mask
-			ipv6[i] = and(strtonum(octets[i]), lshift(0xffff, (mask >= 16) ? 0 : x))
+			ipv6[i] = and(octets[i], lshift(0xffff, (mask >= 16) ? 0 : x))
 			mask = -x
 		} else {
 			ipv6[i] = 0
@@ -51,7 +51,7 @@ function ipv6mask(octets, mask, ipv6) {
 # Prints the ipv6
 function printipv6(ipv6) {
 	string = sprintf("%x", ipv6[1])
-	len = length(ipv6)
+	len = 8
 	zero = 0
 	for (i = 2; i <= len; i++) {
 		if (ipv6[i] == 0 && i < len && ipv6[i+1] == 0) {
