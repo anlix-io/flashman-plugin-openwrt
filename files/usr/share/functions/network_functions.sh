@@ -24,11 +24,14 @@ get_ipv6_enabled() {
 enable_ipv6() {
 	if [ "$(get_bridge_mode_status)" != "y" ]
 	then
+		# Router Mode
 		uci set network.wan.ipv6="auto"
 		uci set network.wan6.proto="dhcpv6"
+		uci set network.wan6.ifname="@wan"
 		[ "$(uci -q get network.lan.ipv6)" ] && uci delete network.lan.ipv6
 		[ "$(uci -q get network.lan6)" ] && uci delete network.lan6
 	else
+		# Bridge Mode
 		uci set network.wan.ipv6="auto"
 		uci set network.wan6.proto="none"
 		uci set network.lan.ipv6="auto"
