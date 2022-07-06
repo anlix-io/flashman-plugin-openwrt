@@ -162,6 +162,8 @@ renew_dhcp() {
 	fi
 }
 
+
+# Wan IP
 get_wan_ip() {
 	local _ip=""
 	if [ "$(get_bridge_mode_status)" != "y" ]
@@ -442,6 +444,10 @@ get_lan_subnet() {
 
 get_lan_bridge_ipaddr() {
 	echo "$(ifstatus lan | jsonfilter -e '@["ipv4-address"][0]["address"]')"
+}
+
+get_lan_bridge_ipv6addr() {
+	echo "$(ifstatus lan | jsonfilter -e '@["ipv6-address"][0]["address"]')"
 }
 
 get_lan_ipaddr() {
