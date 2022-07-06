@@ -258,8 +258,7 @@ send_wan_info() {
 	local _default_gateway_v6
 	local _pppoe_mac
 	local _pppoe_ip
-
-	local _out_file="/tmp/wan_info.json"
+	local _processed="0"
 
 	# Set the values
 	json_cleanup
@@ -282,39 +281,33 @@ send_wan_info() {
 	json_add_string "dns_server" "$_dns_server"
 	json_add_string "pppoe_mac" "$_pppoe_mac"
 	json_add_string "pppoe_ip" "$_pppoe_ip"
-	json_dump > "$_out_file"
+
+	# Send the json
+	_res=""
+	_res=$(json_dump | curl -s --tlsv1.2 --connect-timeout 5 \
+				--retry 1 -H "Content-Type: application/json" \
+				-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
+				--data @- "https://$FLM_SVADDR/deviceinfo/receive/waninfo")
+
 	json_cleanup
 
-	# Check if file is valid
-	if [ -f "$_out_file" ]
+	# Check server response
+	if [ -n "$_res" ]
 	then
-		# Send the json
-		_res=""
-		_res=$(cat "$_out_file" | curl -s --tlsv1.2 --connect-timeout 5 \
-					--retry 1 -H "Content-Type: application/json" \
-					-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
-					--data @- "https://$FLM_SVADDR/deviceinfo/receive/waninfo")
-
-		# Check server response
 		json_load "$_res"
 		json_get_var _processed processed
 		json_close_object
-
-		# Delete auxiliar file
-		rm "$_out_file"
-
-		return $_processed
-	else
-		return 0
 	fi
+	json_cleanup
+
+	return $_processed
 }
 
 send_lan_info() {
 	local _prefix
 	local _mask
 	local _local_addr
-
-	local _out_file="/tmp/wan_info.json"
+	local _processed="0"
 
 	# Set the values
 	_prefix="$(get_prefix_delegation_addres)"
@@ -326,31 +319,26 @@ send_lan_info() {
 	json_add_string "prefix_delegation_addr" "$_prefix"
 	json_add_string "prefix_delegation_mask" "$_mask"
 	json_add_string "prefix_delegation_local" "$_local_addr"
-	json_dump > "$_out_file"
+
+	# Send the json
+	_res=""
+	_res=$(json_dump | curl -s --tlsv1.2 --connect-timeout 5 \
+				--retry 1 -H "Content-Type: application/json" \
+				-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
+				--data @- "https://$FLM_SVADDR/deviceinfo/receive/laninfo")
+
 	json_cleanup
 
-	# Check if file is valid
-	if [ -f "$_out_file" ]
+	# Check server response
+	if [ -n "$_res" ]
 	then
-		# Send the json
-		_res=""
-		_res=$(cat "$_out_file" | curl -s --tlsv1.2 --connect-timeout 5 \
-					--retry 1 -H "Content-Type: application/json" \
-					-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
-					--data @- "https://$FLM_SVADDR/deviceinfo/receive/laninfo")
-
-		# Check server response
 		json_load "$_res"
 		json_get_var _processed processed
 		json_close_object
-
-		# Delete auxiliar file
-		rm "$_out_file"
-
-		return $_processed
-	else
-		return 0
 	fi
+	json_cleanup
+
+	return $_processed
 }
 
 run_speed_ondemand_test() {
