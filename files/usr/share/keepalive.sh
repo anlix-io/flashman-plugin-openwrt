@@ -174,7 +174,7 @@ wpsstate=$_local_wps_state"
 			set_data_collecting_parameters "$_data_collecting_is_active" "$_data_collecting_has_latency" \
 			                               "$_data_collecting_alarm_fqdn" "$_data_collecting_ping_fqdn" \
 			                               "$_data_collecting_ping_packets" "$_data_collecting_burst_loss" \
-										   "$_data_collecting_ping_and_wan"
+										   "$_data_collecting_wifi_devices" "$_data_collecting_ping_and_wan"
 
 		elif [ $_retstatus -eq 2 ]
 		then
