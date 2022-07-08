@@ -282,6 +282,12 @@ ifeq ($(CONFIG_FLASHMAN_USE_AUTH_SERVER), y)
 	echo 'FLM_CLIENT_SECRET=$(CONFIG_FLASHMAN_CLIENT_SECRET)' >>$(1)/usr/share/flashman_init.conf
 endif
 
+ifeq ($(CONFIG_PREFIX_DELEGATION_RELAY), y)
+	echo 'FLM_PREFIX_DELEGATION_TYPE="relay"' >>$(1)/usr/share/flashman_init.conf
+else
+	echo 'FLM_PREFIX_DELEGATION_TYPE="server"' >>$(1)/usr/share/flashman_init.conf
+endif
+
 	echo $(PKG_VERSION) > $(1)/etc/anlix_version
 
 	mkdir -p $(1)/etc/dropbear

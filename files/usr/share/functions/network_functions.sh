@@ -24,11 +24,14 @@ get_ipv6_enabled() {
 enable_ipv6() {
 	if [ "$(get_bridge_mode_status)" != "y" ]
 	then
+		# Router Mode
 		uci set network.wan.ipv6="auto"
 		uci set network.wan6.proto="dhcpv6"
+		uci set network.wan6.ifname="@wan"
 		[ "$(uci -q get network.lan.ipv6)" ] && uci delete network.lan.ipv6
 		[ "$(uci -q get network.lan6)" ] && uci delete network.lan6
 	else
+		# Bridge Mode
 		uci set network.wan.ipv6="auto"
 		uci set network.wan6.proto="none"
 		uci set network.lan.ipv6="auto"
@@ -159,6 +162,8 @@ renew_dhcp() {
 	fi
 }
 
+
+# Wan IP
 get_wan_ip() {
 	local _ip=""
 	if [ "$(get_bridge_mode_status)" != "y" ]
@@ -459,6 +464,10 @@ get_lan_subnet() {
 
 get_lan_bridge_ipaddr() {
 	echo "$(ifstatus lan | jsonfilter -e '@["ipv4-address"][0]["address"]')"
+}
+
+get_lan_bridge_ipv6addr() {
+	echo "$(ifstatus lan | jsonfilter -e '@["ipv6-address"][0]["address"]')"
 }
 
 get_lan_ipaddr() {
