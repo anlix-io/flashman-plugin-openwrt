@@ -171,6 +171,16 @@ get_wan_ip() {
 	echo "$_ip"
 }
 
+get_wan_ip_mask() {
+	local _mask=""
+
+	# /lib/functions/network.sh does not provide this info
+	# but the private function that gets the field is avaiable
+	__network_ifstatus "_mask" "wan" "['ipv4-address'][0].mask";
+
+	echo "$_mask"
+}
+
 get_wan_ipv6() {
 	local _ip=""
 	if [ "$(get_bridge_mode_status)" != "y" ]
@@ -181,6 +191,16 @@ get_wan_ipv6() {
 		_ip="$(get_lan_bridge_ipv6addr)"
 	fi
 	echo "$_ip"
+}
+
+get_wan_ipv6_mask() {
+	local _mask=""
+
+	# /lib/functions/network.sh does not provide this info
+	# but the private function that gets the field is avaiable
+	__network_ifstatus "_mask" "wan6" "['ipv6-address'][0].mask";
+
+	echo "$_mask"
 }
 
 
