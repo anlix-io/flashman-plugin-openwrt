@@ -24,11 +24,14 @@ get_ipv6_enabled() {
 enable_ipv6() {
 	if [ "$(get_bridge_mode_status)" != "y" ]
 	then
+		# Router Mode
 		uci set network.wan.ipv6="auto"
 		uci set network.wan6.proto="dhcpv6"
+		uci set network.wan6.ifname="@wan"
 		[ "$(uci -q get network.lan.ipv6)" ] && uci delete network.lan.ipv6
 		[ "$(uci -q get network.lan6)" ] && uci delete network.lan6
 	else
+		# Bridge Mode
 		uci set network.wan.ipv6="auto"
 		uci set network.wan6.proto="none"
 		uci set network.lan.ipv6="auto"
@@ -173,6 +176,16 @@ get_wan_ip() {
 	echo "$_ip"
 }
 
+get_wan_ip_mask() {
+	local _mask=""
+
+	# /lib/functions/network.sh does not provide this info
+	# but the private function that gets the field is avaiable
+	__network_ifstatus "_mask" "wan" "['ipv4-address'][0].mask";
+
+	echo "$_mask"
+}
+
 get_wan_ipv6() {
 	local _ip=""
 	if [ "$(get_bridge_mode_status)" != "y" ]
@@ -183,6 +196,100 @@ get_wan_ipv6() {
 		_ip="$(get_lan_bridge_ipv6addr)"
 	fi
 	echo "$_ip"
+}
+
+get_wan_ipv6_mask() {
+	local _mask=""
+
+	# /lib/functions/network.sh does not provide this info
+	# but the private function that gets the field is avaiable
+	__network_ifstatus "_mask" "wan6" "['ipv6-address'][0].mask";
+
+	echo "$_mask"
+}
+
+
+# Default Gateway
+get_gateway() {
+	local _gateway=""
+
+	network_get_gateway _gateway wan
+
+	echo "$_gateway"
+}
+
+get_gateway6() {
+	local _gateway=""
+
+	network_get_gateway6 _gateway wan6
+
+	echo "$_gateway"
+}
+
+
+# PPPoE
+get_pppoe_mac() {
+	# Get the last entry and return the MAC
+	# The MAC is the second entry
+	local _info=$(cat /proc/net/pppoe | tail -1 | awk '{ print $2 }')
+
+	echo "$_info"
+}
+
+get_pppoe_ip() {
+	
+	# /lib/functions/network.sh does not provide this info
+	# but the private function that gets the field is avaiable
+	local _pppoe_ip
+	__network_ifstatus "_pppoe_ip" "wan" "['ipv4-address'][0].ptpaddress";
+
+	echo "$_pppoe_ip"
+}
+
+
+# DNS Server
+get_dns_server() {
+	local _server=""
+
+	network_get_dnsserver _server wan
+
+	echo "$_server"
+}
+
+
+# Prefix Delegation Address
+get_prefix_delegation_addres() {
+	local _prefix=""
+
+	# /lib/functions/network.sh does not provide this info
+	# but the private function that gets the field is avaiable
+	__network_ifstatus "_prefix" "lan" "['ipv6-prefix-assignment'][0].address";
+
+	echo "$_prefix"
+}
+
+
+# Prefix Delegation Mask
+get_prefix_delegation_mask() {
+	local _mask=""
+
+	# /lib/functions/network.sh does not provide this info
+	# but the private function that gets the field is avaiable
+	__network_ifstatus "_mask" "lan" "['ipv6-prefix-assignment'][0]['local-address'].mask";
+
+	echo "$_mask"
+}
+
+
+# Prefix Delegation Local Address
+get_prefix_delegation_local_address() {
+	local _address=""
+
+	# /lib/functions/network.sh does not provide this info
+	# but the private function that gets the field is avaiable
+	__network_ifstatus "_address" "lan" "['ipv6-prefix-assignment'][0]['local-address'].address";
+
+	echo "$_address"
 }
 
 

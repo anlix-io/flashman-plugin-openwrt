@@ -159,4 +159,15 @@ if FLASHMAN_USE_AUTH_SERVER
 		default ""
 endif
 
+choice
+	prompt "Prefix Delegation type"
+	default SERVER
+
+	config PREFIX_DELEGATION_SERVER
+	bool "Server"
+
+	config PREFIX_DELEGATION_RELAY
+	bool "Relay"
+endchoice
+
 endif
