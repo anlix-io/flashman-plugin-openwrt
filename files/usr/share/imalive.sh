@@ -106,13 +106,13 @@ do
 	#backoff
 	_rand=$(head /dev/urandom | tr -dc "123456789")
 	ran=${_rand:0:2}
-	backoff=$(( numbacks + ( ran % numbacks ) ))
+	backoff=$(( numbacks + ( ran % (30 * numbacks) ) ))
 
 	sleep $backoff
 	numbacks=$(( numbacks + 1 ))
-	if [ $numbacks -gt 60 ]
+	if [ $numbacks -gt 10 ]
 	then
-		numbacks=60
+		numbacks=10
 	fi
 	log "IMALIVE" "Retrying count $numbacks ..."
 done
