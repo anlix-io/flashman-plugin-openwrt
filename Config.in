@@ -161,7 +161,7 @@ endif
 
 choice
 	prompt "Prefix Delegation type"
-	default SERVER
+	default PREFIX_DELEGATION_SERVER
 
 	config PREFIX_DELEGATION_SERVER
 	bool "Server"
