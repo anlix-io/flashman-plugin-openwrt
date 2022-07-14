@@ -278,6 +278,12 @@ collect_wifi_devices() {
 			# getting everything before the first space.
 			local deviceMac=${devices%% *}
 
+			# getting everything after the first two spaces.
+			local signal=${devices#*  }
+
+			# getting everything before the first occasion of ' dBm'
+			signal=${signal%% dBm*}
+
 			# getting after '(SNR '. 
 			devices=${devices#*\(SNR }
 
@@ -344,7 +350,7 @@ collect_wifi_devices() {
 
 			# if it's the first data we are storing, don't add a space before appending the data string.
 			[ "$firstRawWrite" == true ] && firstRawWrite=false || str="$str "
-			str="${str}${i}_${deviceMac}_${snr}_${rx_pkts_diff}_${tx_pkts_diff}"
+			str="${str}${i}_${deviceMac}_${signal}_${snr}_${rx_pkts_diff}_${tx_pkts_diff}"
 		done
 		# empty out file (we only need last minute info)
 		> "$lastPktsFile"
