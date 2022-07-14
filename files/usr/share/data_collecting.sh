@@ -169,11 +169,11 @@ collect_burst() {
 	# An skipped measure will become missing data, for this minute, in the server.
 
 	# removes everything behind the summary that appears in the last lines.
-	pingResult=${pingResult##* ping statistics ---[$'\r\n']}
+	local pingResultAux=${pingResult##* ping statistics ---[$'\r\n']}
 	# removes everything after, and including, ' packets transmitted'.
-	local transmitted=${pingResult% packets transmitted*}
+	local transmitted=${pingResultAux% packets transmitted*}
 	# removes everything after, and including, ' received'.
-	local received=${pingResult% received*}
+	local received=${pingResultAux% received*}
 	# removes everything before first space.
 	received=${received##* }
 	# integer representing the amount of packets not received.
@@ -186,16 +186,24 @@ collect_burst() {
 
 	# removes everything before and including 'mdev = '
 	local latencyStats=${pingResult#*/mdev = }
-	# removes everything before first backslash
-	local latencyAvg=${latencyStats#*/}
-	# removes everything after first backslash
-	latencyAvg=${latencyAvg%%/*}
-	# removes everything before and including last backslash
-	local latencyStd=${latencyStats##*/}
-	# removes everything after and including first space
-	latencyStd=${latencyStd%% *}
 
-	string="$string $latencyAvg $latencyStd"
+	# when there is 100% packet loss there the strings remain equal
+	# we only want to collect latency and std when there isn't 100% loss
+	# if loss is 100% we just send 0 in both cases, which will be ignored by the server
+	if [ ${#latencyStats} == ${#pingResult} ]; then
+	    string="$string 0 0"
+	else
+		# removes everything before first backslash
+		local latencyAvg=${latencyStats#*/}
+		# removes everything after first backslash
+		latencyAvg=${latencyAvg%%/*}
+		# removes everything before and including last backslash
+		local latencyStd=${latencyStats##*/}
+		# removes everything after and including first space
+		latencyStd=${latencyStd%% *}
+
+		string="$string $latencyAvg $latencyStd"
+	fi
 
 	# if latency collecting is enabled.
 	if [ "$hasLatency" -eq 1 ]; then
