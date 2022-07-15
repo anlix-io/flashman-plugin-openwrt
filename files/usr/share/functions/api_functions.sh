@@ -251,6 +251,106 @@ router_status() {
 	fi
 }
 
+send_wan_info() {
+	local _wan_conn_type
+	local _dns_server
+	local _default_gateway_v4
+	local _default_gateway_v6
+	local _pppoe_mac
+	local _pppoe_ip
+	local _ipv6
+	local _ipv6_mask
+	local _processed="0"
+
+	# Set the values
+	json_cleanup
+	json_load_file /root/flashbox_config.json
+	json_get_var _wan_conn_type wan_conn_type
+	json_close_object
+
+	_default_gateway_v4="$(get_gateway)"
+	_default_gateway_v6="$(get_gateway6)"
+	_dns_server="$(get_dns_server)"
+	_pppoe_mac="$(get_pppoe_mac)"
+	_pppoe_ip="$(get_pppoe_ip)"
+	_ipv4="$(get_wan_ip)"
+	_ipv4_mask="$(get_wan_ip_mask)"
+	_ipv6="$(get_wan_ipv6)"
+	_ipv6_mask="$(get_wan_ipv6_mask)"
+
+	# Create the json
+	json_cleanup
+	json_init
+	json_add_string "wan_conn_type" "$_wan_conn_type"
+	json_add_string "default_gateway_v4" "$_default_gateway_v4"
+	json_add_string "default_gateway_v6" "$_default_gateway_v6"
+	json_add_string "dns_server" "$_dns_server"
+	json_add_string "pppoe_mac" "$_pppoe_mac"
+	json_add_string "pppoe_ip" "$_pppoe_ip"
+	json_add_string "ipv4_address" "$_ipv4"
+	json_add_string "ipv4_mask" "$_ipv4_mask"
+	json_add_string "ipv6_address" "$_ipv6"
+	json_add_string "ipv6_mask" "$_ipv6_mask"
+
+	# Send the json
+	_res=""
+	_res=$(json_dump | curl -s --tlsv1.2 --connect-timeout 5 \
+				--retry 1 -H "Content-Type: application/json" \
+				-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
+				--data @- "https://$FLM_SVADDR/deviceinfo/receive/waninfo")
+
+	json_cleanup
+
+	# Check server response
+	if [ -n "$_res" ]
+	then
+		json_load "$_res"
+		json_get_var _processed processed
+		json_close_object
+	fi
+	json_cleanup
+
+	return $_processed
+}
+
+send_lan_info() {
+	local _prefix
+	local _mask
+	local _local_addr
+	local _processed="0"
+
+	# Set the values
+	_prefix="$(get_prefix_delegation_addres)"
+	_mask="$(get_prefix_delegation_mask)"
+	_local_addr="$(get_prefix_delegation_local_address)"
+
+	# Create the json
+	json_init
+	json_add_string "prefix_delegation_addr" "$_prefix"
+	json_add_string "prefix_delegation_mask" "$_mask"
+	json_add_string "prefix_delegation_local" "$_local_addr"
+
+	# Send the json
+	_res=""
+	_res=$(json_dump | curl -s --tlsv1.2 --connect-timeout 5 \
+				--retry 1 -H "Content-Type: application/json" \
+				-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
+				--data @- "https://$FLM_SVADDR/deviceinfo/receive/laninfo")
+
+	json_cleanup
+
+	# Check server response
+	if [ -n "$_res" ]
+	then
+		json_load "$_res"
+		json_get_var _processed processed
+		json_close_object
+	fi
+	json_cleanup
+
+	return $_processed
+}
+
 run_speed_ondemand_test() {
 	local _sv_ip_addr="$1"
 	local _username="$2"

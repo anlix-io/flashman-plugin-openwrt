@@ -75,6 +75,22 @@ wps)
 		lock -u /tmp/set_wps.lock
 	fi
 	;;
+waninfo)
+	if lock -n /tmp/get_wan_info.lock
+	then
+		log "MQTTMSG" "Collecting WAN information"
+		send_wan_info
+		lock -u /tmp/get_wan_info.lock
+	fi
+	;;
+laninfo)
+	if lock -n /tmp/get_lan_info.lock
+	then
+		log "MQTTMSG" "Collecting LAN information"
+		send_lan_info
+		lock -u /tmp/get_lan_info.lock
+	fi
+	;;
 *)
 	log "MQTTMSG" "Cant recognize message: $1"
 	;;
