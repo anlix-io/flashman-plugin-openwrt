@@ -140,7 +140,17 @@ get_wan_negotiated_speed() {
 			_switch="$(get_vlan_device $_vport)"
 			_port="$(get_vlan_ports $_vport)"
 		fi
-		echo "$(swconfig dev $_switch port $_port get link|sed -ne 's/.*speed:\([0-9]*\)*.*/\1/p')"
+
+		# Get the speed from swconfig
+		local _speed="$(swconfig dev $_switch port $_port get link|sed -ne 's/.*speed:\([0-9]*\)*.*/\1/p')"
+
+		# If empty, use the /sys/class information
+		if [ -z "$_speed" ]; then
+			cat /sys/class/net/$_wan/speed
+		else
+			echo "$_speed"
+		fi
+
 	else
 		cat /sys/class/net/$_wan/speed
 	fi
@@ -161,7 +171,17 @@ get_wan_negotiated_duplex() {
 			_switch="$(get_vlan_device $_vport)"
 			_port="$(get_vlan_ports $_vport)"
 		fi
-		echo "$(swconfig dev $_switch port $_port get link|sed -ne 's/.* \([a-z]*\)-duplex*.*/\1/p')"
+
+		# Get the duplex from swconfig
+		local _duplex="$(swconfig dev $_switch port $_port get link|sed -ne 's/.* \([a-z]*\)-duplex*.*/\1/p')"
+
+		# If empty, use the /sys/class information
+		if [ -z "$_duplex" ]; then
+			cat /sys/class/net/$_wan/duplex
+		else
+			echo "$_duplex"
+		fi
+
 	else
 		cat /sys/class/net/$_wan/duplex
 	fi
