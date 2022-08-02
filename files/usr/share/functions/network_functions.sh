@@ -10,6 +10,134 @@ if [ -e /usr/share/functions/custom_device.sh ]; then
 	. /usr/share/functions/custom_device.sh
 fi
 
+create_time_object_traceroute() {
+	# $1: ip
+	# $2: hops
+	local _ip="$1"
+	local _hops="$2"
+
+	json_add_object
+	json_add_string ip "$_ip"
+
+	# Create an array for storing the times
+	json_add_array ms_values
+
+	# Get all values with ms than remove the ms
+	local _times="$(echo "$_hops" | grep -E -o '[0-9]+\.[0-9]+ ms' | grep -E -o '[0-9]+\.[0-9]+')"
+
+	for _time in $_times
+	do
+		json_add_string "" $_time
+	done
+
+	json_close_array
+	json_close_object
+}
+
+get_traceroute() {
+	# $1: The route to test, can be a domain or ip
+	# $2: Max Hops
+	# $3: Number of probes per hop
+	# $4: Time in seconds to wait for a response
+	local _route="$1"
+	local _max_hops="$2"
+	local _nprobes="$3"
+	local _time="$4"
+
+	# The output json variable
+	local _out_json=""
+
+	# Set defaults if does not exist
+	if [ -z "$_max_hops" ]; then
+		_max_hops="15"
+	fi
+
+	if [ -z "$_nprobes" ]; then
+		_nprobes="3"
+	fi
+
+	if [ -z "$_time" ]; then
+		_time="3"
+	fi
+
+	local _traceroute="$(traceroute -n -m "$_max_hops" -q "$_nprobes" -w "$_time" "$_route")"
+
+	# Only process the traceroute if it is not empty
+	if [ -n "$_traceroute" ]
+	then
+		# Get all hops, might find more than one per line
+		local _hops="$(echo "$_traceroute" | grep -E -o '[0-9]*(\.[0-9]*){3}((  \*)*  [0-9]*\.[0-9]* ms)+')"
+
+		# Find lines where there is more than 1 IP
+		local _blacklist_hops="$(echo "$_traceroute" | grep -E -o '[0-9]*(\.[0-9]*){3}.*[0-9]*(\.[0-9]*){3}')"
+		local _same_trie="$(echo "$_blacklist_hops" | awk '{print $1}')"
+		local _repeated_hops=""
+
+		_blacklist_hops="$(echo "$_blacklist_hops" | grep -E -o '  [0-9]*(\.[0-9]*){3}')"
+
+		json_cleanup
+		json_init
+
+		# Check if any hop fail in all tries
+		if [ -z "$(echo "$_traceroute" | grep -E -o '^( )*([0-9]+)(  \*){'$_nprobes'}')" ]
+		then
+			json_add_boolean all_hops_tested 1
+		else
+			json_add_boolean all_hops_tested 0
+		fi
+
+		# Add how many probes per hop
+		json_add_int tries_per_hop $_nprobes
+
+		# Add the array for hops
+		json_add_array hops
+
+		# Set the field separator to new line
+		IFS=$'\n'
+
+		for _hop_ip in $_same_trie
+		do
+			# Remove IPs that are duplicated or should be returned
+			_blacklist_hops="$(echo "$_blacklist_hops" | grep -v "$_hop_ip")"
+
+			# Hops with the same ip that must enter in the json
+			_repeated_hops="${_repeated_hops}"$'\n'"$(echo "$_hops" | grep "$_hop_ip")"
+		done
+
+		for _hop in $_hops
+		do
+			# Get the ip of the hop
+			local _ip="$(echo "$_hop" | awk '{print $1}')"
+
+			# Check if ip is in _repeated_hops, add them, joining the time values
+			local _hops_to_add="$(echo "$_repeated_hops" | grep "$_ip")"
+
+			if [ -n "$_hops_to_add" ] && [ -z "$(echo "$_blacklist_hops" | grep "$_ip")" ]
+			then
+				create_time_object_traceroute "$_ip" "$_hops_to_add"
+
+				# Add the ip to blacklist
+			_blacklist_hops="${_blacklist_hops}"$'\n'"${_ip}"
+			fi
+
+			# Check if the ip is in _blacklist_hops, otherwise append to array
+			if [ -z "$(echo "$_blacklist_hops" | grep "$_ip")" ]
+			then
+				create_time_object_traceroute "$_ip" "$_hop"
+			fi
+		done
+
+		# Reset the field separator
+		IFS=$' '
+
+		json_close_array
+		_out_json="$(json_dump)"
+		json_close_object
+	fi
+
+	echo "$_out_json"
+}
+
 get_ipv6_enabled() {
 	local _ipv6_enabled=1
 	if [ "$(get_bridge_mode_status)" != "y" ]
