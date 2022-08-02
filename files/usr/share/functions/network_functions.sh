@@ -159,7 +159,26 @@ get_traceroute() {
 		json_close_object
 	fi
 
-	echo "$_out_json"
+	# Send the json
+	local _res=""
+	local _processed="0"
+	_res=$(echo "$_out_json" | curl -s --tlsv1.2 --connect-timeout 5 \
+				--retry 1 -H "Content-Type: application/json" \
+				-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
+				--data @- "https://$FLM_SVADDR/deviceinfo/receive/traceroute")
+
+	json_cleanup
+
+	# Check server response
+	if [ -n "$_res" ]
+	then
+		json_load "$_res"
+		json_get_var _processed processed
+		json_close_object
+	fi
+	json_cleanup
+
+	return $_processed
 }
 
 get_ipv6_enabled() {
