@@ -100,6 +100,14 @@ laninfo)
 		lock -u /tmp/get_lan_info.lock
 	fi
 	;;
+traceroute)
+	if lock -n /tmp/get_traceroute.lock
+	then
+		log "MQTTMSG" "Gathering traceroute information"
+		get_traceroute "$2" "$3" "$4" "$5"
+		lock -u /tmp/get_traceroute.lock
+	fi
+	;;
 *)
 	log "MQTTMSG" "Cant recognize message: $1"
 	;;
