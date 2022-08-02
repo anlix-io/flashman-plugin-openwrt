@@ -10,6 +10,29 @@ if [ -e /usr/share/functions/custom_device.sh ]; then
 	. /usr/share/functions/custom_device.sh
 fi
 
+check_and_set_default_traceroute() {
+	# $1: Variable value
+	# $2: Minimum value
+	# $3: Maximum value
+	# $4: Default
+
+	local _var=$1
+
+	if [ "$_var" -lt "$2" ]; then
+		_var=$2
+	fi
+
+	if [ "$_var" -gt "$3" ]; then
+		_var=$3
+	fi
+
+	if [ -z "$_var" ] || [ -n "$(echo "$_var" | grep -E '[^0-9]' )" ]; then
+		_var=$4
+	fi
+
+	echo "$_var"
+}
+
 create_time_object_traceroute() {
 	# $1: ip
 	# $2: hops
@@ -47,18 +70,10 @@ get_traceroute() {
 	# The output json variable
 	local _out_json=""
 
-	# Set defaults if does not exist
-	if [ -z "$_max_hops" ]; then
-		_max_hops="15"
-	fi
-
-	if [ -z "$_nprobes" ]; then
-		_nprobes="3"
-	fi
-
-	if [ -z "$_time" ]; then
-		_time="3"
-	fi
+	# Set defaults if does not exist or is not valid
+	_max_hops="$(check_and_set_default_traceroute "$_max_hops" '1' '30' '15')"
+	_nprobes="$(check_and_set_default_traceroute "$_nprobes" '1' '10' '3')"
+	_time=$(check_and_set_default_traceroute "$_time" '1' '10' '3')
 
 	local _traceroute="$(traceroute -n -m "$_max_hops" -q "$_nprobes" -w "$_time" "$_route")"
 
