@@ -84,6 +84,7 @@ get_traceroute() {
 		local _hops="$(echo "$_traceroute" | grep -E -o '[0-9]*(\.[0-9]*){3}((  \*)*  [0-9]*\.[0-9]* ms)+')"
 
 		# Find lines where there is more than 1 IP
+		local _last_ip="$(echo "$_traceroute" | grep -m 1 -Eo '[0-9]*(\.[0-9]*){3}')"
 		local _blacklist_hops="$(echo "$_traceroute" | grep -E -o '[0-9]*(\.[0-9]*){3}.*[0-9]*(\.[0-9]*){3}')"
 		local _same_trie="$(echo "$_blacklist_hops" | awk '{print $1}')"
 		local _repeated_hops=""
@@ -99,6 +100,14 @@ get_traceroute() {
 			json_add_boolean all_hops_tested 1
 		else
 			json_add_boolean all_hops_tested 0
+		fi
+
+		# Check if the final ip was tested successfully
+		if [ -n "$(echo "$_traceroute" | grep "$_last_ip  ")" ]
+		then
+			json_add_boolean reached_destination 1
+		else
+			json_add_boolean reached_destination 0
 		fi
 
 		# Add how many probes per hop
