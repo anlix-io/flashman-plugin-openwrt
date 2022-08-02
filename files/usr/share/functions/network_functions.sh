@@ -140,7 +140,7 @@ get_traceroute() {
 			then
 				create_time_object_traceroute "$_ip" "$_hops_to_add"
 
-				# Add the ip to blacklist
+			# Add the ip to blacklist
 			_blacklist_hops="${_blacklist_hops}"$'\n'"${_ip}"
 			fi
 
