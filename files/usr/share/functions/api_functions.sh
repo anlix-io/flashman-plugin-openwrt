@@ -424,12 +424,17 @@ get_traceroute() {
 		# Get all hops, might find more than one per line
 		local _hops="$(echo "$_traceroute" | grep -E -o '[0-9]*(\.[0-9]*){3}((  \*)*  [0-9]*\.[0-9]* ms)+')"
 
-		# Find lines where there is more than 1 IP
+		# The ip of what the last hop should be
 		local _last_ip="$(echo "$_traceroute" | grep -m 1 -Eo '[0-9]*(\.[0-9]*){3}')"
+		
+		# Find lines where there is more than 1 IP
 		local _blacklist_hops="$(echo "$_traceroute" | grep -E -o '[0-9]*(\.[0-9]*){3}.*[0-9]*(\.[0-9]*){3}')"
+
+		# The first IP of a line with more than 1 IP
 		local _same_trie="$(echo "$_blacklist_hops" | awk '{print $1}')"
 		local _repeated_hops=""
 
+		# Break the blacklist lines into IP's, without the first IP
 		_blacklist_hops="$(echo "$_blacklist_hops" | grep -E -o '  [0-9]*(\.[0-9]*){3}')"
 
 		json_cleanup
