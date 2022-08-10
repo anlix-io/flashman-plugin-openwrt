@@ -554,6 +554,68 @@ run_speed_ondemand_test() {
 	return 0
 }
 
+run_speed_ondemand_raw_test() {
+	local _username="$1"
+	local _connections="$2"
+	local _timeout="$3"
+	local _urllist=""
+	local _result
+	local _retstatus
+	local _reply
+
+	# Get the URL
+	local _data="id=$(get_mac)"
+	local _url_speedtest="deviceinfo/get/speedtesthost"
+	local _host_response=$(rest_flashman "$_url_speedtest" "$_data")
+	local _response_status=$?
+
+	if [ $_response_status -eq 0 ]
+	then
+		# Check if URL exists
+		local _url=""
+		json_cleanup
+		json_load "$_host_response"
+		json_get_var _success success
+
+		if [ "$_success" -eq 1 ]
+		then
+			json_get_var _url host
+		fi
+
+		json_close_object
+		json_cleanup
+
+		if [ -n "$_url" ]
+		then
+			# Fill all URLs
+			for i in $(seq 1 "$_connections")
+			do
+				_urllist="$_urllist $_url"
+			done
+
+			# Drop traffic
+			log "SPEEDTESTRAW" "Dropping traffic on firewall..."
+			drop_all_forward_traffic
+
+			# Do Speedtest
+			_result="$(flash-measure "$_timeout" "$_connections" $_urllist)"
+			_retstatus=$?
+
+			# Restore traffic
+			log "SPEEDTESTRAW" "Restoring firewall to normal..."
+			undrop_all_forward_traffic
+
+			# Send the data do flashman
+			_reply='{"downSpeed":"'"$_result"'","user":"'"$_username"'"}'
+			curl -s --tlsv1.2 --connect-timeout 5 --retry 1 -H "Content-Type: application/json" \
+				-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" --data "$_reply" \
+				"https://$FLM_SVADDR/deviceinfo/receive/speedtestresult"
+		fi
+	fi
+
+	return 0
+}
+
 run_diagnostics_test() {
 	local _wan_status
 	local _ipv4_status
