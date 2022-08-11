@@ -289,6 +289,12 @@ collect_wifi_devices() {
 			# getting everything after the first two spaces.
 			local signal=${devices#*  }
 
+			# getting everything before the first occasion of ' /'
+			signal=${signal%% /*}
+
+			# if unknown replace it with -95 dBm
+			[ "$signal" == "unknown" ] && signal="-95 dBm"
+
 			# getting everything before the first occasion of ' dBm'
 			signal=${signal%% dBm*}
 
