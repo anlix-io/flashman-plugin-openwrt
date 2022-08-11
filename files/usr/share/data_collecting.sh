@@ -292,8 +292,8 @@ collect_wifi_devices() {
 			# getting everything before the first occasion of ' /'
 			signal=${signal%% /*}
 
-			# if unknown replace it with -95 dBm
-			[ "$signal" == "unknown" ] && signal="-95 dBm"
+			# if unknown discard
+			[ "$signal" == "unknown" ] && continue
 
 			# getting everything before the first occasion of ' dBm'
 			signal=${signal%% dBm*}
