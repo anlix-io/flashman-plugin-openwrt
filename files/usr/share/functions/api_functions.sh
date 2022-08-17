@@ -542,6 +542,20 @@ get_traceroute() {
 			json_close_object
 		fi
 
+		# Check if the json is empty, if so, just add the address
+		if [ -z "$_out_json" ]
+		then
+			json_cleanup
+			json_init
+
+			# Add the route
+			json_add_string address $_route
+			_out_json="$(json_dump)"
+
+			json_close_object
+			json_cleanup
+		fi
+
 		# Send the json
 		local _res=""
 		local _processed="0"
@@ -549,8 +563,6 @@ get_traceroute() {
 					--retry 1 -H "Content-Type: application/json" \
 					-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
 					--data @- "https://$FLM_SVADDR/deviceinfo/receive/traceroute")
-
-		json_cleanup
 
 		# Reopen the hosts json
 		json_cleanup
