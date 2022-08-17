@@ -369,6 +369,15 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 			json_dump > /root/flashbox_config.json
 			json_close_object
 		fi
+		if [ "$_local_did_change_lan" = "y" ]
+		then
+			json_cleanup
+			json_load_file /root/flashbox_config.json
+			json_add_string did_change_lan_local "n"
+			json_dump > /root/flashbox_config.json
+			json_close_object
+		fi
+
 
 		if [ "$_hard_reset_info" = "1" ]
 		then
