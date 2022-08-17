@@ -399,120 +399,164 @@ create_time_object_traceroute() {
 }
 
 get_traceroute() {
-	# $1: The route to test, can be a domain or ip
-	# $2: Max Hops
-	# $3: Number of probes per hop
-	# $4: Time in seconds to wait for a response
-	local _route="$1"
-	local _max_hops="$2"
-	local _nprobes="$3"
-	local _time="$4"
+	# $1: Max Hops
+	# $2: Number of probes per hop
+	# $3: Time in seconds to wait for a response
+	local _route=""
+	local _max_hops="$1"
+	local _nprobes="$2"
+	local _trace_time="$3"
 
-	# The output json variable
-	local _out_json=""
+	# Get the hosts
+	# Attention: Using the same hosts of ping
+	local _url="deviceinfo/get/pinghosts"
+	local _data="id=$(get_mac)"
+	_res=$(rest_flashman "$_url" "$_data")
+
+	local _hosts=""
+	json_cleanup
+	json_load "$_res"
+	_hosts="$(json_dump)"
+	json_select "hosts"
+
+	# If hosts came invalid
+	if [ -z "$_hosts" ]
+	then
+		return
+	fi
 
 	# Set defaults if does not exist or is not valid
 	_max_hops="$(check_and_set_default_traceroute "$_max_hops" '1' '30' '15')"
 	_nprobes="$(check_and_set_default_traceroute "$_nprobes" '1' '10' '3')"
-	_time=$(check_and_set_default_traceroute "$_time" '1' '10' '3')
+	_trace_time=$(check_and_set_default_traceroute "$_trace_time" '1' '10' '3')
 
-	local _traceroute="$(traceroute -n -m "$_max_hops" -q "$_nprobes" -w "$_time" "$_route")"
+	# Loop through all hosts
+	local _idx="1"
+	while json_get_type type "$_idx" && [ "$type" = string ]
+	do
+		# The output json variable
+		local _out_json=""
 
-	# Only process the traceroute if it is not empty
-	if [ -n "$_traceroute" ]
-	then
-		# Get all hops, might find more than one per line
-		local _hops="$(echo "$_traceroute" | grep -E -o '[0-9]*(\.[0-9]*){3}((  \*)*  [0-9]*\.[0-9]* ms)+')"
+		# Get the address to traceroute
+		# In the first iteration the hosts json is already opened
+		# Every iteration, we get the route and close the json at the beginning
+		# At the end of the loop, we reopen it to be used in the next iteration
+		json_get_var _route "$((_idx++))"
+		json_select ".."
+		json_close_object
+		json_cleanup
 
-		# The ip of what the last hop should be
-		local _last_ip="$(echo "$_traceroute" | grep -m 1 -Eo '[0-9]*(\.[0-9]*){3}')"
-		
-		# Find lines where there is more than 1 IP
-		local _blacklist_hops="$(echo "$_traceroute" | grep -E -o '[0-9]*(\.[0-9]*){3}.*[0-9]*(\.[0-9]*){3}')"
+		local _traceroute="$(traceroute -n -m "$_max_hops" -q "$_nprobes" -w "$_trace_time" "$_route")"
 
-		# The first IP of a line with more than 1 IP
-		local _same_trie="$(echo "$_blacklist_hops" | awk '{print $1}')"
-		local _repeated_hops=""
+		# Only process the traceroute if it is not empty
+		if [ -n "$_traceroute" ]
+		then
+			# Get all hops, might find more than one per line
+			local _hops="$(echo "$_traceroute" | grep -E -o '[0-9]*(\.[0-9]*){3}((  \*)*  [0-9]*\.[0-9]* ms)+')"
 
-		# Break the blacklist lines into IP's, without the first IP
-		_blacklist_hops="$(echo "$_blacklist_hops" | grep -E -o '  [0-9]*(\.[0-9]*){3}')"
+			# The ip of what the last hop should be
+			local _last_ip="$(echo "$_traceroute" | grep -m 1 -Eo '[0-9]*(\.[0-9]*){3}')"
+			
+			# Find lines where there is more than 1 IP
+			local _blacklist_hops="$(echo "$_traceroute" | grep -E -o '[0-9]*(\.[0-9]*){3}.*[0-9]*(\.[0-9]*){3}')"
+
+			# The first IP of a line with more than 1 IP
+			local _same_trie="$(echo "$_blacklist_hops" | awk '{print $1}')"
+			local _repeated_hops=""
+
+			# Break the blacklist lines into IP's, without the first IP
+			_blacklist_hops="$(echo "$_blacklist_hops" | grep -E -o '  [0-9]*(\.[0-9]*){3}')"
+
+			json_cleanup
+			json_init
+
+			# Check if any hop fail in all tries
+			if [ -z "$(echo "$_traceroute" | grep -E -o '^( )*([0-9]+)(  \*){'$_nprobes'}')" ]
+			then
+				json_add_boolean all_hops_tested 1
+			else
+				json_add_boolean all_hops_tested 0
+			fi
+
+			# Check if the final ip was tested successfully
+			if [ -n "$(echo "$_traceroute" | grep "$_last_ip  ")" ]
+			then
+				json_add_boolean reached_destination 1
+			else
+				json_add_boolean reached_destination 0
+			fi
+
+			# Add the route
+			json_add_string address $_route
+
+			# Add how many probes per hop
+			json_add_int tries_per_hop $_nprobes
+
+			# Add the array for hops
+			json_add_array hops
+
+			# Set the field separator to new line
+			IFS=$'\n'
+
+			for _hop_ip in $_same_trie
+			do
+				# Remove IPs that are duplicated or should be returned
+				_blacklist_hops="$(echo "$_blacklist_hops" | grep -v "$_hop_ip")"
+
+				# Hops with the same ip that must enter in the json
+				_repeated_hops="${_repeated_hops}"$'\n'"$(echo "$_hops" | grep "$_hop_ip")"
+			done
+
+			for _hop in $_hops
+			do
+				# Get the ip of the hop
+				local _ip="$(echo "$_hop" | awk '{print $1}')"
+
+				# Check if ip is in _repeated_hops, add them, joining the time values
+				local _hops_to_add="$(echo "$_repeated_hops" | grep "$_ip")"
+
+				if [ -n "$_hops_to_add" ] && [ -z "$(echo "$_blacklist_hops" | grep "$_ip")" ]
+				then
+					create_time_object_traceroute "$_ip" "$_hops_to_add"
+
+					# Add the ip to blacklist
+					_blacklist_hops="${_blacklist_hops}"$'\n'"${_ip}"
+				fi
+
+				# Check if the ip is in _blacklist_hops, otherwise append to array
+				if [ -z "$(echo "$_blacklist_hops" | grep "$_ip")" ]
+				then
+					create_time_object_traceroute "$_ip" "$_hop"
+				fi
+			done
+
+			# Reset the field separator
+			IFS=$' '
+
+			json_close_array
+			_out_json="$(json_dump)"
+			json_close_object
+		fi
+
+		# Send the json
+		local _res=""
+		local _processed="0"
+		_res=$(echo "$_out_json" | curl -s --tlsv1.2 --connect-timeout 5 \
+					--retry 1 -H "Content-Type: application/json" \
+					-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
+					--data @- "https://$FLM_SVADDR/deviceinfo/receive/traceroute")
 
 		json_cleanup
-		json_init
 
-		# Check if any hop fail in all tries
-		if [ -z "$(echo "$_traceroute" | grep -E -o '^( )*([0-9]+)(  \*){'$_nprobes'}')" ]
-		then
-			json_add_boolean all_hops_tested 1
-		else
-			json_add_boolean all_hops_tested 0
-		fi
+		# Reopen the hosts json
+		json_cleanup
+		json_load "$_hosts"
+		json_select "hosts"
+	done
 
-		# Check if the final ip was tested successfully
-		if [ -n "$(echo "$_traceroute" | grep "$_last_ip  ")" ]
-		then
-			json_add_boolean reached_destination 1
-		else
-			json_add_boolean reached_destination 0
-		fi
-
-		# Add how many probes per hop
-		json_add_int tries_per_hop $_nprobes
-
-		# Add the array for hops
-		json_add_array hops
-
-		# Set the field separator to new line
-		IFS=$'\n'
-
-		for _hop_ip in $_same_trie
-		do
-			# Remove IPs that are duplicated or should be returned
-			_blacklist_hops="$(echo "$_blacklist_hops" | grep -v "$_hop_ip")"
-
-			# Hops with the same ip that must enter in the json
-			_repeated_hops="${_repeated_hops}"$'\n'"$(echo "$_hops" | grep "$_hop_ip")"
-		done
-
-		for _hop in $_hops
-		do
-			# Get the ip of the hop
-			local _ip="$(echo "$_hop" | awk '{print $1}')"
-
-			# Check if ip is in _repeated_hops, add them, joining the time values
-			local _hops_to_add="$(echo "$_repeated_hops" | grep "$_ip")"
-
-			if [ -n "$_hops_to_add" ] && [ -z "$(echo "$_blacklist_hops" | grep "$_ip")" ]
-			then
-				create_time_object_traceroute "$_ip" "$_hops_to_add"
-
-				# Add the ip to blacklist
-				_blacklist_hops="${_blacklist_hops}"$'\n'"${_ip}"
-			fi
-
-			# Check if the ip is in _blacklist_hops, otherwise append to array
-			if [ -z "$(echo "$_blacklist_hops" | grep "$_ip")" ]
-			then
-				create_time_object_traceroute "$_ip" "$_hop"
-			fi
-		done
-
-		# Reset the field separator
-		IFS=$' '
-
-		json_close_array
-		_out_json="$(json_dump)"
-		json_close_object
-	fi
-
-	# Send the json
-	local _res=""
-	local _processed="0"
-	_res=$(echo "$_out_json" | curl -s --tlsv1.2 --connect-timeout 5 \
-				--retry 1 -H "Content-Type: application/json" \
-				-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
-				--data @- "https://$FLM_SVADDR/deviceinfo/receive/traceroute")
-
+	# Final close the hosts json
+	json_select ".."
+	json_close_object
 	json_cleanup
 
 	# Check server response

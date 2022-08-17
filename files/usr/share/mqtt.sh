@@ -112,7 +112,7 @@ traceroute)
 	if lock -n /tmp/get_traceroute.lock
 	then
 		log "MQTTMSG" "Gathering traceroute information"
-		get_traceroute "$2" "$3" "$4" "$5"
+		get_traceroute "$2" "$3" "$4"
 		lock -u /tmp/get_traceroute.lock
 	fi
 	;;
