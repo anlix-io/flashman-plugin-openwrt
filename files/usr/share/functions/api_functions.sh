@@ -422,6 +422,10 @@ get_traceroute() {
 	# If hosts came invalid
 	if [ -z "$_hosts" ]
 	then
+		# Close the hosts json
+		json_select ".."
+		json_close_object
+		json_cleanup
 		return
 	fi
 
