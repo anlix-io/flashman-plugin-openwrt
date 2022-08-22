@@ -195,11 +195,11 @@ is_authenticated() {
 		local _file_seconds="$(echo $_file_date | awk '{print 60*'$FLM_REAUTH_TIME'+$1}')"
 
 		# Check the date
-		if [ "$_date" -le "$_file_minute" ]
+		if [ "$_date" -le "$_file_seconds" ]
 		then
 			# Authenticated
 			_is_authenticated=0
-			log "AUTHENTICATOR" "Authenticated by cache, with date: $_file_date"
+			log "AUTHENTICATOR" "Authenticated by cache with date: $_file_date"
 
 			return $_is_authenticated
 		else
@@ -246,7 +246,7 @@ firmware_ver=$(get_flashbox_version)"
 					# Save the date
 					echo "$_date" > $_tmp_auth_file
 
-					log "AUTHENTICATOR" "Creating authentication cache"
+					log "AUTHENTICATOR" "Creating authentication cache, with date: $_date"
 				fi
 
 			else
