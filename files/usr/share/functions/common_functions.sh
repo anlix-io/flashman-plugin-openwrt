@@ -181,8 +181,8 @@ is_authenticated() {
 	local _tmp_auth_file="/tmp/last_authentication"
 	local _tmp_file_valid=0
 
-	# Get the date: day month year hour minute second 
-	local _date="$(date '+%d %m %Y %H %M %S')"
+	# Get the date: seconds since 1970-01-01 00:00:00 UTC
+	local _date="$(date '+%s')"
 
 	# Check if _tmp_auth_file exists and check FLM_REAUTH_TIME if is more than
 	# 30 minutes and less than 8 hours (480 minutes)
@@ -191,24 +191,11 @@ is_authenticated() {
 	then
 		local _file_date=$(cat $_tmp_auth_file)
 
-		# Day
-		local _curr_day="$(echo $_date | awk '{print $1}')"
-		local _file_day="$(echo $_file_date | awk '{print $1}')"
-		# Month
-		local _curr_month="$(echo $_date | awk '{print $2}')"
-		local _file_month="$(echo $_file_date | awk '{print $2}')"
-		# Year
-		local _curr_year="$(echo $_date | awk '{print $3}')"
-		local _file_year="$(echo $_file_date | awk '{print $3}')"
-		# 60*Hour + Minute; Add the constant to the file
-		local _curr_minute="$(echo $_date | awk '{print 60*$4+$5}')"
-		local _file_minute="$(echo $_file_date | awk '{print 60*$4+$5+'$FLM_REAUTH_TIME'}')"
+		# 60*Minute + Seconds; Add the constant to the file
+		local _file_seconds="$(echo $_file_date | awk '{print 60*'$FLM_REAUTH_TIME'+$1}')"
 
 		# Check the date
-		if [ "$_curr_day" -eq "$_file_day" ] && 		# Day
-			[ "$_curr_month" -eq "$_file_month" ] && 	# Month
-			[ "$_curr_year" -eq "$_file_year" ] && 		# Year
-			[ "$_curr_minute" -le "$_file_minute" ]		# Minutes
+		if [ "$_date" -le "$_file_minute" ]
 		then
 			# Authenticated
 			_is_authenticated=0
