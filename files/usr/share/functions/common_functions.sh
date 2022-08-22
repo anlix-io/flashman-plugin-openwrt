@@ -212,10 +212,14 @@ is_authenticated() {
 		then
 			# Authenticated
 			_is_authenticated=0
+			log "AUTHENTICATOR" "Authenticated by cache, with date: $_file_date"
+
 			return $_is_authenticated
 		else
 			# Remove the file
 			rm $_tmp_auth_file
+
+			log "AUTHENTICATOR" "Removed authentication cache with date: $_file_date"
 		fi
 
 	fi
@@ -254,6 +258,8 @@ firmware_ver=$(get_flashbox_version)"
 				then
 					# Save the date
 					echo "$_date" > $_tmp_auth_file
+
+					log "AUTHENTICATOR" "Creating authentication cache"
 				fi
 
 			else
@@ -270,6 +276,8 @@ firmware_ver=$(get_flashbox_version)"
 	if [ "$_is_authenticated" -eq 1 ] && [ -f "$_tmp_auth_file" ]
 	then
 		rm $_tmp_auth_file
+
+		log "AUTHENTICATOR" "Removed authentication cache due to not being authenticated"
 	fi
 
 	return $_is_authenticated
