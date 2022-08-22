@@ -178,6 +178,47 @@ rest_flashman() {
 is_authenticated() {
 	local _res
 	local _is_authenticated=1
+	local _tmp_auth_file="/tmp/last_authentication"
+	local _tmp_file_valid=0
+
+	# Get the date: day month year hour minute second 
+	local _date="$(date '+%d %m %Y %H %M %S')"
+
+	# Check if _tmp_auth_file exists and check FLM_REAUTH_TIME if is more than
+	# 30 minutes and less than 8 hours (480 minutes)
+	if [ -f "$_tmp_auth_file" ] && [ "$FLM_REAUTH_TIME" -ge "30" ] &&
+		[ "$FLM_REAUTH_TIME" -le "480" ]
+	then
+		local _file_date=$(cat $_tmp_auth_file)
+
+		# Day
+		local _curr_day="$(echo $_date | awk '{print $1}')"
+		local _file_day="$(echo $_file_date | awk '{print $1}')"
+		# Month
+		local _curr_month="$(echo $_date | awk '{print $2}')"
+		local _file_month="$(echo $_file_date | awk '{print $2}')"
+		# Year
+		local _curr_year="$(echo $_date | awk '{print $3}')"
+		local _file_year="$(echo $_file_date | awk '{print $3}')"
+		# 60*Hour + Minute; Add the constant to the file
+		local _curr_minute="$(echo $_date | awk '{print 60*$4+$5}')"
+		local _file_minute="$(echo $_file_date | awk '{print 60*$4+$5+'$FLM_REAUTH_TIME'}')"
+
+		# Check the date
+		if [ "$_curr_day" -eq "$_file_day" ] && 		# Day
+			[ "$_curr_month" -eq "$_file_month" ] && 	# Month
+			[ "$_curr_year" -eq "$_file_year" ] && 		# Year
+			[ "$_curr_minute" -le "$_file_minute" ]		# Minutes
+		then
+			# Authenticated
+			_is_authenticated=0
+			return $_is_authenticated
+		else
+			# Remove the file
+			rm $_tmp_auth_file
+		fi
+
+	fi
 
 	if [ "$FLM_USE_AUTH_SVADDR" == "y" ]
 	then
@@ -207,6 +248,14 @@ firmware_ver=$(get_flashbox_version)"
 			then
 				json_get_var _is_authenticated is_authenticated
 				json_close_object
+
+				# If is_authenticated is 0 (Authenticated) than create a cache
+				if [ "$_is_authenticated" -eq 0 ]
+				then
+					# Save the date
+					echo "$_date" > $_tmp_auth_file
+				fi
+
 			else
 				log "AUTHENTICATOR" "Invalid answer from controler"
 			fi
@@ -215,6 +264,12 @@ firmware_ver=$(get_flashbox_version)"
 		fi
 	else
 		_is_authenticated=0
+	fi
+
+	# If not authenticated and the _tmp_auth_file file exists, delete it
+	if [ "$_is_authenticated" -eq 1 ] && [ -f "$_tmp_auth_file" ]
+	then
+		rm $_tmp_auth_file
 	fi
 
 	return $_is_authenticated

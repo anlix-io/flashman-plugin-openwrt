@@ -277,6 +277,12 @@ endif
 	echo 'FLM_USE_AUTH_SVADDR=$(CONFIG_FLASHMAN_USE_AUTH_SERVER)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_CONNECTIVITY_SVADDRS_LIST=$(CONFIG_CONNECTIVITY_SVADDRS_LIST)' >>$(1)/usr/share/flashman_init.conf
 
+ifndef $(CONFIG_FLASHMAN_REAUTH_TIME)
+	echo 'FLM_REAUTH_TIME=30' >>$(1)/usr/share/flashman_init.conf
+else
+	echo 'FLM_REAUTH_TIME=$(CONFIG_FLASHMAN_REAUTH_TIME)' >>$(1)/usr/share/flashman_init.conf
+endif
+
 ifeq ($(CONFIG_FLASHMAN_USE_AUTH_SERVER), y)
 	echo 'FLM_AUTH_SVADDR=$(CONFIG_FLASHMAN_AUTH_SERVER_ADDR)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_CLIENT_SECRET=$(CONFIG_FLASHMAN_CLIENT_SECRET)' >>$(1)/usr/share/flashman_init.conf
