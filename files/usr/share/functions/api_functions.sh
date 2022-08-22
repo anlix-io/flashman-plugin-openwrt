@@ -450,7 +450,7 @@ get_traceroute() {
 		json_close_object
 		json_cleanup
 
-		local _traceroute="$(traceroute -n -m "$_max_hops" -q "$_nprobes" -w "$_trace_time" "$_route")"
+		local _traceroute="$(traceroute -I -n -m "$_max_hops" -q "$_nprobes" -w "$_trace_time" "$_route")"
 
 		# Only process the traceroute if it is not empty
 		if [ -n "$_traceroute" ]
