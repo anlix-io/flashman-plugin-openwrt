@@ -421,6 +421,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 				disable_ipv6
 			fi
 			/etc/init.d/network restart
+			/etc/init.d/dropbear restart
 			/etc/init.d/miniupnpd reload
 		fi
 
