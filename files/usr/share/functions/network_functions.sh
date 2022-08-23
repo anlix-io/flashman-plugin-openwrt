@@ -43,6 +43,11 @@ enable_ipv6() {
 		uci set network.lan6.proto='dhcpv6'
 	fi
 	uci commit network
+
+	# Set ssh configuration for ipv6
+	uci set dropbear.@dropbear[1].enable=1
+	uci commit dropbear
+
 	json_cleanup
 	json_load_file /root/flashbox_config.json
 	json_add_string enable_ipv6 "1"
@@ -56,6 +61,11 @@ disable_ipv6() {
 	uci set network.lan.ipv6="0"
 	[ "$(uci -q get network.lan6)" ] && uci delete network.lan6
 	uci commit network
+
+	# Set ssh configuration for ipv6
+	uci set dropbear.@dropbear[1].enable=0
+	uci commit dropbear
+
 	json_cleanup
 	json_load_file /root/flashbox_config.json
 	json_add_string enable_ipv6 "0"
