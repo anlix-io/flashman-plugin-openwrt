@@ -413,6 +413,13 @@ get_traceroute() {
 	local _data="id=$(get_mac)"
 	_res=$(rest_flashman "$_url" "$_data")
 
+	# Verify the response
+	local _resstatus=$?
+	if [ $_resstatus -eq 0 ]
+	then
+		return 0
+	fi
+
 	local _hosts=""
 	json_cleanup
 	json_load "$_res"
@@ -564,6 +571,25 @@ get_traceroute() {
 					-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
 					--data @- "https://$FLM_SVADDR/deviceinfo/receive/traceroute")
 
+		# Check server response
+		if [ -n "$_res" ]
+		then
+			json_cleanup
+			json_load "$_res"
+			json_get_var _processed processed
+			json_close_object
+
+			# If any error happenened, return
+			if [ "$_processed" -lt 1 ]
+			then
+				return $_processed
+			fi
+
+		# In case of no response
+		else
+			return $_processed
+		fi
+
 		# Reopen the hosts json
 		json_cleanup
 		json_load "$_hosts"
@@ -573,15 +599,6 @@ get_traceroute() {
 	# Final close the hosts json
 	json_select ".."
 	json_close_object
-	json_cleanup
-
-	# Check server response
-	if [ -n "$_res" ]
-	then
-		json_load "$_res"
-		json_get_var _processed processed
-		json_close_object
-	fi
 	json_cleanup
 
 	return $_processed
@@ -627,9 +644,9 @@ run_speed_ondemand_raw_test() {
 	local _data="id=$(get_mac)"
 	local _url_speedtest="deviceinfo/get/speedtesthost"
 	local _host_response=$(rest_flashman "$_url_speedtest" "$_data")
-	local _response_status=$?
+	_retstatus=$?
 
-	if [ $_response_status -eq 0 ]
+	if [ $_retstatus -eq 0 ]
 	then
 		# Check if URL exists
 		local _url=""
@@ -661,19 +678,29 @@ run_speed_ondemand_raw_test() {
 			_result="$(flash-measure "$_timeout" "$_connections" $_urllist)"
 			_retstatus=$?
 
+			if [ "$_retstatus" -ne 0 ]
+			then
+				return "$_retstatus"
+			fi
+
 			# Restore traffic
 			log "SPEEDTESTRAW" "Restoring firewall to normal..."
 			undrop_all_forward_traffic
 
 			# Send the data do flashman
+			local _res=""
+			local _retstatus=""
 			_reply='{"downSpeed":"'"$_result"'","user":"'"$_username"'"}'
-			curl -s --tlsv1.2 --connect-timeout 5 --retry 1 -H "Content-Type: application/json" \
+			_res=$(curl -s --tlsv1.2 --connect-timeout 5 --retry 1 -H "Content-Type: application/json" \
 				-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" --data "$_reply" \
-				"https://$FLM_SVADDR/deviceinfo/receive/speedtestresult"
+				"https://$FLM_SVADDR/deviceinfo/receive/speedtestresult")
+			_retstatus=$?
+
+			return $_retstatus
 		fi
 	fi
 
-	return 0
+	return 1
 }
 
 run_diagnostics_test() {
