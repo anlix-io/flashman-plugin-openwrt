@@ -184,10 +184,8 @@ is_authenticated() {
 	# Get the date: seconds since 1970-01-01 00:00:00 UTC
 	local _date="$(date '+%s')"
 
-	# Check if _tmp_auth_file exists and check FLM_REAUTH_TIME if is more than
-	# 30 minutes and less than 8 hours (480 minutes)
-	if [ -f "$_tmp_auth_file" ] && [ "$FLM_REAUTH_TIME" -ge "30" ] &&
-		[ "$FLM_REAUTH_TIME" -le "480" ]
+	# Check if _tmp_auth_file exists
+	if [ -f "$_tmp_auth_file" ]
 	then
 		local _file_date=$(cat $_tmp_auth_file)
 
