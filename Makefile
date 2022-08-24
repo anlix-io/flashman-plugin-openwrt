@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=flasman-plugin
-PKG_VERSION:=0.36.1
+PKG_VERSION:=0.37.0
 PKG_RELEASE:=1
 
 PKG_LICENSE:=GPL
