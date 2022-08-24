@@ -103,7 +103,9 @@ connection_type=$(get_wan_type)&\
 ntp=$(ntp_anlix)&\
 sysuptime=$(sys_uptime)&\
 wanuptime=$(wan_uptime)&\
-wpsstate=$_local_wps_state"
+wpsstate=$_local_wps_state&\
+cpu_usage=$(get_cpu_usage)&\
+mem_usage=$(get_memory_usage)"
 		_url="deviceinfo/syn/"
 		_res=$(rest_flashman "$_url" "$_data")
 

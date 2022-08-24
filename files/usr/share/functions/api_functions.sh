@@ -211,15 +211,32 @@ wan_uptime() {
 	echo "$_wan_uptime"
 }
 
+# Get the CPU usage
+get_cpu_usage() {
+	local _cpu=$(top -bn1 | awk '{if($1 ~ /^CPU:/){print int(100-$8)}}')
+	echo "$_cpu"
+}
+
+# Get the Memory usage
+get_memory_usage() {
+	local _memory=$(free -m | awk '{if($1 ~ /^Mem:/){print int(($2-$7)*100/$2)}}')
+	echo "$_memory"
+}
+
 router_status() {
 	local _res
 	local _processed
 	local _sys_uptime
 	local _wan_uptime
+	local _cpu_usage
+	local _memory_usage
 	local _out_file="/tmp/router_status.json"
 
 	_sys_uptime="$(sys_uptime)"
 	_wan_uptime="$(wan_uptime)"
+	_cpu_usage="$(get_cpu_usage)"
+	_mem_usage="$(get_memory_usage)"
+
 
 	json_init
 	if [ -f /tmp/wanbytes.json ]
@@ -228,6 +245,10 @@ router_status() {
 	fi
 	json_add_string "sysuptime" "$_sys_uptime"
 	json_add_string "wanuptime" "$_wan_uptime"
+	json_add_object resources
+	json_add_int "cpu_usage" "$_cpu_usage"
+	json_add_int "mem_usage" "$_mem_usage"
+	json_close_object
 	json_dump > "$_out_file"
 	json_cleanup
 
