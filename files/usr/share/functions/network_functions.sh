@@ -45,8 +45,13 @@ enable_ipv6() {
 	uci commit network
 
 	# Set ssh configuration for ipv6
-	uci set dropbear.@dropbear[1].enable=1
-	uci commit dropbear
+	# Warning: Make sure the dropbear[1] does not exist in 
+	# /rom/etc/config/dropbear, this is the default config
+	if [ "$(uci -q get dropbear.@dropbear[1])" == 'dropbear' ]
+	then
+		uci set dropbear.@dropbear[1].enable=1
+		uci commit dropbear
+	fi
 
 	json_cleanup
 	json_load_file /root/flashbox_config.json
@@ -63,8 +68,13 @@ disable_ipv6() {
 	uci commit network
 
 	# Set ssh configuration for ipv6
-	uci set dropbear.@dropbear[1].enable=0
-	uci commit dropbear
+	# Warning: Make sure the dropbear[1] does not exist in 
+	# /rom/etc/config/dropbear, this is the default config
+	if [ "$(uci -q get dropbear.@dropbear[1])" == 'dropbear' ]
+	then
+		uci set dropbear.@dropbear[1].enable=0
+		uci commit dropbear
+	fi
 
 	json_cleanup
 	json_load_file /root/flashbox_config.json

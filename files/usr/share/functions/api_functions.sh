@@ -219,7 +219,7 @@ get_cpu_usage() {
 
 # Get the Memory usage
 get_memory_usage() {
-	local _memory=$(free -m | awk '{if($1 ~ /^Mem:/){print int(($2-$7)*100/$2)}}')
+	local _memory=$(free -m | awk '{if($1 ~ /^Mem:/){print int(($2-$4)*100/$2)}}')
 	echo "$_memory"
 }
 
@@ -436,7 +436,7 @@ get_traceroute() {
 
 	# Verify the response
 	local _resstatus=$?
-	if [ $_resstatus -eq 0 ]
+	if [ $_resstatus -ne 0 ]
 	then
 		return 0
 	fi

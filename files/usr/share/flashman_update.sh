@@ -423,8 +423,8 @@ mem_usage=$(get_memory_usage)"
 				disable_ipv6
 			fi
 			/etc/init.d/network restart
-			/etc/init.d/dropbear restart
 			/etc/init.d/miniupnpd reload
+			/etc/init.d/dropbear reload
 		fi
 
 		# Ignore changes if in bridge mode
