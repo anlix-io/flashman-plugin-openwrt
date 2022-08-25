@@ -436,7 +436,7 @@ get_traceroute() {
 
 	# Verify the response
 	local _resstatus=$?
-	if [ $_resstatus -eq 0 ]
+	if [ $_resstatus -ne 0 ]
 	then
 		return 0
 	fi
@@ -675,7 +675,7 @@ run_speed_ondemand_raw_test() {
 		json_load "$_host_response"
 		json_get_var _success success
 
-		if [ "$_success" -ne 0 ]
+		if [ "$_success" -eq 1 ]
 		then
 			json_get_var _url host
 		fi
