@@ -519,7 +519,7 @@ get_traceroute() {
 			fi
 
 			# Add the route
-			json_add_string address $_route
+			json_add_string address "$_route"
 
 			# Add how many probes per hop
 			json_add_int tries_per_hop $_nprobes
@@ -577,7 +577,7 @@ get_traceroute() {
 			json_init
 
 			# Add the route
-			json_add_string address $_route
+			json_add_string address "$_route"
 			_out_json="$(json_dump)"
 
 			json_close_object
