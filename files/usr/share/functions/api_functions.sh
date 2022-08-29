@@ -378,18 +378,18 @@ check_and_set_default_traceroute() {
 	# $3: Maximum value
 	# $4: Default
 
-	local _var=$1
+	local _var="$1"
 
 	if [ "$_var" -lt "$2" ]; then
-		_var=$2
+		_var="$2"
 	fi
 
 	if [ "$_var" -gt "$3" ]; then
-		_var=$3
+		_var="$3"
 	fi
 
 	if [ -z "$_var" ] || [ -n "$(echo "$_var" | grep -E '[^0-9]' )" ]; then
-		_var=$4
+		_var="$4"
 	fi
 
 	echo "$_var"
@@ -412,7 +412,7 @@ create_time_object_traceroute() {
 
 	for _time in $_times
 	do
-		json_add_string "" $_time
+		json_add_string "" "$_time"
 	done
 
 	json_close_array
