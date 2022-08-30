@@ -349,6 +349,12 @@ set_wan_type() {
 			uci set network.wan.service=""
 			uci commit network
 
+			if [ "$FLM_PREFIX_DELEGATION_TYPE" = "relay" ]
+			then
+				uci set dhcp.wan6.interface='wan6'
+				uci commit dhcp
+			fi
+
 			/etc/init.d/network restart
 			[ "$(get_ipv6_enabled)" != "0" ] && /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
 
@@ -378,6 +384,12 @@ set_wan_type() {
 				uci set network.wan.service="$FLM_WAN_PPPOE_SERVICE"
 				uci set network.wan.keepalive="60 3"
 				uci commit network
+
+				if [ "$FLM_PREFIX_DELEGATION_TYPE" = "relay" ]
+				then
+					uci set dhcp.wan6.interface='wan_6'
+					uci commit dhcp
+				fi
 
 				/etc/init.d/network restart
 				[ "$(get_ipv6_enabled)" != "0" ] && /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
