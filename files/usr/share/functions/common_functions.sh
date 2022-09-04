@@ -178,6 +178,36 @@ rest_flashman() {
 is_authenticated() {
 	local _res
 	local _is_authenticated=1
+	local _tmp_auth_file="/tmp/last_authentication"
+	local _tmp_file_valid=0
+
+	# Get the date: seconds since 1970-01-01 00:00:00 UTC
+	local _date="$(date '+%s')"
+
+	# Check if _tmp_auth_file exists
+	if [ -f "$_tmp_auth_file" ]
+	then
+		local _file_date=$(cat $_tmp_auth_file)
+
+		# 60*Minute + Seconds; Add the constant to the file
+		local _file_seconds="$(echo $_file_date | awk '{print 60*'$FLM_REAUTH_TIME'+$1}')"
+
+		# Check the date
+		if [ "$_date" -le "$_file_seconds" ]
+		then
+			# Authenticated
+			_is_authenticated=0
+			log "AUTHENTICATOR" "Authenticated by cache with date: $_file_date"
+
+			return $_is_authenticated
+		else
+			# Remove the file
+			rm $_tmp_auth_file
+
+			log "AUTHENTICATOR" "Removed authentication cache with date: $_file_date"
+		fi
+
+	fi
 
 	if [ "$FLM_USE_AUTH_SVADDR" == "y" ]
 	then
@@ -207,6 +237,16 @@ firmware_ver=$(get_flashbox_version)"
 			then
 				json_get_var _is_authenticated is_authenticated
 				json_close_object
+
+				# If is_authenticated is 0 (Authenticated) than create a cache
+				if [ "$_is_authenticated" -eq 0 ]
+				then
+					# Save the date
+					echo "$_date" > $_tmp_auth_file
+
+					log "AUTHENTICATOR" "Creating authentication cache, with date: $_date"
+				fi
+
 			else
 				log "AUTHENTICATOR" "Invalid answer from controler"
 			fi
@@ -215,6 +255,14 @@ firmware_ver=$(get_flashbox_version)"
 		fi
 	else
 		_is_authenticated=0
+	fi
+
+	# If not authenticated and the _tmp_auth_file file exists, delete it
+	if [ "$_is_authenticated" -eq 1 ] && [ -f "$_tmp_auth_file" ]
+	then
+		rm $_tmp_auth_file
+
+		log "AUTHENTICATOR" "Removed authentication cache due to not being authenticated"
 	fi
 
 	return $_is_authenticated

@@ -67,6 +67,14 @@ speedtest)
 		lock -u /tmp/set_speedtest.lock
 	fi
 	;;
+rawspeedtest)
+	if lock -n /tmp/set_speedtest.lock
+	then
+		log "MQTTMSG" "Starting raw speed test..."
+		run_speed_ondemand_raw_test "$2" "$3" "$4"
+		lock -u /tmp/set_speedtest.lock
+	fi
+	;;
 wps)
 	if lock -n /tmp/set_wps.lock
 	then
@@ -90,6 +98,10 @@ laninfo)
 		send_lan_info
 		lock -u /tmp/get_lan_info.lock
 	fi
+	;;
+traceroute)
+	log "MQTTMSG" "Gathering traceroute information"
+	get_traceroute "$2" "$3" "$4"
 	;;
 *)
 	log "MQTTMSG" "Cant recognize message: $1"

@@ -174,4 +174,8 @@ choice
 	bool "Relay"
 endchoice
 
+config FLASHMAN_REAUTH_TIME
+	string "Time to re-authenticate with Flashman"
+	default "30"
+
 endif

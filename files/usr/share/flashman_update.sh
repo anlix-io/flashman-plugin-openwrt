@@ -187,7 +187,9 @@ bridge_enabled=$_local_bridge_enabled&\
 bridge_switch_disable=$_local_bridge_switch_disable&\
 bridge_fix_ip=$_local_bridge_fix_ip&\
 bridge_fix_gateway=$_local_bridge_fix_gateway&\
-bridge_fix_dns=$_local_bridge_fix_dns"
+bridge_fix_dns=$_local_bridge_fix_dns&\
+cpu_usage=$(get_cpu_usage)&\
+mem_usage=$(get_memory_usage)"
 	if [ "$_local_bridge_enabled" = 0 ]
 	then
 		[ -f /root/vlan_config.json ] && _data="$_data&vlan=$(cat /root/vlan_config.json)"
@@ -372,6 +374,15 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 			json_dump > /root/flashbox_config.json
 			json_close_object
 		fi
+		if [ "$_local_did_change_lan" = "y" ]
+		then
+			json_cleanup
+			json_load_file /root/flashbox_config.json
+			json_add_string did_change_lan_local "n"
+			json_dump > /root/flashbox_config.json
+			json_close_object
+		fi
+
 
 		if [ "$_hard_reset_info" = "1" ]
 		then
@@ -416,6 +427,7 @@ bridge_fix_dns=$_local_bridge_fix_dns"
 			fi
 			/etc/init.d/network restart
 			/etc/init.d/miniupnpd reload
+			/etc/init.d/dropbear reload
 		fi
 
 		# Ignore changes if in bridge mode

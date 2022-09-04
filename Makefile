@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=flasman-plugin
-PKG_VERSION:=0.35.3
+PKG_VERSION:=0.37.0
 PKG_RELEASE:=1
 
 PKG_LICENSE:=GPL
@@ -276,6 +276,8 @@ endif
 	echo 'FLM_WAN_VLAN=$(CONFIG_FLASHMAN_WAN_VLAN)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_USE_AUTH_SVADDR=$(CONFIG_FLASHMAN_USE_AUTH_SERVER)' >>$(1)/usr/share/flashman_init.conf
 	echo 'FLM_CONNECTIVITY_SVADDRS_LIST=$(CONFIG_CONNECTIVITY_SVADDRS_LIST)' >>$(1)/usr/share/flashman_init.conf
+
+	echo 'FLM_REAUTH_TIME=$(CONFIG_FLASHMAN_REAUTH_TIME)' >>$(1)/usr/share/flashman_init.conf
 
 ifeq ($(CONFIG_FLASHMAN_USE_AUTH_SERVER), y)
 	echo 'FLM_AUTH_SVADDR=$(CONFIG_FLASHMAN_AUTH_SERVER_ADDR)' >>$(1)/usr/share/flashman_init.conf

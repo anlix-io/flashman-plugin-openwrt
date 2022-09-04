@@ -211,15 +211,32 @@ wan_uptime() {
 	echo "$_wan_uptime"
 }
 
+# Get the CPU usage
+get_cpu_usage() {
+	local _cpu=$(top -bn1 | awk '{if($1 ~ /^CPU:/){print int(100-$8)}}')
+	echo "$_cpu"
+}
+
+# Get the Memory usage
+get_memory_usage() {
+	local _memory=$(free -m | awk '{if($1 ~ /^Mem:/){print int(($2-$4)*100/$2)}}')
+	echo "$_memory"
+}
+
 router_status() {
 	local _res
 	local _processed
 	local _sys_uptime
 	local _wan_uptime
+	local _cpu_usage
+	local _memory_usage
 	local _out_file="/tmp/router_status.json"
 
 	_sys_uptime="$(sys_uptime)"
 	_wan_uptime="$(wan_uptime)"
+	_cpu_usage="$(get_cpu_usage)"
+	_mem_usage="$(get_memory_usage)"
+
 
 	json_init
 	if [ -f /tmp/wanbytes.json ]
@@ -228,6 +245,10 @@ router_status() {
 	fi
 	json_add_string "sysuptime" "$_sys_uptime"
 	json_add_string "wanuptime" "$_wan_uptime"
+	json_add_object resources
+	json_add_int "cpu_usage" "$_cpu_usage"
+	json_add_int "mem_usage" "$_mem_usage"
+	json_close_object
 	json_dump > "$_out_file"
 	json_cleanup
 
@@ -351,6 +372,259 @@ send_lan_info() {
 	return $_processed
 }
 
+check_and_set_default_traceroute() {
+	# $1: Variable value
+	# $2: Minimum value
+	# $3: Maximum value
+	# $4: Default
+
+	local _var="$1"
+
+	if [ "$_var" -lt "$2" ]; then
+		_var="$2"
+	fi
+
+	if [ "$_var" -gt "$3" ]; then
+		_var="$3"
+	fi
+
+	if [ -z "$_var" ] || [ -n "$(echo "$_var" | grep -E '[^0-9]' )" ]; then
+		_var="$4"
+	fi
+
+	echo "$_var"
+}
+
+create_time_object_traceroute() {
+	# $1: ip
+	# $2: hops
+	local _ip="$1"
+	local _hops="$2"
+
+	json_add_object
+	json_add_string ip "$_ip"
+
+	# Create an array for storing the times
+	json_add_array ms_values
+
+	# Get all values with ms than remove the ms
+	local _times="$(echo "$_hops" | grep -E -o '[0-9]+\.[0-9]+ ms' | grep -E -o '[0-9]+\.[0-9]+')"
+
+	for _time in $_times
+	do
+		json_add_string "" "$_time"
+	done
+
+	json_close_array
+	json_close_object
+}
+
+get_traceroute() {
+	# $1: Max Hops
+	# $2: Number of probes per hop
+	# $3: Time in seconds to wait for a response
+	local _route=""
+	local _max_hops="$1"
+	local _nprobes="$2"
+	local _trace_time="$3"
+
+	# Get the hosts
+	# Attention: Using the same hosts of ping
+	local _url="deviceinfo/get/pinghosts"
+	local _data="id=$(get_mac)"
+	_res=$(rest_flashman "$_url" "$_data")
+
+	# Verify the response
+	local _resstatus=$?
+	if [ $_resstatus -ne 0 ]
+	then
+		return 0
+	fi
+
+	local _hosts=""
+	json_cleanup
+	json_load "$_res"
+	_hosts="$(json_dump)"
+	json_select "hosts"
+
+	# If hosts came invalid
+	if [ -z "$_hosts" ]
+	then
+		# Close the hosts json
+		json_select ".."
+		json_close_object
+		json_cleanup
+		return
+	fi
+
+	# Set defaults if does not exist or is not valid
+	_max_hops="$(check_and_set_default_traceroute "$_max_hops" '1' '30' '15')"
+	_nprobes="$(check_and_set_default_traceroute "$_nprobes" '1' '10' '3')"
+	_trace_time=$(check_and_set_default_traceroute "$_trace_time" '1' '10' '3')
+
+	# Loop through all hosts
+	local _idx="1"
+	while json_get_type type "$_idx" && [ "$type" = string ]
+	do
+		# The output json variable
+		local _out_json=""
+
+		# Get the address to traceroute
+		# In the first iteration the hosts json is already opened
+		# Every iteration, we get the route and close the json at the beginning
+		# At the end of the loop, we reopen it to be used in the next iteration
+		json_get_var _route "$((_idx++))"
+		json_select ".."
+		json_close_object
+		json_cleanup
+
+		local _traceroute="$(traceroute -I -n -m "$_max_hops" -q "$_nprobes" -w "$_trace_time" "$_route")"
+
+		# Only process the traceroute if it is not empty
+		if [ -n "$_traceroute" ]
+		then
+			# Get all hops, might find more than one per line
+			local _hops="$(echo "$_traceroute" | grep -E -o '[0-9]*(\.[0-9]*){3}((  \*)*  [0-9]*\.[0-9]* ms)+')"
+
+			# The ip of what the last hop should be
+			local _last_ip="$(echo "$_traceroute" | grep -m 1 -Eo '[0-9]*(\.[0-9]*){3}')"
+			
+			# Find lines where there is more than 1 IP
+			local _blacklist_hops="$(echo "$_traceroute" | grep -E -o '[0-9]*(\.[0-9]*){3}.*[0-9]*(\.[0-9]*){3}')"
+
+			# The first IP of a line with more than 1 IP
+			local _same_trie="$(echo "$_blacklist_hops" | awk '{print $1}')"
+			local _repeated_hops=""
+
+			# Break the blacklist lines into IP's, without the first IP
+			_blacklist_hops="$(echo "$_blacklist_hops" | grep -E -o '  [0-9]*(\.[0-9]*){3}')"
+
+			json_cleanup
+			json_init
+
+			# Check if any hop fail in all tries
+			if [ -z "$(echo "$_traceroute" | grep -E -o '^( )*([0-9]+)(  \*){'$_nprobes'}')" ]
+			then
+				json_add_boolean all_hops_tested 1
+			else
+				json_add_boolean all_hops_tested 0
+			fi
+
+			# Check if the final ip was tested successfully
+			if [ -n "$(echo "$_traceroute" | grep "$_last_ip  ")" ]
+			then
+				json_add_boolean reached_destination 1
+			else
+				json_add_boolean reached_destination 0
+			fi
+
+			# Add the route
+			json_add_string address "$_route"
+
+			# Add how many probes per hop
+			json_add_int tries_per_hop $_nprobes
+
+			# Add the array for hops
+			json_add_array hops
+
+			# Set the field separator to new line
+			IFS=$'\n'
+
+			for _hop_ip in $_same_trie
+			do
+				# Remove IPs that are duplicated or should be returned
+				_blacklist_hops="$(echo "$_blacklist_hops" | grep -v "$_hop_ip")"
+
+				# Hops with the same ip that must enter in the json
+				_repeated_hops="${_repeated_hops}"$'\n'"$(echo "$_hops" | grep "$_hop_ip")"
+			done
+
+			for _hop in $_hops
+			do
+				# Get the ip of the hop
+				local _ip="$(echo "$_hop" | awk '{print $1}')"
+
+				# Check if ip is in _repeated_hops, add them, joining the time values
+				local _hops_to_add="$(echo "$_repeated_hops" | grep "$_ip")"
+
+				if [ -n "$_hops_to_add" ] && [ -z "$(echo "$_blacklist_hops" | grep "$_ip")" ]
+				then
+					create_time_object_traceroute "$_ip" "$_hops_to_add"
+
+					# Add the ip to blacklist
+					_blacklist_hops="${_blacklist_hops}"$'\n'"${_ip}"
+				fi
+
+				# Check if the ip is in _blacklist_hops, otherwise append to array
+				if [ -z "$(echo "$_blacklist_hops" | grep "$_ip")" ]
+				then
+					create_time_object_traceroute "$_ip" "$_hop"
+				fi
+			done
+
+			# Reset the field separator
+			IFS=$' '
+
+			json_close_array
+			_out_json="$(json_dump)"
+			json_close_object
+		fi
+
+		# Check if the json is empty, if so, just add the address
+		if [ -z "$_out_json" ]
+		then
+			json_cleanup
+			json_init
+
+			# Add the route
+			json_add_string address "$_route"
+			_out_json="$(json_dump)"
+
+			json_close_object
+			json_cleanup
+		fi
+
+		# Send the json
+		local _res=""
+		local _processed="0"
+		_res=$(echo "$_out_json" | curl -s --tlsv1.2 --connect-timeout 5 \
+					--retry 1 -H "Content-Type: application/json" \
+					-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
+					--data @- "https://$FLM_SVADDR/deviceinfo/receive/traceroute")
+
+		# Check server response
+		if [ -n "$_res" ]
+		then
+			json_cleanup
+			json_load "$_res"
+			json_get_var _processed processed
+			json_close_object
+
+			# If any error happenened, return
+			if [ "$_processed" -lt 1 ]
+			then
+				return $_processed
+			fi
+
+		# In case of no response
+		else
+			return $_processed
+		fi
+
+		# Reopen the hosts json
+		json_cleanup
+		json_load "$_hosts"
+		json_select "hosts"
+	done
+
+	# Final close the hosts json
+	json_select ".."
+	json_close_object
+	json_cleanup
+
+	return $_processed
+}
+
 run_speed_ondemand_test() {
 	local _sv_ip_addr="$1"
 	local _username="$2"
@@ -376,6 +650,78 @@ run_speed_ondemand_test() {
 		-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" --data "$_reply" \
 		"https://$FLM_SVADDR/deviceinfo/receive/speedtestresult"
 	return 0
+}
+
+run_speed_ondemand_raw_test() {
+	local _username="$1"
+	local _connections="$2"
+	local _timeout="$3"
+	local _urllist=""
+	local _result
+	local _retstatus
+	local _reply
+
+	# Get the URL
+	local _data="id=$(get_mac)"
+	local _url_speedtest="deviceinfo/get/speedtesthost"
+	local _host_response=$(rest_flashman "$_url_speedtest" "$_data")
+	_retstatus=$?
+
+	if [ $_retstatus -eq 0 ]
+	then
+		# Check if URL exists
+		local _url=""
+		json_cleanup
+		json_load "$_host_response"
+		json_get_var _success success
+
+		if [ "$_success" -eq 1 ]
+		then
+			json_get_var _url host
+		fi
+
+		json_close_object
+		json_cleanup
+
+		if [ -n "$_url" ]
+		then
+			# Fill all URLs
+			for i in $(seq 1 "$_connections")
+			do
+				_urllist="$_urllist $_url"
+			done
+
+			# Drop traffic
+			log "SPEEDTESTRAW" "Dropping traffic on firewall..."
+			drop_all_forward_traffic
+
+			# Do Speedtest
+			_result="$(flash-measure "$_timeout" "$_connections" $_urllist)"
+			_retstatus=$?
+
+			if [ "$_retstatus" -ne 0 ]
+			then
+				return "$_retstatus"
+			fi
+
+			# Restore traffic
+			log "SPEEDTESTRAW" "Restoring firewall to normal..."
+			undrop_all_forward_traffic
+
+			# Send the data do flashman
+			local _res=""
+			local _retstatus=""
+			_reply='{"downSpeed":"'"$_result"'","user":"'"$_username"'"}'
+			_res=$(curl -s --tlsv1.2 --connect-timeout 5 --retry 1 -H "Content-Type: application/json" \
+				-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" --data "$_reply" \
+				"https://$FLM_SVADDR/deviceinfo/receive/speedtestresult")
+			_retstatus=$?
+
+			return $_retstatus
+		fi
+	fi
+
+	return 1
 }
 
 run_diagnostics_test() {
