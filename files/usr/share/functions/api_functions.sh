@@ -638,7 +638,7 @@ run_speed_ondemand_test() {
 	local _timeout="$4"
 
 	# Default reply in case of failure
-	local _reply'{"downSpeed":"","user":"'"$_username"'"}'
+	local _reply='{"downSpeed":"","user":"'"$_username"'"}'
 
 	# List to do the speedtests
 	local _urllist=""
