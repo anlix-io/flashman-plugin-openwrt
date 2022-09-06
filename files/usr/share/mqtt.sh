@@ -80,7 +80,7 @@ rawspeedtest)
 	if lock -n /tmp/set_speedtest.lock
 	then
 		log "MQTTMSG" "Starting raw speed test..."
-		run_speed_ondemand_raw_test "$2" "$3" "$4"
+		run_speed_ondemand_test "" "$2" "$3" "$4"
 		lock -u /tmp/set_speedtest.lock
 	fi
 	;;

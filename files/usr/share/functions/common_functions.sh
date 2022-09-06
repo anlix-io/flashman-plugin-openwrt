@@ -175,6 +175,51 @@ rest_flashman() {
 	fi
 }
 
+
+# send_data_flashman
+#	This function sends json data to /deviceinfo/receive/ endpoints to
+#		flashman, using rest api
+#
+# Inputs:
+#	$1 - The url to send to in the following format:
+#		-- https://$FLM_SVADDR/deviceinfo/receive/$_url
+#	$2 - The data to send
+#
+# Outputs:
+#	0 if could send data to flashman
+#	1 if could not send data to flashman with an unknown error
+#	2 if could not send data to flashman due to bad certificate
+#	log in case an error happened
+send_data_flashman() {
+	local _url=$1
+	local _data=$2
+	local _res
+	local _curl_out
+	_res=$(curl -s \
+				-A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" \
+				-H "Content-Type: application/json" \
+				--tlsv1.2 --connect-timeout 5 --retry 1 \
+				-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
+				--data "$_data" \
+				"https://$FLM_SVADDR/deviceinfo/receive/$_url")
+	_curl_out=$?
+
+	if [ "$_curl_out" -eq 0 ]
+	then
+		echo "$_res"
+		return 0
+	elif [ "$_curl_out" -eq 51 ]
+	then
+		log "SEND DATA FLASHMAN" "Error connecting to server (Bad Certificate)"
+		# curl code 51 is bad certificate
+		return 2
+	else
+		log "SEND DATA FLASHMAN" "Error connecting to server ($_curl_out)"
+		# other curl errors
+		return 1
+	fi
+}
+
 is_authenticated() {
 	local _res
 	local _is_authenticated=1

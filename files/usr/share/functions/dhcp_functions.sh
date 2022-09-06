@@ -414,11 +414,9 @@ send_online_devices() {
 	get_online_devices
 	[ "$(get_mesh_mode)" -gt 1 ] && get_online_mesh_routers
 
-	_res=$(json_dump | curl -s --tlsv1.2 --connect-timeout 5 \
-				--retry 1 -H "Content-Type: application/json" \
-				-H "X-ANLIX-ID: $(get_mac)" \
-				-H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
-				--data @- "https://$FLM_SVADDR/deviceinfo/receive/devices")
+	local _json_content="$(json_dump)"
+	_res=$(send_data_flashman "devices" "$_json_content")
+	
 	json_cleanup
 	json_load "$_res"
 	json_get_var _processed processed
