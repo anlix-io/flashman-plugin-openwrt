@@ -699,14 +699,14 @@ run_speed_ondemand_raw_test() {
 			_result="$(flash-measure "$_timeout" "$_connections" $_urllist)"
 			_retstatus=$?
 
+			# Restore traffic
+			log "SPEEDTESTRAW" "Restoring firewall to normal..."
+			undrop_all_forward_traffic
+
 			if [ "$_retstatus" -ne 0 ]
 			then
 				return "$_retstatus"
 			fi
-
-			# Restore traffic
-			log "SPEEDTESTRAW" "Restoring firewall to normal..."
-			undrop_all_forward_traffic
 
 			# Send the data do flashman
 			local _res=""
