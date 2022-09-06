@@ -256,7 +256,7 @@ router_status() {
 
 	if [ -f "$_out_file" ]
 	then
-		_res=local _file_content="$(cat "$_out_file")"
+		local _file_content="$(cat "$_out_file")"
 		_res=""
 		_res=$(send_data_flashman "routerstatus" "$_file_content")
 
