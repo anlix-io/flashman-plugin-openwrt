@@ -171,11 +171,9 @@ run_ping_ondemand_test() {
 		flashbox_multi_ping "$_hosts_file" "$_out_file" "all"
 		if [ -f "$_out_file" ]
 		then
+			local _file_content="$(cat "$_out_file")"
 			_res=""
-			_res=$(cat "$_out_file" | curl -s --tlsv1.2 --connect-timeout 5 \
-						--retry 1 -H "Content-Type: application/json" \
-						-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
-						--data @- "https://$FLM_SVADDR/deviceinfo/receive/pingresult")
+			_res=$(send_data_flashman "pingresult" "$_file_content")
 
 			json_load "$_res"
 			json_get_var _processed processed
@@ -254,11 +252,9 @@ router_status() {
 
 	if [ -f "$_out_file" ]
 	then
+		_res=local _file_content="$(cat "$_out_file")"
 		_res=""
-		_res=$(cat "$_out_file" | curl -s --tlsv1.2 --connect-timeout 5 \
-					--retry 1 -H "Content-Type: application/json" \
-					-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
-					--data @- "https://$FLM_SVADDR/deviceinfo/receive/routerstatus")
+		_res=$(send_data_flashman "routerstatus" "$_file_content")
 
 		json_load "$_res"
 		json_get_var _processed processed
@@ -314,11 +310,9 @@ send_wan_info() {
 	json_add_string "ipv6_mask" "$_ipv6_mask"
 
 	# Send the json
+	local _json_content="$(json_dump)"
 	_res=""
-	_res=$(json_dump | curl -s --tlsv1.2 --connect-timeout 5 \
-				--retry 1 -H "Content-Type: application/json" \
-				-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
-				--data @- "https://$FLM_SVADDR/deviceinfo/receive/waninfo")
+	_res=$(send_data_flashman "waninfo" "$_json_content")
 
 	json_cleanup
 
@@ -352,11 +346,9 @@ send_lan_info() {
 	json_add_string "prefix_delegation_local" "$_local_addr"
 
 	# Send the json
+	local _json_content="$(json_dump)"
 	_res=""
-	_res=$(json_dump | curl -s --tlsv1.2 --connect-timeout 5 \
-				--retry 1 -H "Content-Type: application/json" \
-				-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
-				--data @- "https://$FLM_SVADDR/deviceinfo/receive/laninfo")
+	_res=$(send_data_flashman "laninfo" "$_json_content")
 
 	json_cleanup
 
@@ -587,10 +579,7 @@ get_traceroute() {
 		# Send the json
 		local _res=""
 		local _processed="0"
-		_res=$(echo "$_out_json" | curl -s --tlsv1.2 --connect-timeout 5 \
-					--retry 1 -H "Content-Type: application/json" \
-					-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
-					--data @- "https://$FLM_SVADDR/deviceinfo/receive/traceroute")
+		_res=$(send_data_flashman "traceroute" "$_out_json")
 
 		# Check server response
 		if [ -n "$_res" ]
@@ -833,11 +822,10 @@ send_wps_status() {
 	then
 		log "WPS" "Sending $_wps_inform and $_wps_content to Flashman..."
 
+		local _file_content="$(cat "$_out_file")"
 		_res=""
-		_res=$(cat "$_out_file" | curl -s --tlsv1.2 --connect-timeout 5 \
-			--retry 1 -H "Content-Type: application/json" \
-			-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
-			--data @- "https://$FLM_SVADDR/deviceinfo/receive/wps")
+		_res=$(send_data_flashman "wps" "$_file_content")
+
 		json_load "$_res"
 		json_get_var _processed processed
 		json_close_object
@@ -913,10 +901,7 @@ END {
 }
 	')
 
-	_res=$(echo "$_INFO" | curl -s --tlsv1.2 --connect-timeout 5 --retry 1 \
-				-H "Content-Type: application/json" \
-				-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
-				--data @- "https://$FLM_SVADDR/deviceinfo/receive/sitesurvey")
+	_res=$(send_data_flashman "sitesurvey" "$_INFO")
 
 	json_cleanup
 	json_load "$_res"
