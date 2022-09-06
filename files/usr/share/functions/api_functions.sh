@@ -169,6 +169,10 @@ run_ping_ondemand_test() {
 		json_cleanup
 
 		flashbox_multi_ping "$_hosts_file" "$_out_file" "all"
+
+		# Remove file
+		rm "$_hosts_file"
+
 		if [ -f "$_out_file" ]
 		then
 			local _file_content="$(cat "$_out_file")"
