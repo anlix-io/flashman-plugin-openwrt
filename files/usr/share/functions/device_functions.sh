@@ -127,7 +127,7 @@ get_device_vlan() {
 
 get_wan_negotiated_speed() {
 	local _wan=$(get_wan_device)
-	if [ "$(type -t custom_switch_ports)" ] || [ "$(is_device_vlan $_wan)" ]
+	if [ "$(is_device_vlan $_wan)" ]
 	then
 		local _switch
 		local _port
@@ -158,7 +158,7 @@ get_wan_negotiated_speed() {
 
 get_wan_negotiated_duplex() {
 	local _wan=$(get_wan_device)
-	if [ "$(type -t custom_switch_ports)" ] || [ "$(is_device_vlan $_wan)" ]
+	if [ "$(is_device_vlan $_wan)" ]
 	then
 		local _switch
 		local _port
