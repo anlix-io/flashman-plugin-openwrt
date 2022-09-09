@@ -17,16 +17,14 @@ addroutes() {
 	if [ -n "$_route" ] && [ "$_route" != "0" ] &&
 	[ "$_route" != "0::" ] && [ "$_route" != "::" ]
 	then
-		log "IPV6 RELAY" "Add route ${_route}/${_mask}"
+		log "IPV6" "Add RELAY route ${_route}/${_mask}"
 		ip route add "${_route}/${_mask}" dev br-lan metric 1024
 	fi
 }
 
-if [ "$FLM_PREFIX_DELEGATION_TYPE" == "relay" ]
-then
-	case "$2" in
-		bound|informed|updated|rebound)
-			addroutes "$1"
-		;;
-	esac
-fi
+case "$2" in
+	bound|informed|updated|rebound)
+		log "IPV6" "Address for device $1: $ADDRESSES"
+		[ "$FLM_PREFIX_DELEGATION_TYPE" == "relay" ] && addroutes "$1"
+	;;
+esac
