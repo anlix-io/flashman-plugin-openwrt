@@ -293,7 +293,7 @@ collect_wifi_devices() {
 			signal=${signal%% /*}
 
 			# if unknown discard
-			[ "$signal" == "unknown" ] && continue
+			[ "$signal" == "unknown" ] && devices=${devices#*$'\n'} && continue
 
 			# getting everything before the first occasion of ' dBm'
 			signal=${signal%% dBm*}
