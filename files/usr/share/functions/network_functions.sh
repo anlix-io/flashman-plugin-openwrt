@@ -661,7 +661,6 @@ get_bridge_mode_status() {
 	echo "$_status"
 }
 
-
 update_vlan() {
 	if [ -f /root/vlan_config.json ]; then
 		local _restart_network=$1

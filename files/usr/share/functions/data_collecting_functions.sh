@@ -15,7 +15,7 @@ set_data_collecting_parameters() {
 	local data_collecting_ping_and_wan="${8:-0}"
 
 	json_cleanup
-	json_load_file "/root/flashbox_config.json"
+	json_load_file /root/flashbox_config.json
 	json_get_var saved_data_collecting_is_active data_collecting_is_active
 	json_get_var saved_data_collecting_has_latency data_collecting_has_latency
 	json_get_var saved_data_collecting_alarm_fqdn data_collecting_alarm_fqdn
