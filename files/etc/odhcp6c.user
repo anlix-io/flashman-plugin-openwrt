@@ -1,0 +1,30 @@
+#!/bin/sh
+. /lib/functions.sh
+. /usr/share/flashman_init.conf
+. /lib/functions/network.sh
+. /usr/share/functions/network_functions.sh
+
+addroutes() {
+	local device="$1"
+
+	for entry in $ADDRESSES; do
+		local _addr="${entry%%/*}"
+		entry="${entry#*/}"
+		local _mask="${entry%%,*}"
+	done
+
+	_route="$(/bin/ipv6calc.sh $_addr/$_mask)"
+	if [ -n "$_route" ] && [ "$_route" != "0" ] &&
+	[ "$_route" != "0::" ] && [ "$_route" != "::" ]
+	then
+		log "IPV6" "Add RELAY route ${_route}/${_mask}"
+		ip route add "${_route}/${_mask}" dev br-lan metric 1024
+	fi
+}
+
+case "$2" in
+	bound|informed|updated|rebound)
+		log "IPV6" "Address for device $1: $ADDRESSES"
+		[ "$FLM_PREFIX_DELEGATION_TYPE" == "relay" ] && addroutes "$1"
+	;;
+esac

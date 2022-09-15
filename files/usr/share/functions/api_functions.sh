@@ -169,13 +169,15 @@ run_ping_ondemand_test() {
 		json_cleanup
 
 		flashbox_multi_ping "$_hosts_file" "$_out_file" "all"
+
+		# Remove file
+		rm "$_hosts_file"
+
 		if [ -f "$_out_file" ]
 		then
+			local _file_content="$(cat "$_out_file")"
 			_res=""
-			_res=$(cat "$_out_file" | curl -s --tlsv1.2 --connect-timeout 5 \
-						--retry 1 -H "Content-Type: application/json" \
-						-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
-						--data @- "https://$FLM_SVADDR/deviceinfo/receive/pingresult")
+			_res=$(send_data_flashman "pingresult" "$_file_content")
 
 			json_load "$_res"
 			json_get_var _processed processed
@@ -254,11 +256,9 @@ router_status() {
 
 	if [ -f "$_out_file" ]
 	then
+		local _file_content="$(cat "$_out_file")"
 		_res=""
-		_res=$(cat "$_out_file" | curl -s --tlsv1.2 --connect-timeout 5 \
-					--retry 1 -H "Content-Type: application/json" \
-					-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
-					--data @- "https://$FLM_SVADDR/deviceinfo/receive/routerstatus")
+		_res=$(send_data_flashman "routerstatus" "$_file_content")
 
 		json_load "$_res"
 		json_get_var _processed processed
@@ -314,11 +314,9 @@ send_wan_info() {
 	json_add_string "ipv6_mask" "$_ipv6_mask"
 
 	# Send the json
+	local _json_content="$(json_dump)"
 	_res=""
-	_res=$(json_dump | curl -s --tlsv1.2 --connect-timeout 5 \
-				--retry 1 -H "Content-Type: application/json" \
-				-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
-				--data @- "https://$FLM_SVADDR/deviceinfo/receive/waninfo")
+	_res=$(send_data_flashman "waninfo" "$_json_content")
 
 	json_cleanup
 
@@ -352,11 +350,9 @@ send_lan_info() {
 	json_add_string "prefix_delegation_local" "$_local_addr"
 
 	# Send the json
+	local _json_content="$(json_dump)"
 	_res=""
-	_res=$(json_dump | curl -s --tlsv1.2 --connect-timeout 5 \
-				--retry 1 -H "Content-Type: application/json" \
-				-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
-				--data @- "https://$FLM_SVADDR/deviceinfo/receive/laninfo")
+	_res=$(send_data_flashman "laninfo" "$_json_content")
 
 	json_cleanup
 
@@ -587,10 +583,7 @@ get_traceroute() {
 		# Send the json
 		local _res=""
 		local _processed="0"
-		_res=$(echo "$_out_json" | curl -s --tlsv1.2 --connect-timeout 5 \
-					--retry 1 -H "Content-Type: application/json" \
-					-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
-					--data @- "https://$FLM_SVADDR/deviceinfo/receive/traceroute")
+		_res=$(send_data_flashman "traceroute" "$_out_json")
 
 		# Check server response
 		if [ -n "$_res" ]
@@ -625,100 +618,162 @@ get_traceroute() {
 	return $_processed
 }
 
+
+# run_speed_ondemand_test
+#	This function makes a speed test and send the result to flashman
+#
+# Inputs:
+#	$1 - Server IP address
+#		-- A valid IP tests against "http://$1/measure/file$i.bin",
+#			where $i is the number of connections
+#		-- An empty IP get the hosts from deviceinfo/get/speedtesthost
+#	$2 - The username
+#	$3 - How many connections
+#	$4 - Timeout
+#
+# Outputs:
+#	0 if could send data to flashman
+#	1 if could not send data to flashman 
+#	log in case an error happened
 run_speed_ondemand_test() {
 	local _sv_ip_addr="$1"
 	local _username="$2"
 	local _connections="$3"
 	local _timeout="$4"
-	local _url="http://$_sv_ip_addr/measure"
+
+	# Default reply in case of failure
+	local _reply='{"downSpeed":"","user":"'"$_username"'"}'
+
+	# List to do the speedtests
 	local _urllist=""
-	local _result
 	local _retstatus
-	local _reply
-	for i in $(seq 1 "$_connections")
-	do
-		_urllist="$_urllist $_url/file$i.bin"
-	done
-	log "SPEEDTEST" "Dropping traffic on firewall..."
-	drop_all_forward_traffic
-	_result="$(flash-measure "$_timeout" "$_connections" $_urllist)"
-	_retstatus=$?
-	log "SPEEDTEST" "Restoring firewall to normal..."
-	undrop_all_forward_traffic
-	_reply='{"downSpeed":"'"$_result"'","user":"'"$_username"'"}'
-	curl -s --tlsv1.2 --connect-timeout 5 --retry 1 -H "Content-Type: application/json" \
-		-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" --data "$_reply" \
-		"https://$FLM_SVADDR/deviceinfo/receive/speedtestresult"
-	return 0
-}
 
-run_speed_ondemand_raw_test() {
-	local _username="$1"
-	local _connections="$2"
-	local _timeout="$3"
-	local _urllist=""
-	local _result
-	local _retstatus
-	local _reply
-
-	# Get the URL
-	local _data="id=$(get_mac)"
-	local _url_speedtest="deviceinfo/get/speedtesthost"
-	local _host_response=$(rest_flashman "$_url_speedtest" "$_data")
-	_retstatus=$?
-
-	if [ $_retstatus -eq 0 ]
+	# Check if server exists
+	if [ -n "$_sv_ip_addr" ]
 	then
-		# Check if URL exists
-		local _url=""
-		json_cleanup
-		json_load "$_host_response"
-		json_get_var _success success
+		local _url="http://$_sv_ip_addr/measure"
 
-		if [ "$_success" -eq 1 ]
+		# Create array of urls
+		for i in $(seq 1 "$_connections")
+		do
+			_urllist="$_urllist $_url/file$i.bin"
+		done
+
+	# Empty server means we must get from flashman
+	else
+		# Get the URL
+		local _data="id=$(get_mac)"
+		local _url_speedtest="deviceinfo/get/speedtesthost"
+		local _host_response=$(rest_flashman "$_url_speedtest" "$_data")
+		_retstatus=$?
+
+		# Check if received the hosts
+		if [ $_retstatus -eq 0 ]
 		then
-			json_get_var _url host
-		fi
+			local _succes=""
+			
+			json_cleanup
+			json_load "$_host_response"
+			json_get_var _success success
 
-		json_close_object
-		json_cleanup
-
-		if [ -n "$_url" ]
-		then
-			# Fill all URLs
-			for i in $(seq 1 "$_connections")
-			do
-				_urllist="$_urllist $_url"
-			done
-
-			# Drop traffic
-			log "SPEEDTESTRAW" "Dropping traffic on firewall..."
-			drop_all_forward_traffic
-
-			# Do Speedtest
-			_result="$(flash-measure "$_timeout" "$_connections" $_urllist)"
-			_retstatus=$?
-
-			if [ "$_retstatus" -ne 0 ]
+			# Check if success and get URL
+			if [ "$_success" -eq 1 ]
 			then
-				return "$_retstatus"
+				local _url=""
+				json_get_var _url host
+
+				# Close Json
+				json_close_object
+				json_cleanup
+
+				# Check if url is not empty
+				if [ -n "$_url" ]
+				then
+					# Create array of urls
+					for i in $(seq 1 "$_connections")
+					do
+						_urllist="$_urllist $_url"
+					done
+				
+				# Invalid url
+				else
+					# Send an empty answer to flashman
+					log "SPEEDTEST" "Empty speedtest url"
+
+					send_data_flashman "speedtestresult" "$_reply"
+					_retstatus=$?
+
+					return $_retstatus
+				fi
+			
+			# Otherwise, send an empty answer to flashman
+			else
+				# Close Json
+				json_close_object
+				json_cleanup
+
+				log "SPEEDTESTRAW" "Speedtest host json with not success"
+
+				send_data_flashman "speedtestresult" "$_reply"
+				_retstatus=$?
+
+				return $_retstatus
 			fi
 
-			# Restore traffic
-			log "SPEEDTESTRAW" "Restoring firewall to normal..."
-			undrop_all_forward_traffic
+		# If could not get the hosts
+		else
+			# Send an empty answer to flashman
+			log "SPEEDTESTRAW" "Could not get speedtest hosts"
 
-			# Send the data do flashman
-			local _res=""
-			local _retstatus=""
-			_reply='{"downSpeed":"'"$_result"'","user":"'"$_username"'"}'
-			_res=$(curl -s --tlsv1.2 --connect-timeout 5 --retry 1 -H "Content-Type: application/json" \
-				-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" --data "$_reply" \
-				"https://$FLM_SVADDR/deviceinfo/receive/speedtestresult")
+			_send_data_flashman "speedtestresult" "$_reply"
 			_retstatus=$?
 
 			return $_retstatus
 		fi
+	fi
+
+	# Check if the url list is valid
+	if [ -n "$_urllist" ]
+	then
+		local _result=""
+
+		# Drop traffic
+		log "SPEEDTEST" "Dropping traffic on firewall..."
+		drop_all_forward_traffic
+
+		# Do Speedtest
+		_result="$(flash-measure "$_timeout" "$_connections" $_urllist)"
+		_retstatus=$?
+
+		# Restore traffic
+		log "SPEEDTEST" "Restoring firewall to normal..."
+		undrop_all_forward_traffic
+
+		# Check if could make the speed test
+		if [ "$_retstatus" -eq 0 ]
+		then
+			# If okay, send the result
+			_reply='{"downSpeed":"'"$_result"'","user":"'"$_username"'"}'
+		else
+			# Otherwise send the default empty reply
+			log "SPEEDTEST" "Could not make the speedtest: "$_result""
+		fi
+
+		# Send the data do flashman
+		send_data_flashman "speedtestresult" "$_reply"
+		_retstatus=$?
+
+		return $_retstatus
+	
+	# If the url list is invalid
+	else
+		# Send an empty answer to flashman
+		log "SPEEDTEST" "Invalid url list"
+
+		_send_data_flashman "speedtestresult" "$_reply"
+		_retstatus=$?
+
+		return $_retstatus
 	fi
 
 	return 1
@@ -771,11 +826,10 @@ send_wps_status() {
 	then
 		log "WPS" "Sending $_wps_inform and $_wps_content to Flashman..."
 
+		local _file_content="$(cat "$_out_file")"
 		_res=""
-		_res=$(cat "$_out_file" | curl -s --tlsv1.2 --connect-timeout 5 \
-			--retry 1 -H "Content-Type: application/json" \
-			-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
-			--data @- "https://$FLM_SVADDR/deviceinfo/receive/wps")
+		_res=$(send_data_flashman "wps" "$_file_content")
+
 		json_load "$_res"
 		json_get_var _processed processed
 		json_close_object
@@ -851,10 +905,7 @@ END {
 }
 	')
 
-	_res=$(echo "$_INFO" | curl -s --tlsv1.2 --connect-timeout 5 --retry 1 \
-				-H "Content-Type: application/json" \
-				-H "X-ANLIX-ID: $(get_mac)" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
-				--data @- "https://$FLM_SVADDR/deviceinfo/receive/sitesurvey")
+	_res=$(send_data_flashman "sitesurvey" "$_INFO")
 
 	json_cleanup
 	json_load "$_res"

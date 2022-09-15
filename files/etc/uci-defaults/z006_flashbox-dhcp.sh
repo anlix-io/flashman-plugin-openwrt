@@ -24,13 +24,19 @@ uci set dhcp.lan.start="$_addr_start"
 uci set dhcp.lan.limit="$_addr_limit"
 uci set dhcp.lan.force='1'
 
-# Configure Prefix Delegation relay if needed
 if [ "$FLM_PREFIX_DELEGATION_TYPE" == "relay" ]
 then
 	uci set dhcp.lan.ra='relay'
 	uci set dhcp.lan.ndp='relay'
 	uci set dhcp.lan.ra_slaac='1'
 
+	uci set dhcp.wan6=dhcp
+	if [ "$(uci get network.wan.proto)" = "pppoe" ]
+	then
+		uci set dhcp.wan6.interface='wan_6'
+	else
+		uci set dhcp.wan6.interface='wan6'
+	fi
 	uci set dhcp.wan6.ra='relay'
 	uci set dhcp.wan6.ndp='relay'
 	uci set dhcp.wan6.master='1'

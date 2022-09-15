@@ -8,8 +8,6 @@
 
 network_find_wan extiface
 network_find_wan6 ext6iface
-# Get the wan6 device
-__network_ifstatus "device" "wan6" "['device']"
 
 update_lan_ip() {
   local _lan_addr=""
@@ -95,26 +93,6 @@ set_dns_proxy_config() {
   fi
 }
 
-# Add a route when is PPPoE and the Prefix Delegation
-#   is given by relay
-add_pppoe_route_on_prefix_delay() {
-  local _ip=""
-  local _route=""
-
-  __network_ifstatus "_ip" "wan6" "['route'][0].source"
-  _route="$(/bin/ipv6calc.sh $_ip)"
-
-  if [ -n "$_route" ] && [ "$_route" != "0" ] &&
-  [ "$_route" != "0::" ] && [ "$_route" != "::" ]
-  then
-    # Split ip and get the mask
-    local _mask=$(echo "$_ip" | awk '{n=split($1, ipmask, "/"); if(n==2) {print(ipmask[2])} else {print($2)}}')
-
-    # Add the route
-    ip route add "{$_route}/${_mask}" dev br-lan metric 1024
-  fi
-}
-
 if [ "$(get_bridge_mode_status)" != "y" ]
 then
   if [ "$INTERFACE" = "lan" ] || [ "$INTERFACE" = "$extiface" ]
@@ -130,8 +108,3 @@ then
   [ "$INTERFACE" = "$ext6iface" ] && /etc/init.d/odhcpd enabled && /etc/init.d/odhcpd restart
 fi
 
-if [ "$INTERFACE" = "wan6" ] && [ "$device"  == "pppoe-wan" ] &&
-   [ "$FLM_PREFIX_DELEGATION_TYPE" == "relay" ]
-then
-  add_pppoe_route_on_prefix_delay
-fi

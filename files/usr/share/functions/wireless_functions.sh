@@ -32,18 +32,6 @@ get_wifi_state() {
 	[ "$_q" ] && [ "$_q" = "1" ] && echo "0" || echo "1"
 }
 
-auto_channel_selection() {
-	local _iface=$1
-	case "$_iface" in
-		wlan0)
-			echo "6"
-		;;
-		wlan1)
-			echo "40"
-		;;
-	esac
-}
-
 change_wps_state() {
 	local _radio="$1"
 	local _enabled="$2"
