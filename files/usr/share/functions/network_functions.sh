@@ -661,47 +661,6 @@ get_bridge_mode_status() {
 	echo "$_status"
 }
 
-# This function changes wan interfaces to use the new virtual interface
-# after changing the vlan configuration for wan
-update_wan_interfaces() {
-	# $1: New virtual interface name
-	local _vlan_id=$1
-	local _old_wan_ifname=""
-	local _wan_ifname=""
-
-	# Get the old configuration wan ifname
-	if [ -z "$(get_station_ifname 0 | grep ath)" ]
-	then
-		# This field only exists for Mediatek and Realtek
-		_old_wan_ifname=$(uci show network | sed -n "s/network.wan_\(.*\)_dev=device/\1/p")
-
-		# Remove the vlan id from the wan ifname
-		# Ex.: eth0 from eth0_2
-		_wan_ifname=${_old_wan_ifname%_*}
-	else
-		_old_wan_ifname=$(uci show network | sed -n "s/network.wan.ifname=\'\(.*\)\' /\1/p")
-
-		# Remove the vlan id from the wan ifname
-		# Ex.: eth1 from eth1.10
-		_wan_ifname=${_old_wan_ifname%.*}
-	fi
-
-	# Assign it to dev interface if it is not Atheros
-	if [ -z "$(get_station_ifname 0 | grep ath)" ]
-	then
-		# Assign it to wan and wan6 interface
-		# If it is Atheros and vlan = 2, clear the wan vlan
-		# If the _vlan_id come empty, clear Atheros wan vlan
-		# TODO! This function is partially implemented for Atheros
-		uci set network.wan.ifname="${_wan_ifname}.${_vlan_id}"
-		uci set network.wan6.ifname="${_wan_ifname}.${_vlan_id}"
-
-		uci set network.wan_${_old_wan_ifname}_dev.name="${_wan_ifname}.${_vlan_id}"
-	fi
-
-	# Commit the changes
-	uci commit network
-}
 
 update_vlan() {
 	if [ -f /root/vlan_config.json ]; then
@@ -721,100 +680,37 @@ update_vlan() {
 			local _vids=''
 			local _idx=0
 
-			# Loop through every vlan that already exists
 			for _vlan in $_input; do
-				
-				# Extract the vlan id from each line
 				_vid=${_vlan#*\'}
 				_vid=${_vid%\'}
-
-				# Indicates that the vlan that already exists in config/network
-				# do exists in the new vlan config file (vlan_config.json)
-				if [ -n "$(echo "${_vlans} " | grep "${_vid} ")" ]
-				then
-					
-					# Reassign the ports to the vlan
-					# If it is an Atheros and wan configuration, bypass
+				local _test=${_vlans#*$_vid}
+				# Indicates _vid is in _vlans
+				if [ $(( ${#_test} < ${#_vlans} )) = 1 ]; then
 					json_get_var _ports $_vid
 					uci set network.@switch_vlan[$_idx].ports="$_ports"
-
-					# Get the wan and cpu port
-					if [ "$(type -t custom_switch_ports)" ]; then
-						local _wan_port=$(custom_switch_ports 2) 
-						local _cpu_port=$(custom_switch_ports 4) 
-					else
-						local _wan_port=$(switch_ports 2) 
-						local _cpu_port=$(switch_ports 4) 
-					fi
-
-					# If the wan configuration was changed
-					# TODO! This function is not implemented yet for Atheros, check if Atheros
-					# and based on vlan, configure the wan properly
-					if [[ -n "$(echo "$_ports" | grep "${_wan_port}" | grep "${_cpu_port}")" ]]
-					then
-
-						# Change the virtual interface name of wan 
-						# interfaces
-						$(update_wan_interfaces $_vid)
-
-					fi
-
-					# Concatenate vlan ids
-					if [ "$_vids" == '' ]; then
-						_vids="$_vid"
-					else
-						_vids="$_vids $_vid"
-					fi
-
-				# Indicates that the vlan that already exists in config/network
-				# do not exists in the new vlan config file (vlan_config.json)
-				else
-
-					# Delete the switch_vlan entry
+				else # _vid isn't in _vlans
 					uci delete network.@switch_vlan[$_idx]
 					_idx=$(( _idx - 1 ))
 				fi
-
-				# Next switch_vlan in config/network
+				if [ "$_vids" = '' ]; then
+					_vids="$_vid"
+				else
+					_vids="$_vids $_vid"
+				fi
 				_idx=$(( _idx + 1 ))
 			done
 
 			IFS=$' '
 
-			# Loop though every entry in vlan_config.json
 			for _vlan in $_vlans; do
-
-				# If the vlan id does not exists yet in config/network
-				if [ -z "$(echo "${_vids} " | grep "${_vlan} ")" ]; then
-
-					# Create the new entry
+				_test=${_vids#*$_vlan}
+				# Indicates _vlan isn't in _vids
+				if [ $(( ${#_test} < ${#_vids} )) = 0 ]; then
 					json_get_var _ports $_vlan
 					uci add network switch_vlan
 					uci set network.@switch_vlan[-1].device="$(get_switch_device)"
 					uci set network.@switch_vlan[-1].vlan="$_vlan"
 					uci set network.@switch_vlan[-1].ports="$_ports"
-
-					# Get the wan and cpu port
-					if [ "$(type -t custom_switch_ports)" ]; then
-						local _wan_port=$(custom_switch_ports 2) 
-						local _cpu_port=$(custom_switch_ports 4) 
-					else
-						local _wan_port=$(switch_ports 2) 
-						local _cpu_port=$(switch_ports 4) 
-					fi
-
-					# If the wan configuration was changed
-					# TODO! This function is not implemented yet for Atheros, check if Atheros
-					# and based on vlan, configure the wan properly
-					if [[ -n "$(echo "$_ports" | grep "${_wan_port}" | grep "${_cpu_port}")" ]]
-					then
-
-						# Change the virtual interface name of wan 
-						# interfaces
-						$(update_wan_interfaces $_vlan)
-
-					fi
-
 				fi
 			done
 
@@ -1168,138 +1064,4 @@ save_bridge_mode_vlan_config() {
 	fi
 	echo "$_vlan" > /root/vlan_config.json
 	update_vlan "n"
-}
-
-
-# Create the first vlan_config.json
-configure_boot_vlan() {
-	# $1: Wan Vlan
-	local _wan_vlan=$1
-
-	json_cleanup
-	json_init
-
-	local _input=""
-	_input="$(uci show network | grep ].vlan=)"
-
-	IFS=$'\n'
-
-	local _idx=""
-
-	# Loop through every vlan that already exists
-	for _idx in $_input; do
-				
-		# Extract the switch-vlan idx from each line
-		_idx=${_idx#*[}
-		_idx=${_idx%]*}
-
-		# Get the ports
-		if [ "$(type -t custom_switch_ports)" ]; then
-			local _wan_port=$(custom_switch_ports 2) 
-			local _cpu_port=$(custom_switch_ports 4) 
-		else
-			local _wan_port=$(switch_ports 2) 
-			local _cpu_port=$(switch_ports 4) 
-		fi
-
-		# Get the vlan and the ports
-		local _vlan="$(uci get network.@switch_vlan[${_idx}].vlan)"
-		local _ports="$(uci get network.@switch_vlan[${_idx}].ports)"
-
-		# Check if contains both wan and cpu port
-		if [ -n "$(echo "$_ports" | grep "${_wan_port}" | grep "${_cpu_port}")" ]
-		then
-			# Check if wan vlan port is not the default
-			if [ "${_wan_vlan}" != "$(get_default_vlan wan)" ]
-			then
-				_vlan="$_wan_vlan"
-				_ports="${_wan_port}t ${_cpu_port}t"
-
-			# Otherwise, no vlan in wan
-			else
-				_ports="${_wan_port} ${_cpu_port}t"
-			fi
-		fi
-
-		# Create the entry in the json "vlan": "ports"
-		json_add_string "${_vlan}" "${_ports}"
-	done
-
-	IFS=$' '
-
-	json_dump > /root/vlan_config.json
-	json_dump >> /tmp/log.txt
-	json_close_object
-}
-
-
-# This function is intended to be used with Tecnico's app
-# It returns the vlan configuration as a json
-get_vlan_config() {
-
-	local _vlan_json=""
-
-	if [ -f /root/vlan_config.json ]; then
-		json_cleanup
-		json_load_file /root/vlan_config.json
-		json_close_object
-		_vlan_json=`json_dump`
-	fi
-
-	echo "$_vlan_json"
-}
-
-
-# This function is intended to be used with Tecnico's app
-# It returns wan, cpu or lan ports, to check possible configurations
-get_ports() {
-	# $1: Which port
-		# wan: Wan port
-		# lan: Lan ports
-		# cpu: CPU port
-	local _port_type="$1"
-	local _ports=""
-
-	if [ "$(type -t custom_switch_ports)" ]
-	then
-		local _wan_port=$(custom_switch_ports 2) 
-		local _lan_ports=$(custom_switch_ports 3)
-		local _cpu_port=$(custom_switch_ports 4) 
-	else
-		local _wan_port=$(switch_ports 2) 
-		local _lan_ports=$(switch_ports 3)
-		local _cpu_port=$(switch_ports 4) 
-	fi
-
-	if [ "$_port_type" == "wan" ]; then
-		_ports="$_wan_port"
-
-	elif [ "$_port_type" == "lan" ]; then
-		_ports="$_lan_ports"
-
-	elif [ "$_port_type" == "cpu" ]; then
-		_ports="$_cpu_port"
-
-	fi
-
-	# If the configuration sent to it is wrong, it will return an empty string
-	echo "$_ports"
-}
-
-
-# This function reports the default vlan for lan or wan
-get_default_vlan() {
-	# $1: Which port
-		# wan: Wan default vlan
-		# lan: Lan default vlan
-	local _port_type="$1"
-	local _vlan=""
-
-	if [ "$_port_type" == "lan" ]; then
-		_vlan="1"
-	else
-		_vlan="2"
-	fi
-
-	echo "$_vlan"
 }

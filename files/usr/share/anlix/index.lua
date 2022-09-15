@@ -321,40 +321,6 @@ function handle_request(env)
 		local is_done = remove_from_file("/root/done_hashes", hash)
 		resp["command_done"] = is_done
 		web.send_json(resp)
-
-	-- Get the vlan configuration
-	elseif command == "getVlanConfig" then
-		local config = flashman.get_vlan_config()
-
-		-- Check if configuration is valid
-		if config == nil then
-			web.error_handle(web.ERROR_PARAMETERS, auth)
-			return
-		else
-			resp["vlan_config"] = config
-		end
-
-		-- Send response
-		web.send_json(resp)
-		return
-
-	-- Get the ports to be used with vlan
-	elseif command == "getPorts" then
-		-- subcommands:
-		--   wan, lan, cpu
-		local ports = flashman.get_ports(subcommand)
-
-		-- Check if port is valid
-		if ports == nil then
-			web.error_handle(web.ERROR_PARAMETERS, auth)
-			return
-		else
-			resp["ports"] = ports
-		end
-
-		-- Send response
-		web.send_json(resp)
-		return
 	else
 		web.error_handle(web.ERROR_CMD_UNKNOWN, auth)
 	end
