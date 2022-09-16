@@ -26,6 +26,7 @@ update_lan_ip() {
   sed -i 's/.*anlixrouter/'"$_lan_addr"' anlixrouter/' /etc/hosts
   /etc/init.d/uhttpd restart
   /etc/init.d/minisapo reload
+  /etc/init.d/miniupnpd reload
 }
 #extiface is lan on bridge and wan on router
 [ "$INTERFACE" = "$extiface" ] && update_lan_ip

@@ -725,7 +725,7 @@ run_speed_ondemand_test() {
 			# Send an empty answer to flashman
 			log "SPEEDTESTRAW" "Could not get speedtest hosts"
 
-			_send_data_flashman "speedtestresult" "$_reply"
+			send_data_flashman "speedtestresult" "$_reply"
 			_retstatus=$?
 
 			return $_retstatus
@@ -770,7 +770,7 @@ run_speed_ondemand_test() {
 		# Send an empty answer to flashman
 		log "SPEEDTEST" "Invalid url list"
 
-		_send_data_flashman "speedtestresult" "$_reply"
+		send_data_flashman "speedtestresult" "$_reply"
 		_retstatus=$?
 
 		return $_retstatus
