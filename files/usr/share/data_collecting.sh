@@ -304,6 +304,9 @@ collect_wifi_devices() {
 			# getting everything before the first closing parenthesis.
 			local snr=${devices%%\)*}
 
+			# if SNR equals signal we assume noise of -95dBm
+			[ $signal -eq $snr ] && snr=$(($signal+95))
+
 			# getting everything before ' ms'.
 			local time=${devices%% ms*}
 
