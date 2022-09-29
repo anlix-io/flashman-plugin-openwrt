@@ -16,58 +16,58 @@ compD="${dir}/compD"
 wan() {
 	# checking if this data collecting is enabled
 
-	[ $burstLoss -eq 0 ] && [ $pingAndWan -eq 0 ] && return
+	[ $bl -eq 0 ] && [ $p&w -eq 0 ] && return
 
 	# bytes received by the interface.
-	local rx=$(get_wan_bytes_statistics RX)
+	local r=$(get_wan_bytes_statistics RX)
 	# bytes sent by the interface.
-	local tx=$(get_wan_bytes_statistics TX)
+	local t=$(get_wan_bytes_statistics TX)
 
-	raw="${raw}|wanBytes $rx $tx"
+	raw="${raw}|wanBytes $r $t"
 
-	# burstLoss only gathers byte data
-	[ $pingAndWan -eq 0 ] && return
+	# bl only gathers byte data
+	[ $p&w -eq 0 ] && return
 
 	# packets received by the interface.
-	local pr=$(get_wan_packets_statistics RX)
+	r=$(get_wan_packets_statistics RX)
 	# packets sent by the interface.
-	local pt=$(get_wan_packets_statistics TX)
+	t=$(get_wan_packets_statistics TX)
 
 	# data to be sent.
-	raw="${raw}|wanPkts $pr $pt"
+	raw="${raw}|wanPkts $r $t"
 }
 
-# takes current unix timestamp, executes ping, in burst, to $pingServerAddress server.
+# takes current unix timestamp, executes ping, in burst, to $ping server.
 # If latency collecting is enabled, extracts the individual icmp request numbers and 
 # their respective ping times. Builds a string with all this information and write them to file.
 burst() {
 	# checking if this data collecting is enabled
 
-	[ $burstLoss -eq 0 ] && [ $pingAndWan -eq 0 ] && return
+	[ $bl -eq 0 ] && [ $p&w -eq 0 ] && return
 
-	# burst ping with $pingPackets amount of packets.
-	local p=$(ping -i 0.01 -c "$pingPackets" "$pingServerAddress")
+	# burst ping with $pkts amount of packets.
+	local p=$(ping -i 0.01 -c "$pkts" "$ping")
 	# ping return value.
 	local e="$?"
 
 	# if ping could not be executed, we skip this measure.
-	[ "$e" -eq 2 ] && burstLoss=0 && pingAndWan=0 && return
+	[ "$e" -eq 2 ] && bl=0 && p&w=0 && return
 
 	# An skipped measure will become missing data, for this minute, in the server.
 
 	# removes everything behind the summary that appears in the last lines.
-	local aux=${p##* ping statistics ---[$'\r\n']}
+	local x=${p##* ping statistics ---[$'\r\n']}
 	# removes everything after, and including, ' packets transmitted'.
-	local tx=${aux% packets transmitted*}
+	local t=${x% packets transmitted*}
 	# removes everything after, and including, ' received'.
-	local rx=${aux% received*}
+	local r=${x% received*}
 	# removes everything before first space.
-	rx=${rx##* }
+	r=${r##* }
 	# integer representing the amount of packets not received.
-	local l=$(($tx - $rx))
+	local l=$(($t - $r))
 
 	# data to be sent.
-	local str="$l $tx"
+	local s="$l $t"
 
 	# get latency stats
 	local lat=${p#*/mdev = }
@@ -76,7 +76,7 @@ burst() {
 	# we only want to collect latency and std when there isn't 100% loss
 	# if loss is 100% we just send 0 in both cases, which will be ignored by the server
 	if [ ${#lat} == ${#p} ]; then
-	    str="$str 0 0"
+	    s="$s 0 0"
 	else
 		# latency avarage
 		local la=${lat#*/}
@@ -86,7 +86,7 @@ burst() {
 		local ls=${lat##*/}
 		ls=${ls%% *}
 
-		str="$str $la $ls"
+		s="$s $la $ls"
 	fi
 
 	# # if latency collecting is enabled.
@@ -129,12 +129,12 @@ burst() {
 	
 	# appending string to file.
 	# printf "string is: '%s'\n" "$string"
-	raw="${raw}|burstPing $str"
+	raw="${raw}|burstPing $s"
 }
 
 wifi() {
 	# checking if this data collecting is enabled
-	[ "$wifiDevices" -eq 0 ] && return
+	[ "$wd" -eq 0 ] && return
 
 	# devices and their data will be stored in this string variable.
 	local str=""
@@ -174,7 +174,7 @@ wifi() {
 
 			# time
 			local t=${iw%% ms*}
-			t=${t##* }
+			ts=${ts##* }
 
 			# getting everything after 'ago'.
 			iw=${iw#*ago}
@@ -184,25 +184,25 @@ wifi() {
 			iw=${iw#*$'\n'}
 
 			# if $t is greater than one minute, we don't use this device's info.
-			[ "$t" -gt 60000 ] && continue
+			[ "$ts" -gt 60000 ] && continue
 			
-			local rx=${pr%% *}
+			local r=${pr%% *}
 			pr=${pr#*$'\n'}
 
-			local tx=${pt%% *}
+			local t=${pt%% *}
 			pt=${pt#*$'\n'}
 
-			[ -z $rx ] && continue
-			[ -z $tx ] && continue
+			[ -z $r ] && continue
+			[ -z $t ] && continue
 
 			# if it's the first data we are storing, don't add a space before appending the data string.
 			[ "$first" -eq 1 ] && first=0 || str="$str "
-			str="${str}${i}_${mac}_${s}_${snr}_${rx}_${tx}"
+			str="${str}${i}_${mac}_${s}_${snr}_${r}_${t}"
 		done
 
 	done
 	# only send data if there is something to send
-	[ -z $str ] && wifiDevices=0 || raw="${raw}|wifiDevsStats ${str}"
+	[ -z $str ] && wd=0 || raw="${raw}|wifiDevsStats ${str}"
 }
 
 # prints the size of a file, using 'ls', where full file path is given as 
@@ -210,9 +210,9 @@ wifi() {
 fSize() {
 	# file size is the information at the 1st column.
 	local wc=$(wc -c "$1")
-	#remove suffix composed of space and anything else.
-	local size=${wc% *}
-	echo $size
+	# gets size
+	local sz=${wc% *}
+	echo $sz
 }
 
 # prints the sum of the sizes of all files inside given directory path.
@@ -258,14 +258,14 @@ zip() {
 	[ -f "$rawF" ] || return 1 
 
 	# size of file with raw data.
-	local size=$(fSize "$rawF")
+	local sz=$(fSize "$rawF")
 	# sum of file sizes in directory for compressed files.
 	local dSize=$(sumSizes "$compD")
 
 	# if sum is smaller than $cap, do nothing.
 	# echo checking file size to zip
 	# a return of 1 means nothing will be gzipped.
-	[ $(($size + $dSize)) -lt $cap ] && return 1
+	[ $(($sz + $dSize)) -lt $cap ] && return 1
 
 	# compressing file where raw data is held.
 	gzip "$rawF"
@@ -313,15 +313,15 @@ collect() {
 	# global variable that controls which measures are active
 	active=""
 
-	[ "$burstLoss" -eq 1 ] && active="${active}bl "
-    [ "$wifiDevices" -eq 1 ] && active="${active}wd "
-    [ "$pingAndWan" -eq 1 ] && active="${active}p&w " 
+	[ "$bl" -eq 1 ] && active="${active}bl "
+    [ "$wd" -eq 1 ] && active="${active}wd "
+    [ "$p&w" -eq 1 ] && active="${active}p&w " 
     [ ${#active} -gt 0 ] && active=${active%* }
 
 	# mapping from measurement names to collected artifacts:
-	# bl (burstLoss) -> burstPing, wanBytes
-	# p&w (pingAndWan) -> burstPing, wanBytes, wanPkts
-	# wd (wifiDevices) -> wifiDevsStats
+	# bl (bl) -> burstPing, wanBytes
+	# p&w (p&w) -> burstPing, wanBytes, wanPkts
+	# wd (wd) -> wifiDevsStats
 
 	# example of an expected raw data with all measures present:
 	# 'bl p&w wd|213234556456|burstPing 0 100 1.246 0.161|wanBytes 12345 1234|wanPkts 1234 123|wifiDevsStats 0_D0:9C:7A:EC:FF:FF_33_285_5136'
@@ -355,7 +355,7 @@ checkState() {
 	local s="$1"
 	if [ "$s" -ne "0" ]; then
 		# echo pinging alarm server to check if it's alive.
-		curl -s -m 10 "https://$alarmServerAddress:7890/ping" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" > /dev/null
+		curl -s -m 10 "https://$server:7890/ping" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" > /dev/null
 		# return $(curl) exit code.
 		s="$?"
 	fi
@@ -369,21 +369,21 @@ upload() {
 	local path="$1"
 
 	# 'get_mac()' is defined in /usr/share/functions/device_functions.sh.
-	local mac=$(get_mac);
+	local m=$(get_mac);
 
 	s=$(curl --write-out '%{http_code}' -s -m 20 --connect-timeout 5 --output /dev/null \
-	-XPOST "https://$alarmServerAddress:7890/data" -H 'Content-Encoding: gzip' \
-	-H 'Content-Type: text/plain' -H "X-ANLIX-ID: $mac" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
+	-XPOST "https://$server:7890/data" -H 'Content-Encoding: gzip' \
+	-H 'Content-Type: text/plain' -H "X-ANLIX-ID: $m" -H "X-ANLIX-SEC: $FLM_CLIENT_SECRET" \
 	-H "Send-Time: $(date +%s)" --data-binary @"$path")
-	code="$?"
+	c="$?"
 	# 'log()' is defined in /usr/share/functions/common_functions.sh.
-	[ "$code" -ne 0 ] && log "DATA_COLLECTING" "Data sent with curl exit code '${code}'." && return "$code"
+	[ "$c" -ne 0 ] && log "DATA_COLLECTING" "Data sent with curl exit code '${c}'." && return "$c"
 	log "DATA_COLLECTING" "Data sent with response status code '${s}'."
 	[ "$s" -ge 200 ] && [ "$s" -lt 300 ] && return 0
 	return 1
 }
 
-# for each compressed file given in $compD, send that file to a $alarmServerAddress. 
+# for each compressed file given in $compD, send that file to a $server. 
 # If any sending is unsuccessful, stops sending files and return it's exit code.
 sendComp() {
 	# echo going to send compressed files
@@ -397,7 +397,7 @@ sendComp() {
 	return 0
 }
 
-# compresses $raw, sends it to $alarmServerAddress and deletes it. If send was 
+# compresses $raw, sends it to $server and deletes it. If send was 
 # successful, remove original files, if not, keeps it. Returns the return of $(curl).
 sendUncomp() {
 	# if no uncompressed file, nothing wrong, but there's nothing to do in this function.
@@ -417,17 +417,17 @@ sendUncomp() {
 	# sends compressed file.
 	upload "$file"
 	# storing $(curl) exit code.
-	local res="$?"
+	local r="$?"
 
 	# if send was successful, removes original file.
-	[ "$res" -eq 0 ] && rm "$rawF"
+	[ "$r" -eq 0 ] && rm "$rawF"
 	# removes temporary file. a new temporary will be created next time, with more content, 
 	rm "$file"
 	# cleans trap.
 	trap - SIGTERM
 
 	# Returns #(curl) exit code.
-	return $res
+	return $r
 }
 
 
@@ -468,7 +468,7 @@ sendUncomp() {
 send() {
 	# echo going to send data
 	# amount of attempts of sending data, to alarm server, before giving up.
-	local tries=3
+	local i=3
 
 	while true; do
 		# check if the last time, data was sent, server was alive. if it was, 
@@ -491,9 +491,9 @@ send() {
 		# if data was sent successfully, we stop retrying.
 		[ "$cur" -eq 0 ] && break
 
-		tries=$(($tries - 1))
+		i=$(($i - 1))
 		# leaves retry loop when $retries reaches zero.
-		[ "$tries" -eq 0 ] && break
+		[ "$i" -eq 0 ] && break
 		# echo retrying in 10 seconds
 		# sleeps before retrying. this time must take the 60 second interval into consideration.
 		sleep 10
@@ -570,7 +570,7 @@ loop() {
 	# making sure directory exists.
 	mkdir -p "$dir"
 	# time when we will start executing.
-	local time=$(start "${dir}/startTime" $int)
+	local ts=$(start "${dir}/startTime" $int)
 
 	# infinite loop where we execute all procedures over and over again until the end of times.
 	while true; do
@@ -581,13 +581,13 @@ loop() {
 		# getting parameters every time we need to send data, this way we don't have to 
 		# restart the service if a parameter changes.
 		eval $(cat /root/flashbox_config.json | jsonfilter \
-			-e "hasLatency=@.data_collecting_has_latency" \
-			-e "alarmServerAddress=@.data_collecting_alarm_fqdn" \
-			-e "pingServerAddress=@.data_collecting_ping_fqdn" \
-			-e "pingPackets=@.data_collecting_ping_packets" \
-			-e "burstLoss=@.data_collecting_burst_loss" \
-			-e "wifiDevices=@.data_collecting_wifi_devices" \
-			-e "pingAndWan=@.data_collecting_ping_and_wan" \
+			# -e "hasLatency=@.data_collecting_has_latency" \
+			-e "server=@.data_collecting_alarm_fqdn" \
+			-e "ping=@.data_collecting_ping_fqdn" \
+			-e "pkts=@.data_collecting_ping_packets" \
+			-e "bl=@.data_collecting_burst_loss" \
+			-e "wd=@.data_collecting_wifi_devices" \
+			-e "p&w=@.data_collecting_ping_and_wan" \
 		)
 
 		# does everything related to collecting and storing data.`
@@ -598,20 +598,20 @@ loop() {
 		# time after all procedures are finished.
 		local end=$(date +%s)
 		# this will hold the time left until we should run the next iteration of this loop
-		local delta="-1"
+		local d="-1"
 		# while time left is negative, which could happen if $(($time - $end)) is bigger than $int.
-		while [ "$delta" -lt 0 ]; do
+		while [ "$d" -lt 0 ]; do
 			# advance time, when current data collecting has started, by one interval.
-			time=$(($time + $int))
+			ts=$(($ts + $int))
 			# calculate time left to collect data again.
-			delta=$(($time - $end))
+			d=$(($ts - $end))
 		done
-		# echo delta=$delta
+		# echo d=$d
 		 # sleep for the time remaining until next data collecting.
-		sleep $delta
+		sleep $d
 
 		# writing next loop time to file that, at this line, matches current time.
-		echo $time > "${dir}/startTime"
+		echo $ts > "${dir}/startTime"
 	done
 }
 
