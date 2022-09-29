@@ -6,18 +6,16 @@
 # 'saved_data_collecting_is_active' parameter.
 set_data_collecting_parameters() {
 	local data_collecting_is_active="${1:-0}"
-	local data_collecting_has_latency="${2:-0}"
-	local data_collecting_alarm_fqdn="${3:-$FLM_SVADDR}"
-	local data_collecting_ping_fqdn="${4:-$FLM_SVADDR}"
-	local data_collecting_ping_packets="${5:-100}"
-	local data_collecting_burst_loss="${6:-0}"
-	local data_collecting_wifi_devices="${7:-0}"
-	local data_collecting_ping_and_wan="${8:-0}"
+	local data_collecting_alarm_fqdn="${2:-$FLM_SVADDR}"
+	local data_collecting_ping_fqdn="${3:-$FLM_SVADDR}"
+	local data_collecting_ping_packets="${4:-100}"
+	local data_collecting_burst_loss="${5:-0}"
+	local data_collecting_wifi_devices="${6:-0}"
+	local data_collecting_ping_and_wan="${7:-0}"
 
 	json_cleanup
 	json_load_file /root/flashbox_config.json
 	json_get_var saved_data_collecting_is_active data_collecting_is_active
-	json_get_var saved_data_collecting_has_latency data_collecting_has_latency
 	json_get_var saved_data_collecting_alarm_fqdn data_collecting_alarm_fqdn
 	json_get_var saved_data_collecting_ping_fqdn data_collecting_ping_fqdn
 	json_get_var saved_data_collecting_ping_packets data_collecting_ping_packets
@@ -32,13 +30,6 @@ set_data_collecting_parameters() {
 		anyChange=true
 		json_add_boolean data_collecting_is_active "$data_collecting_is_active"
 		log "DATA_COLLECTING" "Updated 'data_collecting_is_active' parameter to '$data_collecting_is_active'."
-	fi
-
-	# Updating value if $data_collecting_has_latency has changed.
-	if [ "$saved_data_collecting_has_latency" != "$data_collecting_has_latency" ]; then
-		anyChange=true
-		json_add_boolean data_collecting_has_latency "$data_collecting_has_latency"
-		log "DATA_COLLECTING" "Updated 'data_collecting_has_latency' parameter to '$data_collecting_has_latency'."
 	fi
 
 	# Updating value if $data_collecting_alarm_fqdn has changed.

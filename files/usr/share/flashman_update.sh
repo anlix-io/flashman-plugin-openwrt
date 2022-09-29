@@ -245,7 +245,6 @@ mem_usage=$(get_memory_usage)"
 		json_get_var _upnp_devices_index upnp_devices_index
 		json_get_var _vlan_index vlan_index
 		json_get_var _data_collecting_is_active data_collecting_is_active
-		json_get_var _data_collecting_has_latency data_collecting_has_latency
 		json_get_var _data_collecting_alarm_fqdn data_collecting_alarm_fqdn
 		json_get_var _data_collecting_ping_fqdn data_collecting_ping_fqdn
 		json_get_var _data_collecting_ping_packets data_collecting_ping_packets
@@ -520,7 +519,7 @@ mem_usage=$(get_memory_usage)"
 		fi
 
 		# updates data collecting parameters.
-		set_data_collecting_parameters "$_data_collecting_is_active" "$_data_collecting_has_latency" \
+		set_data_collecting_parameters "$_data_collecting_is_active" \
 			                           "$_data_collecting_alarm_fqdn" "$_data_collecting_ping_fqdn" \
 			                           "$_data_collecting_ping_packets" "$_data_collecting_burst_loss" \
 			                           "$_data_collecting_wifi_devices" "$_data_collecting_ping_and_wan"
