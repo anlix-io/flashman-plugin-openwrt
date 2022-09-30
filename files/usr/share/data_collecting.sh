@@ -8,8 +8,6 @@
 dataCollectingDir="/tmp/data_collecting"
 # file where collected data will be stored before being compressed.
 rawDataFile="${dataCollectingDir}/raw"
-# directory where data will be stored if compressing old data is necessary.
-compressedDataDir="${dataCollectingDir}/compressed"
 # file where wan rx/tx bytes will be stored
 wanBytesFile="${dataCollectingDir}/wan_bytes"
 # file where wan rx/tx packets will be stored
@@ -434,53 +432,6 @@ sumFileSizesInPath() {
 	fi
 }
 
-# sum the size $rawDataFile with the size of all compressed files inside the $compressedDataDir. if that 
-# sum is bigger than number given in first argument ($1), compress that file and move it to $compressedDataDir.
-zipFile() {
-	local capSize="$1"
-
-	# if file doesn't exist, we won't have to compressed anything.
-	# a return of 1 means nothing has been be gzipped.
-	[ -f "$rawDataFile" ] || return 1 
-
-	# size of file with raw data.
-	local size=$(fileSize "$rawDataFile")
-	# sum of file sizes in directory for compressed files.
-	local dirSize=$(sumFileSizesInPath "$compressedDataDir")
-
-	# if sum is smaller than $capSize, do nothing.
-	# echo checking file size to zip
-	# a return of 1 means nothing will be gzipped.
-	[ $(($size + $dirSize)) -lt $capSize ] && return 1
-
-	# compressing file where raw data is held.
-	gzip "$rawDataFile"
-	# move newly compressed file to directory where compressed files should be.
-	mv "${rawDataFile}.gz" "$compressedDataDir/$(date +%s).gz"
-}
-
-# files are removed from $compressedDataDir until all data remaining is below number given in first 
-# argument ($1) as bytes. As files are named using a formatted date, pattern expansion of file 
-# names will always order oldest files first. This was done this way so we don't have to sort files 
-# by date ourselves. we let shell do the sorting.
-removeOldFiles() {
-	local capSize="$1"
-
-	# get the sum of sizes of all files in bytes.
-	local dirSize=$(sumFileSizesInPath "$compressedDataDir")
-
-	# if $dirSize is more than given $capSize, remove oldest file. which is 
-	# the file that shell orders as first.
-	for i in "$compressedDataDir"/*; do
-		# if we are under $capSize. do nothing.
-		[ $dirSize -lt $capSize ] && break;
-		# removes that file.
-		rm "$i"
-		# subtract that file's size from sum.
-		dirSize=$(($dirSize - $(fileSize "$i")))
-	done
-}
-
 # collect every data and stores in '$rawDataFile'. if the size of the file is 
 # too big, compress it and move it to a directory of compressed files. If 
 # directory of compressed files grows too big delete oldest compressed files.
@@ -541,24 +492,6 @@ collectData() {
 	[ -n "$rawData" ] && [ ${#activeMeasures} -gt 0 ] && echo "${activeMeasures}|${timestamp}${rawData}" >> "$rawDataFile";
 	# cleaning 'rawData' value from memory.
 	rawData=""
-
-	# creates directory of for compressed files, if it doesn't already exists.
-	mkdir -p "$compressedDataDir"
-	# $(zipFile) returns 0 only if any amount of files has been compressed 
-	# and, consequently, moved to the directory of compressed files. So
-	# $(removeOldFiles) is only executed if any new compressed file was 
-	# created.
-	zipFile $((32*1024)) && removeOldFiles $((24*1024))
-	# the difference between the cap size sent to $(zipFile) and 
-	# $(removeOldFiles) is the size left as a minimum amount for raw data 
-	# before compressing it. This means that, if there are no compressed files, 
-	# the uncompressed file could grow to as much as the cap size given to 
-	# $(zipFile). but in case there is any amount of compressed files, the 
-	# uncompressed file can grow to as much as the cap size given to $(zipFile) 
-	# minus the sum of all the compressed files sizes. As $(removeOldFiles) 
-	# will keep the sum of all compressed files sizes to a maximum of its given 
-	# cap size, the difference between these two cap sizes is the minimum size 
-	# the uncompressed file will always have available for it's growth.
 }
 
 # if number given as first argument ($1) isn't 0, ping server at address given 
@@ -596,23 +529,9 @@ sendToServer() {
 	return 1
 }
 
-# for each compressed file given in $compressedDataDir, send that file to a $alarmServerAddress. 
-# If any sending is unsuccessful, stops sending files and return it's exit code.
-sendCompressedData() {
-	# echo going to send compressed files
-	# echo "$compressedDataDir"/*
-	# for each compressed file in the pattern expansion.
-	for i in "$compressedDataDir"/*; do
-		# if file exists, sends file and if $(curl) exit code isn't equal to 0, returns $(curl) exit code 
-		# without deleting the file we tried to send. if $(curl) exit code is equal to 0, removes file
-		[ -f "$i" ] && { sendToServer "$i" || return "$?"; } && rm "$i"
-	done
-	return 0
-}
-
 # compresses $rawDataFile, sends it to $alarmServerAddress and deletes it. If send was 
 # successful, remove original files, if not, keeps it. Returns the return of $(curl).
-sendUncompressedData() {
+upload() {
 	# if no uncompressed file, nothing wrong, but there's nothing to do in this function.
 	[ -f "$rawDataFile" ] || return 0
 
@@ -692,7 +611,7 @@ sendData() {
 		[ -f "$lastServerStateFilePath" ] && lastServerState=$(cat "$lastServerStateFilePath")
 		# echo lastServerState=$lastServerState
 
-		checkServerState "$lastServerState" && sendCompressedData && sendUncompressedData
+		checkServerState "$lastServerState" && upload
 		local currentServerState="$?"
 		# echo currentServerState=$currentServerState
 		# if server stops before sending some data, current server state will differ from last server state.
