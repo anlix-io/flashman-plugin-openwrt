@@ -96,43 +96,43 @@ collect_burst() {
 		string="$string $latencyAvg $latencyStd"
 	fi
 
-	# if latency collecting is enabled.
-	if [ "$hasLatency" -eq 1 ]; then
-		# echo collecting latencies
-		# removing the first line and the last 4 lines. only the ping lines remain.
-		local latencies=$(printf "%s" "$pingResult" | head -n -4 | sed '1d' | (
-		local pairs=""
-		local firstLine=true
-		# for each ping line.
-		while read line; do
-			# removes 'time=' part if it exists. if it doesn't, '$reached' will be as long as '$line'.
-			reached=${line%time=*}
-			# if "time=" has actually been removed, it means that line 
-			# contains it, which also means the icmp request was fulfilled.
-			# if line doesn't contain 'time=', we skip this line.
-			[ ${#reached} -lt ${#line} ] || continue
+	# # if latency collecting is enabled.
+	# if [ "$hasLatency" -eq 1 ]; then
+	# 	# echo collecting latencies
+	# 	# removing the first line and the last 4 lines. only the ping lines remain.
+	# 	local latencies=$(printf "%s" "$pingResult" | head -n -4 | sed '1d' | (
+	# 	local pairs=""
+	# 	local firstLine=true
+	# 	# for each ping line.
+	# 	while read line; do
+	# 		# removes 'time=' part if it exists. if it doesn't, '$reached' will be as long as '$line'.
+	# 		reached=${line%time=*}
+	# 		# if "time=" has actually been removed, it means that line 
+	# 		# contains it, which also means the icmp request was fulfilled.
+	# 		# if line doesn't contain 'time=', we skip this line.
+	# 		[ ${#reached} -lt ${#line} ] || continue
 
-			 # from the whole line, removes everything until, and including, "icmp_req=".
-			pingNumber=${line#*icmp_*eq=}
-			# removes everything after the first space.
-			pingNumber=${pingNumber%% *}
-			# from the whole line, removes everything until, and including, "time=".
-			pingTime=${line#*time=}
-			# removes everything after the first space.
-			pingTime=${pingTime%% *}
-			if [ "$firstLine" = true ]; then
-				firstLine=false
-			else
-				pairs="${pairs},"
-			fi
-			# concatenate to $string.
-			pairs="${pairs}${pingNumber}=${pingTime}"
-		done
-		# prints final $string in this sub shell back to $string.
-		echo $pairs))
-		# appending latencies to string to be sent.
-		[ ${#latencies} -gt 0 ] && string="${string} ${latencies}"
-	fi
+	# 		 # from the whole line, removes everything until, and including, "icmp_req=".
+	# 		pingNumber=${line#*icmp_*eq=}
+	# 		# removes everything after the first space.
+	# 		pingNumber=${pingNumber%% *}
+	# 		# from the whole line, removes everything until, and including, "time=".
+	# 		pingTime=${line#*time=}
+	# 		# removes everything after the first space.
+	# 		pingTime=${pingTime%% *}
+	# 		if [ "$firstLine" = true ]; then
+	# 			firstLine=false
+	# 		else
+	# 			pairs="${pairs},"
+	# 		fi
+	# 		# concatenate to $string.
+	# 		pairs="${pairs}${pingNumber}=${pingTime}"
+	# 	done
+	# 	# prints final $string in this sub shell back to $string.
+	# 	echo $pairs))
+	# 	# appending latencies to string to be sent.
+	# 	[ ${#latencies} -gt 0 ] && string="${string} ${latencies}"
+	# fi
 	
 	# appending string to file.
 	# printf "string is: '%s'\n" "$string"
@@ -283,6 +283,14 @@ collectData() {
 	collect_burst
 	collect_wan
 	collect_wifi_devices
+
+	# global variable that controls which measures are active
+    activeMeasures=""
+
+    [ "$burstLoss" -eq 1 ] && activeMeasures="${activeMeasures}bl "
+    [ "$wifiDevices" -eq 1 ] && activeMeasures="${activeMeasures}wd "
+    [ "$pingAndWan" -eq 1 ] && activeMeasures="${activeMeasures}p&w " 
+    [ ${#activeMeasures} -gt 0 ] && activeMeasures=${activeMeasures%* }
 
 	# mapping from measurement names to collected artifacts:
 	# bl (burstLoss) -> burstPing, wanBytes
@@ -514,7 +522,7 @@ loop() {
 		# getting parameters every time we need to send data, this way we don't have to 
 		# restart the service if a parameter changes.
 		eval $(cat /root/flashbox_config.json | jsonfilter \
-			-e "hasLatency=@.data_collecting_has_latency" \
+			# -e "hasLatency=@.data_collecting_has_latency" \
 			-e "alarmServerAddress=@.data_collecting_alarm_fqdn" \
 			-e "pingServerAddress=@.data_collecting_ping_fqdn" \
 			-e "pingPackets=@.data_collecting_ping_packets" \
