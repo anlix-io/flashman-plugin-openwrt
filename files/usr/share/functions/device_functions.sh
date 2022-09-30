@@ -276,14 +276,6 @@ get_wan_packets_statistics() {
 	fi
 }
 
-get_wifi_device_signature() {
-	local _dev_mac="$1"
-	local _q=""
-	_q="$(ubus -S call hostapd.wlan0 get_clients | jsonfilter -e '@.clients["'"$_dev_mac"'"].signature')"
-	[ -z "$_q" ] && [ "$(is_5ghz_capable)" -eq "1" ] && _q="$(ubus -S call hostapd.wlan1 get_clients | jsonfilter -e '@.clients["'"$_dev_mac"'"].signature')"
-	echo "$_q"
-}
-
 needs_reboot_change_mode() {
 	reboot
 }
