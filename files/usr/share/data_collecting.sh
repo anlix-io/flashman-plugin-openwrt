@@ -8,10 +8,6 @@
 dataCollectingDir="/tmp/data_collecting"
 # file where collected data will be stored before being compressed.
 rawDataFile="${dataCollectingDir}/raw"
-# file where wan rx/tx bytes will be stored
-wanBytesFile="${dataCollectingDir}/wan_bytes"
-# file where wan rx/tx packets will be stored
-wanPacketsFile="${dataCollectingDir}/wan_pkts"
 
 # gets current rx and tx bytes/packets from wan interface and compares them
 # with values from previous calls to calculate cross traffic
@@ -21,24 +17,22 @@ collect_wan() {
 	[ $burstLoss -eq 0 ] && [ $pingAndWan -eq 0 ] && return
 
 	# bytes received by the interface.
-	local rxBytes=$(get_wan_bytes_statistics RX)
+	local rx=$(get_wan_bytes_statistics RX)
 	# bytes sent by the interface.
-	local txBytes=$(get_wan_bytes_statistics TX)
+	local tx=$(get_wan_bytes_statistics TX)
 
-	local string="|wanBytes $rxBytes $txBytes"
-	rawData="${rawData}${string}"
+	rawData="${rawData}|wanBytes $rx $tx"
 
 	# burstLoss only gathers byte data
 	[ $pingAndWan -eq 0 ] && return
 
 	# packets received by the interface.
-	local rxPackets=$(get_wan_packets_statistics RX)
+	rx=$(get_wan_packets_statistics RX)
 	# packets sent by the interface.
-	local txPackets=$(get_wan_packets_statistics TX)
+	tx=$(get_wan_packets_statistics TX)
 
 	# data to be sent.
-	local string="|wanPkts $rxPackets $txPackets"
-	rawData="${rawData}${string}"
+	rawData="${rawData}|wanPkts $pr $pt"
 }
 
 # takes current unix timestamp, executes ping, in burst, to $pingServerAddress server.
@@ -144,82 +138,82 @@ collect_wifi_devices() {
 	[ "$wifiDevices" -eq 0 ] && return
 
 	# devices and their data will be stored in this string variable.
-	local str=""
+	local s=""
 
-	local firstRawWrite=1
+	local first=1
 
 	# 0 and 1 are the indexes for wifi interfaces: wlan0 and wlan1, or phy0 and phy1.
 	for i in 0 1; do
 		# getting wifi interface name.
 		# 'get_root_ifname()' is defined in /usr/share/functions/custom_wireless_driver.sh.
-		local wlan=$(get_root_ifname "$i" 2> /dev/null)
+		local w=$(get_root_ifname "$i" 2> /dev/null)
 		# if interface doesn't exist, skips this iteration.
-		[ -z $wlan ] && continue
+		[ -z "$w" ] && continue
 		# getting info from each connected device on wifi. 
 		# grep returns empty when no devices are connected or if interface doesn't exist.
-		local devices="$(iwinfo "$wlan" assoclist | grep ago)"
-		local devices_rx_pkts="$(iwinfo "$wlan" assoclist | grep RX | grep -o '[0-9]\+ Pkts')"
-		local devices_tx_pkts="$(iwinfo "$wlan" assoclist | grep TX | grep -o '[0-9]\+ Pkts')"
+		local iw="$(iwinfo "$w" assoclist | grep ago)"
+		local pr="$(iwinfo "$w" assoclist | grep RX | grep -o '[0-9]\+ Pkts')"
+		local pt="$(iwinfo "$w" assoclist | grep TX | grep -o '[0-9]\+ Pkts')"
 
-		while [ ${#devices} -gt 0 ]; do
+		while [ ${#iw} -gt 0 ]; do
 
 			# getting everything before the first space.
-			local deviceMac=${devices%% *}
+			local mac=${iw%% *}
 
 			# getting everything after the first two spaces.
-			local signal=${devices#*  }
+			local signal=${iw#*  }
 
 			# getting everything before the first occasion of ' /'
 			signal=${signal%% /*}
 
 			# if unknown discard
-			[ "$signal" == "unknown" ] && devices=${devices#*$'\n'} && continue
+			[ "$signal" == "unknown" ] && iw=${iw#*$'\n'} && continue
 
 			# getting everything before the first occasion of ' dBm'
 			signal=${signal%% dBm*}
 
 			# getting after '(SNR '. 
-			devices=${devices#*\(SNR }
+			iw=${iw#*\(SNR }
 
 			# getting everything before the first closing parenthesis.
-			local snr=${devices%%\)*}
+			local snr=${iw%%\)*}
 
 			# if SNR equals signal we assume noise of -95dBm
 			[ $signal -eq $snr ] && snr=$(($signal+95))
 
 			# getting everything before ' ms'.
-			local time=${devices%% ms*}
+			local ts=${iw%% ms*}
 
 			# getting everything after the first space.
-			time=${time##* }
+			ts=${ts##* }
 
 			# getting everything after 'ago'.
-			devices=${devices#*ago}
+			iw=${iw#*ago}
 
 			# getting everything after '\n', if it exists. last line won't have it, so nothing will be changed.
 			# we can't add the line feed along witht the previous parameter expansion because we wouldn't match
-			# the last line and so we wouldn't make $devices length become zero.
-			devices=${devices#*$'\n'}
+			# the last line and so we wouldn't make $iw length become zero.
+			iw=${iw#*$'\n'}
 
-			# if $time is greater than one minute, we don't use this device's info.
-			[ "$time" -gt 60000 ] && continue
+			# if $ts is greater than one minute, we don't use this device's info.
+			[ "$ts" -gt 60000 ] && continue
 			
-			local rx_pkts=${devices_rx_pkts%% *}
-			devices_rx_pkts=${devices_rx_pkts#*$'\n'}
+			local rx=${pr%% *}
+			pr=${pr#*$'\n'}
 
-			local tx_pkts=${devices_tx_pkts%% *}
-			devices_tx_pkts=${devices_tx_pkts#*$'\n'}
+			local tx=${pt%% *}
+			pt=${pt#*$'\n'}
 
-			[ -z $rx_pkts ] && continue
-			[ -z $tx_pkts ] && continue
+			[ -z "$rx" ] && continue
+			[ -z "$tx" ] && continue
 
 			# if it's the first data we are storing, don't add a space before appending the data string.
-			[ "$firstRawWrite" -eq 1 ] && firstRawWrite=0 || str="$str "
-			str="${str}${i}_${deviceMac}_${signal}_${snr}_${rx_pkts}_${tx_pkts}"
+			[ "$first" -eq 1 ] && first=0 || s="$s "
+			s="${s}${i}_${mac}_${signal}_${snr}_${rx}_${tx}"
 		done
 	done
 	# only send data if there is something to send
-	[ -z $str ] && wifiDevices=0 || rawData="${rawData}|wifiDevsStats ${str}"
+	[ -z "$s" ] && wifiDevices=0 || rawData="${rawData}|wifiDevsStats ${s}"
 }
 
 # prints the size of a file, using 'ls', where full file path is given as 
