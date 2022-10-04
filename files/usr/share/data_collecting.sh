@@ -17,22 +17,22 @@ collect_wan() {
 	[ $burstLoss -eq 0 ] && [ $pingAndWan -eq 0 ] && return
 
 	# bytes received by the interface.
-	local rx=$(get_wan_bytes_statistics RX)
+	local r=$(get_wan_bytes_statistics RX)
 	# bytes sent by the interface.
-	local tx=$(get_wan_bytes_statistics TX)
+	local t=$(get_wan_bytes_statistics TX)
 
-	rawData="${rawData}|wanBytes $rx $tx"
+	rawData="${rawData}|wanBytes $r $t"
 
 	# burstLoss only gathers byte data
 	[ $pingAndWan -eq 0 ] && return
 
 	# packets received by the interface.
-	rx=$(get_wan_packets_statistics RX)
+	r=$(get_wan_packets_statistics RX)
 	# packets sent by the interface.
-	tx=$(get_wan_packets_statistics TX)
+	t=$(get_wan_packets_statistics TX)
 
 	# data to be sent.
-	rawData="${rawData}|wanPkts $pr $pt"
+	rawData="${rawData}|wanPkts $r $t"
 }
 
 # takes current unix timestamp, executes ping, in burst, to $pingServerAddress server.
@@ -54,11 +54,11 @@ collect_burst() {
 	# An skipped measure will become missing data, for this minute, in the server.
 
 	# removes everything behind the summary that appears in the last lines.
-	local pingResultAux=${pingResult##* ping statistics ---[$'\r\n']}
+	pingResult=${pingResult##* ping statistics ---[$'\r\n']}
 	# removes everything after, and including, ' packets transmitted'.
-	local transmitted=${pingResultAux% packets transmitted*}
+	local transmitted=${pingResult% packets transmitted*}
 	# removes everything after, and including, ' received'.
-	local received=${pingResultAux% received*}
+	local received=${pingResult% received*}
 	# removes everything before first space.
 	received=${received##* }
 	# integer representing the amount of packets not received.
@@ -67,27 +67,27 @@ collect_burst() {
 	# loss=${loss##* } # removes everything before first space.
 
 	# data to be sent.
-	local string="$loss $transmitted"
+	local s="$loss $transmitted"
 
-	# removes everything before and including 'mdev = '
-	local latencyStats=${pingResult#*/mdev = }
+	# latency stats
+	local lat=${pingResult#*/mdev = }
 
 	# when there is 100% packet loss there the strings remain equal
 	# we only want to collect latency and std when there isn't 100% loss
 	# if loss is 100% we just send 0 in both cases, which will be ignored by the server
-	if [ ${#latencyStats} == ${#pingResult} ]; then
-	    string="$string 0 0"
+	if [ ${#lat} == ${#pingResult} ]; then
+	    s="$s 0 0"
 	else
 		# removes everything before first backslash
-		local latencyAvg=${latencyStats#*/}
+		local avg=${lat#*/}
 		# removes everything after first backslash
-		latencyAvg=${latencyAvg%%/*}
+		avg=${avg%%/*}
 		# removes everything before and including last backslash
-		local latencyStd=${latencyStats##*/}
+		local std=${lat##*/}
 		# removes everything after and including first space
-		latencyStd=${latencyStd%% *}
+		std=${std%% *}
 
-		string="$string $latencyAvg $latencyStd"
+		s="$s $avg $std"
 	fi
 
 	# # if latency collecting is enabled.
@@ -130,7 +130,7 @@ collect_burst() {
 	
 	# appending string to file.
 	# printf "string is: '%s'\n" "$string"
-	rawData="${rawData}|burstPing $string"
+	rawData="${rawData}|burstPing $s"
 }
 
 collect_wifi_devices() {
@@ -161,16 +161,16 @@ collect_wifi_devices() {
 			local mac=${iw%% *}
 
 			# getting everything after the first two spaces.
-			local signal=${iw#*  }
+			local sig=${iw#*  }
 
 			# getting everything before the first occasion of ' /'
-			signal=${signal%% /*}
+			sig=${sig%% /*}
 
 			# if unknown discard
-			[ "$signal" == "unknown" ] && iw=${iw#*$'\n'} && continue
+			[ "$sig" == "unknown" ] && iw=${iw#*$'\n'} && continue
 
 			# getting everything before the first occasion of ' dBm'
-			signal=${signal%% dBm*}
+			sig=${sig%% dBm*}
 
 			# getting after '(SNR '. 
 			iw=${iw#*\(SNR }
@@ -178,8 +178,8 @@ collect_wifi_devices() {
 			# getting everything before the first closing parenthesis.
 			local snr=${iw%%\)*}
 
-			# if SNR equals signal we assume noise of -95dBm
-			[ $signal -eq $snr ] && snr=$(($signal+95))
+			# if SNR equals sig we assume noise of -95dBm
+			[ $sig -eq $snr ] && snr=$(($sig+95))
 
 			# getting everything before ' ms'.
 			local ts=${iw%% ms*}
@@ -198,18 +198,18 @@ collect_wifi_devices() {
 			# if $ts is greater than one minute, we don't use this device's info.
 			[ "$ts" -gt 60000 ] && continue
 			
-			local rx=${pr%% *}
+			local r=${pr%% *}
 			pr=${pr#*$'\n'}
 
-			local tx=${pt%% *}
+			local t=${pt%% *}
 			pt=${pt#*$'\n'}
 
-			[ -z "$rx" ] && continue
-			[ -z "$tx" ] && continue
+			[ -z "$r" ] && continue
+			[ -z "$t" ] && continue
 
 			# if it's the first data we are storing, don't add a space before appending the data string.
 			[ "$first" -eq 1 ] && first=0 || s="$s "
-			s="${s}${i}_${mac}_${signal}_${snr}_${rx}_${tx}"
+			s="${s}${i}_${mac}_${sig}_${snr}_${r}_${t}"
 		done
 	done
 	# only send data if there is something to send
@@ -268,7 +268,7 @@ sumFileSizesInPath() {
 # directory of compressed files grows too big delete oldest compressed files.
 collectData() {
 	# getting current unix time in seconds.
-	local timestamp=$(date +%s)
+	local ts=$(date +%s)
 
 	# global variable where current raw data is stored before being written to file.
 	rawData=""
@@ -279,12 +279,12 @@ collectData() {
 	collect_wifi_devices
 
 	# global variable that controls which measures are active
-    activeMeasures=""
+    on=""
 
-    [ "$burstLoss" -eq 1 ] && activeMeasures="${activeMeasures}bl "
-    [ "$wifiDevices" -eq 1 ] && activeMeasures="${activeMeasures}wd "
-    [ "$pingAndWan" -eq 1 ] && activeMeasures="${activeMeasures}p&w " 
-    [ ${#activeMeasures} -gt 0 ] && activeMeasures=${activeMeasures%* }
+    [ "$burstLoss" -eq 1 ] && on="${on}bl "
+    [ "$wifiDevices" -eq 1 ] && on="${on}wd "
+    [ "$pingAndWan" -eq 1 ] && on="${on}p&w " 
+    [ ${#on} -gt 0 ] && on=${on%* }
 
 	# mapping from measurement names to collected artifacts:
 	# bl (burstLoss) -> burstPing, wanBytes
@@ -293,7 +293,7 @@ collectData() {
 
 	# example of an expected raw data with all measures present:
 	# 'bl p&w wd|213234556456|burstPing 0 100 1.246 0.161|wanBytes 12345 1234|wanPkts 1234 123|wifiDevsStats 0_D0:9C:7A:EC:FF:FF_33_285_5136'
-	[ -n "$rawData" ] && [ ${#activeMeasures} -gt 0 ] && echo "${activeMeasures}|${timestamp}${rawData}" >> "$rawDataFile";
+	[ -n "$rawData" ] && [ ${#on} -gt 0 ] && echo "${on}|${ts}${rawData}" >> "$rawDataFile";
 	# cleaning 'rawData' value from memory.
 	rawData=""
 }
