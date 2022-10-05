@@ -11,7 +11,7 @@ rawDataFile="${dataCollectingDir}/raw"
 
 # gets current rx and tx bytes/packets from wan interface and compares them
 # with values from previous calls to calculate cross traffic
-collect_wan() {
+wan() {
 	# checking if this data collecting is enabled
 
 	[ $burstLoss -eq 0 ] && [ $pingAndWan -eq 0 ] && return
@@ -38,7 +38,7 @@ collect_wan() {
 # takes current unix timestamp, executes ping, in burst, to $pingServerAddress server.
 # If latency collecting is enabled, extracts the individual icmp request numbers and 
 # their respective ping times. Builds a string with all this information and write them to file.
-collect_burst() {
+burst() {
 	# checking if this data collecting is enabled
 
 	[ $burstLoss -eq 0 ] && [ $pingAndWan -eq 0 ] && return
@@ -133,7 +133,7 @@ collect_burst() {
 	rawData="${rawData}|burstPing $s"
 }
 
-collect_wifi_devices() {
+wifi() {
 	# checking if this data collecting is enabled
 	[ "$wifiDevices" -eq 0 ] && return
 
@@ -237,9 +237,9 @@ collectData() {
 	rawData=""
 
 	# collecting all measures.
-	collect_burst
-	collect_wan
-	collect_wifi_devices
+	burst
+	wan
+	wifi
 
 	# global variable that controls which measures are active
     on=""
