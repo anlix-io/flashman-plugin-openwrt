@@ -226,43 +226,6 @@ fileSize() {
 	echo $size
 }
 
-# prints the sum of the sizes of all files inside given directory path.
-sumFileSizesInPath() {
-	# boolean that marks that at least one file exists inside given directory.
-	local anyFile=0
-	# for each file in that directory.
-	for i in "$1"/*; do
-		# if that pattern expansion exists as a file.
-		[ -f "$i" ] || continue
-		# set boolean to true.
-		anyFile=1
-		# as we have at least one file, we don't need to loop through all files.
-		break
-	done
-	# if no files.
-	# prints zero. size of nothing is 0.
-	# result was given, we can leave function.
-	[ "$anyFile" -eq 0 ] && echo 0 && return 0
-
-	# if there is at least one file.
-
-	# prints a list of sizes and files.
-	local wcResult=$(wc -c "$1"/*)
-	# if there is 2 or more files, the last line will have a "total". remove that string.
-	local hasTotal=${wcResult% total}
-	# if it has a total, it was removed. if not, nothing was removed and both strings are the same.
-
-	 # if length of string with "total" removed is smaller than original string.
-	if [ ${#hasTotal} -lt ${#wcResult} ]; then
-		# remove everything before the last word, which is the value for total, and print what remains.
-		echo ${hasTotal##* }
-	else
-		# if there were no total, then there was only one file, in one line of output, and the first column is the size value.
-		# remove everything past, and including, the first space, and print what remains.
-		echo ${wcResult%% *}
-	fi
-}
-
 # collect every data and stores in '$rawDataFile'. if the size of the file is 
 # too big, compress it and move it to a directory of compressed files. If 
 # directory of compressed files grows too big delete oldest compressed files.
