@@ -216,16 +216,6 @@ wifi() {
 	[ -z "$s" ] && wifiDevices=0 || rawData="${rawData}|wifiDevsStats ${s}"
 }
 
-# prints the size of a file, using 'ls', where full file path is given as 
-# first argument ($1).
-fileSize() {
-	# file size is the information at the 1st column.
-	local wcline=$(wc -c "$1")
-	#remove suffix composed of space and anything else.
-	local size=${wcline% *}
-	echo $size
-}
-
 # collect every data and stores in '$rawDataFile'. if the size of the file is 
 # too big, compress it and move it to a directory of compressed files. If 
 # directory of compressed files grows too big delete oldest compressed files.
