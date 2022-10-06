@@ -75,7 +75,7 @@ burst() {
 	# when there is 100% packet loss there the strings remain equal
 	# we only want to collect latency and std when there isn't 100% loss
 	# if loss is 100% we just send 0 in both cases, which will be ignored by the server
-	if [ ${#lat} == ${#pingResult} ]; then
+	if [ ${#lat} = ${#pingResult} ]; then
 	    s="$s 0 0"
 	else
 		# removes everything before first backslash
@@ -167,7 +167,7 @@ wifi() {
 			sig=${sig%% /*}
 
 			# if unknown discard
-			[ "$sig" == "unknown" ] && iw=${iw#*$'\n'} && continue
+			[ "$sig" = "unknown" ] && iw=${iw#*$'\n'} && continue
 
 			# getting everything before the first occasion of ' dBm'
 			sig=${sig%% dBm*}
@@ -469,7 +469,7 @@ loop() {
 		# getting parameters every time we need to send data, this way we don't have to 
 		# restart the service if a parameter changes.
 		eval $(cat /root/flashbox_config.json | jsonfilter \
-			# -e "hasLatency=@.data_collecting_has_latency" \
+			-e "hasLatency=@.data_collecting_has_latency" \
 			-e "alarmServerAddress=@.data_collecting_alarm_fqdn" \
 			-e "pingServerAddress=@.data_collecting_ping_fqdn" \
 			-e "pingPackets=@.data_collecting_ping_packets" \
