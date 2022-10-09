@@ -167,7 +167,7 @@ wifi() {
 			sig=${sig%% /*}
 
 			# if unknown discard
-			[ "$sig" = "unknown" ] && iw=${iw#*$'\n'} && continue
+			[ "$sig" = "unknown" ] && iw=${iw#*ago} && iw=${iw#*$'\n'} && continue
 
 			# getting everything before the first occasion of ' dBm'
 			sig=${sig%% dBm*}
