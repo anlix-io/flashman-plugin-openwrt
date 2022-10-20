@@ -392,12 +392,15 @@ check_and_set_default_traceroute() {
 }
 
 create_time_object_traceroute() {
-	# $1: ip
-	# $2: hops
-	local _ip="$1"
-	local _hops="$2"
+	# $1: index of the hop
+	# $2: ip
+	# $3: hops
+	local _index="$1"
+	local _ip="$2"
+	local _hops="$3"
 
 	json_add_object
+	json_add_int index "$_index"
 	json_add_string ip "$_ip"
 
 	# Create an array for storing the times
@@ -537,6 +540,9 @@ get_traceroute() {
 
 			for _hop in $_hops
 			do
+				# Get the index of the hop
+				local _index="$(echo "$_hop" | awk '{print $0}')"
+
 				# Get the ip of the hop
 				local _ip="$(echo "$_hop" | awk '{print $1}')"
 
@@ -545,7 +551,7 @@ get_traceroute() {
 
 				if [ -n "$_hops_to_add" ] && [ -z "$(echo "$_blacklist_hops" | grep "$_ip")" ]
 				then
-					create_time_object_traceroute "$_ip" "$_hops_to_add"
+					create_time_object_traceroute "$_index" "$_ip" "$_hops_to_add"
 
 					# Add the ip to blacklist
 					_blacklist_hops="${_blacklist_hops}"$'\n'"${_ip}"
@@ -554,7 +560,7 @@ get_traceroute() {
 				# Check if the ip is in _blacklist_hops, otherwise append to array
 				if [ -z "$(echo "$_blacklist_hops" | grep "$_ip")" ]
 				then
-					create_time_object_traceroute "$_ip" "$_hop"
+					create_time_object_traceroute "$_index" "$_ip" "$_hop"
 				fi
 			done
 
