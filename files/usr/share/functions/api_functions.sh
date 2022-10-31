@@ -400,7 +400,7 @@ create_time_object_traceroute() {
 	local _hops="$3"
 
 	json_add_object
-	json_add_int index "$_index"
+	json_add_int hop_index "$_index"
 	json_add_string ip "$_ip"
 
 	# Create an array for storing the times
@@ -482,6 +482,9 @@ get_traceroute() {
 		# Only process the traceroute if it is not empty
 		if [ -n "$_traceroute" ]
 		then
+			# Get all hops with index
+			local _hops_index="$(echo "$_traceroute" | grep -E -o '^ *[0-9]+.+[0-9]*(\.[0-9]*){3}')"
+
 			# Get all hops, might find more than one per line
 			local _hops="$(echo "$_traceroute" | grep -E -o '[0-9]*(\.[0-9]*){3}((  \*)*  [0-9]*\.[0-9]* ms)+')"
 
@@ -540,11 +543,11 @@ get_traceroute() {
 
 			for _hop in $_hops
 			do
-				# Get the index of the hop
-				local _index="$(echo "$_hop" | awk '{print $0}')"
-
 				# Get the ip of the hop
 				local _ip="$(echo "$_hop" | awk '{print $1}')"
+
+				# Get the index of the hop
+				local _index="$(echo "$_hops_index" | grep "$_ip" | awk '{print $1}' | head -1)"
 
 				# Check if ip is in _repeated_hops, add them, joining the time values
 				local _hops_to_add="$(echo "$_repeated_hops" | grep "$_ip")"
@@ -555,12 +558,18 @@ get_traceroute() {
 
 					# Add the ip to blacklist
 					_blacklist_hops="${_blacklist_hops}"$'\n'"${_ip}"
+
+					# Update _hops_index to remove the line
+					_hops_index="$(echo "$_hops_index" | grep -vE "^ *$_index  ")"
 				fi
 
 				# Check if the ip is in _blacklist_hops, otherwise append to array
 				if [ -z "$(echo "$_blacklist_hops" | grep "$_ip")" ]
 				then
 					create_time_object_traceroute "$_index" "$_ip" "$_hop"
+
+					# Update _hops_index to remove the line
+					_hops_index="$(echo "$_hops_index" | grep -vE "^ *$_index  ")"
 				fi
 			done
 
