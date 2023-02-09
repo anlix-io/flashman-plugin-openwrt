@@ -8,7 +8,8 @@ then
     then
       mkdir /tmp/dhcpinfo
     fi
-    echo "$DNSMASQ_REQUESTED_OPTIONS $DNSMASQ_VENDOR_CLASS" > /tmp/dhcpinfo/$MACADDR
+    VENDOR=$(echo $DNSMASQ_VENDOR_CLASS | tr '()!@$#%^ ' '.')
+    echo "$DNSMASQ_REQUESTED_OPTIONS $VENDOR" > /tmp/dhcpinfo/$MACADDR
   fi
 elif [ "$ACTION" = remove ]
 then
