@@ -112,5 +112,4 @@ function handle_config(command, data)
 			end
 		end
 	end
-
 end

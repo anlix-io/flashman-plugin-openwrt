@@ -245,10 +245,12 @@ mem_usage=$(get_memory_usage)"
 		json_get_var _upnp_devices_index upnp_devices_index
 		json_get_var _vlan_index vlan_index
 		json_get_var _data_collecting_is_active data_collecting_is_active
-		json_get_var _data_collecting_has_latency data_collecting_has_latency
 		json_get_var _data_collecting_alarm_fqdn data_collecting_alarm_fqdn
 		json_get_var _data_collecting_ping_fqdn data_collecting_ping_fqdn
 		json_get_var _data_collecting_ping_packets data_collecting_ping_packets
+		json_get_var _data_collecting_burst_loss data_collecting_burst_loss
+		json_get_var _data_collecting_wifi_devices data_collecting_wifi_devices
+		json_get_var _data_collecting_ping_and_wan data_collecting_ping_and_wan
 		json_get_var _bridge_mode_enabled bridge_mode_enabled
 		json_get_var _bridge_mode_switch_disable bridge_mode_switch_disable
 		json_get_var _bridge_mode_ip bridge_mode_ip
@@ -517,9 +519,11 @@ mem_usage=$(get_memory_usage)"
 		fi
 
 		# updates data collecting parameters.
-		set_data_collecting_parameters "$_data_collecting_is_active" "$_data_collecting_has_latency" \
+		set_data_collecting_parameters "$_data_collecting_is_active" \
 			                           "$_data_collecting_alarm_fqdn" "$_data_collecting_ping_fqdn" \
-			                           "$_data_collecting_ping_packets"
+			                           "$_data_collecting_ping_packets" "$_data_collecting_burst_loss" \
+			                           "$_data_collecting_wifi_devices" "$_data_collecting_ping_and_wan"
+
 
 		# Check for updates in port forward mapping
 		# Ignore changes if in bridge mode

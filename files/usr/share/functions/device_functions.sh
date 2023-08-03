@@ -225,7 +225,7 @@ get_lan_dev_negotiated_speed() {
 	echo "$_speed"
 }
 
-get_wan_statistics() {
+get_wan_bytes_statistics() {
 	local _param=$1
 
 	if [ "$(lsmod | grep hwnat)" ]
@@ -259,6 +259,20 @@ get_wan_statistics() {
 		else
 			echo "0"
 		fi
+	fi
+}
+
+get_wan_packets_statistics() {
+	local _param=$1
+	local _wan=$(get_wan_device)
+	if [ -f /sys/class/net/$_wan/statistics/tx_packets ]
+	then
+		case "$1" in
+			"TX") echo "$(cat /sys/class/net/$_wan/statistics/rx_packets)" ;;
+			"RX") echo "$(cat /sys/class/net/$_wan/statistics/tx_packets)" ;;
+		esac
+	else
+		echo "0"
 	fi
 }
 

@@ -83,7 +83,7 @@ uci set network.lan.netmask="$_lan_netmask"
 uci set network.lan.ip6assign="$_lan_ipv6prefix"
 uci set network.lan.igmp_snooping='1'
 uci set network.lan.stp='1'
-
+# Configure dmz
 uci set network.dmz=interface
 uci set network.dmz.proto='static'
 uci set network.dmz.netmask='24'
