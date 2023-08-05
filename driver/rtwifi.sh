@@ -53,7 +53,7 @@ is_5ghz_vht() {
 }
 
 get_wifi_htmode() {
-	echo "20"
+	echo ""
 }
 
 convert_txpower() {

@@ -198,6 +198,7 @@ set_wan_type() {
 			fi
 
 			/etc/init.d/network restart
+			/etc/init.d/miniupnpd reload
 			[ "$(get_ipv6_enabled)" != "0" ] && /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
 
 			# This will persist connection type between firmware upgrades
@@ -237,6 +238,7 @@ set_wan_type() {
 				fi
 
 				/etc/init.d/network restart
+				/etc/init.d/miniupnpd reload
 				[ "$(get_ipv6_enabled)" != "0" ] && /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
 
 				# This will persist connection type between firmware upgrades
@@ -286,6 +288,7 @@ set_pppoe_credentials() {
 				uci commit network
 
 				/etc/init.d/network restart
+				/etc/init.d/miniupnpd reload
 				[ "$(get_ipv6_enabled)" != "0" ] && /etc/init.d/odhcpd restart # Must restart to fix IPv6 leasing
 
 				# This will persist connection type between firmware upgrades
@@ -714,7 +717,8 @@ update_vlan() {
 			done
 
 			uci commit network
-			[ "$_restart_network" = "y" ] && /etc/init.d/network restart && sleep 5
+			[ "$_restart_network" = "y" ] && /etc/init.d/network restart && 
+			/etc/init.d/miniupnpd reload && sleep 5
 		fi
 
 		json_close_object
@@ -1031,6 +1035,7 @@ disable_bridge_mode() {
 			needs_reboot_change_mode
 		else
 			/etc/init.d/network restart
+			/etc/init.d/miniupnpd reload
 			[ "$(get_ipv6_enabled)" = "1" ] && /etc/init.d/odhcpd restart
 		fi
 	fi

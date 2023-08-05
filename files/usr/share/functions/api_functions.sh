@@ -483,7 +483,7 @@ get_traceroute() {
 			local _hops="$(echo "$_traceroute" | grep -E -o '[0-9]*(\.[0-9]*){3}((  \*)*  [0-9]*\.[0-9]* ms)+')"
 
 			# The ip of what the last hop should be
-			local _last_ip="$(echo "$_traceroute" | grep -m 1 -Eo '[0-9]*(\.[0-9]*){3}')"
+			local _last_ip="$(echo "$_traceroute" | grep -m 1 -Eo '[0-9]*(\.[0-9]*){3}' | head -1)"
 			
 			# Find lines where there is more than 1 IP
 			local _blacklist_hops="$(echo "$_traceroute" | grep -E -o '[0-9]*(\.[0-9]*){3}.*[0-9]*(\.[0-9]*){3}')"
@@ -725,7 +725,7 @@ run_speed_ondemand_test() {
 			# Send an empty answer to flashman
 			log "SPEEDTESTRAW" "Could not get speedtest hosts"
 
-			_send_data_flashman "speedtestresult" "$_reply"
+			send_data_flashman "speedtestresult" "$_reply"
 			_retstatus=$?
 
 			return $_retstatus
@@ -770,7 +770,7 @@ run_speed_ondemand_test() {
 		# Send an empty answer to flashman
 		log "SPEEDTEST" "Invalid url list"
 
-		_send_data_flashman "speedtestresult" "$_reply"
+		send_data_flashman "speedtestresult" "$_reply"
 		_retstatus=$?
 
 		return $_retstatus
